@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 
 // Mock data - replace with your actual data.json
@@ -42,15 +41,37 @@ interface DataItem {
 }
 
 interface ScheduleItem {
+  id: string
   day: number
   shift: string
   type: string
   pcs: number
   time: string
   processes: string
+  status: "Normal" | "Gangguan" | "Completed"
+  actualPcs?: number
+  notes?: string
+}
+
+interface SavedSchedule {
+  id: string
+  name: string
+  date: string
+  form: any
+  schedule: ScheduleItem[]
+}
+
+interface User {
+  username: string
+  email: string
 }
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" })
+  const [currentView, setCurrentView] = useState<"scheduler" | "saved">("scheduler")
+
   const [form, setForm] = useState({
     machine: "",
     part: "",
@@ -66,22 +87,55 @@ function App() {
     overtimeHour: 119,
     planningPcs: 3838,
     overtimePcs: 1672,
+    isManualPlanningPcs: false,
   })
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([])
+  const [savedSchedules, setSavedSchedules] = useState<SavedSchedule[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [scheduleName, setScheduleName] = useState("")
+  const [editingRow, setEditingRow] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Partial<ScheduleItem>>({})
+
+  useEffect(() => {
+    // Load saved schedules from localStorage
+    const saved = localStorage.getItem("savedSchedules")
+    if (saved) {
+      setSavedSchedules(JSON.parse(saved))
+    }
+
+    // Check if user is logged in
+    const savedUser = localStorage.getItem("currentUser")
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+      setIsLoggedIn(true)
+    }
+  }, [])
 
   useEffect(() => {
     updateCalculatedFields()
   }, [form.timePerPcs, form.planningHour, form.overtimeHour])
 
+  useEffect(() => {
+    if (form.isManualPlanningPcs && form.timePerPcs > 0 && form.planningPcs > 0) {
+      const calculatedPlanningHour = (form.planningPcs * form.timePerPcs) / 3600
+
+      setForm((prev) => ({
+        ...prev,
+        planningHour: Number.parseFloat(calculatedPlanningHour.toFixed(2)),
+      }))
+    }
+  }, [form.planningPcs, form.isManualPlanningPcs])
+
   const updateCalculatedFields = () => {
-    const { timePerPcs, planningHour, overtimeHour } = form
+    const { timePerPcs, planningHour, overtimeHour, isManualPlanningPcs } = form
 
     if (timePerPcs > 0) {
       const cycle1 = timePerPcs
       const cycle7 = timePerPcs * 7
       const cycle35 = timePerPcs * 3.5
-      const planningPcs = Math.floor((planningHour * 3600) / timePerPcs)
+
+      const planningPcs = isManualPlanningPcs ? form.planningPcs : Math.floor((planningHour * 3600) / timePerPcs)
       const overtimePcs = Math.floor((overtimeHour * 3600) / timePerPcs)
 
       setForm((prev) => ({
@@ -93,6 +147,27 @@ function App() {
         overtimePcs,
       }))
     }
+  }
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (loginForm.username && loginForm.password) {
+      const userData = {
+        username: loginForm.username,
+        email: `${loginForm.username}@berlindo.com`,
+      }
+      setUser(userData)
+      setIsLoggedIn(true)
+      localStorage.setItem("currentUser", JSON.stringify(userData))
+      setLoginForm({ username: "", password: "" })
+    }
+  }
+
+  const handleLogout = () => {
+    setUser(null)
+    setIsLoggedIn(false)
+    localStorage.removeItem("currentUser")
+    setCurrentView("scheduler")
   }
 
   const handleSelectPart = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -112,18 +187,32 @@ function App() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setForm((prev) => ({
-      ...prev,
-      [name]: ["machine", "part", "customer", "processes"].includes(name) ? value : Number.parseFloat(value) || 0,
-    }))
+
+    if (name === "planningPcs") {
+      setForm((prev) => ({
+        ...prev,
+        [name]: Number.parseFloat(value) || 0,
+        isManualPlanningPcs: true,
+      }))
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        [name]: ["machine", "part", "customer", "processes"].includes(name) ? value : Number.parseFloat(value) || 0,
+      }))
+    }
   }
 
-  const generateSchedule = () => {
+  const generateSchedule = async () => {
+    setIsGenerating(true)
+
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
     const { delivery, stock, timePerPcs, planningHour, overtimeHour, processes } = form
 
     const totalNeed = delivery - stock
     if (totalNeed <= 0) {
       alert("✅ Stock sudah cukup, tidak perlu produksi.")
+      setIsGenerating(false)
       return
     }
 
@@ -150,12 +239,16 @@ function App() {
 
       if (shift1Pcs > 0) {
         scheduleList.push({
+          id: `${currentDay}-1`,
           day: currentDay,
           shift: "1",
           type: "Normal",
           pcs: shift1Pcs,
           time: (shift1Used / 60).toFixed(2),
           processes: processList.join(", "),
+          status: "Normal",
+          actualPcs: shift1Pcs,
+          notes: "",
         })
         remaining -= shift1Pcs
         availableSeconds -= shift1Used
@@ -168,12 +261,16 @@ function App() {
       if (shift2Pcs > 0) {
         const isLembur = shift2Seconds > 25200
         scheduleList.push({
+          id: `${currentDay}-2`,
           day: currentDay,
           shift: "2",
           type: isLembur ? "Normal + Lembur" : "Normal",
           pcs: shift2Pcs,
           time: (shift2Used / 60).toFixed(2),
           processes: processList.join(", "),
+          status: "Normal",
+          actualPcs: shift2Pcs,
+          notes: "",
         })
         remaining -= shift2Pcs
         availableSeconds -= shift2Used
@@ -187,352 +284,871 @@ function App() {
     }
 
     setSchedule(scheduleList)
+    setIsGenerating(false)
+  }
+
+  const recalculateSchedule = (updatedSchedule: ScheduleItem[]) => {
+    const { timePerPcs, planningHour, overtimeHour, processes } = form
+
+    // Calculate total disrupted production
+    let totalDisrupted = 0
+    const processedSchedule = updatedSchedule.map((item) => {
+      if (item.status === "Gangguan") {
+        const disrupted = item.pcs - (item.actualPcs || 0)
+        totalDisrupted += disrupted
+        return item
+      }
+      return item
+    })
+
+    if (totalDisrupted <= 0) {
+      setSchedule(updatedSchedule)
+      return
+    }
+
+    // Find the last day in current schedule
+    const lastDay = Math.max(...processedSchedule.map((item) => item.day))
+    const processList = processes.split(",").map((p) => p.trim())
+
+    // Add additional days to compensate for disrupted production
+    let remaining = totalDisrupted
+    let currentDay = lastDay + 1
+    const additionalSchedule: ScheduleItem[] = []
+
+    while (remaining > 0) {
+      const dailyCapacitySeconds = planningHour * 3600 + overtimeHour * 3600
+      const dailyCapacityPcs = Math.floor(dailyCapacitySeconds / timePerPcs)
+
+      const shift1Seconds = Math.min(25200, planningHour * 3600)
+      const shift1Pcs = Math.min(Math.floor(shift1Seconds / timePerPcs), remaining)
+      const shift1Used = shift1Pcs * timePerPcs
+
+      if (shift1Pcs > 0) {
+        additionalSchedule.push({
+          id: `${currentDay}-1`,
+          day: currentDay,
+          shift: "1",
+          type: "Normal",
+          pcs: shift1Pcs,
+          time: (shift1Used / 60).toFixed(2),
+          processes: processList.join(", "),
+          status: "Normal",
+          actualPcs: shift1Pcs,
+          notes: "Kompensasi gangguan produksi",
+        })
+        remaining -= shift1Pcs
+      }
+
+      if (remaining > 0) {
+        const shift2Seconds = Math.min(37800, overtimeHour * 3600)
+        const shift2Pcs = Math.min(Math.floor(shift2Seconds / timePerPcs), remaining)
+        const shift2Used = shift2Pcs * timePerPcs
+
+        if (shift2Pcs > 0) {
+          const isLembur = shift2Seconds > 25200
+          additionalSchedule.push({
+            id: `${currentDay}-2`,
+            day: currentDay,
+            shift: "2",
+            type: isLembur ? "Normal + Lembur" : "Normal",
+            pcs: shift2Pcs,
+            time: (shift2Used / 60).toFixed(2),
+            processes: processList.join(", "),
+            status: "Normal",
+            actualPcs: shift2Pcs,
+            notes: "Kompensasi gangguan produksi",
+          })
+          remaining -= shift2Pcs
+        }
+      }
+
+      currentDay++
+    }
+
+    setSchedule([...processedSchedule, ...additionalSchedule])
+  }
+
+  const startEdit = (item: ScheduleItem) => {
+    setEditingRow(item.id)
+    setEditForm({
+      status: item.status,
+      actualPcs: item.actualPcs,
+      notes: item.notes,
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingRow(null)
+    setEditForm({})
+  }
+
+  const saveEdit = (itemId: string) => {
+    const updatedSchedule = schedule.map((item) => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          status: editForm.status || item.status,
+          actualPcs: editForm.actualPcs !== undefined ? editForm.actualPcs : item.actualPcs,
+          notes: editForm.notes || item.notes || "",
+        }
+      }
+      return item
+    })
+
+    recalculateSchedule(updatedSchedule)
+    setEditingRow(null)
+    setEditForm({})
+  }
+
+  const saveSchedule = () => {
+    if (!scheduleName.trim()) {
+      alert("Please enter a schedule name")
+      return
+    }
+
+    const newSchedule: SavedSchedule = {
+      id: Date.now().toString(),
+      name: scheduleName,
+      date: new Date().toLocaleDateString(),
+      form: { ...form },
+      schedule: [...schedule],
+    }
+
+    const updatedSchedules = [...savedSchedules, newSchedule]
+    setSavedSchedules(updatedSchedules)
+    localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules))
+    setScheduleName("")
+    alert("Schedule saved successfully!")
+  }
+
+  const deleteSchedule = (id: string) => {
+    const updatedSchedules = savedSchedules.filter((s) => s.id !== id)
+    setSavedSchedules(updatedSchedules)
+    localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules))
+  }
+
+  const loadSchedule = (savedSchedule: SavedSchedule) => {
+    setForm(savedSchedule.form)
+    setSchedule(savedSchedule.schedule)
+    setCurrentView("scheduler")
+  }
+
+  const totalProduction = schedule.reduce((sum, item) => sum + (item.actualPcs || item.pcs), 0)
+  const totalPlanned = schedule.reduce((sum, item) => sum + item.pcs, 0)
+  const totalDays = schedule.length > 0 ? Math.max(...schedule.map((item) => item.day)) : 0
+  const disruptedItems = schedule.filter((item) => item.status === "Gangguan").length
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
+        <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg mb-6">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">Production Scheduler</h1>
+            <p className="text-gray-400">Sign in to access your production planning tools</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+              <input
+                type="text"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, username: e.target.value }))}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white placeholder-gray-500"
+                placeholder="Enter your username"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white placeholder-gray-500"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300"
+            >
+              Sign In
+            </button>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">Production Scheduler</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Streamline your manufacturing process with intelligent production planning and scheduling
-          </p>
-        </div>
-
-        {/* Main Form */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-8 py-6 border-b border-gray-200/60">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Production Parameters</h2>
+    <div className="min-h-screen bg-gray-950">
+      {/* Navigation */}
+      <nav className="bg-gray-900 border-b border-gray-800 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
             </div>
+            <h1 className="text-xl font-bold text-white">Production Scheduler</h1>
           </div>
 
-          <div className="p-8 space-y-10">
-            {/* Part Selection */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Select Part</label>
-              <select
-                onChange={handleSelectPart}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900"
-              >
-                <option value="">Choose a part...</option>
-                {mockData.map((item, idx) => (
-                  <option key={idx} value={item.part}>
-                    {item.part} - {item.customer}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Basic Information */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                Basic Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Machine Name</label>
-                  <input
-                    type="text"
-                    name="machine"
-                    value={form.machine}
-                    onChange={handleChange}
-                    placeholder="Enter machine name"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Part Name</label>
-                  <input
-                    type="text"
-                    name="part"
-                    value={form.part}
-                    onChange={handleChange}
-                    placeholder="Enter part name"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Customer Name</label>
-                  <input
-                    type="text"
-                    name="customer"
-                    value={form.customer}
-                    onChange={handleChange}
-                    placeholder="Enter customer name"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Timing Parameters */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                Timing Parameters
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Time per Piece (sec)</label>
-                  <input
-                    type="number"
-                    name="timePerPcs"
-                    value={form.timePerPcs}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Cycle 1 Hour (sec)</label>
-                  <input
-                    type="number"
-                    name="cycle1"
-                    value={form.cycle1}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600"
-                    readOnly
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Cycle 7 Hours (sec)</label>
-                  <input
-                    type="number"
-                    name="cycle7"
-                    value={form.cycle7}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600"
-                    readOnly
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Cycle 3.5 Hours (sec)</label>
-                  <input
-                    type="number"
-                    name="cycle35"
-                    value={form.cycle35}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600"
-                    readOnly
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Production Targets */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <div className="w-2 h-2 bg-orange-600 rounded-full"></div>
-                Production Targets
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                          />
-                        </svg>
-                        Stock (PCS)
-                      </label>
-                      <input
-                        type="number"
-                        name="stock"
-                        value={form.stock}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        Delivery (PCS)
-                      </label>
-                      <input
-                        type="number"
-                        name="delivery"
-                        value={form.delivery}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Planning Hours</label>
-                      <input
-                        type="number"
-                        name="planningHour"
-                        value={form.planningHour}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Overtime Hours</label>
-                      <input
-                        type="number"
-                        name="overtimeHour"
-                        value={form.overtimeHour}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Planning Target (PCS)</label>
-                      <input
-                        type="number"
-                        name="planningPcs"
-                        value={form.planningPcs}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600"
-                        readOnly
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Overtime Target (PCS)</label>
-                      <input
-                        type="number"
-                        name="overtimePcs"
-                        value={form.overtimePcs}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600"
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Processes</label>
-                    <textarea
-                      name="processes"
-                      value={form.processes}
-                      onChange={handleChange}
-                      placeholder="Enter processes separated by commas"
-                      rows={4}
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center pt-6">
+          <div className="flex items-center gap-4">
+            <div className="flex bg-gray-800 rounded-lg p-1">
               <button
-                onClick={generateSchedule}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200 flex items-center gap-3 shadow-lg hover:shadow-xl"
+                onClick={() => setCurrentView("scheduler")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  currentView === "scheduler"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                }`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                Generate Schedule
+                Scheduler
+              </button>
+              <button
+                onClick={() => setCurrentView("saved")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  currentView === "saved"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                }`}
+              >
+                Saved ({savedSchedules.length})
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm font-medium text-white">{user?.username}</p>
+                <p className="text-xs text-gray-400">{user?.email}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-all duration-200 text-sm font-medium"
+              >
+                Logout
               </button>
             </div>
           </div>
         </div>
+      </nav>
 
-        {/* Schedule Results */}
-        {schedule.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-8 py-6 border-b border-gray-200/60">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
+      <div className="p-6 lg:p-8">
+        <div className="mx-auto max-w-7xl space-y-8">
+          {currentView === "saved" ? (
+            /* Saved Schedules View */
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-white">Saved Schedules</h2>
+              {savedSchedules.length === 0 ? (
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">No Saved Schedules</h3>
+                  <p className="text-gray-400 mb-6">Create and save your first production schedule to see it here.</p>
+                  <button
+                    onClick={() => setCurrentView("scheduler")}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                  >
+                    Create Schedule
+                  </button>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Production Schedule</h2>
-              </div>
-            </div>
-
-            <div className="p-8">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200">
-                      <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">No</th>
-                      <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Date</th>
-                      <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Shift</th>
-                      <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Type</th>
-                      <th className="text-right py-4 px-4 font-semibold text-gray-700 text-sm">Target (PCS)</th>
-                      <th className="text-right py-4 px-4 font-semibold text-gray-700 text-sm">Time (Min)</th>
-                      <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Processes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedule.map((row, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150"
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {savedSchedules.map((savedSchedule) => (
+                    <div key={savedSchedule.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-1">{savedSchedule.name}</h3>
+                          <p className="text-sm text-gray-400">Created: {savedSchedule.date}</p>
+                        </div>
+                        <button
+                          onClick={() => deleteSchedule(savedSchedule.id)}
+                          className="text-gray-500 hover:text-red-400 transition-colors duration-200"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Part:</span>
+                          <span className="text-white">{savedSchedule.form.part || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Customer:</span>
+                          <span className="text-white">{savedSchedule.form.customer || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Items:</span>
+                          <span className="text-white">{savedSchedule.schedule.length} schedule items</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => loadSchedule(savedSchedule)}
+                        className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
                       >
-                        <td className="py-4 px-4 font-medium text-gray-900">{idx + 1}</td>
-                        <td className="py-4 px-4 text-gray-700">{`${row.day} Juli`}</td>
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Shift {row.shift}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                              row.type.includes("Lembur") ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {row.type}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-right font-semibold text-gray-900">{row.pcs.toLocaleString()}</td>
-                        <td className="py-4 px-4 text-right text-gray-700">{row.time}</td>
-                        <td className="py-4 px-4 text-sm text-gray-600">{row.processes}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        Load Schedule
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            /* Main Scheduler View */
+            <>
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">Total Production</p>
+                      <p className="text-2xl font-bold text-white">{totalProduction.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500">PCS Actual</p>
+                    </div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">Planned Production</p>
+                      <p className="text-2xl font-bold text-white">{totalPlanned.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500">PCS Planned</p>
+                    </div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">Production Days</p>
+                      <p className="text-2xl font-bold text-white">{totalDays}</p>
+                      <p className="text-xs text-gray-500">Days Required</p>
+                    </div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">Disruptions</p>
+                      <p className="text-2xl font-bold text-white">{disruptedItems}</p>
+                      <p className="text-xs text-gray-500">Items Affected</p>
+                    </div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Form */}
+              <div className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
+                <div className="border-b border-gray-800 px-8 py-6">
+                  <h2 className="text-2xl font-bold text-white">Production Configuration</h2>
+                  <p className="text-gray-400 mt-1">Configure your manufacturing parameters</p>
+                </div>
+
+                <div className="p-8 space-y-8">
+                  {/* Part Selection */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white">Part Selection</h3>
+                    <select
+                      onChange={handleSelectPart}
+                      className="w-full px-4 py-4 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white appearance-none cursor-pointer hover:border-gray-600"
+                    >
+                      <option value="">Select a part to get started...</option>
+                      {mockData.map((item, idx) => (
+                        <option key={idx} value={item.part}>
+                          {item.part} - {item.customer}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Basic Information */}
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-white">Basic Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[
+                        { label: "Machine Name", name: "machine" },
+                        { label: "Part Name", name: "part" },
+                        { label: "Customer Name", name: "customer" },
+                      ].map(({ label, name }) => (
+                        <div key={name} className="space-y-3">
+                          <label className="block text-sm font-medium text-gray-300">{label}</label>
+                          <input
+                            type="text"
+                            name={name}
+                            value={(form as any)[name]}
+                            onChange={handleChange}
+                            placeholder={`Enter ${label.toLowerCase()}`}
+                            className="w-full px-4 py-4 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white placeholder-gray-500 hover:border-gray-600"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Timing Parameters */}
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-white">Timing Parameters</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {[
+                        { label: "Time per Piece", name: "timePerPcs", suffix: "sec", editable: true },
+                        { label: "Cycle 1 Hour", name: "cycle1", suffix: "sec", editable: false },
+                        { label: "Cycle 7 Hours", name: "cycle7", suffix: "sec", editable: false },
+                        { label: "Cycle 3.5 Hours", name: "cycle35", suffix: "sec", editable: false },
+                      ].map(({ label, name, suffix, editable }) => (
+                        <div key={name} className="space-y-3">
+                          <label className="block text-sm font-medium text-gray-300">{label}</label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              name={name}
+                              value={(form as any)[name]}
+                              onChange={handleChange}
+                              className={`w-full px-4 py-4 pr-12 border rounded-xl transition-all duration-200 ${
+                                editable
+                                  ? "bg-gray-800 border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white hover:border-gray-600"
+                                  : "bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed"
+                              }`}
+                              readOnly={!editable}
+                            />
+                            <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 font-medium">
+                              {suffix}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Production Targets */}
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-white">Production Targets</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Input Section */}
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-300">Current Stock</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                name="stock"
+                                value={form.stock}
+                                onChange={handleChange}
+                                className="w-full px-4 py-4 pr-12 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white hover:border-gray-600"
+                              />
+                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 font-medium">
+                                PCS
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-300">Delivery Target</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                name="delivery"
+                                value={form.delivery}
+                                onChange={handleChange}
+                                className="w-full px-4 py-4 pr-12 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white hover:border-gray-600"
+                              />
+                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 font-medium">
+                                PCS
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-300">Planning Hours</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                name="planningHour"
+                                value={form.planningHour}
+                                onChange={handleChange}
+                                className="w-full px-4 py-4 pr-12 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white hover:border-gray-600"
+                              />
+                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 font-medium">
+                                Hrs
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-300">Overtime Hours</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                name="overtimeHour"
+                                value={form.overtimeHour}
+                                onChange={handleChange}
+                                className="w-full px-4 py-4 pr-12 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white hover:border-gray-600"
+                              />
+                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 font-medium">
+                                Hrs
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Output Section */}
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-300">Planning Target</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                name="planningPcs"
+                                value={form.planningPcs}
+                                onChange={handleChange}
+                                className="w-full px-4 py-4 pr-12 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-white hover:border-gray-600"
+                              />
+                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 font-medium">
+                                PCS
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-300">Overtime Target</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                name="overtimePcs"
+                                value={form.overtimePcs}
+                                className="w-full px-4 py-4 pr-12 bg-gray-800/50 border border-gray-700 rounded-xl text-gray-400 cursor-not-allowed"
+                                readOnly
+                              />
+                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 font-medium">
+                                PCS
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <label className="block text-sm font-medium text-gray-300">Manufacturing Processes</label>
+                          <textarea
+                            name="processes"
+                            value={form.processes}
+                            onChange={handleChange}
+                            placeholder="Enter manufacturing processes separated by commas"
+                            rows={4}
+                            className="w-full px-4 py-4 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none text-white placeholder-gray-500 hover:border-gray-600"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Generate Button */}
+                  <div className="flex justify-center pt-8">
+                    <button
+                      onClick={generateSchedule}
+                      disabled={isGenerating}
+                      className="px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-3 shadow-lg"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                          Generating Schedule...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          Generate Production Schedule
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule Results */}
+              {schedule.length > 0 && (
+                <div className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
+                  <div className="border-b border-gray-800 px-8 py-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-2xl font-bold text-white">Production Schedule</h2>
+                        <p className="text-gray-400 mt-1">
+                          Your optimized manufacturing timeline - Click to edit status
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="text"
+                          value={scheduleName}
+                          onChange={(e) => setScheduleName(e.target.value)}
+                          placeholder="Enter schedule name"
+                          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button
+                          onClick={saveSchedule}
+                          className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                            />
+                          </svg>
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-8">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-800">
+                            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">No</th>
+                            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Date</th>
+                            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Shift</th>
+                            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Type</th>
+                            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Status</th>
+                            <th className="text-right py-4 px-4 font-semibold text-gray-300 text-sm">Target (PCS)</th>
+                            <th className="text-right py-4 px-4 font-semibold text-gray-300 text-sm">Actual (PCS)</th>
+                            <th className="text-right py-4 px-4 font-semibold text-gray-300 text-sm">Time (Min)</th>
+                            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Notes</th>
+                            <th className="text-center py-4 px-4 font-semibold text-gray-300 text-sm">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {schedule.map((row, idx) => (
+                            <tr
+                              key={row.id}
+                              className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors duration-200"
+                            >
+                              <td className="py-4 px-4 font-medium text-white">{idx + 1}</td>
+                              <td className="py-4 px-4 text-gray-300">{`${row.day} Juli 2024`}</td>
+                              <td className="py-4 px-4">
+                                <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+                                  Shift {row.shift}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span
+                                  className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${
+                                    row.type.includes("Lembur")
+                                      ? "bg-gradient-to-r from-orange-500 to-red-600 text-white"
+                                      : "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                                  }`}
+                                >
+                                  {row.type}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                {editingRow === row.id ? (
+                                  <select
+                                    value={editForm.status || row.status}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({ ...prev, status: e.target.value as any }))
+                                    }
+                                    className="px-3 py-1 bg-gray-800 border border-gray-700 rounded-lg text-white text-xs focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="Normal">Normal</option>
+                                    <option value="Gangguan">Gangguan</option>
+                                    <option value="Completed">Completed</option>
+                                  </select>
+                                ) : (
+                                  <span
+                                    className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${
+                                      row.status === "Normal"
+                                        ? "bg-green-100 text-green-800"
+                                        : row.status === "Gangguan"
+                                          ? "bg-red-100 text-red-800"
+                                          : "bg-blue-100 text-blue-800"
+                                    }`}
+                                  >
+                                    {row.status}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4 text-right font-semibold text-white">
+                                {row.pcs.toLocaleString()}
+                              </td>
+                              <td className="py-4 px-4 text-right">
+                                {editingRow === row.id ? (
+                                  <input
+                                    type="number"
+                                    value={editForm.actualPcs !== undefined ? editForm.actualPcs : row.actualPcs}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        actualPcs: Number.parseInt(e.target.value) || 0,
+                                      }))
+                                    }
+                                    className="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
+                                  />
+                                ) : (
+                                  <span
+                                    className={`font-semibold ${row.status === "Gangguan" && (row.actualPcs || 0) < row.pcs ? "text-red-400" : "text-white"}`}
+                                  >
+                                    {(row.actualPcs || row.pcs).toLocaleString()}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4 text-right text-gray-300">{row.time}</td>
+                              <td className="py-4 px-4 text-sm">
+                                {editingRow === row.id ? (
+                                  <input
+                                    type="text"
+                                    value={editForm.notes !== undefined ? editForm.notes : row.notes}
+                                    onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
+                                    placeholder="Add notes..."
+                                    className="w-32 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
+                                  />
+                                ) : (
+                                  <span className="text-gray-400">{row.notes || "-"}</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                {editingRow === row.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => saveEdit(row.id)}
+                                      className="text-green-400 hover:text-green-300 transition-colors duration-200"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={cancelEdit}
+                                      className="text-red-400 hover:text-red-300 transition-colors duration-200"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M6 18L18 6M6 6l12 12"
+                                        />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => startEdit(row)}
+                                    className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
