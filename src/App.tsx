@@ -74,21 +74,22 @@ function App() {
     "scheduler",
   );
 
-  const [form, setForm] = useState({
-    part: "",
-    customer: "",
-    timePerPcs: 257,
-    cycle1: 14,
-    cycle7: 98,
-    cycle35: 49,
-    stock: 332,
-    delivery: 5100,
-    planningHour: 274,
-    overtimeHour: 119,
-    planningPcs: 3838,
-    overtimePcs: 1672,
-    isManualPlanningPcs: false,
-  });
+const [form, setForm] = useState({
+  part: "",
+  customer: "",
+  timePerPcs: 257,
+  cycle1: 0, // Initialize to 0
+  cycle7: 0, // Initialize to 0
+  cycle35: 0, // Initialize to 0
+  stock: 332,
+  delivery: 5100,
+  planningHour: 274,
+  overtimeHour: 119,
+  planningPcs: 3838,
+  overtimePcs: 1672,
+  isManualPlanningPcs: false,
+});
+
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [savedSchedules, setSavedSchedules] = useState<SavedSchedule[]>([]);
@@ -179,40 +180,83 @@ function App() {
   };
 
   const handleSelectPart = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = mockData.find((item) => item.part === e.target.value);
-    if (selected) {
+  const selected = mockData.find((item) => item.part === e.target.value);
+  if (selected) {
+    setForm((prev) => ({
+      ...prev,
+      part: selected.part,
+      customer: selected.customer,
+      timePerPcs: selected.timePerPcs,
+      cycle1: selected.cycle1,
+      cycle7: selected.cycle7,
+      cycle35: selected.cycle35,
+      isManualPlanningPcs: false,
+    }));
+  } else {
+    setForm((prev) => ({
+      ...prev,
+      part: e.target.value,
+      customer: "",
+      timePerPcs: prev.timePerPcs > 0 ? prev.timePerPcs : 0,
+      cycle1: 0, // Allow manual input
+      cycle7: 0, // Allow manual input
+      cycle35: 0, // Allow manual input
+      isManualPlanningPcs: true,
+    }));
+  }
+};
+
+ const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+) => {
+  const { name, value } = e.target;
+
+  // Prevent negative values for numeric inputs
+  const numericValue = Number.parseFloat(value);
+  if (numericValue < 0) {
+    return; // Ignore negative input
+  }
+
+  if (name === "planningPcs") {
+    setForm((prev) => ({
+      ...prev,
+      [name]: numericValue || 0,
+      isManualPlanningPcs: true,
+    }));
+  } else if (["cycle1", "cycle7", "cycle35"].includes(name)) {
+    setForm((prev) => ({
+      ...prev,
+      [name]: numericValue || 0,
+      isManualPlanningPcs: true,
+    }));
+    
+    // Update timePerPcs when cycle1 is manually changed
+    if (name === "cycle1" && numericValue > 0) {
       setForm((prev) => ({
         ...prev,
-        part: selected.part,
-        customer: selected.customer,
-        timePerPcs: selected.timePerPcs,
-        cycle1: selected.cycle1,
-        cycle7: selected.cycle7,
-        cycle35: selected.cycle35,
+        timePerPcs: numericValue,
       }));
     }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value } = e.target;
-
-    if (name === "planningPcs") {
-      setForm((prev) => ({
+    
+    // Update related cycles when timePerPcs changes
+    if (name === "timePerPcs" && numericValue > 0 && !form.isManualPlanningPcs) {
+      setForm(prev => ({
         ...prev,
-        [name]: Number.parseFloat(value) || 0,
-        isManualPlanningPcs: true,
-      }));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        [name]: ["part", "customer", "processes"].includes(name)
-          ? value
-          : Number.parseFloat(value) || 0,
+        cycle1: numericValue,
+        cycle7: numericValue * 7,
+        cycle35: numericValue * 3.5
       }));
     }
-  };
+  } else {
+    setForm((prev) => ({
+      ...prev,
+      [name]: ["part", "customer", "processes"].includes(name)
+        ? value
+        : numericValue || 0,
+    }));
+  }
+};
+
 
   const generateSchedule = async () => {
     setIsGenerating(true);
@@ -894,19 +938,19 @@ function App() {
                           label: "Cycle 1 Hour",
                           name: "cycle1",
                           suffix: "sec",
-                          editable: false,
+                          editable: true,
                         },
                         {
                           label: "Cycle 7 Hours",
                           name: "cycle7",
                           suffix: "sec",
-                          editable: false,
+                          editable: true,
                         },
                         {
                           label: "Cycle 3.5 Hours",
                           name: "cycle35",
                           suffix: "sec",
-                          editable: false,
+                          editable: true,
                         },
                       ].map(({ label, name, suffix, editable }) => (
                         <div key={name} className="space-y-3">
