@@ -73,6 +73,7 @@ function App() {
   const [currentView, setCurrentView] = useState<"scheduler" | "saved">(
     "scheduler",
   );
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [form, setForm] = useState({
     part: "",
@@ -233,10 +234,10 @@ function App() {
     const shift1Seconds = 14400; // 4 jam
     const shift2Seconds = 14400; // 4 jam
     const secondsPerDay = shift1Seconds + shift2Seconds;
-    
+
     const maxPcsPerDay = Math.floor(secondsPerDay / timePerPcs);
     const daysNeeded = Math.ceil(totalNeed / maxPcsPerDay);
-    
+
     const scheduleList: ScheduleItem[] = [];
 
     let remaining = totalNeed;
@@ -245,7 +246,10 @@ function App() {
     // Jadwalkan produksi untuk 30 hari (maksimal)
     while (remaining > 0 && currentDay <= 30) {
       // Shift 1: 8 AM - 12 PM
-      const shift1Pcs = Math.min(Math.floor(shift1Seconds / timePerPcs), remaining);
+      const shift1Pcs = Math.min(
+        Math.floor(shift1Seconds / timePerPcs),
+        remaining,
+      );
       const shift1Used = shift1Pcs * timePerPcs;
 
       if (shift1Pcs > 0) {
@@ -266,7 +270,10 @@ function App() {
 
       // Shift 2: 1 PM - 5 PM
       if (remaining > 0) {
-        const shift2Pcs = Math.min(Math.floor(shift2Seconds / timePerPcs), remaining);
+        const shift2Pcs = Math.min(
+          Math.floor(shift2Seconds / timePerPcs),
+          remaining,
+        );
         const shift2Used = shift2Pcs * timePerPcs;
 
         if (shift2Pcs > 0) {
@@ -293,7 +300,7 @@ function App() {
     if (remaining > 0) {
       const overtimeSeconds = remaining * timePerPcs;
       const overtimeMinutes = overtimeSeconds / 60;
-      
+
       scheduleList.push({
         id: `31-1`,
         day: 31,
@@ -332,17 +339,19 @@ function App() {
     }
 
     // Tambahkan produksi yang terganggu ke lembur di hari ke-31
-    
+
     // Cek apakah sudah ada lembur di hari ke-31
-    const existingOvertimeIndex = processedSchedule.findIndex(item => item.day === 31 && item.type === "Lembur");
-    
+    const existingOvertimeIndex = processedSchedule.findIndex(
+      (item) => item.day === 31 && item.type === "Lembur",
+    );
+
     if (existingOvertimeIndex >= 0) {
       // Update lembur yang sudah ada
       const updatedProcessedSchedule = [...processedSchedule];
       const existingOvertime = updatedProcessedSchedule[existingOvertimeIndex];
       const newPcs = existingOvertime.pcs + totalDisrupted;
       const newTime = ((newPcs * timePerPcs) / 60).toFixed(2);
-      
+
       updatedProcessedSchedule[existingOvertimeIndex] = {
         ...existingOvertime,
         pcs: newPcs,
@@ -350,13 +359,13 @@ function App() {
         time: newTime,
         notes: "Lembur untuk memenuhi target produksi dan kompensasi gangguan",
       };
-      
+
       setSchedule(updatedProcessedSchedule);
     } else {
       // Buat jadwal lembur baru di hari ke-31
       const overtimeSeconds = totalDisrupted * timePerPcs;
       const overtimeMinutes = overtimeSeconds / 60;
-      
+
       const overtimeSchedule: ScheduleItem = {
         id: `31-1`,
         day: 31,
@@ -369,7 +378,7 @@ function App() {
         actualPcs: totalDisrupted,
         notes: "Kompensasi gangguan produksi",
       };
-      
+
       setSchedule([...processedSchedule, overtimeSchedule]);
     }
   };
@@ -556,7 +565,8 @@ function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
             <div className="flex bg-gray-800 rounded-lg p-1">
               <button
                 onClick={() => setCurrentView("scheduler")}
@@ -595,7 +605,92 @@ function App() {
               </button>
             </div>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-200"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {mobileMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-4 pt-4 border-t border-gray-800">
+            <div className="flex flex-col space-y-4">
+              <div className="flex flex-col bg-gray-800 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => {
+                    setCurrentView("scheduler");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
+                    currentView === "scheduler"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-gray-700"
+                  }`}
+                >
+                  Scheduler
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentView("saved");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
+                    currentView === "saved"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-gray-700"
+                  }`}
+                >
+                  Saved ({savedSchedules.length})
+                </button>
+              </div>
+
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {user?.username}
+                    </p>
+                    <p className="text-xs text-gray-400">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white transition-all duration-200 text-sm font-medium"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       <div className="p-6 lg:p-8">
@@ -1013,7 +1108,6 @@ function App() {
                             </span>
                           </div>
                         </div>
-
                       </div>
 
                       {/* Output Section - Informasi Shift */}
