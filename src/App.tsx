@@ -31,6 +31,7 @@ interface User {
   email: string;
 }
 
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -39,6 +40,7 @@ function App() {
     "dashboard" | "scheduler" | "saved"
   >("scheduler");
   const [savedSchedules, setSavedSchedules] = useState<SavedSchedule[]>([]);
+  const [loadedSchedule, setLoadedSchedule] = useState<SavedSchedule | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("savedSchedules");
@@ -53,7 +55,9 @@ function App() {
     }
   }, []);
 
+  // When loading a schedule, set loadedSchedule and switch view
   const loadSchedule = (savedSchedule: SavedSchedule) => {
+    setLoadedSchedule(savedSchedule);
     setCurrentView("scheduler");
   };
 
@@ -130,6 +134,7 @@ function App() {
               savedSchedules={savedSchedules}
               setSavedSchedules={setSavedSchedules}
               setCurrentView={setCurrentView}
+              loadedSchedule={loadedSchedule}
             />
           )}
         </div>

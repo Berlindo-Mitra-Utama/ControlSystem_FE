@@ -22,11 +22,20 @@ const SavedSchedulesPage: React.FC<SavedSchedulesPageProps> = ({
   deleteSchedule,
   setCurrentView,
 }) => {
+
+  // Fix: force SchedulerPage to reload schedule by using a callback and a reload flag
+  const handleLoadSchedule = (savedSchedule: SavedSchedule) => {
+    setCurrentView("scheduler");
+    setTimeout(() => {
+      loadSchedule(savedSchedule);
+    }, 0);
+  };
+
   return (
     <div className="space-y-6">
       <SavedSchedulesView
         savedSchedules={savedSchedules}
-        loadSchedule={loadSchedule}
+        loadSchedule={handleLoadSchedule}
         deleteSchedule={deleteSchedule}
         setCurrentView={setCurrentView}
       />
