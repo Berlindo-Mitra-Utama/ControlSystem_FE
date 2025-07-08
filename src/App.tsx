@@ -264,7 +264,10 @@ function App() {
       }
 
       if (remaining > 0) {
-        const shift2Pcs = Math.min(Math.floor(shift2Seconds / timePerPcs), remaining);
+        const shift2Pcs = Math.min(
+          Math.floor(shift2Seconds / timePerPcs),
+          remaining,
+        );
         const shift2Used = shift2Pcs * timePerPcs;
 
         if (shift2Pcs > 0) {
@@ -290,7 +293,7 @@ function App() {
     if (remaining > 0) {
       const overtimeSeconds = remaining * timePerPcs;
       const overtimeMinutes = overtimeSeconds / 60;
-      
+
       scheduleList.push({
         id: `31-1`,
         day: 31,
@@ -336,7 +339,7 @@ function App() {
       const existingOvertime = updatedProcessedSchedule[existingOvertimeIndex];
       const newPcs = existingOvertime.pcs + totalDisrupted;
       const newTime = ((newPcs * timePerPcs) / 60).toFixed(2);
-      
+
       updatedProcessedSchedule[existingOvertimeIndex] = {
         ...existingOvertime,
         pcs: newPcs,
@@ -344,12 +347,12 @@ function App() {
         time: newTime,
         notes: "Lembur untuk memenuhi target produksi dan kompensasi gangguan",
       };
-      
+
       setSchedule(updatedProcessedSchedule);
     } else {
       const overtimeSeconds = totalDisrupted * timePerPcs;
       const overtimeMinutes = overtimeSeconds / 60;
-      
+
       const overtimeSchedule: ScheduleItem = {
         id: `31-1`,
         day: 31,
@@ -362,7 +365,7 @@ function App() {
         actualPcs: totalDisrupted,
         notes: "Kompensasi gangguan produksi",
       };
-      
+
       setSchedule([...processedSchedule, overtimeSchedule]);
     }
   };
