@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import ProductionForm from "../components/layout/ProductionForm";
 import ScheduleTable from "../components/layout/ScheduleTable";
+import React from "react";
 
 interface ScheduleItem {
   id: string;
@@ -28,6 +29,7 @@ interface SchedulerPageProps {
   savedSchedules: SavedSchedule[];
   setSavedSchedules: React.Dispatch<React.SetStateAction<SavedSchedule[]>>;
   setCurrentView: (view: "dashboard" | "scheduler" | "saved") => void;
+  loadedSchedule?: SavedSchedule | null;
 }
 
 interface SavedSchedule {
@@ -65,10 +67,12 @@ const mockData: DataItem[] = [
   },
 ];
 
+
 const SchedulerPage: React.FC<SchedulerPageProps> = ({
   savedSchedules,
   setSavedSchedules,
   setCurrentView,
+  loadedSchedule, // <-- add this prop if not already
 }) => {
   const [form, setForm] = useState({
     part: "",
@@ -87,10 +91,31 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
   });
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [showProductionForm, setShowProductionForm] = useState(false);
+  // Show "Add New Production Planning" button if a schedule is loaded
+  const [showAddButton, setShowAddButton] = useState(false);
+
+  useEffect(() => {
+    if (loadedSchedule && loadedSchedule.schedule.length > 0) {
+      setShowAddButton(true);
+    } else {
+      setShowAddButton(false);
+    }
+  }, [loadedSchedule]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [scheduleName, setScheduleName] = useState("");
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ScheduleItem>>({});
+  const [showSavedSchedules, setShowSavedSchedules] = useState(false);
+
+  // Automatically load schedule if loadedSchedule prop changes
+  useEffect(() => {
+    if (loadedSchedule) {
+      setForm(loadedSchedule.form);
+      setSchedule(loadedSchedule.schedule);
+      setScheduleName(loadedSchedule.name);
+    }
+  }, [loadedSchedule]);
 
   useEffect(() => {
     updateCalculatedFields();
@@ -418,22 +443,140 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
     alert("Schedule saved successfully!");
   };
 
+  // Load a saved schedule into the current state
+  const loadSchedule = (savedSchedule: SavedSchedule) => {
+    setForm(savedSchedule.form);
+    setSchedule(savedSchedule.schedule);
+    setScheduleName(savedSchedule.name);
+    setShowSavedSchedules(false);
+    setTimeout(() => {
+      const tableSection = document.getElementById('schedule-table-section');
+      if (tableSection) {
+        tableSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 200);
+  };
+
+  // Delete a saved schedule
+  const deleteSchedule = (id: string) => {
+    const updatedSchedules = savedSchedules.filter((s) => s.id !== id);
+    setSavedSchedules(updatedSchedules);
+    localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
+  };
+
   return (
     <>
-      <ProductionForm
-        form={form}
-        scheduleName={scheduleName}
-        setScheduleName={setScheduleName}
-        handleSelectPart={handleSelectPart}
-        handleChange={handleChange}
-        mockData={mockData}
-        isGenerating={isGenerating}
-        generateSchedule={generateSchedule}
-        saveSchedule={saveSchedule}
-      />
+      {/* Add New Production Planning Button (below navbar) */}
+      {showAddButton && (
+        <div className="flex justify-start mt-6 px-8">
+          <button
+            onClick={() => setShowProductionForm(true)}
+            className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah Penjadwalan Baru
+          </button>
+        </div>
+      )}
+      {/* Saved Schedules Modal */}
+      {showSavedSchedules && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto" style={{ maxWidth: '600px', maxHeight: '90vh' }}>
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
+              onClick={() => setShowSavedSchedules(false)}
+              aria-label="Tutup"
+            >
+              ×
+            </button>
+            <div className="p-8">
+              <h2 className="text-xl font-bold text-white mb-4">Jadwal Tersimpan</h2>
+              {savedSchedules.length === 0 ? (
+                <div className="text-gray-400">Belum ada jadwal yang disimpan.</div>
+              ) : (
+                <ul className="space-y-4">
+                  {savedSchedules.map((s) => (
+                    <li key={s.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
+                      <div>
+                        <div className="font-semibold text-white">{s.name}</div>
+                        <div className="text-xs text-gray-400">{s.date}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                          onClick={() => {
+                            loadSchedule(s);
+                            setCurrentView && setCurrentView("scheduler");
+                          }}
+                        >
+                          Tampilkan
+                        </button>
+                        <button
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+                          onClick={() => deleteSchedule(s.id)}
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-      {schedule.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
+      {/* Production Form Modal */}
+      {showProductionForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto" style={{ maxWidth: '800px', maxHeight: '90vh' }}>
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
+              onClick={() => setShowProductionForm(false)}
+              aria-label="Tutup"
+            >
+              ×
+            </button>
+            <ProductionForm
+              form={form}
+              scheduleName={scheduleName}
+              setScheduleName={setScheduleName}
+              handleSelectPart={handleSelectPart}
+              handleChange={handleChange}
+              mockData={mockData}
+              isGenerating={isGenerating}
+              generateSchedule={() => {
+                generateSchedule();
+                setShowProductionForm(false);
+              }}
+              saveSchedule={saveSchedule}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* If no schedule, show blank state */}
+      {schedule.length === 0 ? (
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-900 border border-gray-800 rounded-3xl p-12">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white mb-2">Jadwal Produksi belum dibuat</h2>
+            <p className="text-gray-400 mb-6">Lakukan penjadwalan sekarang</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => setShowProductionForm(true)}
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                Tambah Penjadwalan
+              </button>
+
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div id="schedule-table-section" className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
           <div className="border-b border-gray-800 px-8 py-6">
             <div className="flex items-center justify-between">
               <div>
