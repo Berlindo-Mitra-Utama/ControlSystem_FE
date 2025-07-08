@@ -4,8 +4,8 @@ import React from "react";
 interface NavbarProps {
     user: { username: string; email: string } | null;
     isLoggedIn: boolean;
-    currentView: "scheduler" | "saved";
-    setCurrentView: (view: "scheduler" | "saved") => void;
+    currentView: "dashboard" | "scheduler" | "saved";
+    setCurrentView: (view: "dashboard" | "scheduler" | "saved") => void;
     handleLogout: () => void;
     savedSchedulesCount: number;
 }
@@ -42,6 +42,16 @@ const Navbar: React.FC<NavbarProps> = ({
 
         <div className="flex items-center gap-4">
             <div className="flex bg-gray-800 rounded-lg p-1">
+            <button
+                onClick={() => setCurrentView("dashboard")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                currentView === "dashboard"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                }`}
+            >
+                Dashboard
+            </button>
             <button
                 onClick={() => setCurrentView("scheduler")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${

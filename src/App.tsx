@@ -5,6 +5,7 @@ import ScheduleTable from "../src/components/layout/ScheduleTable";
 import StatsCards from "../src/components/layout/StatsCards";
 import ProductionForm from "../src/components/layout/ProductionForm";
 import SavedSchedulesView from "../src/components/layout/SavedSchedulesView";
+import Dashboard from "./pages/Dashboard";
 
 interface DataItem {
   part: string;
@@ -72,7 +73,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [currentView, setCurrentView] = useState<"scheduler" | "saved">("scheduler");
+  const [currentView, setCurrentView] = useState<"dashboard" |"scheduler" | "saved">("scheduler");
   
   const [form, setForm] = useState({
     part: "",
@@ -515,21 +516,23 @@ function App() {
         currentView={currentView}
         setCurrentView={setCurrentView}
         handleLogout={handleLogout}
-        savedSchedulesCount={savedSchedules.length} isLoggedIn={false}      />
+        savedSchedulesCount={savedSchedules.length}
+        isLoggedIn={false}
+      />
 
       <div className="p-6 lg:p-8">
         <div className="mx-auto max-w-7xl space-y-8">
-          {currentView === "saved" ? (
-            <SavedSchedulesView 
-              savedSchedules={savedSchedules} 
+          {currentView === "dashboard" ? (
+            <Dashboard stats={statsData} />
+          ) : currentView === "saved" ? (
+            <SavedSchedulesView
+              savedSchedules={savedSchedules}
               loadSchedule={loadSchedule}
               deleteSchedule={deleteSchedule}
               setCurrentView={setCurrentView}
             />
           ) : (
             <>
-              <StatsCards stats={statsData} />
-              
               <ProductionForm
                 form={form}
                 scheduleName={scheduleName}
