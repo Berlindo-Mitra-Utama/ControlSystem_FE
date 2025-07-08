@@ -32,20 +32,20 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   setEditForm,
 }) => {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto max-h-[400px] relative">
       <table className="w-full">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-gray-900">
           <tr className="border-b border-gray-800">
             <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">No</th>
-            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Date</th>
+            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Tanggal</th>
             <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Shift</th>
-            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Type</th>
+            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Tipe</th>
             <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Status</th>
             <th className="text-right py-4 px-4 font-semibold text-gray-300 text-sm">Target (PCS)</th>
             <th className="text-right py-4 px-4 font-semibold text-gray-300 text-sm">Actual (PCS)</th>
             <th className="text-right py-4 px-4 font-semibold text-gray-300 text-sm">Time (Min)</th>
-            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Notes</th>
-            <th className="text-center py-4 px-4 font-semibold text-gray-300 text-sm">Actions</th>
+            <th className="text-left py-4 px-4 font-semibold text-gray-300 text-sm">Catatan</th>
+            <th className="text-center py-4 px-4 font-semibold text-gray-300 text-sm">Aksi</th>
           </tr>
         </thead>
         <tbody>

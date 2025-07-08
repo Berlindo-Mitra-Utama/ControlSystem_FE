@@ -230,7 +230,7 @@ function App() {
     const totalNeed = delivery - stock;
 
     if (totalNeed <= 0) {
-      alert("✅ Stock sudah cukup, tidak perlu produksi.");
+      alert("✅ Stok sudah cukup, tidak perlu produksi.");
       setIsGenerating(false);
       return;
     }
@@ -405,7 +405,7 @@ function App() {
 
   const saveSchedule = () => {
     if (!scheduleName.trim()) {
-      alert("Please enter a schedule name");
+      alert("Silakan masukkan nama jadwal");
       return;
     }
 
@@ -421,7 +421,7 @@ function App() {
     setSavedSchedules(updatedSchedules);
     localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
     setScheduleName("");
-    alert("Schedule saved successfully!");
+    alert("Jadwal berhasil disimpan!");
   };
 
   const deleteSchedule = (id: string) => {
