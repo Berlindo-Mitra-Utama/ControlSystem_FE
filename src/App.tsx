@@ -31,7 +31,6 @@ interface User {
   email: string;
 }
 
-
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -40,7 +39,9 @@ function App() {
     "dashboard" | "scheduler" | "saved"
   >("scheduler");
   const [savedSchedules, setSavedSchedules] = useState<SavedSchedule[]>([]);
-  const [loadedSchedule, setLoadedSchedule] = useState<SavedSchedule | null>(null);
+  const [loadedSchedule, setLoadedSchedule] = useState<SavedSchedule | null>(
+    null,
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem("savedSchedules");
@@ -116,11 +117,44 @@ function App() {
           {currentView === "dashboard" ? (
             <Dashboard
               stats={{
-                totalProduction: 0,
-                totalPlanned: 0,
-                totalDays: 0,
-                disruptedItems: 0,
+                totalProduction: savedSchedules.reduce((total, schedule) => {
+                  return (
+                    total +
+                    schedule.schedule.reduce(
+                      (sum, item) => sum + (item.actualPcs || 0),
+                      0,
+                    )
+                  );
+                }, 0),
+                totalPlanned: savedSchedules.reduce((total, schedule) => {
+                  return (
+                    total +
+                    schedule.schedule.reduce((sum, item) => sum + item.pcs, 0)
+                  );
+                }, 0),
+                totalDays: savedSchedules.reduce((total, schedule) => {
+                  const maxDay = Math.max(
+                    ...schedule.schedule.map((item) => item.day),
+                  );
+                  return total + maxDay;
+                }, 0),
+                disruptedItems: savedSchedules.reduce((total, schedule) => {
+                  return (
+                    total +
+                    schedule.schedule.filter(
+                      (item) => item.status === "Gangguan",
+                    ).length
+                  );
+                }, 0),
               }}
+              schedule={
+                loadedSchedule
+                  ? loadedSchedule.schedule
+                  : savedSchedules.length > 0
+                    ? savedSchedules[savedSchedules.length - 1].schedule
+                    : []
+              }
+              savedSchedules={savedSchedules}
             />
           ) : currentView === "saved" ? (
             <SavedSchedulesPage
