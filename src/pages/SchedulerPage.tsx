@@ -14,6 +14,12 @@ interface ScheduleItem {
   status: "Normal" | "Gangguan" | "Completed";
   actualPcs?: number;
   notes?: string;
+  delivery?: number; // jumlah permintaan customer per hari
+  // Kolom hasil perhitungan planning produksi:
+  planningPcs?: number;
+  overtimePcs?: number;
+  sisaPlanningPcs?: number;
+  sisaStock?: number;
 }
 
 interface DataItem {
@@ -67,7 +73,6 @@ const mockData: DataItem[] = [
   },
 ];
 
-
 const SchedulerPage: React.FC<SchedulerPageProps> = ({
   savedSchedules,
   setSavedSchedules,
@@ -82,7 +87,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
     cycle7: 0,
     cycle35: 0,
     stock: 332,
-    delivery: 5100,
+    // delivery: 5100, // REMOVE delivery from form, now per-row
     planningHour: 274,
     overtimeHour: 119,
     planningPcs: 3838,
@@ -242,89 +247,119 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
     setIsGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const { delivery, stock, timePerPcs } = form;
-    const totalNeed = delivery - stock;
+    // Save previous delivery values if possible
+    const prevSchedule = schedule;
+    const prevDeliveryMap = new Map<string, number | undefined>();
+    prevSchedule.forEach((item) => {
+      prevDeliveryMap.set(item.id, item.delivery);
+    });
 
-    if (totalNeed <= 0) {
-      alert("✅ Stock sudah cukup, tidak perlu produksi.");
-      setIsGenerating(false);
-      return;
-    }
-
-    const shift1Seconds = 14400;
-    const shift2Seconds = 14400;
+    // Generate new schedule
+    const { stock } = form;
     const scheduleList: ScheduleItem[] = [];
-    let remaining = totalNeed;
-    let currentDay = 1;
+    let sisaStock = form.stock;
+    let shortfallMap: { [day: number]: number } = {}; // kekurangan per hari
+    let overtimeMap: { [day: number]: number } = {}; // overtime per hari
 
-    while (remaining > 0 && currentDay <= 30) {
-      const shift1Pcs = Math.min(
-        Math.floor(shift1Seconds / timePerPcs),
-        remaining,
-      );
-      const shift1Used = shift1Pcs * timePerPcs;
+    // Simulasi 30 hari produksi
+    for (let d = 1; d <= 30; d++) {
+      // Delivery per hari (bisa diisi user, default 0)
+      const id1 = `${d}-1`;
+      const id2 = `${d}-2`;
+      const totalDelivery =
+        (prevDeliveryMap.has(id1) ? prevDeliveryMap.get(id1) ?? 0 : 0) +
+        (prevDeliveryMap.has(id2) ? prevDeliveryMap.get(id2) ?? 0 : 0);
 
-      if (shift1Pcs > 0) {
-        scheduleList.push({
-          id: `${currentDay}-1`,
-          day: currentDay,
-          shift: "1",
-          type: "Normal",
-          pcs: shift1Pcs,
-          time: (shift1Used / 60).toFixed(2),
-          processes: "",
-          status: "Normal",
-          actualPcs: shift1Pcs,
-          notes: "",
-        });
-        remaining -= shift1Pcs;
+      // Bagi delivery ke 2 shift (dibulatkan ke bawah untuk shift 1, sisanya ke shift 2)
+      const planningPcs1 = Math.floor(totalDelivery / 2);
+      const planningPcs2 = totalDelivery - planningPcs1;
+
+      // Overtime default 0, akan diisi jika ada shortfall
+      let overtimePcs1 = 0;
+      let overtimePcs2 = 0;
+
+      // Actual PCS default = planning, bisa diedit di tabel
+      let actualPcs1 = planningPcs1;
+      let actualPcs2 = planningPcs2;
+
+      // Shortfall (kekurangan) jika aktual < planning
+      let shortfall1 = 0;
+      let shortfall2 = 0;
+
+      // Simulasi: jika sebelumnya ada shortfall, masukkan ke overtime 2 hari setelahnya
+      if (d > 2 && shortfallMap[d - 2]) {
+        overtimePcs1 = shortfallMap[d - 2];
       }
 
-      if (remaining > 0) {
-        const shift2Pcs = Math.min(
-          Math.floor(shift2Seconds / timePerPcs),
-          remaining,
-        );
-        const shift2Used = shift2Pcs * timePerPcs;
-
-        if (shift2Pcs > 0) {
-          scheduleList.push({
-            id: `${currentDay}-2`,
-            day: currentDay,
-            shift: "2",
-            type: "Normal",
-            pcs: shift2Pcs,
-            time: (shift2Used / 60).toFixed(2),
-            processes: "",
-            status: "Normal",
-            actualPcs: shift2Pcs,
-            notes: "",
-          });
-          remaining -= shift2Pcs;
+      // Setiap 3 hari, akumulasi shortfall dan masukkan ke overtime 2 hari setelahnya
+      if (d % 3 === 0) {
+        let totalShortfall = 0;
+        for (let i = d - 2; i <= d; i++) {
+          if (shortfallMap[i]) totalShortfall += shortfallMap[i];
+        }
+        if (totalShortfall > 0 && d + 2 <= 30) {
+          overtimeMap[d + 2] = (overtimeMap[d + 2] || 0) + totalShortfall;
         }
       }
 
-      currentDay++;
-    }
+      // Overtime dari akumulasi
+      if (overtimeMap[d]) {
+        overtimePcs1 += overtimeMap[d];
+      }
 
-    if (remaining > 0) {
-      const overtimeSeconds = remaining * timePerPcs;
-      const overtimeMinutes = overtimeSeconds / 60;
+      // Simulasi: actualPcs bisa diedit di tabel, default = planning
+      // Jika actualPcs < planning, simpan shortfall
+      if (actualPcs1 < planningPcs1) {
+        shortfall1 = planningPcs1 - actualPcs1;
+        shortfallMap[d] = (shortfallMap[d] || 0) + shortfall1;
+      }
+      if (actualPcs2 < planningPcs2) {
+        shortfall2 = planningPcs2 - actualPcs2;
+        shortfallMap[d] = (shortfallMap[d] || 0) + shortfall2;
+      }
+
+      // Stock logic
+      let sisaPlanningPcs1 = planningPcs1;
+      let sisaStock1 = sisaStock - planningPcs1;
+      sisaStock = sisaStock1;
 
       scheduleList.push({
-        id: `31-1`,
-        day: 31,
+        id: id1,
+        day: d,
         shift: "1",
-        type: "Lembur",
-        pcs: remaining,
-        time: overtimeMinutes.toFixed(2),
+        type: "Normal",
+        pcs: planningPcs1,
+        time: "-",
         processes: "",
         status: "Normal",
-        actualPcs: remaining,
-        notes: "Lembur untuk memenuhi target produksi",
+        actualPcs: actualPcs1,
+        notes: shortfall1 > 0 ? `Shortfall: ${shortfall1}` : "",
+        delivery: totalDelivery,
+        planningPcs: planningPcs1,
+        overtimePcs: overtimePcs1,
+        sisaPlanningPcs: sisaPlanningPcs1,
+        sisaStock: sisaStock1,
+      });
+
+      // Shift 2
+      scheduleList.push({
+        id: id2,
+        day: d,
+        shift: "2",
+        type: "Normal",
+        pcs: planningPcs2,
+        time: "-",
+        processes: "",
+        status: "Normal",
+        actualPcs: actualPcs2,
+        notes: shortfall2 > 0 ? `Shortfall: ${shortfall2}` : "",
+        delivery: totalDelivery,
+        planningPcs: planningPcs2,
+        overtimePcs: 0,
+        sisaPlanningPcs: planningPcs2,
+        sisaStock: sisaStock,
       });
     }
-
     setSchedule(scheduleList);
     setIsGenerating(false);
   };
@@ -402,8 +437,14 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
   };
 
   const saveEdit = (itemId: string) => {
+    // Update planningPcs if edited, and propagate shortfall & overtime logic
+    let changedPlanning = null;
     const updatedSchedule = schedule.map((item) => {
       if (item.id === itemId) {
+        // Detect change
+        if (editForm.planningPcs !== undefined && editForm.planningPcs !== item.planningPcs) {
+          changedPlanning = { before: item.planningPcs, after: editForm.planningPcs, id: item.id };
+        }
         return {
           ...item,
           status: editForm.status || item.status,
@@ -412,12 +453,70 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
               ? editForm.actualPcs
               : item.actualPcs,
           notes: editForm.notes || item.notes || "",
+          delivery:
+            editForm.delivery !== undefined
+              ? editForm.delivery
+              : item.delivery,
+          planningPcs:
+            editForm.planningPcs !== undefined
+              ? editForm.planningPcs
+              : item.planningPcs,
         };
       }
       return item;
     });
 
-    recalculateSchedule(updatedSchedule);
+    // Propagate shortfall and overtime logic after edit
+    let shortfallMap: { [day: number]: number } = {};
+    let overtimeMap: { [day: number]: number } = {};
+    let sisaStock = form.stock;
+    const newSchedule = updatedSchedule.map((item, idx, arr) => {
+      // Only for normal shift (not lembur)
+      let shortfall = 0;
+      let overtime = 0;
+      // Overtime dari 2 hari sebelumnya
+      const day = item.day;
+      if (day > 2 && shortfallMap[day - 2]) {
+        overtime = shortfallMap[day - 2];
+      }
+      // Setiap 3 hari, akumulasi shortfall dan masukkan ke overtime 2 hari setelahnya
+      if (day % 3 === 0) {
+        let totalShortfall = 0;
+        for (let i = day - 2; i <= day; i++) {
+          if (shortfallMap[i]) totalShortfall += shortfallMap[i];
+        }
+        if (totalShortfall > 0 && day + 2 <= 30) {
+          overtimeMap[day + 2] = (overtimeMap[day + 2] || 0) + totalShortfall;
+        }
+      }
+      if (overtimeMap[day]) {
+        overtime += overtimeMap[day];
+      }
+      // Shortfall jika aktual < planning
+      const actual = item.actualPcs !== undefined ? item.actualPcs : item.planningPcs || 0;
+      const planning = item.planningPcs || 0;
+      if (actual < planning) {
+        shortfall = planning - actual;
+        shortfallMap[day] = (shortfallMap[day] || 0) + shortfall;
+      }
+      // Stock logic
+      let sisaPlanningPcs = planning;
+      let sisaStockNow = sisaStock - planning;
+      sisaStock = sisaStockNow;
+      // Catat perubahan planning jika ada
+      let notes = item.notes || "";
+      if (changedPlanning && changedPlanning.id === item.id) {
+        notes = `Planning PCS changed from ${changedPlanning.before} to ${changedPlanning.after}`;
+      }
+      return {
+        ...item,
+        overtimePcs: overtime,
+        sisaPlanningPcs: shortfall,
+        sisaStock: sisaStockNow,
+        notes,
+      };
+    });
+    setSchedule(newSchedule);
     setEditingRow(null);
     setEditForm({});
   };
@@ -577,6 +676,18 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
         </div>
       ) : (
         <div id="schedule-table-section" className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
+          {/* Edit Production Form Button */}
+          <div className="flex justify-end px-8 pt-6">
+            <button
+              onClick={() => setShowProductionForm(true)}
+              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 focus:ring-4 focus:ring-yellow-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Edit Production Form
+            </button>
+          </div>
           <div className="border-b border-gray-800 px-8 py-6">
             <div className="flex items-center justify-between">
               <div>
@@ -627,6 +738,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
               saveEdit={saveEdit}
               cancelEdit={cancelEdit}
               setEditForm={setEditForm}
+              initialStock={form.stock}
             />
           </div>
         </div>
