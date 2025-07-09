@@ -33,8 +33,10 @@ export const ProductionLogo = () => {
 interface NavbarProps {
   user: { username: string; email: string } | null;
   isLoggedIn: boolean;
-  currentView: "dashboard" | "scheduler" | "saved";
-  setCurrentView: (view: "dashboard" | "scheduler" | "saved") => void;
+  currentView: "dashboard" | "scheduler" | "saved" | "allcharts";
+  setCurrentView: (
+    view: "dashboard" | "scheduler" | "saved" | "allcharts",
+  ) => void;
   handleLogout: () => void;
   savedSchedulesCount: number;
 }
