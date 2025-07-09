@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import SchedulerPage from "./pages/SchedulerPage";
 import SavedSchedulesPage from "./pages/SavedSchedulesPage";
 import Dashboard from "./pages/Dashboard";
+import AllChartsPage from "./pages/AllChartsPage";
 
 interface ScheduleItem {
   id: string;
@@ -36,7 +37,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [currentView, setCurrentView] = useState<
-    "dashboard" | "scheduler" | "saved"
+    "dashboard" | "scheduler" | "saved" | "allcharts"
   >("scheduler");
   const [savedSchedules, setSavedSchedules] = useState<SavedSchedule[]>([]);
   const [loadedSchedule, setLoadedSchedule] = useState<SavedSchedule | null>(
@@ -155,12 +156,18 @@ function App() {
                     : []
               }
               savedSchedules={savedSchedules}
+              setCurrentView={setCurrentView}
             />
           ) : currentView === "saved" ? (
             <SavedSchedulesPage
               savedSchedules={savedSchedules}
               loadSchedule={loadSchedule}
               deleteSchedule={deleteSchedule}
+              setCurrentView={setCurrentView}
+            />
+          ) : currentView === "allcharts" ? (
+            <AllChartsPage
+              savedSchedules={savedSchedules}
               setCurrentView={setCurrentView}
             />
           ) : (

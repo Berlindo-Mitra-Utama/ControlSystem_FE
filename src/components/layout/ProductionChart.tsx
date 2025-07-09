@@ -25,9 +25,10 @@ interface ScheduleItem {
 
 interface ProductionChartProps {
   schedule: ScheduleItem[];
+  onViewAllCharts?: () => void; // Menambahkan prop untuk handler tombol Lihat Semua
 }
 
-const ProductionChart: React.FC<ProductionChartProps> = ({ schedule }) => {
+const ProductionChart: React.FC<ProductionChartProps> = ({ schedule, onViewAllCharts }) => {
   // Mengolah data untuk chart
   const chartData = React.useMemo(() => {
     // Mengelompokkan data berdasarkan hari
@@ -52,9 +53,19 @@ const ProductionChart: React.FC<ProductionChartProps> = ({ schedule }) => {
 
   return (
     <div className="w-full h-96 bg-gray-900 rounded-xl p-4">
-      <h3 className="text-xl font-semibold text-white mb-4">
-        Target vs Actual Production
-      </h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-semibold text-white">
+          Target vs Actual Production
+        </h3>
+        {onViewAllCharts && (
+          <button
+            onClick={onViewAllCharts}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+          >
+            Lihat Semua
+          </button>
+        )}
+      </div>
       <ResponsiveContainer width="100%" height="85%">
         <AreaChart
           data={chartData}
