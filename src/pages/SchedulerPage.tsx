@@ -22,6 +22,7 @@ interface ScheduleItem {
   overtimePcs?: number;
   sisaPlanningPcs?: number;
   sisaStock?: number;
+  selisih?: number; // selisih planning pcs jika diedit, hanya untuk tampilan
 }
 
 interface DataItem {
@@ -425,6 +426,22 @@ const SchedulerPage: React.FC = () => {
       }
     });
 
+    // --- Detect planningPcs change and propagate selisih ---
+    let changedPlanningDay: number | null = null;
+    let changedPlanningShift: string | null = null;
+    let planningDiff: number = 0;
+    let oldPlanning: number | undefined = undefined;
+    let newPlanning: number | undefined = undefined;
+    // Find which row is being edited and if planningPcs changed
+    const editedRow = schedule.find((item) => item.id === itemId);
+    if (editedRow && editForm.planningPcs !== undefined && editForm.planningPcs !== editedRow.planningPcs) {
+      changedPlanningDay = editedRow.day;
+      changedPlanningShift = editedRow.shift;
+      oldPlanning = editedRow.planningPcs ?? 0;
+      newPlanning = editForm.planningPcs;
+      planningDiff = newPlanning - oldPlanning;
+    }
+
     // Regenerasi schedule sesuai logika planning PCS, stock, shortfall, overtime
     const waktuKerjaShift = 7; // jam kerja per shift
     let timePerPcs = form.timePerPcs;
@@ -445,6 +462,26 @@ const SchedulerPage: React.FC = () => {
       sisaStock -= planningShift1;
       let planningShift2 = Math.min(planningHariIni - planningShift1, kapasitasShift, sisaStock);
       sisaStock -= planningShift2;
+
+      // --- If this is the edited row, override planningPcs and propagate selisih ---
+      if (changedPlanningDay === d && changedPlanningShift === "1") {
+        if (editForm.planningPcs !== undefined) {
+          planningShift1 = editForm.planningPcs;
+        }
+      }
+      if (changedPlanningDay === d && changedPlanningShift === "2") {
+        if (editForm.planningPcs !== undefined) {
+          planningShift2 = editForm.planningPcs;
+        }
+      }
+
+      // --- Propagate selisih to next day's shift 1 ---
+      if (changedPlanningDay !== null && planningDiff !== 0 && d === changedPlanningDay + 1) {
+        planningShift1 += planningDiff;
+        // Clamp to non-negative
+        if (planningShift1 < 0) planningShift1 = 0;
+      }
+
       // Jika delivery > total produksi hari ini, shortfall
       let shortfallHariIni = totalDelivery - (planningShift1 + planningShift2);
       if (shortfallHariIni > 0) {
@@ -452,6 +489,11 @@ const SchedulerPage: React.FC = () => {
       }
       // Row shift 1
       const oldRow1 = schedule.find(r => r.id === idShift1);
+      // Hitung kekurangan produksi (shortfall hari ini)
+      let notes1 = oldRow1 && typeof oldRow1.notes === "string" ? oldRow1.notes : "";
+      if (shortfallHariIni > 0) {
+        notes1 = `Kekurangan produksi hari ini: ${shortfallHariIni} pcs`;
+      }
       scheduleList.push({
         ...(oldRow1 ? oldRow1 : {}),
         id: idShift1,
@@ -466,10 +508,17 @@ const SchedulerPage: React.FC = () => {
         delivery: deliveryShift1,
         planningPcs: planningShift1,
         overtimePcs: 0,
-        notes: oldRow1 && typeof oldRow1.notes === "string" ? oldRow1.notes : "",
+        notes: notes1,
+        // Add selisih info for the edited row
+        selisih: (changedPlanningDay === d && changedPlanningShift === "1" && planningDiff !== 0) ? planningDiff : undefined,
       });
       // Row shift 2
       const oldRow2 = schedule.find(r => r.id === idShift2);
+      // Untuk shift 2, kekurangan produksi hanya dicatat jika shortfallHariIni > 0
+      let notes2 = oldRow2 && typeof oldRow2.notes === "string" ? oldRow2.notes : "";
+      if (shortfallHariIni > 0) {
+        notes2 = `Kekurangan produksi hari ini: ${shortfallHariIni} pcs`;
+      }
       scheduleList.push({
         ...(oldRow2 ? oldRow2 : {}),
         id: idShift2,
@@ -484,7 +533,8 @@ const SchedulerPage: React.FC = () => {
         delivery: undefined,
         planningPcs: planningShift2,
         overtimePcs: 0,
-        notes: oldRow2 && typeof oldRow2.notes === "string" ? oldRow2.notes : "",
+        notes: notes2,
+        selisih: (changedPlanningDay === d && changedPlanningShift === "2" && planningDiff !== 0) ? planningDiff : undefined,
       });
       // Setiap 3 hari, shortfall dijadwalkan sebagai lembur 2 hari kemudian
       if (d % 3 === 0 && shortfall > 0) {
