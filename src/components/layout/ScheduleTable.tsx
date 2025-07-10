@@ -121,15 +121,15 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
               <th className="sticky top-0 left-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">No</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Tanggal</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Shift</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Tipe</th>
+              {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Tipe</th> */}
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Status</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Stok Tersedia</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Stock Saat Ini</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Delivery</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Planning PCS</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Overtime PCS</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Planning PCS</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Stock</th>
+              {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Planning PCS</th> */}
+              {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Stock</th> */}
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Catatan</th>
               <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Aksi</th>
             </tr>
@@ -175,7 +175,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                           Shift {row.shift}
                         </span>
                       </td>
-                      <td className="py-3 px-2 text-center">
+                      {/* <td className="py-3 px-2 text-center">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${
                             row.type.includes("Lembur")
@@ -185,7 +185,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                         >
                           {row.type}
                         </span>
-                      </td>
+                      </td> */}
                       <td className="py-3 px-2 text-center">
                         {editingRow === row.id ? (
                           <select
@@ -229,11 +229,6 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                                 const value = Number.parseInt(e.target.value) || 0;
                                 setEditForm((prev) => ({ ...prev, delivery: value }));
                               }}
-                              onBlur={() => {
-                                if (editForm.delivery !== undefined) {
-                                  saveEdit(row.id);
-                                }
-                              }}
                               className="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
                             />
                           ) : (
@@ -242,13 +237,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                             </span>
                           )
                         ) : (
-                          <span className="font-semibold text-white">
-                            {(() => {
-                              // Cari row shift 1 pada hari yang sama
-                              const shift1 = schedule.find(r => r.day === row.day && r.shift === "1");
-                              return shift1 && shift1.delivery !== undefined ? shift1.delivery.toLocaleString() : "-";
-                            })()}
-                          </span>
+                          <span className="font-semibold text-white">-</span>
                         )}
                       </td>
                       {/* Planning PCS (editable on production day) */}
@@ -269,14 +258,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                       <td className="py-3 px-2 text-right font-semibold text-orange-300">
                         {row.overtimePcs !== undefined ? row.overtimePcs.toLocaleString() : "-"}
                       </td>
-                      {/* Sisa Planning PCS (Shortfall) */}
-                      <td className="py-3 px-2 text-right font-semibold text-red-400">
-                        {row.sisaPlanningPcs && row.sisaPlanningPcs > 0 ? `-${row.sisaPlanningPcs}` : 0}
-                      </td>
-                      {/* Sisa Stock */}
-                      <td className="py-3 px-2 text-right font-semibold text-blue-200">
-                        {row.sisaStock !== undefined ? row.sisaStock.toLocaleString() : "-"}
-                      </td>
+                      {/* Sisa Planning PCS (Shortfall) and Sisa Stock removed as requested */}
                       <td className="py-3 px-2 text-sm">
                         {editingRow === row.id ? (
                           <input

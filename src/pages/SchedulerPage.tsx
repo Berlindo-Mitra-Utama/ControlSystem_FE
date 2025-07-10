@@ -86,7 +86,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
     cycle1: 0,
     cycle7: 0,
     cycle35: 0,
-    stock: 332,
+    stock:5000,
     // delivery: 5100, // REMOVE delivery from form, now per-row
     planningHour: 274,
     overtimeHour: 119,
@@ -254,113 +254,92 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
       prevDeliveryMap.set(item.id, item.delivery);
     });
 
-    // Generate new schedule
-    const { stock } = form;
-    const scheduleList: ScheduleItem[] = [];
+    // Parameter produksi
+    const waktuKerjaShift = 7; // jam kerja per shift
+    let timePerPcs = form.timePerPcs;
+    // TODO: Integrasi man power jika sudah di form
+    const kapasitasShift = Math.floor((waktuKerjaShift * 3600) / timePerPcs);
     let sisaStock = form.stock;
-    let shortfallMap: { [day: number]: number } = {}; // kekurangan per hari
-    let overtimeMap: { [day: number]: number } = {}; // overtime per hari
+    let shortfall = 0;
+    let overtimeRows: ScheduleItem[] = [];
+    const scheduleList: ScheduleItem[] = [];
 
     // Simulasi 30 hari produksi
     for (let d = 1; d <= 30; d++) {
-      // Delivery per hari (bisa diisi user, default 0)
-      const id1 = `${d}-1`;
-      const id2 = `${d}-2`;
-      const totalDelivery =
-        (prevDeliveryMap.has(id1) ? prevDeliveryMap.get(id1) ?? 0 : 0) +
-        (prevDeliveryMap.has(id2) ? prevDeliveryMap.get(id2) ?? 0 : 0);
-
-      // Bagi delivery ke 2 shift (dibulatkan ke bawah untuk shift 1, sisanya ke shift 2)
-      const planningPcs1 = Math.floor(totalDelivery / 2);
-      const planningPcs2 = totalDelivery - planningPcs1;
-
-      // Overtime default 0, akan diisi jika ada shortfall
-      let overtimePcs1 = 0;
-      let overtimePcs2 = 0;
-
-      // Actual PCS default = planning, bisa diedit di tabel
-      let actualPcs1 = planningPcs1;
-      let actualPcs2 = planningPcs2;
-
-      // Shortfall (kekurangan) jika aktual < planning
-      let shortfall1 = 0;
-      let shortfall2 = 0;
-
-      // Simulasi: jika sebelumnya ada shortfall, masukkan ke overtime 2 hari setelahnya
-      if (d > 2 && shortfallMap[d - 2]) {
-        overtimePcs1 = shortfallMap[d - 2];
+      // Delivery per hari (bisa diisi user, default 0, atau ambil dari prevDeliveryMap shift 1)
+      const idShift1 = `${d}-1`;
+      let deliveryShift1 = prevDeliveryMap.get(idShift1) ?? 0;
+      // Shift 2 tidak ada delivery
+      // Total delivery hari ini
+      let totalDelivery = deliveryShift1;
+      // Bagi delivery ke 2 shift
+      let planningHariIni = Math.min(totalDelivery, sisaStock);
+      let planningShift1 = Math.min(Math.floor(planningHariIni / 2), kapasitasShift, sisaStock);
+      sisaStock -= planningShift1;
+      let planningShift2 = Math.min(planningHariIni - planningShift1, kapasitasShift, sisaStock);
+      sisaStock -= planningShift2;
+      // Jika delivery > total produksi hari ini, shortfall
+      let shortfallHariIni = totalDelivery - (planningShift1 + planningShift2);
+      if (shortfallHariIni > 0) {
+        shortfall += shortfallHariIni;
       }
-
-      // Setiap 3 hari, akumulasi shortfall dan masukkan ke overtime 2 hari setelahnya
-      if (d % 3 === 0) {
-        let totalShortfall = 0;
-        for (let i = d - 2; i <= d; i++) {
-          if (shortfallMap[i]) totalShortfall += shortfallMap[i];
-        }
-        if (totalShortfall > 0 && d + 2 <= 30) {
-          overtimeMap[d + 2] = (overtimeMap[d + 2] || 0) + totalShortfall;
-        }
-      }
-
-      // Overtime dari akumulasi
-      if (overtimeMap[d]) {
-        overtimePcs1 += overtimeMap[d];
-      }
-
-      // Simulasi: actualPcs bisa diedit di tabel, default = planning
-      // Jika actualPcs < planning, simpan shortfall
-      if (actualPcs1 < planningPcs1) {
-        shortfall1 = planningPcs1 - actualPcs1;
-        shortfallMap[d] = (shortfallMap[d] || 0) + shortfall1;
-      }
-      if (actualPcs2 < planningPcs2) {
-        shortfall2 = planningPcs2 - actualPcs2;
-        shortfallMap[d] = (shortfallMap[d] || 0) + shortfall2;
-      }
-
-      // Stock logic
-      let sisaPlanningPcs1 = planningPcs1;
-      let sisaStock1 = sisaStock - planningPcs1;
-      sisaStock = sisaStock1;
-
+      // Row shift 1
       scheduleList.push({
-        id: id1,
+        id: idShift1,
         day: d,
         shift: "1",
-        type: "Normal",
-        pcs: planningPcs1,
-        time: "-",
+        type: "Produksi",
+        pcs: planningShift1,
+        time: "07:00-15:00",
         processes: "",
         status: "Normal",
-        actualPcs: actualPcs1,
-        notes: shortfall1 > 0 ? `Shortfall: ${shortfall1}` : "",
-        delivery: totalDelivery,
-        planningPcs: planningPcs1,
-        overtimePcs: overtimePcs1,
-        sisaPlanningPcs: sisaPlanningPcs1,
-        sisaStock: sisaStock1,
+        delivery: deliveryShift1,
+        planningPcs: planningShift1,
+        overtimePcs: 0,
+        notes: "",
       });
-
-      // Shift 2
+      // Row shift 2
       scheduleList.push({
-        id: id2,
+        id: `${d}-2`,
         day: d,
         shift: "2",
-        type: "Normal",
-        pcs: planningPcs2,
-        time: "-",
+        type: "Produksi",
+        pcs: planningShift2,
+        time: "15:00-23:00",
         processes: "",
         status: "Normal",
-        actualPcs: actualPcs2,
-        notes: shortfall2 > 0 ? `Shortfall: ${shortfall2}` : "",
-        delivery: totalDelivery,
-        planningPcs: planningPcs2,
+        delivery: undefined,
+        planningPcs: planningShift2,
         overtimePcs: 0,
-        sisaPlanningPcs: planningPcs2,
-        sisaStock: sisaStock,
+        notes: "",
       });
+      // Setiap 3 hari, shortfall dijadwalkan sebagai lembur 2 hari kemudian
+      if (d % 3 === 0 && shortfall > 0) {
+        const lemburDay = d + 2;
+        if (lemburDay <= 30) {
+          overtimeRows.push({
+            id: `${lemburDay}-OT`,
+            day: lemburDay,
+            shift: "-",
+            type: "Lembur",
+            pcs: shortfall,
+            time: "-",
+            processes: "",
+            status: "Normal",
+            delivery: undefined,
+            planningPcs: 0,
+            overtimePcs: shortfall,
+            notes: `Lembur dari shortfall hari ${d - 2} s/d ${d}`,
+          });
+          sisaStock -= shortfall;
+        }
+        shortfall = 0;
+      }
     }
-    setSchedule(scheduleList);
+    // Gabungkan lembur ke schedule utama, urutkan berdasarkan hari
+    const allRows = [...scheduleList, ...overtimeRows];
+    allRows.sort((a, b) => a.day - b.day || (a.shift || '').localeCompare(b.shift || ''));
+    setSchedule(allRows);
     setIsGenerating(false);
   };
 
@@ -437,86 +416,104 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
   };
 
   const saveEdit = (itemId: string) => {
-    // Update planningPcs if edited, and propagate shortfall & overtime logic
-    let changedPlanning = null;
-    const updatedSchedule = schedule.map((item) => {
-      if (item.id === itemId) {
-        // Detect change
-        if (editForm.planningPcs !== undefined && editForm.planningPcs !== item.planningPcs) {
-          changedPlanning = { before: item.planningPcs, after: editForm.planningPcs, id: item.id };
-        }
-        return {
-          ...item,
-          status: editForm.status || item.status,
-          actualPcs:
-            editForm.actualPcs !== undefined
-              ? editForm.actualPcs
-              : item.actualPcs,
-          notes: editForm.notes || item.notes || "",
-          delivery:
-            editForm.delivery !== undefined
-              ? editForm.delivery
-              : item.delivery,
-          planningPcs:
-            editForm.planningPcs !== undefined
-              ? editForm.planningPcs
-              : item.planningPcs,
-        };
+    // Ambil semua delivery terbaru dari tabel (termasuk editForm jika sedang diedit)
+    const deliveryMap: { [key: string]: number } = {};
+    schedule.forEach((item) => {
+      if (item.id === itemId && editForm.delivery !== undefined) {
+        deliveryMap[item.id] = editForm.delivery;
+      } else if (item.delivery !== undefined) {
+        deliveryMap[item.id] = item.delivery;
       }
-      return item;
     });
 
-    // Propagate shortfall and overtime logic after edit
-    let shortfallMap: { [day: number]: number } = {};
-    let overtimeMap: { [day: number]: number } = {};
+    // Regenerasi schedule sesuai logika planning PCS, stock, shortfall, overtime
+    const waktuKerjaShift = 7; // jam kerja per shift
+    let timePerPcs = form.timePerPcs;
+    const kapasitasShift = Math.floor((waktuKerjaShift * 3600) / timePerPcs);
     let sisaStock = form.stock;
-    const newSchedule = updatedSchedule.map((item, idx, arr) => {
-      // Only for normal shift (not lembur)
-      let shortfall = 0;
-      let overtime = 0;
-      // Overtime dari 2 hari sebelumnya
-      const day = item.day;
-      if (day > 2 && shortfallMap[day - 2]) {
-        overtime = shortfallMap[day - 2];
+    let shortfall = 0;
+    let overtimeRows: ScheduleItem[] = [];
+    const scheduleList: ScheduleItem[] = [];
+    for (let d = 1; d <= 30; d++) {
+      const idShift1 = `${d}-1`;
+      const idShift2 = `${d}-2`;
+      // Ambil delivery terbaru (shift 1 saja)
+      let deliveryShift1 = deliveryMap[idShift1] ?? 0;
+      let totalDelivery = deliveryShift1;
+      // Kalkulasi planning PCS per shift
+      let planningHariIni = Math.min(totalDelivery, sisaStock);
+      let planningShift1 = Math.min(Math.floor(planningHariIni / 2), kapasitasShift, sisaStock);
+      sisaStock -= planningShift1;
+      let planningShift2 = Math.min(planningHariIni - planningShift1, kapasitasShift, sisaStock);
+      sisaStock -= planningShift2;
+      // Jika delivery > total produksi hari ini, shortfall
+      let shortfallHariIni = totalDelivery - (planningShift1 + planningShift2);
+      if (shortfallHariIni > 0) {
+        shortfall += shortfallHariIni;
       }
-      // Setiap 3 hari, akumulasi shortfall dan masukkan ke overtime 2 hari setelahnya
-      if (day % 3 === 0) {
-        let totalShortfall = 0;
-        for (let i = day - 2; i <= day; i++) {
-          if (shortfallMap[i]) totalShortfall += shortfallMap[i];
+      // Row shift 1
+      const oldRow1 = schedule.find(r => r.id === idShift1);
+      scheduleList.push({
+        ...(oldRow1 ? oldRow1 : {}),
+        id: idShift1,
+        day: d,
+        shift: "1",
+        type: "Produksi",
+        pcs: planningShift1,
+        time: "07:00-15:00",
+        processes: "",
+        status: oldRow1 && typeof oldRow1.status === "string" ? oldRow1.status : "Normal",
+        actualPcs: oldRow1 && typeof oldRow1.actualPcs === "number" ? oldRow1.actualPcs : undefined,
+        delivery: deliveryShift1,
+        planningPcs: planningShift1,
+        overtimePcs: 0,
+        notes: oldRow1 && typeof oldRow1.notes === "string" ? oldRow1.notes : "",
+      });
+      // Row shift 2
+      const oldRow2 = schedule.find(r => r.id === idShift2);
+      scheduleList.push({
+        ...(oldRow2 ? oldRow2 : {}),
+        id: idShift2,
+        day: d,
+        shift: "2",
+        type: "Produksi",
+        pcs: planningShift2,
+        time: "15:00-23:00",
+        processes: "",
+        status: oldRow2 && typeof oldRow2.status === "string" ? oldRow2.status : "Normal",
+        actualPcs: oldRow2 && typeof oldRow2.actualPcs === "number" ? oldRow2.actualPcs : undefined,
+        delivery: undefined,
+        planningPcs: planningShift2,
+        overtimePcs: 0,
+        notes: oldRow2 && typeof oldRow2.notes === "string" ? oldRow2.notes : "",
+      });
+      // Setiap 3 hari, shortfall dijadwalkan sebagai lembur 2 hari kemudian
+      if (d % 3 === 0 && shortfall > 0) {
+        const lemburDay = d + 2;
+        if (lemburDay <= 30) {
+          overtimeRows.push({
+            id: `${lemburDay}-OT`,
+            day: lemburDay,
+            shift: "-",
+            type: "Lembur",
+            pcs: shortfall,
+            time: "-",
+            processes: "",
+            status: "Normal",
+            delivery: undefined,
+            planningPcs: 0,
+            overtimePcs: shortfall,
+            notes: `Lembur dari shortfall hari ${d - 2} s/d ${d}`,
+          });
+          sisaStock -= shortfall;
         }
-        if (totalShortfall > 0 && day + 2 <= 30) {
-          overtimeMap[day + 2] = (overtimeMap[day + 2] || 0) + totalShortfall;
-        }
+        shortfall = 0;
       }
-      if (overtimeMap[day]) {
-        overtime += overtimeMap[day];
-      }
-      // Shortfall jika aktual < planning
-      const actual = item.actualPcs !== undefined ? item.actualPcs : item.planningPcs || 0;
-      const planning = item.planningPcs || 0;
-      if (actual < planning) {
-        shortfall = planning - actual;
-        shortfallMap[day] = (shortfallMap[day] || 0) + shortfall;
-      }
-      // Stock logic
-      let sisaPlanningPcs = planning;
-      let sisaStockNow = sisaStock - planning;
-      sisaStock = sisaStockNow;
-      // Catat perubahan planning jika ada
-      let notes = item.notes || "";
-      if (changedPlanning && changedPlanning.id === item.id) {
-        notes = `Planning PCS changed from ${changedPlanning.before} to ${changedPlanning.after}`;
-      }
-      return {
-        ...item,
-        overtimePcs: overtime,
-        sisaPlanningPcs: shortfall,
-        sisaStock: sisaStockNow,
-        notes,
-      };
-    });
-    setSchedule(newSchedule);
+    }
+    // Gabungkan lembur ke schedule utama, urutkan berdasarkan hari
+    const allRows = [...scheduleList, ...overtimeRows];
+    allRows.sort((a, b) => a.day - b.day || (a.shift || '').localeCompare(b.shift || ''));
+    setSchedule(allRows);
     setEditingRow(null);
     setEditForm({});
   };
