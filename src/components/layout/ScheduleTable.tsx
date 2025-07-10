@@ -16,6 +16,7 @@ interface ScheduleItem {
   overtimePcs?: number;
   sisaPlanningPcs?: number;
   sisaStock?: number;
+  selisih?: number; // selisih planning pcs jika diedit, hanya untuk tampilan
 }
 
 interface ScheduleTableProps {
@@ -60,18 +61,16 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     }
   });
 
-  // --- STOCK CALCULATION LOGIC ---
-  // Flatten all rows for easier stock calculation
+  // --- STOCK CALCULATION LOGIC (KOREKSI: stock = stock sebelumnya + produksi - delivery) ---
   const flatRows: ScheduleItem[] = groupedRows.flatMap((g) => g.rows);
-  // Calculate stock arrays
   const stockArr = flatRows.reduce<{ stokTersedia: number[]; stockSaatIni: number[] }>(
     (acc, row, idx) => {
       if (idx === 0) {
         acc.stokTersedia[0] = initialStock;
-        acc.stockSaatIni[0] = initialStock - (row.delivery || 0);
+        acc.stockSaatIni[0] = initialStock + (row.planningPcs || 0) - (row.delivery || 0);
       } else {
         acc.stokTersedia[idx] = acc.stockSaatIni[idx - 1];
-        acc.stockSaatIni[idx] = acc.stokTersedia[idx] - (row.delivery || 0);
+        acc.stockSaatIni[idx] = acc.stokTersedia[idx] + (row.planningPcs || 0) - (row.delivery || 0);
       }
       return acc;
     },
@@ -173,6 +172,11 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                       <td className="py-3 px-2 text-center">
                         <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
                           Shift {row.shift}
+                          {typeof row.selisih === 'number' && row.selisih !== 0 && (
+                            <span className={row.selisih > 0 ? 'ml-2 text-green-400 font-bold' : 'ml-2 text-red-400 font-bold'}>
+                              {row.selisih > 0 ? `+${row.selisih}` : row.selisih}
+                            </span>
+                          )}
                         </span>
                       </td>
                       {/* <td className="py-3 px-2 text-center">
