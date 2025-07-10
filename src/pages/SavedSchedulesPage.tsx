@@ -1,34 +1,16 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useSchedule } from "../contexts/ScheduleContext";
 import SavedSchedulesView from "../components/layout/SavedSchedulesView";
 
-interface SavedSchedule {
-  id: string;
-  name: string;
-  date: string;
-  form: any;
-  schedule: any[];
-}
-
-interface SavedSchedulesPageProps {
-  savedSchedules: SavedSchedule[];
-  loadSchedule: (savedSchedule: SavedSchedule) => void;
-  deleteSchedule: (id: string) => void;
-  setCurrentView: (view: "dashboard" | "scheduler" | "saved") => void;
-}
-
-const SavedSchedulesPage: React.FC<SavedSchedulesPageProps> = ({
-  savedSchedules,
-  loadSchedule,
-  deleteSchedule,
-  setCurrentView,
-}) => {
+const SavedSchedulesPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { savedSchedules, loadSchedule, deleteSchedule } = useSchedule();
 
   // Fix: force SchedulerPage to reload schedule by using a callback and a reload flag
-  const handleLoadSchedule = (savedSchedule: SavedSchedule) => {
-    setCurrentView("scheduler");
-    setTimeout(() => {
-      loadSchedule(savedSchedule);
-    }, 0);
+  const handleLoadSchedule = (savedSchedule: any) => {
+    loadSchedule(savedSchedule);
+    navigate("/scheduler");
   };
 
   return (
@@ -37,7 +19,7 @@ const SavedSchedulesPage: React.FC<SavedSchedulesPageProps> = ({
         savedSchedules={savedSchedules}
         loadSchedule={handleLoadSchedule}
         deleteSchedule={deleteSchedule}
-        setCurrentView={setCurrentView}
+        setCurrentView={(view: string) => navigate(`/${view}`)}
       />
     </div>
   );

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import ProductionForm from "../components/layout/ProductionForm";
 import ScheduleTable from "../components/layout/ScheduleTable";
 import React from "react";
+import { useSchedule } from "../contexts/ScheduleContext";
+import { useNavigate } from "react-router-dom";
 
 interface ScheduleItem {
   id: string;
@@ -73,12 +75,9 @@ const mockData: DataItem[] = [
   },
 ];
 
-const SchedulerPage: React.FC<SchedulerPageProps> = ({
-  savedSchedules,
-  setSavedSchedules,
-  setCurrentView,
-  loadedSchedule, // <-- add this prop if not already
-}) => {
+const SchedulerPage: React.FC = () => {
+  const { savedSchedules, setSavedSchedules, loadedSchedule } = useSchedule();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     part: "",
     customer: "",
@@ -600,11 +599,12 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({
                         <div className="text-xs text-gray-400">{s.date}</div>
                       </div>
                       <div className="flex gap-2">
+                        // Di bagian tombol "Tampilkan" dalam modal Saved Schedules (sekitar baris 604-605):
                         <button
                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                           onClick={() => {
                             loadSchedule(s);
-                            setCurrentView && setCurrentView("scheduler");
+                            navigate("/scheduler");
                           }}
                         >
                           Tampilkan

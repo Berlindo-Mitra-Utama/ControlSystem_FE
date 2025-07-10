@@ -1,19 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import LoginForm from "../components/layout/LoginForm";
 
-interface LoginPageProps {
-  loginForm: { username: string; password: string };
-  setLoginForm: React.Dispatch<React.SetStateAction<{ username: string; password: string }>>;
-  handleLogin: (e: React.FormEvent) => void;
-  setInitialChoice: React.Dispatch<React.SetStateAction<string>>;
-}
+const LoginPage: React.FC = () => {
+  const { isLoggedIn, loginForm, setLoginForm, handleLogin } = useAuth();
+  const [initialChoice, setInitialChoice] = useState<string>("");
 
-const LoginPage: React.FC<LoginPageProps> = ({ 
-  loginForm, 
-  setLoginForm, 
-  handleLogin,
-  setInitialChoice 
-}) => {
+  // Redirect if already logged in
+  if (isLoggedIn) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const onLogin = (e: React.FormEvent) => {
+    handleLogin(e, initialChoice);
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
       <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 w-full max-w-md">
@@ -59,7 +61,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
         <LoginForm 
           loginForm={loginForm} 
           setLoginForm={setLoginForm} 
-          handleLogin={handleLogin} 
+          handleLogin={onLogin} 
         />
       </div>
     </div>

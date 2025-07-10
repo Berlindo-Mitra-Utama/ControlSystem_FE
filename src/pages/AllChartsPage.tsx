@@ -10,6 +10,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { useSchedule } from "../contexts/ScheduleContext";
+
 interface ScheduleItem {
   id: string;
   day: number;
@@ -38,10 +40,8 @@ interface AllChartsPageProps {
   ) => void;
 }
 
-const AllChartsPage: React.FC<AllChartsPageProps> = ({
-  savedSchedules,
-  setCurrentView,
-}) => {
+const AllChartsPage: React.FC = () => {
+  const { savedSchedules } = useSchedule();
   // Fungsi untuk mengolah data chart
   const processChartData = (schedule: ScheduleItem[]) => {
     // Mengelompokkan data berdasarkan hari
@@ -153,12 +153,6 @@ const AllChartsPage: React.FC<AllChartsPageProps> = ({
     <div className="min-h-screen bg-gray-950 p-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-white">Semua Chart Produksi</h1>
-        {/* <button
-          onClick={() => setCurrentView("dashboard")}
-          className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          Kembali ke Dashboard
-        </button> */}
       </div>
 
       {savedSchedules.length === 0 ? (

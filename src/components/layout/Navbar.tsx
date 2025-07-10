@@ -1,11 +1,11 @@
 // components/Navbar.tsx
 import React from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   Navbar,
   NavbarBrand,
   NavbarContent,
   NavbarItem,
-  Link,
   Button,
 } from "@heroui/react";
 
@@ -33,10 +33,6 @@ export const ProductionLogo = () => {
 interface NavbarProps {
   user: { username: string; email: string } | null;
   isLoggedIn: boolean;
-  currentView: "dashboard" | "scheduler" | "saved" | "allcharts";
-  setCurrentView: (
-    view: "dashboard" | "scheduler" | "saved" | "allcharts" | "hitungcoil",
-  ) => void;
   handleLogout: () => void;
   savedSchedulesCount: number;
 }
@@ -44,11 +40,14 @@ interface NavbarProps {
 const NavbarComponent: React.FC<NavbarProps> = ({
   user,
   isLoggedIn,
-  currentView,
-  setCurrentView,
   handleLogout,
   savedSchedulesCount,
 }) => {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const isActive = (path: string) => currentPath === path;
+
   return (
     <Navbar
       shouldHideOnScroll
@@ -62,32 +61,38 @@ const NavbarComponent: React.FC<NavbarProps> = ({
       </NavbarBrand>
 
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
-        <NavbarItem isActive={currentView === "dashboard"}>
+        <NavbarItem isActive={isActive("/dashboard")}>
           <Link
-            color={currentView === "dashboard" ? "primary" : "foreground"}
-            href="#"
-            onClick={() => setCurrentView("dashboard")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${currentView === "dashboard" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-700"}`}
+            to="/dashboard"
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              isActive("/dashboard")
+                ? "bg-blue-600 text-white"
+                : "text-gray-400 hover:text-white hover:bg-gray-700"
+            }`}
           >
             Dashboard
           </Link>
         </NavbarItem>
-        <NavbarItem isActive={currentView === "scheduler"}>
+        <NavbarItem isActive={isActive("/scheduler")}>
           <Link
-            color={currentView === "scheduler" ? "primary" : "foreground"}
-            href="#"
-            onClick={() => setCurrentView("scheduler")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${currentView === "scheduler" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-700"}`}
+            to="/scheduler"
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              isActive("/scheduler")
+                ? "bg-blue-600 text-white"
+                : "text-gray-400 hover:text-white hover:bg-gray-700"
+            }`}
           >
             Scheduler
           </Link>
         </NavbarItem>
-        <NavbarItem isActive={currentView === "saved"}>
+        <NavbarItem isActive={isActive("/saved")}>
           <Link
-            color={currentView === "saved" ? "primary" : "foreground"}
-            href="#"
-            onClick={() => setCurrentView("saved")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${currentView === "saved" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-700"}`}
+            to="/saved"
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              isActive("/saved")
+                ? "bg-blue-600 text-white"
+                : "text-gray-400 hover:text-white hover:bg-gray-700"
+            }`}
           >
             Saved ({savedSchedulesCount})
           </Link>
