@@ -35,7 +35,7 @@ interface NavbarProps {
   isLoggedIn: boolean;
   currentView: "dashboard" | "scheduler" | "saved" | "allcharts";
   setCurrentView: (
-    view: "dashboard" | "scheduler" | "saved" | "allcharts",
+    view: "dashboard" | "scheduler" | "saved" | "allcharts" | "hitungcoil",
   ) => void;
   handleLogout: () => void;
   savedSchedulesCount: number;

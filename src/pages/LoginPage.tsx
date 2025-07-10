@@ -5,9 +5,15 @@ interface LoginPageProps {
   loginForm: { username: string; password: string };
   setLoginForm: React.Dispatch<React.SetStateAction<{ username: string; password: string }>>;
   handleLogin: (e: React.FormEvent) => void;
+  setInitialChoice: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ loginForm, setLoginForm, handleLogin }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ 
+  loginForm, 
+  setLoginForm, 
+  handleLogin,
+  setInitialChoice 
+}) => {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
       <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 w-full max-w-md">
@@ -30,9 +36,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ loginForm, setLoginForm, handleLo
           <h1 className="text-3xl font-bold text-white mb-2">
             Production Scheduler
           </h1>
-          <p className="text-gray-400">
+          <p className="text-gray-400 mb-6">
             Sign in to access your production planning tools
           </p>
+          
+          {/* Tombol pilihan menu */}
+          <div className="flex space-x-4 justify-center mb-6">
+            <button
+              onClick={() => setInitialChoice("scheduler")}
+              className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 flex-1"
+            >
+              Kontrol Planning
+            </button>
+            <button
+              onClick={() => setInitialChoice("hitungcoil")}
+              className="px-4 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-teal-700 focus:ring-4 focus:ring-green-300 transition-all duration-300 flex-1"
+            >
+              Hitung Coil
+            </button>
+          </div>
         </div>
         <LoginForm 
           loginForm={loginForm} 
