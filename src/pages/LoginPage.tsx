@@ -12,6 +12,10 @@ const LoginPage: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const handleChoiceSelection = (choice: string) => {
+    setInitialChoice(choice);
+  };
+
   const onLogin = (e: React.FormEvent) => {
     handleLogin(e, initialChoice);
   };
@@ -45,24 +49,50 @@ const LoginPage: React.FC = () => {
           {/* Tombol pilihan menu */}
           <div className="flex space-x-4 justify-center mb-6">
             <button
-              onClick={() => setInitialChoice("scheduler")}
-              className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 flex-1"
+              onClick={() => handleChoiceSelection("scheduler")}
+              className={`px-4 py-3 font-semibold rounded-xl transition-all duration-300 flex-1 flex items-center justify-center gap-2 ${
+                initialChoice === "scheduler"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white ring-4 ring-blue-300"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300"
+              }`}
             >
               Kontrol Planning
+              {initialChoice === "scheduler" && (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </button>
             <button
-              onClick={() => setInitialChoice("hitungcoil")}
-              className="px-4 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-teal-700 focus:ring-4 focus:ring-green-300 transition-all duration-300 flex-1"
+              onClick={() => handleChoiceSelection("hitungcoil")}
+              className={`px-4 py-3 font-semibold rounded-xl transition-all duration-300 flex-1 flex items-center justify-center gap-2 ${
+                initialChoice === "hitungcoil"
+                  ? "bg-gradient-to-r from-green-600 to-teal-600 text-white ring-4 ring-green-300"
+                  : "bg-gradient-to-r from-green-600 to-teal-600 text-white hover:from-green-700 hover:to-teal-700 focus:ring-4 focus:ring-green-300"
+              }`}
             >
               Hitung Coil
+              {initialChoice === "hitungcoil" && (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
-        <LoginForm 
-          loginForm={loginForm} 
-          setLoginForm={setLoginForm} 
-          handleLogin={onLogin} 
-        />
+        
+        {/* Form login hanya muncul setelah memilih */}
+        {initialChoice ? (
+          <LoginForm 
+            loginForm={loginForm} 
+            setLoginForm={setLoginForm} 
+            handleLogin={onLogin} 
+          />
+        ) : (
+          <div className="text-center text-gray-400 text-sm">
+            Silakan pilih menu terlebih dahulu
+          </div>
+        )}
       </div>
     </div>
   );

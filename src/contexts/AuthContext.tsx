@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   username: string;
@@ -32,6 +33,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedUser = localStorage.getItem("currentUser");
@@ -53,11 +55,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem("currentUser", JSON.stringify(userData));
       setLoginForm({ username: "", password: "" });
       
-      // Navigation will be handled by React Router
+      // Gunakan React Router navigate instead of window.location.href
       if (initialChoice === "hitungcoil") {
-        window.location.href = "/hitungcoil";
+        navigate("/hitungcoil");
       } else {
-        window.location.href = "/dashboard";
+        navigate("/dashboard");
       }
     }
   };
@@ -66,7 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setIsLoggedIn(false);
     localStorage.removeItem("currentUser");
-    window.location.href = "/login";
+    navigate("/login");
   };
 
   return (
