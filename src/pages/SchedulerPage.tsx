@@ -86,7 +86,7 @@ const SchedulerPage: React.FC = () => {
     cycle1: 0,
     cycle7: 0,
     cycle35: 0,
-    stock:5000,
+    stock: 5000,
     // delivery: 5100, // REMOVE delivery from form, now per-row
     planningHour: 274,
     overtimeHour: 119,
@@ -108,17 +108,39 @@ const SchedulerPage: React.FC = () => {
     }
   }, [loadedSchedule]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [scheduleName, setScheduleName] = useState("");
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ScheduleItem>>({});
   const [showSavedSchedules, setShowSavedSchedules] = useState(false);
+
+  // Date picker states
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Generate schedule name from selected month/year
+  const getScheduleName = () => {
+    const months = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+    return `${months[selectedMonth]} ${selectedYear}`;
+  };
 
   // Automatically load schedule if loadedSchedule prop changes
   useEffect(() => {
     if (loadedSchedule) {
       setForm(loadedSchedule.form);
       setSchedule(loadedSchedule.schedule);
-      setScheduleName(loadedSchedule.name);
     }
   }, [loadedSchedule]);
 
@@ -274,9 +296,17 @@ const SchedulerPage: React.FC = () => {
       let totalDelivery = deliveryShift1;
       // Bagi delivery ke 2 shift
       let planningHariIni = Math.min(totalDelivery, sisaStock);
-      let planningShift1 = Math.min(Math.floor(planningHariIni / 2), kapasitasShift, sisaStock);
+      let planningShift1 = Math.min(
+        Math.floor(planningHariIni / 2),
+        kapasitasShift,
+        sisaStock,
+      );
       sisaStock -= planningShift1;
-      let planningShift2 = Math.min(planningHariIni - planningShift1, kapasitasShift, sisaStock);
+      let planningShift2 = Math.min(
+        planningHariIni - planningShift1,
+        kapasitasShift,
+        sisaStock,
+      );
       sisaStock -= planningShift2;
       // Jika delivery > total produksi hari ini, shortfall
       let shortfallHariIni = totalDelivery - (planningShift1 + planningShift2);
@@ -338,7 +368,9 @@ const SchedulerPage: React.FC = () => {
     }
     // Gabungkan lembur ke schedule utama, urutkan berdasarkan hari
     const allRows = [...scheduleList, ...overtimeRows];
-    allRows.sort((a, b) => a.day - b.day || (a.shift || '').localeCompare(b.shift || ''));
+    allRows.sort(
+      (a, b) => a.day - b.day || (a.shift || "").localeCompare(b.shift || ""),
+    );
     setSchedule(allRows);
     setIsGenerating(false);
   };
@@ -434,7 +466,11 @@ const SchedulerPage: React.FC = () => {
     let newPlanning: number | undefined = undefined;
     // Find which row is being edited and if planningPcs changed
     const editedRow = schedule.find((item) => item.id === itemId);
-    if (editedRow && editForm.planningPcs !== undefined && editForm.planningPcs !== editedRow.planningPcs) {
+    if (
+      editedRow &&
+      editForm.planningPcs !== undefined &&
+      editForm.planningPcs !== editedRow.planningPcs
+    ) {
       changedPlanningDay = editedRow.day;
       changedPlanningShift = editedRow.shift;
       oldPlanning = editedRow.planningPcs ?? 0;
@@ -458,9 +494,17 @@ const SchedulerPage: React.FC = () => {
       let totalDelivery = deliveryShift1;
       // Kalkulasi planning PCS per shift
       let planningHariIni = Math.min(totalDelivery, sisaStock);
-      let planningShift1 = Math.min(Math.floor(planningHariIni / 2), kapasitasShift, sisaStock);
+      let planningShift1 = Math.min(
+        Math.floor(planningHariIni / 2),
+        kapasitasShift,
+        sisaStock,
+      );
       sisaStock -= planningShift1;
-      let planningShift2 = Math.min(planningHariIni - planningShift1, kapasitasShift, sisaStock);
+      let planningShift2 = Math.min(
+        planningHariIni - planningShift1,
+        kapasitasShift,
+        sisaStock,
+      );
       sisaStock -= planningShift2;
 
       // --- If this is the edited row, override planningPcs and propagate selisih ---
@@ -476,7 +520,11 @@ const SchedulerPage: React.FC = () => {
       }
 
       // --- Propagate selisih to next day's shift 1 ---
-      if (changedPlanningDay !== null && planningDiff !== 0 && d === changedPlanningDay + 1) {
+      if (
+        changedPlanningDay !== null &&
+        planningDiff !== 0 &&
+        d === changedPlanningDay + 1
+      ) {
         planningShift1 += planningDiff;
         // Clamp to non-negative
         if (planningShift1 < 0) planningShift1 = 0;
@@ -488,9 +536,10 @@ const SchedulerPage: React.FC = () => {
         shortfall += shortfallHariIni;
       }
       // Row shift 1
-      const oldRow1 = schedule.find(r => r.id === idShift1);
+      const oldRow1 = schedule.find((r) => r.id === idShift1);
       // Hitung kekurangan produksi (shortfall hari ini)
-      let notes1 = oldRow1 && typeof oldRow1.notes === "string" ? oldRow1.notes : "";
+      let notes1 =
+        oldRow1 && typeof oldRow1.notes === "string" ? oldRow1.notes : "";
       if (shortfallHariIni > 0) {
         notes1 = `Kekurangan produksi hari ini: ${shortfallHariIni} pcs`;
       }
@@ -503,19 +552,31 @@ const SchedulerPage: React.FC = () => {
         pcs: planningShift1,
         time: "07:00-15:00",
         processes: "",
-        status: oldRow1 && typeof oldRow1.status === "string" ? oldRow1.status : "Normal",
-        actualPcs: oldRow1 && typeof oldRow1.actualPcs === "number" ? oldRow1.actualPcs : undefined,
+        status:
+          oldRow1 && typeof oldRow1.status === "string"
+            ? oldRow1.status
+            : "Normal",
+        actualPcs:
+          oldRow1 && typeof oldRow1.actualPcs === "number"
+            ? oldRow1.actualPcs
+            : undefined,
         delivery: deliveryShift1,
         planningPcs: planningShift1,
         overtimePcs: 0,
         notes: notes1,
         // Add selisih info for the edited row
-        selisih: (changedPlanningDay === d && changedPlanningShift === "1" && planningDiff !== 0) ? planningDiff : undefined,
+        selisih:
+          changedPlanningDay === d &&
+          changedPlanningShift === "1" &&
+          planningDiff !== 0
+            ? planningDiff
+            : undefined,
       });
       // Row shift 2
-      const oldRow2 = schedule.find(r => r.id === idShift2);
+      const oldRow2 = schedule.find((r) => r.id === idShift2);
       // Untuk shift 2, kekurangan produksi hanya dicatat jika shortfallHariIni > 0
-      let notes2 = oldRow2 && typeof oldRow2.notes === "string" ? oldRow2.notes : "";
+      let notes2 =
+        oldRow2 && typeof oldRow2.notes === "string" ? oldRow2.notes : "";
       if (shortfallHariIni > 0) {
         notes2 = `Kekurangan produksi hari ini: ${shortfallHariIni} pcs`;
       }
@@ -528,13 +589,24 @@ const SchedulerPage: React.FC = () => {
         pcs: planningShift2,
         time: "15:00-23:00",
         processes: "",
-        status: oldRow2 && typeof oldRow2.status === "string" ? oldRow2.status : "Normal",
-        actualPcs: oldRow2 && typeof oldRow2.actualPcs === "number" ? oldRow2.actualPcs : undefined,
+        status:
+          oldRow2 && typeof oldRow2.status === "string"
+            ? oldRow2.status
+            : "Normal",
+        actualPcs:
+          oldRow2 && typeof oldRow2.actualPcs === "number"
+            ? oldRow2.actualPcs
+            : undefined,
         delivery: undefined,
         planningPcs: planningShift2,
         overtimePcs: 0,
         notes: notes2,
-        selisih: (changedPlanningDay === d && changedPlanningShift === "2" && planningDiff !== 0) ? planningDiff : undefined,
+        selisih:
+          changedPlanningDay === d &&
+          changedPlanningShift === "2" &&
+          planningDiff !== 0
+            ? planningDiff
+            : undefined,
       });
       // Setiap 3 hari, shortfall dijadwalkan sebagai lembur 2 hari kemudian
       if (d % 3 === 0 && shortfall > 0) {
@@ -561,16 +633,41 @@ const SchedulerPage: React.FC = () => {
     }
     // Gabungkan lembur ke schedule utama, urutkan berdasarkan hari
     const allRows = [...scheduleList, ...overtimeRows];
-    allRows.sort((a, b) => a.day - b.day || (a.shift || '').localeCompare(b.shift || ''));
+    allRows.sort(
+      (a, b) => a.day - b.day || (a.shift || "").localeCompare(b.shift || ""),
+    );
     setSchedule(allRows);
     setEditingRow(null);
     setEditForm({});
   };
 
   const saveSchedule = () => {
-    if (!scheduleName.trim()) {
-      alert("Please enter a schedule name");
+    if (!form.part) {
+      alert("Silakan pilih part terlebih dahulu");
       return;
+    }
+
+    const scheduleName = getScheduleName();
+
+    // Check if schedule already exists for this part and month/year
+    const existingSchedule = savedSchedules.find(
+      (s) => s.form.part === form.part && s.name === scheduleName,
+    );
+
+    if (existingSchedule) {
+      const confirmOverwrite = window.confirm(
+        `Laporan ${scheduleName} untuk part ${form.part} sudah ada. Apakah Anda ingin menimpanya?`,
+      );
+
+      if (!confirmOverwrite) {
+        return;
+      }
+
+      // Remove existing schedule
+      const updatedSchedules = savedSchedules.filter(
+        (s) => s.id !== existingSchedule.id,
+      );
+      setSavedSchedules(updatedSchedules);
     }
 
     const newSchedule: SavedSchedule = {
@@ -581,23 +678,24 @@ const SchedulerPage: React.FC = () => {
       schedule: [...schedule],
     };
 
-    const updatedSchedules = [...savedSchedules, newSchedule];
+    const updatedSchedules = [
+      ...savedSchedules.filter((s) => s.id !== existingSchedule?.id),
+      newSchedule,
+    ];
     setSavedSchedules(updatedSchedules);
     localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
-    setScheduleName("");
-    alert("Schedule saved successfully!");
+    alert("Schedule berhasil disimpan!");
   };
 
   // Load a saved schedule into the current state
   const loadSchedule = (savedSchedule: SavedSchedule) => {
     setForm(savedSchedule.form);
     setSchedule(savedSchedule.schedule);
-    setScheduleName(savedSchedule.name);
     setShowSavedSchedules(false);
     setTimeout(() => {
-      const tableSection = document.getElementById('schedule-table-section');
+      const tableSection = document.getElementById("schedule-table-section");
       if (tableSection) {
-        tableSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        tableSection.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 200);
   };
@@ -618,8 +716,18 @@ const SchedulerPage: React.FC = () => {
             onClick={() => setShowProductionForm(true)}
             className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Tambah Penjadwalan Baru
           </button>
@@ -628,7 +736,10 @@ const SchedulerPage: React.FC = () => {
       {/* Saved Schedules Modal */}
       {showSavedSchedules && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto" style={{ maxWidth: '600px', maxHeight: '90vh' }}>
+          <div
+            className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
+            style={{ maxWidth: "600px", maxHeight: "90vh" }}
+          >
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
               onClick={() => setShowSavedSchedules(false)}
@@ -637,19 +748,27 @@ const SchedulerPage: React.FC = () => {
               ×
             </button>
             <div className="p-8">
-              <h2 className="text-xl font-bold text-white mb-4">Jadwal Tersimpan</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Jadwal Tersimpan
+              </h2>
               {savedSchedules.length === 0 ? (
-                <div className="text-gray-400">Belum ada jadwal yang disimpan.</div>
+                <div className="text-gray-400">
+                  Belum ada jadwal yang disimpan.
+                </div>
               ) : (
                 <ul className="space-y-4">
                   {savedSchedules.map((s) => (
-                    <li key={s.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
+                    <li
+                      key={s.id}
+                      className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3"
+                    >
                       <div>
                         <div className="font-semibold text-white">{s.name}</div>
                         <div className="text-xs text-gray-400">{s.date}</div>
                       </div>
                       <div className="flex gap-2">
-                        // Di bagian tombol "Tampilkan" dalam modal Saved Schedules (sekitar baris 604-605):
+                        // Di bagian tombol "Tampilkan" dalam modal Saved
+                        Schedules (sekitar baris 604-605):
                         <button
                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                           onClick={() => {
@@ -678,7 +797,10 @@ const SchedulerPage: React.FC = () => {
       {/* Production Form Modal */}
       {showProductionForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto" style={{ maxWidth: '800px', maxHeight: '90vh' }}>
+          <div
+            className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
+            style={{ maxWidth: "800px", maxHeight: "90vh" }}
+          >
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
               onClick={() => setShowProductionForm(false)}
@@ -688,8 +810,8 @@ const SchedulerPage: React.FC = () => {
             </button>
             <ProductionForm
               form={form}
-              scheduleName={scheduleName}
-              setScheduleName={setScheduleName}
+              scheduleName={getScheduleName()}
+              setScheduleName={() => {}}
               handleSelectPart={handleSelectPart}
               handleChange={handleChange}
               mockData={mockData}
@@ -708,7 +830,9 @@ const SchedulerPage: React.FC = () => {
       {schedule.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-900 border border-gray-800 rounded-3xl p-12">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white mb-2">Jadwal Produksi belum dibuat</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Jadwal Produksi belum dibuat
+            </h2>
             <p className="text-gray-400 mb-6">Lakukan penjadwalan sekarang</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -717,20 +841,32 @@ const SchedulerPage: React.FC = () => {
               >
                 Tambah Penjadwalan
               </button>
-
             </div>
           </div>
         </div>
       ) : (
-        <div id="schedule-table-section" className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
+        <div
+          id="schedule-table-section"
+          className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden"
+        >
           {/* Edit Production Form Button */}
           <div className="flex justify-end px-8 pt-6">
             <button
               onClick={() => setShowProductionForm(true)}
               className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 focus:ring-4 focus:ring-yellow-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
               </svg>
               Edit Production Form
             </button>
@@ -746,13 +882,94 @@ const SchedulerPage: React.FC = () => {
                 </p>
               </div>
               <div className="flex items-center gap-4">
-                <input
-                  type="text"
-                  value={scheduleName}
-                  onChange={(e) => setScheduleName(e.target.value)}
-                  placeholder="Enter schedule name"
-                  className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                {/* Month/Year Picker */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    {getScheduleName()}
+                  </button>
+
+                  {showDatePicker && (
+                    <div className="absolute top-full mt-2 right-0 bg-gray-800 border border-gray-700 rounded-lg p-4 shadow-xl z-50 min-w-[250px]">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Bulan
+                          </label>
+                          <select
+                            value={selectedMonth}
+                            onChange={(e) =>
+                              setSelectedMonth(parseInt(e.target.value))
+                            }
+                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500"
+                          >
+                            {[
+                              "Januari",
+                              "Februari",
+                              "Maret",
+                              "April",
+                              "Mei",
+                              "Juni",
+                              "Juli",
+                              "Agustus",
+                              "September",
+                              "Oktober",
+                              "November",
+                              "Desember",
+                            ].map((month, index) => (
+                              <option key={index} value={index}>
+                                {month}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Tahun
+                          </label>
+                          <select
+                            value={selectedYear}
+                            onChange={(e) =>
+                              setSelectedYear(parseInt(e.target.value))
+                            }
+                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500"
+                          >
+                            {Array.from(
+                              { length: 10 },
+                              (_, i) => new Date().getFullYear() - 5 + i,
+                            ).map((year) => (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          onClick={() => setShowDatePicker(false)}
+                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                        >
+                          Pilih
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={saveSchedule}
                   className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 flex items-center gap-2"

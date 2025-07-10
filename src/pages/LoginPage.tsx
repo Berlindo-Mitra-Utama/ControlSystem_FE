@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
           <p className="text-gray-400 mb-6">
             Sign in to access your production planning tools
           </p>
-          
+
           {/* Tombol pilihan menu */}
           <div className="flex space-x-4 justify-center mb-6">
             <button
@@ -58,8 +58,16 @@ const LoginPage: React.FC = () => {
             >
               Kontrol Planning
               {initialChoice === "scheduler" && (
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </button>
@@ -73,20 +81,28 @@ const LoginPage: React.FC = () => {
             >
               Hitung Coil
               {initialChoice === "hitungcoil" && (
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </button>
           </div>
         </div>
-        
+
         {/* Form login hanya muncul setelah memilih */}
         {initialChoice ? (
-          <LoginForm 
-            loginForm={loginForm} 
-            setLoginForm={setLoginForm} 
-            handleLogin={onLogin} 
+          <LoginForm
+            loginForm={loginForm}
+            setLoginForm={setLoginForm}
+            handleLogin={onLogin}
           />
         ) : (
           <div className="text-center text-gray-400 text-sm">

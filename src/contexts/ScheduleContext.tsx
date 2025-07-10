@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 interface ScheduleItem {
   id: string;
@@ -30,12 +36,14 @@ interface ScheduleContextType {
   deleteSchedule: (id: string) => void;
 }
 
-const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
+const ScheduleContext = createContext<ScheduleContextType | undefined>(
+  undefined,
+);
 
 export const useSchedule = () => {
   const context = useContext(ScheduleContext);
   if (context === undefined) {
-    throw new Error('useSchedule must be used within a ScheduleProvider');
+    throw new Error("useSchedule must be used within a ScheduleProvider");
   }
   return context;
 };
@@ -44,9 +52,13 @@ interface ScheduleProviderProps {
   children: ReactNode;
 }
 
-export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) => {
+export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
+  children,
+}) => {
   const [savedSchedules, setSavedSchedules] = useState<SavedSchedule[]>([]);
-  const [loadedSchedule, setLoadedSchedule] = useState<SavedSchedule | null>(null);
+  const [loadedSchedule, setLoadedSchedule] = useState<SavedSchedule | null>(
+    null,
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem("savedSchedules");
@@ -66,14 +78,16 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   };
 
   return (
-    <ScheduleContext.Provider value={{
-      savedSchedules,
-      setSavedSchedules,
-      loadedSchedule,
-      setLoadedSchedule,
-      loadSchedule,
-      deleteSchedule
-    }}>
+    <ScheduleContext.Provider
+      value={{
+        savedSchedules,
+        setSavedSchedules,
+        loadedSchedule,
+        setLoadedSchedule,
+        loadSchedule,
+        deleteSchedule,
+      }}
+    >
       {children}
     </ScheduleContext.Provider>
   );

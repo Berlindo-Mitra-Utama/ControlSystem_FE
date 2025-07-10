@@ -43,30 +43,20 @@ const Dashboard: React.FC = () => {
     totalProduction: savedSchedules.reduce((total, schedule) => {
       return (
         total +
-        schedule.schedule.reduce(
-          (sum, item) => sum + (item.actualPcs || 0),
-          0,
-        )
+        schedule.schedule.reduce((sum, item) => sum + (item.actualPcs || 0), 0)
       );
     }, 0),
     totalPlanned: savedSchedules.reduce((total, schedule) => {
-      return (
-        total +
-        schedule.schedule.reduce((sum, item) => sum + item.pcs, 0)
-      );
+      return total + schedule.schedule.reduce((sum, item) => sum + item.pcs, 0);
     }, 0),
     totalDays: savedSchedules.reduce((total, schedule) => {
-      const maxDay = Math.max(
-        ...schedule.schedule.map((item) => item.day),
-      );
+      const maxDay = Math.max(...schedule.schedule.map((item) => item.day));
       return total + maxDay;
     }, 0),
     disruptedItems: savedSchedules.reduce((total, schedule) => {
       return (
         total +
-        schedule.schedule.filter(
-          (item) => item.status === "Gangguan",
-        ).length
+        schedule.schedule.filter((item) => item.status === "Gangguan").length
       );
     }, 0),
   };
