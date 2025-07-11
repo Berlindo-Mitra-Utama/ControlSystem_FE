@@ -1,60 +1,47 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ScheduleProvider } from "./contexts/ScheduleContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Footer from "./components/layout/Footer";
-import LoginPage from "./pages/LoginPage";
+
+// Layouts
 import DashboardLayout from "./layouts/DashboardLayout";
 import HitungCoilLayout from "./layouts/HitungCoilLayout";
+
+// Pages
 import Dashboard from "./pages/Dashboard";
-import SchedulerPage from "./pages/SchedulerPage";
-import SavedSchedulesPage from "./pages/SavedSchedulesPage";
-import AllChartsPage from "./pages/AllChartsPage";
+import Scheduler from "./pages/SchedulerPage";
+import SavedSchedules from "./pages/SavedSchedulesPage";
+import AllCharts from "./pages/AllChartsPage";
 import HitungCoil from "./HitungCoil/pages/hitungcoil";
+import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage";
+import ToolsDashboard from "./pages/ToolsDashboard";
+import EnhancedLoginPage from "./pages/EnhancedLoginPage";
 
 function App() {
   return (
     <AuthProvider>
       <ScheduleProvider>
-        <div className="min-h-screen bg-gray-950">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/tools" element={<ToolsDashboard />} />
+          <Route path="/login" element={<EnhancedLoginPage />} />
+          <Route path="/login-old" element={<LoginPage />} />
 
-            {/* Protected Routes with Dashboard Layout */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="scheduler" element={<SchedulerPage />} />
-              <Route path="saved" element={<SavedSchedulesPage />} />
-              <Route path="allcharts" element={<AllChartsPage />} />
-            </Route>
+          {/* Protected Routes - Dashboard */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="scheduler" element={<Scheduler />} />
+            <Route path="saved" element={<SavedSchedules />} />
+            <Route path="allcharts" element={<AllCharts />} />
+          </Route>
 
-            {/* Protected Route for Hitung Coil with separate layout */}
-            <Route
-              path="/hitungcoil"
-              element={
-                <ProtectedRoute>
-                  <HitungCoilLayout>
-                    <HitungCoil />
-                  </HitungCoilLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </div>
-        <Footer />
+          {/* Protected Routes - Hitung Coil */}
+          <Route path="/hitungcoil" element={<HitungCoilLayout />}>
+            <Route index element={<HitungCoil />} />
+          </Route>
+        </Routes>
       </ScheduleProvider>
     </AuthProvider>
   );
