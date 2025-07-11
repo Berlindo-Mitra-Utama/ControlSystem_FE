@@ -728,8 +728,12 @@ const SchedulerPage: React.FC = () => {
   };
 
   return (
-    <>
-      {/* Add New Production Planning Button (below navbar) */}
+    <div className="scheduler-bg w-full min-h-screen">
+      {/* SchedulerPage main content */}
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
+        {/* Main content below */}
+        {/* ...existing code... */}
+        {/* Add New Production Planning Button (below navbar) */}
       {showAddButton && (
         <div className="flex justify-start mt-6 px-8">
           <button
@@ -976,19 +980,20 @@ const SchedulerPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal component */}
-      <Modal
-        isOpen={notification.isOpen}
-        onClose={hideNotification}
-        title={notification.title}
-        type={notification.type}
-        onConfirm={notification.onConfirm}
-        confirmText={notification.confirmText}
-        cancelText={notification.cancelText}
-      >
-        {notification.message}
-      </Modal>
-    </>
+        {/* Modal component */}
+        <Modal
+          isOpen={notification.isOpen}
+          onClose={hideNotification}
+          title={notification.title}
+          type={notification.type}
+          onConfirm={notification.onConfirm}
+          confirmText={notification.confirmText}
+          cancelText={notification.cancelText}
+        >
+          {notification.message}
+        </Modal>
+      </div>
+    </div>
   );
 };
 

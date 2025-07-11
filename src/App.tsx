@@ -18,30 +18,38 @@ import LandingPage from "./pages/LandingPage";
 import ToolsDashboard from "./pages/ToolsDashboard";
 import EnhancedLoginPage from "./pages/EnhancedLoginPage";
 
+// Footer
+import Footer from "./components/layout/Footer";
+
 function App() {
   return (
     <AuthProvider>
       <ScheduleProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/tools" element={<ToolsDashboard />} />
-          <Route path="/login" element={<EnhancedLoginPage />} />
-          <Route path="/login-old" element={<LoginPage />} />
+        <div className="min-h-screen flex flex-col bg-[#101624]">
+          <div className="flex-1">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/tools" element={<ToolsDashboard />} />
+              <Route path="/login" element={<EnhancedLoginPage />} />
+              <Route path="/login-old" element={<LoginPage />} />
 
-          {/* Protected Routes - Dashboard */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="scheduler" element={<Scheduler />} />
-            <Route path="saved" element={<SavedSchedules />} />
-            <Route path="allcharts" element={<AllCharts />} />
-          </Route>
+              {/* Protected Routes - Dashboard */}
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="scheduler" element={<Scheduler />} />
+                <Route path="saved" element={<SavedSchedules />} />
+                <Route path="allcharts" element={<AllCharts />} />
+              </Route>
 
-          {/* Protected Routes - Hitung Coil */}
-          <Route path="/hitungcoil" element={<HitungCoilLayout />}>
-            <Route index element={<HitungCoil />} />
-          </Route>
-        </Routes>
+              {/* Protected Routes - Hitung Coil */}
+              <Route path="/hitungcoil" element={<HitungCoilLayout />}>
+                <Route index element={<HitungCoil />} />
+              </Route>
+            </Routes>
+          </div>
+          <Footer />
+        </div>
       </ScheduleProvider>
     </AuthProvider>
   );

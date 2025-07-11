@@ -62,27 +62,29 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 p-8 w-full">
-      <h1 className="text-3xl font-bold text-blue-400 mb-8">Dashboard</h1>
-      <StatsCards stats={stats} />
+    <div className="scheduler-bg w-full min-h-screen">
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-3xl font-bold text-blue-400 mb-8">Dashboard</h1>
+        <StatsCards stats={stats} />
 
-      {savedSchedules.length > 0 ? (
-        <div className="mt-20">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-blue-400">
-              Production Chart
-            </h2>
+        {savedSchedules.length > 0 ? (
+          <div className="mt-20">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-3xl font-semibold text-blue-400">
+                Production Chart
+              </h2>
+            </div>
+            <ProductionChart
+              schedule={selectedSchedule}
+              onViewAllCharts={handleViewAllCharts}
+            />
           </div>
-          <ProductionChart
-            schedule={selectedSchedule}
-            onViewAllCharts={handleViewAllCharts}
-          />
-        </div>
-      ) : (
-        <div className="mt-8 bg-gray-900 rounded-xl p-8 text-center">
-          <p className="text-gray-400">Belum ada jadwal produksi yang dibuat</p>
-        </div>
-      )}
+        ) : (
+          <div className="mt-8 bg-gray-900 rounded-xl p-8 text-center">
+            <p className="text-gray-400">Belum ada jadwal produksi yang dibuat</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

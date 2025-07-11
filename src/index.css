@@ -16,6 +16,33 @@
 
 /* Custom scrollbar using Tailwind utilities */
 @layer utilities {
+  /* Scheduler page background (match login page) */
+  /* Dynamic animated background for scheduler page */
+  .scheduler-bg {
+    @apply min-h-screen flex flex-col items-center justify-start relative overflow-hidden;
+    background: linear-gradient(120deg, #101624 0%, #232b38 100%);
+  }
+  .scheduler-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(ellipse 60% 40% at 80% 10%, rgba(59,130,246,0.18) 0%, transparent 100%),
+                radial-gradient(ellipse 40% 30% at 20% 80%, rgba(16,185,129,0.13) 0%, transparent 100%),
+                radial-gradient(ellipse 30% 20% at 60% 70%, rgba(236,72,153,0.10) 0%, transparent 100%);
+    animation: scheduler-bg-fade 12s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes scheduler-bg-fade {
+    0% {
+      opacity: 0.85;
+      filter: blur(0px);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(2px);
+    }
+  }
   .custom-scrollbar::-webkit-scrollbar {
     @apply w-1.5 h-1.5;
   }
