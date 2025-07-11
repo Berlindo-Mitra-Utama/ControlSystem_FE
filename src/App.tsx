@@ -18,8 +18,7 @@ import LandingPage from "./pages/LandingPage";
 import ToolsDashboard from "./pages/ToolsDashboard";
 import EnhancedLoginPage from "./pages/EnhancedLoginPage";
 
-// Footer
-import Footer from "./components/layout/Footer";
+// Footer import dihapus karena hanya akan digunakan di LandingPage
 
 function App() {
   return (
@@ -48,7 +47,7 @@ function App() {
               </Route>
             </Routes>
           </div>
-          <Footer />
+          {/* Footer dihapus dari sini */}
         </div>
       </ScheduleProvider>
     </AuthProvider>

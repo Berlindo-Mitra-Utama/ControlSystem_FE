@@ -1,6 +1,6 @@
 // components/Navbar.tsx
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Navbar,
   NavbarBrand,
@@ -44,6 +44,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   savedSchedulesCount,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
 
   const isActive = (path: string) => {
@@ -51,6 +52,11 @@ const NavbarComponent: React.FC<NavbarProps> = ({
       return true;
     }
     return currentPath.startsWith(path);
+  };
+
+  const handleLogoutAndRedirect = () => {
+    handleLogout();
+    navigate("/tools");
   };
 
   return (
@@ -119,7 +125,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
               <Button
                 color="default"
                 variant="flat"
-                onClick={handleLogout}
+                onClick={handleLogoutAndRedirect}
                 className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-all duration-200 text-sm font-medium"
               >
                 Logout

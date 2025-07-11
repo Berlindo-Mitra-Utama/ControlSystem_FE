@@ -63,9 +63,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem("currentUser", JSON.stringify(userData));
       setLoginForm({ username: "", password: "" });
 
-      // Gunakan React Router navigate instead of window.location.href
-      if (initialChoice === "hitungcoil") {
-        navigate("/hitungcoil");
+      // Navigasi berdasarkan tool yang dipilih
+      if (initialChoice) {
+        switch (initialChoice) {
+          case "scheduler":
+            navigate("/dashboard");
+            break;
+          case "hitungcoil":
+            navigate("/hitungcoil");
+            break;
+          case "reports":
+            navigate("/dashboard"); // atau route khusus untuk reports
+            break;
+          case "analytics":
+            navigate("/dashboard"); // atau route khusus untuk analytics
+            break;
+          case "usermanagement":
+            navigate("/dashboard"); // atau route khusus untuk user management
+            break;
+          case "systemconfig":
+            navigate("/dashboard"); // atau route khusus untuk system config
+            break;
+          case "monitoring":
+            navigate("/dashboard"); // atau route khusus untuk monitoring
+            break;
+          default:
+            navigate("/dashboard");
+        }
       } else {
         navigate("/dashboard");
       }
