@@ -13,6 +13,44 @@ export default function EnhancedLoginPage() {
   const location = useLocation();
   const initialChoice = new URLSearchParams(location.search).get("tool");
 
+  // Fungsi untuk mendapatkan informasi tool
+  const getToolInfo = (toolId: string | null) => {
+    const toolsMap: { [key: string]: { title: string; description: string } } =
+      {
+        scheduler: {
+          title: "Planning System",
+          description: "Sistem perencanaan dan penjadwalan produksi",
+        },
+        hitungcoil: {
+          title: "Hitung Coil",
+          description: "Kalkulasi material coil dan inventory management",
+        },
+        reports: {
+          title: "Laporan Produksi",
+          description: "Generate laporan harian dan bulanan",
+        },
+        analytics: {
+          title: "Analytics",
+          description: "Analisis performa dan trend produksi",
+        },
+        usermanagement: {
+          title: "User Management",
+          description: "Kelola akses pengguna sistem",
+        },
+        systemconfig: {
+          title: "System Config",
+          description: "Konfigurasi dan maintenance sistem",
+        },
+        monitoring: {
+          title: "Monitoring Real-time",
+          description: "Monitor status produksi real-time",
+        },
+      };
+    return toolId ? toolsMap[toolId] : null;
+  };
+
+  const selectedTool = getToolInfo(initialChoice);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -56,7 +94,12 @@ export default function EnhancedLoginPage() {
               {/* Logo */}
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 mb-6 shadow-lg shadow-blue-500/25 transform hover:scale-105 transition-transform duration-300">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-10 h-10 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -69,8 +112,27 @@ export default function EnhancedLoginPage() {
 
               {/* Welcome Message */}
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-semibold text-white mb-2">Selamat Datang Kembali</h1>
-                <p className="text-gray-400 text-sm">Masuk ke akun Anda untuk mengakses sistem produksi</p>
+                <h1 className="text-2xl font-semibold text-white mb-2">
+                  Selamat Datang Kembali
+                </h1>
+                {selectedTool ? (
+                  <div className="mb-4">
+                    <p className="text-gray-400 text-sm mb-2">
+                      Anda akan mengakses:
+                    </p>
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                      <h3 className="text-blue-400 font-semibold text-sm">
+                        {selectedTool.title}
+                      </h3>
+                      <p className="text-gray-300 text-xs">
+                        {selectedTool.description}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                <p className="text-gray-400 text-sm">
+                  Masuk ke akun Anda untuk mengakses sistem produksi
+                </p>
               </div>
             </div>
 
@@ -79,19 +141,25 @@ export default function EnhancedLoginPage() {
               <form onSubmit={onSubmit} className="space-y-6">
                 {/* NIP Field */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">Nomor Induk Pegawai (NIP)</label>
+                  <label className="block text-sm font-medium text-gray-300">
+                    Nomor Induk Pegawai (NIP)
+                  </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <User
                         className={`w-5 h-5 transition-colors duration-200 ${
-                          focusedField === "username" ? "text-blue-400" : "text-gray-500"
+                          focusedField === "username"
+                            ? "text-blue-400"
+                            : "text-gray-500"
                         }`}
                       />
                     </div>
                     <input
                       type="text"
                       value={loginForm.username}
-                      onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                      onChange={(e) =>
+                        setLoginForm({ ...loginForm, username: e.target.value })
+                      }
                       onFocus={() => setFocusedField("username")}
                       onBlur={() => setFocusedField(null)}
                       className={`
@@ -115,19 +183,25 @@ export default function EnhancedLoginPage() {
 
                 {/* Password Field */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">Password</label>
+                  <label className="block text-sm font-medium text-gray-300">
+                    Password
+                  </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Lock
                         className={`w-5 h-5 transition-colors duration-200 ${
-                          focusedField === "password" ? "text-blue-400" : "text-gray-500"
+                          focusedField === "password"
+                            ? "text-blue-400"
+                            : "text-gray-500"
                         }`}
                       />
                     </div>
                     <input
                       type={showPassword ? "text" : "password"}
                       value={loginForm.password}
-                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                      onChange={(e) =>
+                        setLoginForm({ ...loginForm, password: e.target.value })
+                      }
                       onFocus={() => setFocusedField("password")}
                       onBlur={() => setFocusedField(null)}
                       className={`
@@ -147,7 +221,11 @@ export default function EnhancedLoginPage() {
                       className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-300 transition-colors duration-200"
                       disabled={isLoading}
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
                     </button>
                     <div
                       className={`absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 transition-opacity duration-200 pointer-events-none ${
@@ -162,7 +240,9 @@ export default function EnhancedLoginPage() {
                   <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 animate-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <p className="text-red-400 text-sm font-medium">{loginError}</p>
+                      <p className="text-red-400 text-sm font-medium">
+                        {loginError}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -215,7 +295,9 @@ export default function EnhancedLoginPage() {
                       className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500/25 focus:ring-2"
                       disabled={isLoading}
                     />
-                    <span className="group-hover:text-gray-300 transition-colors duration-200">Ingat saya</span>
+                    <span className="group-hover:text-gray-300 transition-colors duration-200">
+                      Ingat saya
+                    </span>
                   </label>
                   <button
                     type="button"
@@ -245,7 +327,6 @@ export default function EnhancedLoginPage() {
             <div className="mt-4">
               <Link to="/">
                 <Button
-                  variant="outline"
                   size="sm"
                   className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
                 >

@@ -2,36 +2,29 @@ import React from "react";
 
 const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-[#101624] border-t border-gray-800 py-0 text-center relative overflow-hidden">
-      <div className="relative w-full flex flex-col md:flex-row items-center justify-between min-h-[90px]">
-        {/* Left: Text area */}
-        <div className="flex-1 flex flex-col items-center justify-center py-6 px-4">
-          <div className="text-gray-200 text-lg font-semibold mb-1">
-            &copy; {new Date().getFullYear()} Control System Scheduler
+    <footer className="w-full bg-[#101624] border-t border-gray-800 py-0 relative overflow-hidden">
+      <div className="relative w-full flex flex-col md:flex-row items-center justify-between min-h-[70px] md:min-h-[90px]">
+        {/* Left: Text area - responsive positioning */}
+        <div className="flex flex-col justify-center py-4 md:py-6 px-4 md:px-8 z-10 text-center md:text-left w-full md:w-auto">
+          <div className="text-gray-200 text-base md:text-lg font-semibold mb-1">
+            &copy; 2025 Control System Scheduler
           </div>
-          <div className="text-gray-400 text-sm">
+          <div className="text-gray-400 text-xs md:text-sm">
             All rights reserved.
           </div>
         </div>
-        {/* Right: Banner chevron design and logo */}
-        <div className="relative flex items-center justify-end h-full w-[340px] md:w-[480px]">
-          {/* Chevron shapes - now light gray, shifted left */}
-          <svg
-            viewBox="0 0 480 90" width="100%" height="100%"
-            className="absolute left-[-120px] md:left-[-180px] top-0 h-full w-full z-0 transition-all duration-300"
-            preserveAspectRatio="none"
-            style={{ maxWidth: 'none' }}
-          >
-            <polygon points="180,0 480,0 480,90 180,90 270,45" fill="#e5e7eb" />
-            <polygon points="240,0 480,0 480,90 240,90 330,45" fill="#d1d5db" />
-            <polygon points="300,0 480,0 480,90 300,90 390,45" fill="#bfc3c7" />
-          </svg>
-          {/* Logo on top of chevron */}
-          <div className="relative flex items-center justify-center h-[90px] w-[180px] z-10">
+
+        {/* Right: Responsive gradient background with logo */}
+        <div className="absolute right-0 top-0 h-full w-full md:w-1/2 bg-gradient-to-r from-transparent via-gray-800/30 to-gray-700/50">
+          {/* Additional gradient overlay for depth */}
+          <div className="absolute right-0 top-0 h-full w-full md:w-2/3 bg-gradient-to-r from-transparent via-blue-900/20 to-indigo-800/30"></div>
+
+          {/* Logo positioned responsively */}
+          <div className="absolute right-2 sm:right-4 md:right-8 top-1/2 transform -translate-y-1/2 z-20">
             <img
               src="../src/img/berlindo-logo-shadow-rev.resized (1).webp"
               alt="Berlindo company logo with stylized shadow effect, set against a neutral background, conveying a professional and modern tone"
-              className="h-16 w-36 object-contain drop-shadow-xl"
+              className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-44 lg:h-24 lg:w-52 object-contain drop-shadow-xl"
             />
           </div>
         </div>

@@ -87,7 +87,7 @@ const SchedulerPage: React.FC = () => {
     hideNotification,
     showAlert,
     showSuccess,
-    showConfirm
+    showConfirm,
   } = useNotification();
   const [form, setForm] = useState({
     part: "",
@@ -684,12 +684,15 @@ const SchedulerPage: React.FC = () => {
 
           const finalSchedules = [...updatedSchedules, newSchedule];
           setSavedSchedules(finalSchedules);
-          localStorage.setItem("savedSchedules", JSON.stringify(finalSchedules));
+          localStorage.setItem(
+            "savedSchedules",
+            JSON.stringify(finalSchedules),
+          );
           showSuccess("Schedule berhasil diperbarui!");
         },
         "Konfirmasi Timpa",
         "Ya, Timpa",
-        "Batal"
+        "Batal",
       );
     } else {
       const newSchedule: SavedSchedule = {
@@ -734,153 +737,14 @@ const SchedulerPage: React.FC = () => {
         {/* Main content below */}
         {/* ...existing code... */}
         {/* Add New Production Planning Button (below navbar) */}
-      {showAddButton && (
-        <div className="flex justify-start mt-6 px-8">
-          <button
-            onClick={() => setShowProductionForm(true)}
-            className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Tambah Penjadwalan Baru
-          </button>
-        </div>
-      )}
-      {/* Saved Schedules Modal */}
-      {showSavedSchedules && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div
-            className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
-            style={{ maxWidth: "600px", maxHeight: "90vh" }}
-          >
-            <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
-              onClick={() => setShowSavedSchedules(false)}
-              aria-label="Tutup"
-            >
-              ×
-            </button>
-            <div className="p-8">
-              <h2 className="text-xl font-bold text-white mb-4">
-                Jadwal Tersimpan
-              </h2>
-              {savedSchedules.length === 0 ? (
-                <div className="text-gray-400">
-                  Belum ada jadwal yang disimpan.
-                </div>
-              ) : (
-                <ul className="space-y-4">
-                  {savedSchedules.map((s) => (
-                    <li
-                      key={s.id}
-                      className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3"
-                    >
-                      <div>
-                        <div className="font-semibold text-white">{s.name}</div>
-                        <div className="text-xs text-gray-400">{s.date}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        // Di bagian tombol "Tampilkan" dalam modal Saved
-                        Schedules (sekitar baris 604-605):
-                        <button
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                          onClick={() => {
-                            loadSchedule(s);
-                            navigate("/scheduler");
-                          }}
-                        >
-                          Tampilkan
-                        </button>
-                        <button
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
-                          onClick={() => deleteSchedule(s.id)}
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Production Form Modal */}
-      {showProductionForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div
-            className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
-            style={{ maxWidth: "800px", maxHeight: "90vh" }}
-          >
-            <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
-              onClick={() => setShowProductionForm(false)}
-              aria-label="Tutup"
-            >
-              ×
-            </button>
-            <ProductionForm
-              form={form}
-              scheduleName={getScheduleName()}
-              setScheduleName={() => {}}
-              handleSelectPart={handleSelectPart}
-              handleChange={handleChange}
-              mockData={mockData}
-              isGenerating={isGenerating}
-              generateSchedule={() => {
-                generateSchedule();
-                setShowProductionForm(false);
-              }}
-              saveSchedule={saveSchedule}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* If no schedule, show blank state */}
-      {schedule.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-900 border border-gray-800 rounded-3xl p-12">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Jadwal Produksi belum dibuat
-            </h2>
-            <p className="text-gray-400 mb-6">Lakukan penjadwalan sekarang</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => setShowProductionForm(true)}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
-              >
-                Tambah Penjadwalan
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div
-          id="schedule-table-section"
-          className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden"
-        >
-          {/* Edit Production Form Button */}
-          <div className="flex justify-end px-8 pt-6">
+        {showAddButton && (
+          <div className="flex justify-start mt-6 px-8">
             <button
               onClick={() => setShowProductionForm(true)}
-              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 focus:ring-4 focus:ring-yellow-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
               <svg
-                className="w-4 h-4"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -889,28 +753,213 @@ const SchedulerPage: React.FC = () => {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  d="M12 4v16m8-8H4"
                 />
               </svg>
-              Edit Production Form
+              Tambah Penjadwalan Baru
             </button>
           </div>
-          <div className="border-b border-gray-800 px-8 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white">
-                  Production Schedule
+        )}
+        {/* Saved Schedules Modal */}
+        {showSavedSchedules && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div
+              className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
+              style={{ maxWidth: "600px", maxHeight: "90vh" }}
+            >
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
+                onClick={() => setShowSavedSchedules(false)}
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+              <div className="p-8">
+                <h2 className="text-xl font-bold text-white mb-4">
+                  Jadwal Tersimpan
                 </h2>
-                <p className="text-gray-400 mt-1">
-                  Your optimized manufacturing timeline - Click to edit status
-                </p>
+                {savedSchedules.length === 0 ? (
+                  <div className="text-gray-400">
+                    Belum ada jadwal yang disimpan.
+                  </div>
+                ) : (
+                  <ul className="space-y-4">
+                    {savedSchedules.map((s) => (
+                      <li
+                        key={s.id}
+                        className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3"
+                      >
+                        <div>
+                          <div className="font-semibold text-white">
+                            {s.name}
+                          </div>
+                          <div className="text-xs text-gray-400">{s.date}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          // Di bagian tombol "Tampilkan" dalam modal Saved
+                          Schedules (sekitar baris 604-605):
+                          <button
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                            onClick={() => {
+                              loadSchedule(s);
+                              navigate("/scheduler");
+                            }}
+                          >
+                            Tampilkan
+                          </button>
+                          <button
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+                            onClick={() => deleteSchedule(s.id)}
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className="flex items-center gap-4">
-                {/* Month/Year Picker */}
-                <div className="relative">
+            </div>
+          </div>
+        )}
+
+        {/* Production Form Modal */}
+        {showProductionForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div
+              className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
+              style={{ maxWidth: "800px", maxHeight: "90vh" }}
+            >
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
+                onClick={() => setShowProductionForm(false)}
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+              <ProductionForm
+                form={form}
+                scheduleName={getScheduleName()}
+                setScheduleName={() => {}}
+                handleSelectPart={handleSelectPart}
+                handleChange={handleChange}
+                mockData={mockData}
+                isGenerating={isGenerating}
+                generateSchedule={() => {
+                  generateSchedule();
+                  setShowProductionForm(false);
+                }}
+                saveSchedule={saveSchedule}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* If no schedule, show blank state */}
+        {schedule.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-900 border border-gray-800 rounded-3xl p-12">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Jadwal Produksi belum dibuat
+              </h2>
+              <p className="text-gray-400 mb-6">Lakukan penjadwalan sekarang</p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => setShowProductionForm(true)}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                >
+                  Tambah Penjadwalan
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div
+            id="schedule-table-section"
+            className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden"
+          >
+            {/* Edit Production Form Button */}
+            <div className="flex justify-end px-8 pt-6">
+              <button
+                onClick={() => setShowProductionForm(true)}
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 focus:ring-4 focus:ring-yellow-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit Production Form
+              </button>
+            </div>
+            <div className="border-b border-gray-800 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">
+                    Production Schedule
+                  </h2>
+                  <p className="text-gray-400 mt-1">
+                    Your optimized manufacturing timeline - Click to edit status
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {/* Month/Year Picker */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowDatePicker(!showDatePicker)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span className="font-medium">{getScheduleName()}</span>
+                      <svg
+                        className={`w-4 h-4 transition-transform ${showDatePicker ? "rotate-180" : ""}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {showDatePicker && (
+                      <CompactDatePicker
+                        selectedMonth={selectedMonth}
+                        selectedYear={selectedYear}
+                        onMonthChange={setSelectedMonth}
+                        onYearChange={setSelectedYear}
+                        onClose={() => setShowDatePicker(false)}
+                      />
+                    )}
+                  </div>
+
                   <button
-                    onClick={() => setShowDatePicker(!showDatePicker)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    onClick={saveSchedule}
+                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 flex items-center gap-2"
                   >
                     <svg
                       className="w-4 h-4"
@@ -922,63 +971,29 @@ const SchedulerPage: React.FC = () => {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
                       />
                     </svg>
-                    <span className="font-medium">{getScheduleName()}</span>
-                    <svg className={`w-4 h-4 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    Save
                   </button>
-
-                  {showDatePicker && (
-                    <CompactDatePicker
-                      selectedMonth={selectedMonth}
-                      selectedYear={selectedYear}
-                      onMonthChange={setSelectedMonth}
-                      onYearChange={setSelectedYear}
-                      onClose={() => setShowDatePicker(false)}
-                    />
-                  )}
                 </div>
-
-                <button
-                  onClick={saveSchedule}
-                  className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 flex items-center gap-2"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                    />
-                  </svg>
-                  Save
-                </button>
               </div>
             </div>
-          </div>
 
-          <div className="p-8">
-            <ScheduleTable
-              schedule={schedule}
-              editingRow={editingRow}
-              editForm={editForm}
-              startEdit={startEdit}
-              saveEdit={saveEdit}
-              cancelEdit={cancelEdit}
-              setEditForm={setEditForm}
-              initialStock={form.stock}
-            />
+            <div className="p-8">
+              <ScheduleTable
+                schedule={schedule}
+                editingRow={editingRow}
+                editForm={editForm}
+                startEdit={startEdit}
+                saveEdit={saveEdit}
+                cancelEdit={cancelEdit}
+                setEditForm={setEditForm}
+                initialStock={form.stock}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* Modal component */}
         <Modal

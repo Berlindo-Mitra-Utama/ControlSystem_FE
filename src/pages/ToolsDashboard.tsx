@@ -30,7 +30,7 @@ export default function ToolsDashboard() {
 
   const handleToolSelect = (toolId: string, requiresLogin: boolean) => {
     if (requiresLogin && !isLoggedIn) {
-      navigate(`/login?tool=${toolId}`);
+      navigate(`/login?tool=${toolId}`); // ✅ Sudah benar
     } else {
       switch (toolId) {
         case "scheduler":
@@ -51,7 +51,8 @@ export default function ToolsDashboard() {
       {
         id: "hitungcoil",
         title: "Hitung Coil",
-        description: "Kalkulasi otomatis untuk perhitungan coil dengan akurasi tinggi dan efisiensi maksimal",
+        description:
+          "Kalkulasi otomatis untuk perhitungan coil dengan akurasi tinggi dan efisiensi maksimal",
         icon: BarChart3,
         gradient: "from-green-500 to-teal-600",
         hoverGradient: "from-green-700 to-teal-700",
@@ -64,7 +65,8 @@ export default function ToolsDashboard() {
       {
         id: "scheduler",
         title: "Kontrol Planning",
-        description: "Sistem perencanaan produksi komprehensif untuk mengatur jadwal dan alokasi sumber daya",
+        description:
+          "Sistem perencanaan produksi komprehensif untuk mengatur jadwal dan alokasi sumber daya",
         icon: Calendar,
         gradient: "from-blue-500 to-indigo-600",
         hoverGradient: "from-blue-700 to-indigo-700",
@@ -74,7 +76,8 @@ export default function ToolsDashboard() {
       {
         id: "reports",
         title: "Laporan Produksi",
-        description: "Generate dan analisis laporan produksi harian, mingguan, dan bulanan",
+        description:
+          "Generate dan analisis laporan produksi harian, mingguan, dan bulanan",
         icon: FileText,
         gradient: "from-purple-500 to-pink-600",
         hoverGradient: "from-purple-700 to-pink-700",
@@ -87,7 +90,8 @@ export default function ToolsDashboard() {
       {
         id: "monitoring",
         title: "Monitoring Real-time",
-        description: "Monitor status produksi dan performa mesin secara real-time",
+        description:
+          "Monitor status produksi dan performa mesin secara real-time",
         icon: Activity,
         gradient: "from-orange-500 to-red-600",
         hoverGradient: "from-orange-700 to-red-700",
@@ -97,7 +101,8 @@ export default function ToolsDashboard() {
       {
         id: "analytics",
         title: "Analytics Dashboard",
-        description: "Analisis mendalam performa produksi dan trend operasional",
+        description:
+          "Analisis mendalam performa produksi dan trend operasional",
         icon: TrendingUp,
         gradient: "from-cyan-500 to-blue-600",
         hoverGradient: "from-cyan-700 to-blue-700",
@@ -131,7 +136,12 @@ export default function ToolsDashboard() {
 
     switch (role) {
       case "admin":
-        return [...baseTools, ...plannerTools, ...supervisorTools, ...adminTools];
+        return [
+          ...baseTools,
+          ...plannerTools,
+          ...supervisorTools,
+          ...adminTools,
+        ];
       case "supervisor":
         return [...baseTools, ...plannerTools, ...supervisorTools];
       case "planner":
@@ -153,19 +163,20 @@ export default function ToolsDashboard() {
       gradient: "from-green-400 to-emerald-500",
       hoverGradient: "from-green-500 to-emerald-600",
       category: "public",
-      badge: "Free",
+      badge: "Open",
       requiresLogin: false,
       badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
     },
     {
       id: "converter",
       title: "Unit Converter",
-      description: "Konversi satuan untuk produksi dan engineering calculations",
+      description:
+        "Konversi satuan untuk produksi dan engineering calculations",
       icon: PieChart,
       gradient: "from-blue-400 to-cyan-500",
       hoverGradient: "from-blue-500 to-cyan-600",
       category: "public",
-      badge: "Free",
+      badge: "Open",
       requiresLogin: false,
       badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
     },
@@ -177,7 +188,7 @@ export default function ToolsDashboard() {
       gradient: "from-orange-500 to-red-500",
       hoverGradient: "from-orange-600 to-red-600",
       category: "public",
-      badge: "Free",
+      badge: "Open",
       requiresLogin: false,
       badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
     },
@@ -185,7 +196,8 @@ export default function ToolsDashboard() {
     {
       id: "scheduler",
       title: "Planning System",
-      description: "Sistem perencanaan dan penjadwalan produksi harian dengan resource allocation",
+      description:
+        "Sistem perencanaan dan penjadwalan produksi harian dengan resource allocation",
       icon: Calendar,
       gradient: "from-purple-500 to-pink-500",
       hoverGradient: "from-purple-600 to-pink-600",
@@ -210,7 +222,8 @@ export default function ToolsDashboard() {
     {
       id: "analytics",
       title: "Analytics",
-      description: "Analisis performa dan trend produksi dengan business intelligence dashboard",
+      description:
+        "Analisis performa dan trend produksi dengan business intelligence dashboard",
       icon: TrendingUp,
       gradient: "from-red-500 to-pink-500",
       hoverGradient: "from-red-600 to-pink-600",
@@ -234,7 +247,8 @@ export default function ToolsDashboard() {
     {
       id: "systemconfig",
       title: "System Config",
-      description: "Konfigurasi dan maintenance sistem dengan advanced settings dan backup management",
+      description:
+        "Konfigurasi dan maintenance sistem dengan advanced settings dan backup management",
       icon: Settings,
       gradient: "from-yellow-500 to-orange-500",
       hoverGradient: "from-yellow-600 to-orange-600",
@@ -279,19 +293,24 @@ export default function ToolsDashboard() {
     const IconComponent = tool.icon;
     const LockIcon = tool.requiresLogin ? Lock : Unlock;
 
+    const handleCardClick = () => {
+      isPublicView
+        ? handleToolSelect(tool.id, tool.requiresLogin)
+        : handleToolSelect(tool.id, false);
+    };
+
     return (
       <div
         key={tool.id}
         className={`
           border rounded-lg transition-all duration-300 cursor-pointer group relative overflow-hidden h-full flex flex-col
-          ${tool.requiresLogin && isPublicView
-            ? "bg-gray-800/30 border-gray-600 hover:bg-gray-800/50"
-            : "bg-gray-800/50 border-gray-700 hover:bg-gray-800/70"
+          ${
+            tool.requiresLogin && isPublicView
+              ? "bg-gray-800/30 border-gray-600 hover:bg-gray-800/50"
+              : "bg-gray-800/50 border-gray-700 hover:bg-gray-800/70"
           }
         `}
-        onClick={() =>
-          isPublicView ? handleToolSelect(tool.id, tool.requiresLogin) : handleToolSelect(tool.id, false)
-        }
+        onClick={handleCardClick}
       >
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-4">
@@ -303,8 +322,9 @@ export default function ToolsDashboard() {
               </div>
               {isPublicView && (
                 <div
-                  className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${tool.requiresLogin ? "bg-orange-500" : "bg-green-500"
-                    }`}
+                  className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${
+                    tool.requiresLogin ? "bg-orange-500" : "bg-green-500"
+                  }`}
                 >
                   <LockIcon className="w-2.5 h-2.5 text-white" />
                 </div>
@@ -313,7 +333,8 @@ export default function ToolsDashboard() {
             <div
               className={`
               inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold
-              ${isPublicView
+              ${
+                isPublicView
                   ? tool.badgeColor
                   : `
                 ${tool.category === "admin" ? "bg-red-500/10 text-red-400 border-red-500/20" : ""}
@@ -323,7 +344,7 @@ export default function ToolsDashboard() {
                 ${tool.category === "reporting" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : ""}
                 ${tool.category === "analytics" ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" : ""}
               `
-                }
+              }
             `}
             >
               {tool.badge}
@@ -340,8 +361,11 @@ export default function ToolsDashboard() {
 
           <div className="flex-1 mb-4 flex items-start">
             <p
-              className={`text-sm leading-relaxed ${tool.requiresLogin && isPublicView ? "text-gray-500" : "text-gray-400"
-                }`}
+              className={`text-sm leading-relaxed ${
+                tool.requiresLogin && isPublicView
+                  ? "text-gray-500"
+                  : "text-gray-400"
+              }`}
               style={{
                 display: "-webkit-box",
                 WebkitLineClamp: 3,
@@ -356,10 +380,12 @@ export default function ToolsDashboard() {
 
           <div className="mt-auto">
             <Button
-              className={`w-full ${tool.requiresLogin && isPublicView
-                ? `bg-gradient-to-r ${tool.gradient} hover:${tool.hoverGradient} opacity-90`
-                : `bg-gradient-to-r ${tool.gradient} hover:${tool.hoverGradient}`
-                }`}
+              onClick={handleCardClick}
+              className={`w-full rounded-lg ${
+                tool.requiresLogin && isPublicView
+                  ? `bg-gradient-to-r ${tool.gradient} hover:${tool.hoverGradient} opacity-90`
+                  : `bg-gradient-to-r ${tool.gradient} hover:${tool.hoverGradient}`
+              }`}
             >
               {isPublicView && tool.requiresLogin ? (
                 <>
@@ -383,8 +409,6 @@ export default function ToolsDashboard() {
 
   // If logged in, show dashboard menu
   if (isLoggedIn && !showToolsView && user) {
-    const tools = getToolsForRole(user.role || "operator");
-
     return (
       <div className="min-h-screen bg-gray-950 p-6">
         <div className="container mx-auto max-w-6xl">
@@ -392,17 +416,21 @@ export default function ToolsDashboard() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-white">Dashboard Berlindo</h1>
-                <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 ${getRoleBadgeColor(user.role || "operator")}`}>
-                  {getRoleDisplayName(user.role || "operator")}
-                </div>
+                <h1 className="text-3xl font-bold text-white">
+                  Dashboard Berlindo
+                </h1>
+                <div
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 W`}
+                ></div>
               </div>
-              <p className="text-gray-400">Selamat datang kembali, {user.username}! Pilih tools yang ingin Anda gunakan:</p>
+              <p className="text-gray-400">
+                Selamat datang kembali, {user.username}! Pilih tools yang ingin
+                Anda gunakan:
+              </p>
             </div>
             <div className="flex items-center space-x-4">
               <Button
                 onClick={() => setShowToolsView(true)}
-                variant="outline"
                 className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
               >
                 Lihat Semua Tools
@@ -413,7 +441,6 @@ export default function ToolsDashboard() {
               </div>
               <Button
                 onClick={handleLogout}
-                variant="outline"
                 className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
               >
                 <LogOut className="w-4 h-4 mr-2" />
@@ -423,7 +450,9 @@ export default function ToolsDashboard() {
           </div>
 
           {/* Tools Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">{tools.map((tool) => renderToolCard(tool))}</div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tools.map((tool) => renderToolCard(tool))}
+          </div>
 
           {/* Regular Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
@@ -432,15 +461,21 @@ export default function ToolsDashboard() {
               <div className="text-gray-400 text-sm">System Uptime</div>
             </div>
             <div className="bg-gray-800/30 rounded-xl p-6 text-center">
-              <div className="text-2xl font-bold text-green-400 mb-2">99.9%</div>
+              <div className="text-2xl font-bold text-green-400 mb-2">
+                99.9%
+              </div>
               <div className="text-gray-400 text-sm">Accuracy Rate</div>
             </div>
             <div className="bg-gray-800/30 rounded-xl p-6 text-center">
-              <div className="text-2xl font-bold text-purple-400 mb-2">Real-time</div>
+              <div className="text-2xl font-bold text-purple-400 mb-2">
+                Real-time
+              </div>
               <div className="text-gray-400 text-sm">Data Sync</div>
             </div>
             <div className="bg-gray-800/30 rounded-xl p-6 text-center">
-              <div className="text-2xl font-bold text-orange-400 mb-2">Secure</div>
+              <div className="text-2xl font-bold text-orange-400 mb-2">
+                Secure
+              </div>
               <div className="text-gray-400 text-sm">Data Protection</div>
             </div>
           </div>
@@ -451,8 +486,12 @@ export default function ToolsDashboard() {
 
   // Public tools view or logged in tools view
   const publicTools = allTools.filter((tool) => !tool.requiresLogin);
-  const staffTools = allTools.filter((tool) => tool.requiresLogin && tool.category === "professional");
-  const managementTools = allTools.filter((tool) => tool.requiresLogin && tool.category === "management");
+  const staffTools = allTools.filter(
+    (tool) => tool.requiresLogin && tool.category === "professional",
+  );
+  const managementTools = allTools.filter(
+    (tool) => tool.requiresLogin && tool.category === "management",
+  );
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -463,7 +502,6 @@ export default function ToolsDashboard() {
             <div className="flex items-center space-x-4">
               <Link to="/">
                 <Button
-                  variant="outline"
                   size="sm"
                   className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
                 >
@@ -473,14 +511,15 @@ export default function ToolsDashboard() {
               </Link>
               <div className="flex items-center space-x-3">
                 <Factory className="w-6 h-6 text-blue-400" />
-                <h1 className="text-xl font-bold text-white">Production Tools</h1>
+                <h1 className="text-xl font-bold text-white">
+                  Production Tools
+                </h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               {isLoggedIn && showToolsView && (
                 <Button
                   onClick={() => setShowToolsView(false)}
-                  variant="outline"
                   className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
                 >
                   Dashboard
@@ -498,11 +537,11 @@ export default function ToolsDashboard() {
       </header>
 
       <div className="container mx-auto px-6 py-8">
-        {/* Free Tools */}
+        {/* Open Tools */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Unlock className="w-5 h-5 text-green-400" />
-            <h2 className="text-lg font-bold text-white">Free Tools</h2>
+            <h2 className="text-lg font-bold text-white">Open Tools</h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {publicTools.map((tool) => renderToolCard(tool, true))}

@@ -81,7 +81,9 @@ const Dashboard: React.FC = () => {
           </div>
         ) : (
           <div className="mt-8 bg-gray-900 rounded-xl p-8 text-center">
-            <p className="text-gray-400">Belum ada jadwal produksi yang dibuat</p>
+            <p className="text-gray-400">
+              Belum ada jadwal produksi yang dibuat
+            </p>
           </div>
         )}
       </div>
