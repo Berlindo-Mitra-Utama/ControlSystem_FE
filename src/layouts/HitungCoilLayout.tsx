@@ -1,11 +1,8 @@
 import React from "react";
+import { Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-interface HitungCoilLayoutProps {
-  children: React.ReactNode;
-}
-
-const HitungCoilLayout: React.FC<HitungCoilLayoutProps> = ({ children }) => {
+const HitungCoilLayout: React.FC = () => {
   const { handleLogout } = useAuth();
 
   return (
@@ -29,14 +26,9 @@ const HitungCoilLayout: React.FC<HitungCoilLayoutProps> = ({ children }) => {
           </div>
           <p className="font-bold text-white text-xl ml-2">Hitung Coil</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
-        >
-          Logout
-        </button>
+        {/* Tombol logout dihapus dari sini */}
       </div>
-      {children}
+      <Outlet />
     </>
   );
 };

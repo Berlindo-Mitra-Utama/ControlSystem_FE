@@ -46,7 +46,12 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const isActive = (path: string) => currentPath === path;
+  const isActive = (path: string) => {
+    if (path === "/dashboard" && currentPath === "/dashboard") {
+      return true;
+    }
+    return currentPath.startsWith(path);
+  };
 
   return (
     <Navbar
@@ -75,9 +80,9 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         </NavbarItem>
         <NavbarItem isActive={isActive("/scheduler")}>
           <Link
-            to="/scheduler"
+            to="/dashboard/scheduler"
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-              isActive("/scheduler")
+              isActive("/dashboard/scheduler")
                 ? "bg-blue-600 text-white"
                 : "text-gray-400 hover:text-white hover:bg-gray-700"
             }`}
@@ -87,9 +92,9 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         </NavbarItem>
         <NavbarItem isActive={isActive("/saved")}>
           <Link
-            to="/saved"
+            to="/dashboard/saved"
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-              isActive("/saved")
+              isActive("/dashboard/saved")
                 ? "bg-blue-600 text-white"
                 : "text-gray-400 hover:text-white hover:bg-gray-700"
             }`}
