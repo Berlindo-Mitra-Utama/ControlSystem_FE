@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ScheduleProvider } from "./contexts/ScheduleContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Footer from "./components/layout/Footer";
 import LoginPage from "./pages/LoginPage";
 import DashboardLayout from "./layouts/DashboardLayout";
 import HitungCoilLayout from "./layouts/HitungCoilLayout";
@@ -53,6 +54,7 @@ function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
+        <Footer />
       </ScheduleProvider>
     </AuthProvider>
   );
