@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
 
   // Handler untuk tombol Lihat Semua
   const handleViewAllCharts = () => {
-    navigate("/allcharts");
+    navigate("dasboard/allcharts");
   };
 
   // Calculate stats
@@ -62,14 +62,14 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 p-8">
-      <h1 className="text-3xl font-bold text-white mb-8">Dashboard</h1>
+    <div className="min-h-screen bg-gray-950 p-8 w-full">
+      <h1 className="text-3xl font-bold text-blue-400 mb-8">Dashboard</h1>
       <StatsCards stats={stats} />
 
       {savedSchedules.length > 0 ? (
         <div className="mt-20">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-white">
+            <h2 className="text-3xl font-semibold text-blue-400">
               Production Chart
             </h2>
           </div>
