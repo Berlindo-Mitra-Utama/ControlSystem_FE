@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useSchedule } from "../contexts/ScheduleContext";
+import { useNavigate } from "react-router-dom";
 
 const SavedSchedulesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,15 +36,12 @@ const SavedSchedulesPage: React.FC = () => {
     navigate("/scheduler");
   };
 
-  const handleDeleteSchedule = (scheduleId: string) => {
-    const schedule = savedSchedules.find((s) => s.id === scheduleId);
-    if (schedule) {
-      const confirmDelete = window.confirm(
-        `Apakah Anda yakin ingin menghapus laporan ${schedule.name} untuk part ${schedule.form.part}?`,
-      );
-      if (confirmDelete) {
-        deleteSchedule(scheduleId);
-      }
+  const handleDeleteSchedule = (scheduleId: string, scheduleName: string) => {
+    const confirmDelete = window.confirm(
+      `Apakah Anda yakin ingin menghapus schedule "${scheduleName}"?`,
+    );
+    if (confirmDelete) {
+      deleteSchedule(scheduleId);
     }
   };
 
@@ -162,7 +159,8 @@ const SavedSchedulesPage: React.FC = () => {
                       </div>
                     </div>
                     <p className="text-gray-400 text-sm mb-4">
-                      Dibuat: {schedule.date}
+                      Dibuat:{" "}
+                      {new Date(schedule.date).toLocaleDateString("id-ID")}
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -172,7 +170,9 @@ const SavedSchedulesPage: React.FC = () => {
                         Tampilkan
                       </button>
                       <button
-                        onClick={() => handleDeleteSchedule(schedule.id)}
+                        onClick={() =>
+                          handleDeleteSchedule(schedule.id, schedule.name)
+                        }
                         className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
                       >
                         Hapus

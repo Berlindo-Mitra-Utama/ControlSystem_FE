@@ -4,6 +4,9 @@ import ScheduleTable from "../components/layout/ScheduleTable";
 import React from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
+import Modal from "../components/ui/Modal";
+import CompactDatePicker from "../components/ui/CompactDatePicker";
+import { useNotification } from "../hooks/useNotification";
 
 interface ScheduleItem {
   id: string;
@@ -79,6 +82,13 @@ const mockData: DataItem[] = [
 const SchedulerPage: React.FC = () => {
   const { savedSchedules, setSavedSchedules, loadedSchedule } = useSchedule();
   const navigate = useNavigate();
+  const {
+    notification,
+    hideNotification,
+    showAlert,
+    showSuccess,
+    showConfirm
+  } = useNotification();
   const [form, setForm] = useState({
     part: "",
     customer: "",
@@ -643,7 +653,7 @@ const SchedulerPage: React.FC = () => {
 
   const saveSchedule = () => {
     if (!form.part) {
-      alert("Silakan pilih part terlebih dahulu");
+      showAlert("Silakan pilih part terlebih dahulu", "Peringatan");
       return;
     }
 
@@ -655,36 +665,46 @@ const SchedulerPage: React.FC = () => {
     );
 
     if (existingSchedule) {
-      const confirmOverwrite = window.confirm(
+      showConfirm(
         `Laporan ${scheduleName} untuk part ${form.part} sudah ada. Apakah Anda ingin menimpanya?`,
-      );
+        () => {
+          // Remove existing schedule
+          const updatedSchedules = savedSchedules.filter(
+            (s) => s.id !== existingSchedule.id,
+          );
+          setSavedSchedules(updatedSchedules);
 
-      if (!confirmOverwrite) {
-        return;
-      }
+          const newSchedule: SavedSchedule = {
+            id: Date.now().toString(),
+            name: scheduleName,
+            date: new Date().toLocaleDateString(),
+            form: { ...form },
+            schedule: [...schedule],
+          };
 
-      // Remove existing schedule
-      const updatedSchedules = savedSchedules.filter(
-        (s) => s.id !== existingSchedule.id,
+          const finalSchedules = [...updatedSchedules, newSchedule];
+          setSavedSchedules(finalSchedules);
+          localStorage.setItem("savedSchedules", JSON.stringify(finalSchedules));
+          showSuccess("Schedule berhasil diperbarui!");
+        },
+        "Konfirmasi Timpa",
+        "Ya, Timpa",
+        "Batal"
       );
+    } else {
+      const newSchedule: SavedSchedule = {
+        id: Date.now().toString(),
+        name: scheduleName,
+        date: new Date().toLocaleDateString(),
+        form: { ...form },
+        schedule: [...schedule],
+      };
+
+      const updatedSchedules = [...savedSchedules, newSchedule];
       setSavedSchedules(updatedSchedules);
+      localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
+      showSuccess("Schedule berhasil disimpan!");
     }
-
-    const newSchedule: SavedSchedule = {
-      id: Date.now().toString(),
-      name: scheduleName,
-      date: new Date().toLocaleDateString(),
-      form: { ...form },
-      schedule: [...schedule],
-    };
-
-    const updatedSchedules = [
-      ...savedSchedules.filter((s) => s.id !== existingSchedule?.id),
-      newSchedule,
-    ];
-    setSavedSchedules(updatedSchedules);
-    localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
-    alert("Schedule berhasil disimpan!");
   };
 
   // Load a saved schedule into the current state
@@ -886,7 +906,7 @@ const SchedulerPage: React.FC = () => {
                 <div className="relative">
                   <button
                     onClick={() => setShowDatePicker(!showDatePicker)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
                     <svg
                       className="w-4 h-4"
@@ -901,72 +921,20 @@ const SchedulerPage: React.FC = () => {
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
-                    {getScheduleName()}
+                    <span className="font-medium">{getScheduleName()}</span>
+                    <svg className={`w-4 h-4 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </button>
 
                   {showDatePicker && (
-                    <div className="absolute top-full mt-2 right-0 bg-gray-800 border border-gray-700 rounded-lg p-4 shadow-xl z-50 min-w-[250px]">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Bulan
-                          </label>
-                          <select
-                            value={selectedMonth}
-                            onChange={(e) =>
-                              setSelectedMonth(parseInt(e.target.value))
-                            }
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            {[
-                              "Januari",
-                              "Februari",
-                              "Maret",
-                              "April",
-                              "Mei",
-                              "Juni",
-                              "Juli",
-                              "Agustus",
-                              "September",
-                              "Oktober",
-                              "November",
-                              "Desember",
-                            ].map((month, index) => (
-                              <option key={index} value={index}>
-                                {month}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Tahun
-                          </label>
-                          <select
-                            value={selectedYear}
-                            onChange={(e) =>
-                              setSelectedYear(parseInt(e.target.value))
-                            }
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            {Array.from(
-                              { length: 10 },
-                              (_, i) => new Date().getFullYear() - 5 + i,
-                            ).map((year) => (
-                              <option key={year} value={year}>
-                                {year}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <button
-                          onClick={() => setShowDatePicker(false)}
-                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                        >
-                          Pilih
-                        </button>
-                      </div>
-                    </div>
+                    <CompactDatePicker
+                      selectedMonth={selectedMonth}
+                      selectedYear={selectedYear}
+                      onMonthChange={setSelectedMonth}
+                      onYearChange={setSelectedYear}
+                      onClose={() => setShowDatePicker(false)}
+                    />
                   )}
                 </div>
 
@@ -1007,6 +975,19 @@ const SchedulerPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal component */}
+      <Modal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        type={notification.type}
+        onConfirm={notification.onConfirm}
+        confirmText={notification.confirmText}
+        cancelText={notification.cancelText}
+      >
+        {notification.message}
+      </Modal>
     </>
   );
 };

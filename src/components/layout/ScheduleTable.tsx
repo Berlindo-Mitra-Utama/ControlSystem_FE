@@ -45,9 +45,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
 
   // Filter schedule by date (day as string, e.g. "8" for 8 Juli 2024)
   const filteredSchedule = searchDate
-    ? schedule.filter((row) =>
-        row.day.toString().includes(searchDate.trim())
-      )
+    ? schedule.filter((row) => row.day.toString().includes(searchDate.trim()))
     : schedule;
 
   // Group rows by day for merging "No" column
@@ -63,18 +61,23 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
 
   // --- STOCK CALCULATION LOGIC (KOREKSI: stock = stock sebelumnya + produksi - delivery) ---
   const flatRows: ScheduleItem[] = groupedRows.flatMap((g) => g.rows);
-  const stockArr = flatRows.reduce<{ stokTersedia: number[]; stockSaatIni: number[] }>(
+  const stockArr = flatRows.reduce<{
+    stokTersedia: number[];
+    stockSaatIni: number[];
+  }>(
     (acc, row, idx) => {
       if (idx === 0) {
         acc.stokTersedia[0] = initialStock;
-        acc.stockSaatIni[0] = initialStock + (row.planningPcs || 0) - (row.delivery || 0);
+        acc.stockSaatIni[0] =
+          initialStock + (row.planningPcs || 0) - (row.delivery || 0);
       } else {
         acc.stokTersedia[idx] = acc.stockSaatIni[idx - 1];
-        acc.stockSaatIni[idx] = acc.stokTersedia[idx] + (row.planningPcs || 0) - (row.delivery || 0);
+        acc.stockSaatIni[idx] =
+          acc.stokTersedia[idx] + (row.planningPcs || 0) - (row.delivery || 0);
       }
       return acc;
     },
-    { stokTersedia: [], stockSaatIni: [] }
+    { stokTersedia: [], stockSaatIni: [] },
   );
 
   let rowIndex = 0;
@@ -108,7 +111,10 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
         )}
       </div>
       <div className="relative w-full">
-        <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+        <table
+          className="w-full border-collapse"
+          style={{ tableLayout: "fixed" }}
+        >
           <thead
             className="sticky top-[48px] z-30 bg-gray-900"
             style={{
@@ -117,20 +123,42 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
             }}
           >
             <tr className="border-b border-gray-800 w-full">
-              <th className="sticky top-0 left-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">No</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Tanggal</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Shift</th>
+              <th className="sticky top-0 left-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                No
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Tanggal
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Shift
+              </th>
               {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Tipe</th> */}
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Status</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Stok Tersedia</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Stock Saat Ini</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Delivery</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Planning PCS</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Overtime PCS</th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Status
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Stok Tersedia
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Stock Saat Ini
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Delivery
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Planning PCS
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Overtime PCS
+              </th>
               {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Planning PCS</th> */}
               {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Stock</th> */}
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Catatan</th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Aksi</th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Catatan
+              </th>
+              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+                Aksi
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -155,7 +183,10 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                         <td
                           className="py-3 px-2 font-medium text-white text-center align-middle"
                           rowSpan={rowSpan}
-                          style={{ verticalAlign: rowSpan && rowSpan > 1 ? "middle" : undefined }}
+                          style={{
+                            verticalAlign:
+                              rowSpan && rowSpan > 1 ? "middle" : undefined,
+                          }}
                         >
                           {groupIdx + 1}
                         </td>
@@ -164,7 +195,10 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                         <td
                           className="py-3 px-2 text-gray-300 text-center align-middle"
                           rowSpan={rowSpan}
-                          style={{ verticalAlign: rowSpan && rowSpan > 1 ? "middle" : undefined }}
+                          style={{
+                            verticalAlign:
+                              rowSpan && rowSpan > 1 ? "middle" : undefined,
+                          }}
                         >
                           {`${row.day} Juli 2024`}
                         </td>
@@ -172,11 +206,20 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                       <td className="py-3 px-2 text-center">
                         <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
                           Shift {row.shift}
-                          {typeof row.selisih === 'number' && row.selisih !== 0 && (
-                            <span className={row.selisih > 0 ? 'ml-2 text-green-400 font-bold' : 'ml-2 text-red-400 font-bold'}>
-                              {row.selisih > 0 ? `+${row.selisih}` : row.selisih}
-                            </span>
-                          )}
+                          {typeof row.selisih === "number" &&
+                            row.selisih !== 0 && (
+                              <span
+                                className={
+                                  row.selisih > 0
+                                    ? "ml-2 text-green-400 font-bold"
+                                    : "ml-2 text-red-400 font-bold"
+                                }
+                              >
+                                {row.selisih > 0
+                                  ? `+${row.selisih}`
+                                  : row.selisih}
+                              </span>
+                            )}
                         </span>
                       </td>
                       {/* <td className="py-3 px-2 text-center">
@@ -212,32 +255,46 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                               row.status === "Normal"
                                 ? "bg-green-100 text-green-800"
                                 : row.status === "Gangguan"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-blue-100 text-blue-800"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-blue-100 text-blue-800"
                             }`}
                           >
                             {row.status}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-2 text-right font-semibold text-white">{stokTersedia.toLocaleString()}</td>
-                      <td className="py-3 px-2 text-right font-semibold text-white">{stockSaatIni.toLocaleString()}</td>
+                      <td className="py-3 px-2 text-right font-semibold text-white">
+                        {stokTersedia.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-2 text-right font-semibold text-white">
+                        {stockSaatIni.toLocaleString()}
+                      </td>
                       {/* Delivery input hanya di shift 1, shift 2 hanya tampil */}
                       <td className="py-3 px-2 text-right font-semibold text-white">
                         {row.shift === "1" ? (
                           editingRow === row.id ? (
                             <input
                               type="number"
-                              value={editForm.delivery !== undefined ? editForm.delivery : (row.delivery ?? "")}
+                              value={
+                                editForm.delivery !== undefined
+                                  ? editForm.delivery
+                                  : (row.delivery ?? "")
+                              }
                               onChange={(e) => {
-                                const value = Number.parseInt(e.target.value) || 0;
-                                setEditForm((prev) => ({ ...prev, delivery: value }));
+                                const value =
+                                  Number.parseInt(e.target.value) || 0;
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  delivery: value,
+                                }));
                               }}
                               className="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
                             />
                           ) : (
                             <span className="font-semibold text-white">
-                              {row.delivery !== undefined ? row.delivery.toLocaleString() : "-"}
+                              {row.delivery !== undefined
+                                ? row.delivery.toLocaleString()
+                                : "-"}
                             </span>
                           )
                         ) : (
@@ -249,18 +306,31 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                         {editingRow === row.id ? (
                           <input
                             type="number"
-                            value={editForm.planningPcs !== undefined ? editForm.planningPcs : (row.planningPcs ?? 0)}
+                            value={
+                              editForm.planningPcs !== undefined
+                                ? editForm.planningPcs
+                                : (row.planningPcs ?? 0)
+                            }
                             min={0}
                             className="w-20 px-2 py-1 rounded bg-gray-700 text-white border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onChange={e => setEditForm(f => ({ ...f, planningPcs: Number(e.target.value) }))}
+                            onChange={(e) =>
+                              setEditForm((f) => ({
+                                ...f,
+                                planningPcs: Number(e.target.value),
+                              }))
+                            }
                           />
+                        ) : row.planningPcs !== undefined ? (
+                          row.planningPcs.toLocaleString()
                         ) : (
-                          row.planningPcs !== undefined ? row.planningPcs.toLocaleString() : "-"
+                          "-"
                         )}
                       </td>
                       {/* Overtime PCS */}
                       <td className="py-3 px-2 text-right font-semibold text-orange-300">
-                        {row.overtimePcs !== undefined ? row.overtimePcs.toLocaleString() : "-"}
+                        {row.overtimePcs !== undefined
+                          ? row.overtimePcs.toLocaleString()
+                          : "-"}
                       </td>
                       {/* Sisa Planning PCS (Shortfall) and Sisa Stock removed as requested */}
                       <td className="py-3 px-2 text-sm">
@@ -355,7 +425,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                       </td>
                     </tr>
                   );
-                })
+                }),
               );
             })()}
           </tbody>
