@@ -259,36 +259,6 @@ export default function ToolsDashboard() {
     },
   ];
 
-  const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "Administrator";
-      case "supervisor":
-        return "Supervisor";
-      case "planner":
-        return "Planner";
-      case "operator":
-        return "Operator";
-      default:
-        return "User";
-    }
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-red-500/10 text-red-400 border-red-500/20";
-      case "supervisor":
-        return "bg-orange-500/10 text-orange-400 border-orange-500/20";
-      case "planner":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-      case "operator":
-        return "bg-green-500/10 text-green-400 border-green-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-    }
-  };
-
   const renderToolCard = (tool: any, isPublicView = false) => {
     const IconComponent = tool.icon;
     const LockIcon = tool.requiresLogin ? Lock : Unlock;
@@ -406,83 +376,6 @@ export default function ToolsDashboard() {
       </div>
     );
   };
-
-  // If logged in, show dashboard menu
-  if (isLoggedIn && !showToolsView && user) {
-    return (
-      <div className="min-h-screen bg-gray-950 p-6">
-        <div className="container mx-auto max-w-6xl">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-white">
-                  Dashboard Berlindo
-                </h1>
-                <div
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 W`}
-                ></div>
-              </div>
-              <p className="text-gray-400">
-                Selamat datang kembali, {user.username}! Pilih tools yang ingin
-                Anda gunakan:
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button
-                onClick={() => setShowToolsView(true)}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
-              >
-                Lihat Semua Tools
-              </Button>
-              <div className="flex items-center space-x-2 text-gray-300 bg-gray-800/30 px-4 py-2 rounded-lg">
-                <User className="w-5 h-5" />
-                <span>{user.username}</span>
-              </div>
-              <Button
-                onClick={handleLogout}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Keluar
-              </Button>
-            </div>
-          </div>
-
-          {/* Tools Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tools.map((tool) => renderToolCard(tool))}
-          </div>
-
-          {/* Regular Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
-            <div className="bg-gray-800/30 rounded-xl p-6 text-center">
-              <div className="text-2xl font-bold text-blue-400 mb-2">24/7</div>
-              <div className="text-gray-400 text-sm">System Uptime</div>
-            </div>
-            <div className="bg-gray-800/30 rounded-xl p-6 text-center">
-              <div className="text-2xl font-bold text-green-400 mb-2">
-                99.9%
-              </div>
-              <div className="text-gray-400 text-sm">Accuracy Rate</div>
-            </div>
-            <div className="bg-gray-800/30 rounded-xl p-6 text-center">
-              <div className="text-2xl font-bold text-purple-400 mb-2">
-                Real-time
-              </div>
-              <div className="text-gray-400 text-sm">Data Sync</div>
-            </div>
-            <div className="bg-gray-800/30 rounded-xl p-6 text-center">
-              <div className="text-2xl font-bold text-orange-400 mb-2">
-                Secure
-              </div>
-              <div className="text-gray-400 text-sm">Data Protection</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Public tools view or logged in tools view
   const publicTools = allTools.filter((tool) => !tool.requiresLogin);

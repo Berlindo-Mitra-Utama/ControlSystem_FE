@@ -13,7 +13,6 @@ import Scheduler from "./pages/SchedulerPage";
 import SavedSchedules from "./pages/SavedSchedulesPage";
 import AllCharts from "./pages/AllChartsPage";
 import HitungCoil from "./HitungCoil/pages/hitungcoil";
-import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import ToolsDashboard from "./pages/ToolsDashboard";
 import EnhancedLoginPage from "./pages/EnhancedLoginPage";
@@ -31,7 +30,6 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/tools" element={<ToolsDashboard />} />
               <Route path="/login" element={<EnhancedLoginPage />} />
-              <Route path="/login-old" element={<LoginPage />} />
 
               {/* Protected Routes - Dashboard */}
               <Route path="/dashboard" element={<DashboardLayout />}>
