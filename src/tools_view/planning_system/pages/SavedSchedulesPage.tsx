@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from 'xlsx';
 
 const SavedSchedulesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,6 +44,61 @@ const SavedSchedulesPage: React.FC = () => {
     if (confirmDelete) {
       deleteSchedule(scheduleId);
     }
+  };
+
+  // Fungsi untuk download schedule sebagai file Excel
+  const handleDownloadExcel = (schedule: any) => {
+    // Persiapkan data untuk Excel
+    const timePerPcs = schedule.form.timePerPcs || 257;
+    const initialStock = schedule.form.initialStock || 0;
+    
+    // Hitung semua nilai yang diperlukan seperti di ScheduleTable.tsx
+    const scheduleData = schedule.schedule.map((item: any, index: number) => {
+      // Hitung nilai-nilai yang sama seperti di ScheduleTable
+      const planningHour = item.planningHour || 0;
+      const overtimeHour = item.overtimeHour || 0;
+      const delivery = item.delivery || 0;
+      
+      // Hitung planning dan overtime PCS seperti di ScheduleTable.tsx
+      const planningPcs = planningHour > 0 ? Math.floor((planningHour * 3600) / timePerPcs) : 0;
+      const overtimePcs = overtimeHour > 0 ? Math.floor((overtimeHour * 3600) / timePerPcs) : 0;
+      const hasilProduksi = planningPcs + overtimePcs;
+      
+      // Hitung stok dengan cara yang sama seperti di ScheduleTable.tsx
+      const prevStock = index === 0 ? initialStock : schedule.schedule[index - 1].rencanaStock || initialStock;
+      const rencanaStock = prevStock + hasilProduksi - delivery;
+      
+      // Kembalikan data dalam format yang sama dengan ScheduleTable.tsx
+      return {
+        No: index + 1,
+        Hari: item.day,
+        Shift: item.shift,
+        Waktu: item.time,
+        Status: item.status,
+        'Stok Awal': prevStock,
+        'Delivery': delivery,
+        'Planning Hour': planningHour,
+        'Overtime Hour': overtimeHour,
+        'Planning PCS': planningPcs,
+        'Overtime PCS': overtimePcs,
+        'Hasil Produksi': hasilProduksi,
+        'Stok Akhir': rencanaStock,
+        'Jam Produksi Aktual': item.jamProduksiAktual || 0,
+        'Catatan': item.notes || '',
+      };
+    });
+
+    // Buat workbook baru
+    const wb = XLSX.utils.book_new();
+    
+    // Buat worksheet untuk data schedule
+    const ws = XLSX.utils.json_to_sheet(scheduleData);
+    
+    // Tambahkan worksheet ke workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Schedule');
+    
+    // Download file Excel
+    XLSX.writeFile(wb, `${schedule.name}.xlsx`);
   };
 
   return (
@@ -176,6 +232,25 @@ const SavedSchedulesPage: React.FC = () => {
                         className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
                       >
                         Hapus
+                      </button>
+                      <button
+                        onClick={() => handleDownloadExcel(schedule)}
+                        className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors"
+                        title="Download Excel"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
                       </button>
                     </div>
                   </div>
