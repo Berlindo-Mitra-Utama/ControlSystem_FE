@@ -47,12 +47,8 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   const navigate = useNavigate();
   const currentPath = location.pathname;
 
-  const isActive = (path: string) => {
-    if (path === "/dashboard" && currentPath === "/dashboard") {
-      return true;
-    }
-    return currentPath.startsWith(path);
-  };
+  // Aktif hanya jika path persis sama
+  const isActive = (path: string) => currentPath === path;
 
   const handleLogoutAndRedirect = () => {
     handleLogout();
@@ -72,7 +68,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
       </NavbarBrand>
 
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
-        <NavbarItem isActive={isActive("/dashboard")}>
+        <NavbarItem isActive={isActive("/dashboard")}> 
           <Link
             to="/dashboard"
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -84,7 +80,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
             Dashboard
           </Link>
         </NavbarItem>
-        <NavbarItem isActive={isActive("/scheduler")}>
+        <NavbarItem isActive={isActive("/dashboard/scheduler")}> 
           <Link
             to="/dashboard/scheduler"
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -96,7 +92,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
             Scheduler
           </Link>
         </NavbarItem>
-        <NavbarItem isActive={isActive("/saved")}>
+        <NavbarItem isActive={isActive("/dashboard/saved")}> 
           <Link
             to="/dashboard/saved"
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
