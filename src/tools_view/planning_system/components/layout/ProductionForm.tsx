@@ -54,9 +54,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   const manPowers = manpowers || form.manpowers || [];
 
   // Calculate effective time per pcs based on man power
-  const effectiveTimePerPcs = form.timePerPcs > 0 && manPowers.length > 0
-    ? (3600 / (manPowers.length * 5))
-    : form.timePerPcs;
+  const effectiveTimePerPcs =
+    form.timePerPcs > 0 && manPowers.length > 0
+      ? 3600 / (manPowers.length * 5)
+      : form.timePerPcs;
 
   // Handler for adding man power (calls parent handler)
   const handleAddManPower = () => {
@@ -162,15 +163,19 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
         {/* Timing Parameters */}
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-white">Timing Parameters</h3>
+          <h3 className="text-lg font-semibold text-white">
+            Timing Parameters
+          </h3>
           {/* Man Power Input */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-300 mb-1">Man Power</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Man Power
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={manPowerName}
-                onChange={e => setManPowerName(e.target.value)}
+                onChange={(e) => setManPowerName(e.target.value)}
                 placeholder="Nama Man Power"
                 className="px-3 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base w-1/2"
               />
@@ -186,8 +191,13 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
             {manPowers.length > 0 && (
               <ul className="mt-2 space-y-1">
                 {manPowers.map((mp, idx) => (
-                  <li key={mp} className="flex items-center justify-between text-white bg-gray-800 rounded px-3 py-1">
-                    <span>{idx + 1}. {mp}</span>
+                  <li
+                    key={mp}
+                    className="flex items-center justify-between text-white bg-gray-800 rounded px-3 py-1"
+                  >
+                    <span>
+                      {idx + 1}. {mp}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveManPower(mp)}
@@ -199,7 +209,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                 ))}
               </ul>
             )}
-            <div className="mt-2 text-xs text-gray-400">1 Man Power = 5 pcs/jam. Jumlah man power mempengaruhi kecepatan produksi.</div>
+            <div className="mt-2 text-xs text-gray-400">
+              1 Man Power = 5 pcs/jam. Jumlah man power mempengaruhi kecepatan
+              produksi.
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Time per Piece */}
@@ -229,7 +242,13 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <div className="relative">
                 <input
                   type="text"
-                  value={manPowers.length > 0 ? manPowers.length * 5 : (form.timePerPcs > 0 ? Math.floor(3600 / form.timePerPcs) : 0)}
+                  value={
+                    manPowers.length > 0
+                      ? manPowers.length * 5
+                      : form.timePerPcs > 0
+                        ? Math.floor(3600 / form.timePerPcs)
+                        : 0
+                  }
                   readOnly
                   className="w-full px-3 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white text-base cursor-not-allowed opacity-80"
                 />
@@ -247,7 +266,13 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <div className="relative">
                 <input
                   type="text"
-                  value={manPowers.length > 0 ? manPowers.length * 5 * 7 : (form.timePerPcs > 0 ? Math.floor(3600 * 7 / form.timePerPcs) : 0)}
+                  value={
+                    manPowers.length > 0
+                      ? manPowers.length * 5 * 7
+                      : form.timePerPcs > 0
+                        ? Math.floor((3600 * 7) / form.timePerPcs)
+                        : 0
+                  }
                   readOnly
                   className="w-full px-3 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white text-base cursor-not-allowed opacity-80"
                 />
@@ -265,7 +290,13 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <div className="relative">
                 <input
                   type="text"
-                  value={manPowers.length > 0 ? manPowers.length * 5 * 3.5 : (form.timePerPcs > 0 ? Math.floor(3600 * 3.5 / form.timePerPcs) : 0)}
+                  value={
+                    manPowers.length > 0
+                      ? manPowers.length * 5 * 3.5
+                      : form.timePerPcs > 0
+                        ? Math.floor((3600 * 3.5) / form.timePerPcs)
+                        : 0
+                  }
                   readOnly
                   className="w-full px-3 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white text-base cursor-not-allowed opacity-80"
                 />
@@ -305,10 +336,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Delivery Target removed: now per-row in schedule */}
               </div>
-              
+
               {/* Planning Hours and Overtime Hours removed as requested */}
             </div>
 

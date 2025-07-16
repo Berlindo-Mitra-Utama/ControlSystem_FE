@@ -303,12 +303,15 @@ const SchedulerPage: React.FC = () => {
     // Parameter produksi
     const waktuKerjaShift = 7; // jam kerja per shift
     let timePerPcs = form.timePerPcs;
-    let manpowerCount = Array.isArray(form.manpowers) ? form.manpowers.filter(mp => mp.trim() !== "").length : 1;
+    let manpowerCount = Array.isArray(form.manpowers)
+      ? form.manpowers.filter((mp) => mp.trim() !== "").length
+      : 1;
     if (manpowerCount < 1) manpowerCount = 1;
     // Koreksi: waktu produksi per shift = 7 jam, kapasitas produksi per shift = (7*3600) / (timePerPcs/manpowerCount)
-    const kapasitasShift = timePerPcs > 0 && manpowerCount > 0
-      ? Math.floor((waktuKerjaShift * 3600) / (timePerPcs / manpowerCount))
-      : 0;
+    const kapasitasShift =
+      timePerPcs > 0 && manpowerCount > 0
+        ? Math.floor((waktuKerjaShift * 3600) / (timePerPcs / manpowerCount))
+        : 0;
     let sisaStock = form.stock;
     let shortfall = 0;
     let overtimeRows: ScheduleItem[] = [];
@@ -751,7 +754,7 @@ const SchedulerPage: React.FC = () => {
   return (
     <div className="scheduler-bg w-full min-h-screen">
       {/* SchedulerPage main content */}
-      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-none mx-auto px-2 sm:px-4 lg:px-6 py-8">
         {/* Main content below */}
         {/* ...existing code... */}
         {/* Add New Production Planning Button (below navbar) */}
@@ -1001,7 +1004,7 @@ const SchedulerPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-8">
+            <div className="p-4">
               <ScheduleTable
                 schedule={schedule}
                 editingRow={editingRow}

@@ -17,6 +17,22 @@ interface ScheduleItem {
   sisaPlanningPcs?: number;
   sisaStock?: number;
   selisih?: number; // selisih planning pcs jika diedit, hanya untuk tampilan
+
+  // Input fields baru
+  planningHour?: number; // jam kerja normal yang direncanakan
+  overtimeHour?: number; // durasi lembur yang diizinkan
+  jamProduksiAktual?: number; // jam produksi aktual (optional)
+
+  // Output fields baru
+  akumulasiDelivery?: number; // penjumlahan delivery dari hari sebelumnya
+  hasilProduksi?: number; // jumlah PCS yang dihasilkan sesuai waktu tersedia
+  akumulasiHasilProduksi?: number; // total PCS kumulatif dari hasil sebelumnya
+  jamProduksiCycleTime?: number; // HasilProduksi × TimePerPcs ÷ 3600
+  selisihDetikPerPcs?: number; // TargetDetik/PCS – AktualDetik/PCS
+  selisihCycleTime?: number; // perbandingan waktu rencana vs aktual
+  selisihCycleTimePcs?: number; // selisih jumlah PCS berdasarkan perbedaan waktu
+  teoriStock?: number; // stok teoritis jika produksi berjalan sesuai rencana
+  rencanaStock?: number; // Stock + HasilProduksi – Delivery
 }
 
 interface ScheduleTableProps {
@@ -27,7 +43,8 @@ interface ScheduleTableProps {
   saveEdit: (itemId: string) => void;
   cancelEdit: () => void;
   setEditForm: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
-  initialStock: number; // <-- add this prop
+  initialStock: number;
+  timePerPcs?: number; // tambahkan prop untuk perhitungan
 }
 
 const ScheduleTable: React.FC<ScheduleTableProps> = ({
@@ -39,9 +56,11 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   cancelEdit,
   setEditForm,
   initialStock,
+  timePerPcs = 257, // default value
 }) => {
   // State for search box
   const [searchDate, setSearchDate] = useState("");
+  const [alerts, setAlerts] = useState<{ [key: string]: string }>({});
 
   // Filter schedule by date (day as string, e.g. "8" for 8 Juli 2024)
   const filteredSchedule = searchDate
@@ -59,6 +78,121 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     }
   });
 
+  // Fungsi untuk menghitung output fields
+  const calculateOutputFields = (
+    row: ScheduleItem,
+    index: number,
+    allRows: ScheduleItem[],
+  ) => {
+    const planningHour = row.planningHour || 0;
+    const overtimeHour = row.overtimeHour || 0;
+    const delivery = row.delivery || 0;
+
+    // 1. Akumulasi Delivery (PCS)
+    const akumulasiDelivery = allRows
+      .slice(0, index)
+      .reduce((sum, r) => sum + (r.delivery || 0), 0);
+
+    // 2. Planning PCS: PlanningHour × 3600 ÷ TimePerPcs
+    const planningPcs =
+      planningHour > 0 ? Math.floor((planningHour * 3600) / timePerPcs) : 0;
+
+    // 3. Overtime PCS: OvertimeHour × 3600 ÷ TimePerPcs
+    const overtimePcs =
+      overtimeHour > 0 ? Math.floor((overtimeHour * 3600) / timePerPcs) : 0;
+
+    // 4. Hasil Produksi (PCS): Jumlah PCS yang dihasilkan sesuai waktu tersedia
+    const hasilProduksi = planningPcs + overtimePcs;
+
+    // 5. Akumulasi Hasil Produksi (PCS)
+    const akumulasiHasilProduksi =
+      allRows.slice(0, index).reduce((sum, r) => {
+        const rPlanningPcs = r.planningHour
+          ? Math.floor((r.planningHour * 3600) / timePerPcs)
+          : 0;
+        const rOvertimePcs = r.overtimeHour
+          ? Math.floor((r.overtimeHour * 3600) / timePerPcs)
+          : 0;
+        return sum + rPlanningPcs + rOvertimePcs;
+      }, 0) + hasilProduksi;
+
+    // 6. Jam Produksi (Cycle Time): HasilProduksi × TimePerPcs ÷ 3600
+    const jamProduksiCycleTime =
+      hasilProduksi > 0 ? (hasilProduksi * timePerPcs) / 3600 : 0;
+
+    // 7. Selisih Detik/PCS (memerlukan data aktual)
+    const selisihDetikPerPcs =
+      row.jamProduksiAktual && hasilProduksi > 0
+        ? timePerPcs - (row.jamProduksiAktual * 3600) / hasilProduksi
+        : 0;
+
+    // 8. Selisih Cycle Time
+    const selisihCycleTime = row.jamProduksiAktual
+      ? jamProduksiCycleTime - row.jamProduksiAktual
+      : 0;
+
+    // 9. Selisih Cycle Time (PCS)
+    const selisihCycleTimePcs =
+      selisihCycleTime > 0
+        ? Math.floor((selisihCycleTime * 3600) / timePerPcs)
+        : 0;
+
+    // 10. Teori Stock (PCS): Stok teoritis jika produksi berjalan sesuai rencana
+    const prevStock =
+      index === 0
+        ? initialStock
+        : allRows[index - 1].rencanaStock || initialStock;
+    const teoriStock = prevStock + hasilProduksi;
+
+    // 11. Rencana Stock (PCS): Stock + HasilProduksi – Delivery
+    const rencanaStock = prevStock + hasilProduksi - delivery;
+
+    return {
+      akumulasiDelivery,
+      planningPcs,
+      overtimePcs,
+      hasilProduksi,
+      akumulasiHasilProduksi,
+      jamProduksiCycleTime,
+      selisihDetikPerPcs,
+      selisihCycleTime,
+      selisihCycleTimePcs,
+      teoriStock,
+      rencanaStock,
+    };
+  };
+
+  // Validasi dan alert
+  const checkValidation = (row: ScheduleItem, calculated: any) => {
+    const alerts: string[] = [];
+
+    // Validasi 1: Jika stock >= delivery
+    if (
+      calculated.rencanaStock >= (row.delivery || 0) &&
+      (row.delivery || 0) > 0
+    ) {
+      alerts.push("Stok sudah cukup, tidak perlu produksi.");
+    }
+
+    // Validasi 2: Jika waktu produksi tidak cukup
+    const totalWaktuTersedia =
+      (row.planningHour || 0) + (row.overtimeHour || 0);
+    const waktuDibutuhkan =
+      (((row.delivery || 0) -
+        calculated.rencanaStock +
+        calculated.hasilProduksi) *
+        timePerPcs) /
+      3600;
+
+    if (totalWaktuTersedia < waktuDibutuhkan && waktuDibutuhkan > 0) {
+      alerts.push(
+        "Waktu produksi tidak cukup untuk memenuhi kebutuhan produksi.",
+      );
+    }
+
+    return alerts;
+  };
+
   // --- STOCK CALCULATION LOGIC (KOREKSI: stock = stock sebelumnya + produksi - delivery) ---
   const flatRows: ScheduleItem[] = groupedRows.flatMap((g) => g.rows);
   const stockArr = flatRows.reduce<{
@@ -66,14 +200,14 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
     stockSaatIni: number[];
   }>(
     (acc, row, idx) => {
+      const calculated = calculateOutputFields(row, idx, flatRows);
+
       if (idx === 0) {
         acc.stokTersedia[0] = initialStock;
-        acc.stockSaatIni[0] =
-          initialStock + (row.planningPcs || 0) - (row.delivery || 0);
+        acc.stockSaatIni[0] = calculated.rencanaStock;
       } else {
         acc.stokTersedia[idx] = acc.stockSaatIni[idx - 1];
-        acc.stockSaatIni[idx] =
-          acc.stokTersedia[idx] + (row.planningPcs || 0) - (row.delivery || 0);
+        acc.stockSaatIni[idx] = calculated.rencanaStock;
       }
       return acc;
     },
@@ -83,81 +217,192 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   let rowIndex = 0;
 
   return (
-    <div className="overflow-x-auto max-h-[400px] relative">
-      {/* Sticky search box below save button */}
-      <div
-        className="sticky top-0 z-20 bg-gray-900 pb-2 flex items-center gap-2"
-        style={{
-          boxShadow: "0 2px 4px 0 rgba(0,0,0,0.04)",
-          marginLeft: "0.3cm",
-        }}
-      >
-        <input
-          type="text"
-          value={searchDate}
-          onChange={(e) => setSearchDate(e.target.value)}
-          placeholder="Cari tanggal produksi..."
-          className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-600 bg-[#19202a] text-gray-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 transition-colors duration-200"
-          style={{ boxShadow: "0 0 0 1px #232b38" }}
-        />
-        {searchDate && (
-          <button
-            onClick={() => setSearchDate("")}
-            className="text-red-400 text-base px-3 py-1 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-200"
-            type="button"
+    // Perbaikan untuk container tabel
+    <div className="overflow-x-auto max-h-[600px] relative w-full bg-gray-900 rounded-lg border border-gray-700">
+      {/* Sticky search box */}
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-gray-900 to-gray-800 p-4 border-b border-gray-700 flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <svg
+            className="w-5 h-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            Hapus
-          </button>
-        )}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={searchDate}
+            onChange={(e) => setSearchDate(e.target.value)}
+            placeholder="Cari tanggal produksi..."
+            className="w-full max-w-sm px-4 py-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 transition-all duration-200"
+          />
+          {searchDate && (
+            <button
+              onClick={() => setSearchDate("")}
+              className="text-red-400 hover:text-red-300 text-sm px-3 py-2 rounded-lg border border-gray-600 hover:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all duration-200"
+              type="button"
+            >
+              ✕ Hapus
+            </button>
+          )}
+        </div>
       </div>
-      <div className="relative w-full">
+
+      {/* Table wrapper dengan shadow dan border yang lebih baik */}
+      <div className="relative w-full min-w-max shadow-xl">
         <table
-          className="w-full border-collapse"
-          style={{ tableLayout: "fixed" }}
+          className="w-full border-collapse min-w-max bg-gray-900"
+          style={{ tableLayout: "auto" }}
         >
           <thead
-            className="sticky top-[48px] z-30 bg-gray-900"
+            className="sticky top-[72px] z-30 bg-gradient-to-r from-gray-800 to-gray-700"
             style={{
-              boxShadow: "0 2px 4px 0 rgba(0,0,0,0.04)",
-              width: "100%",
+              boxShadow:
+                "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
             }}
           >
-            <tr className="border-b border-gray-800 w-full">
-              <th className="sticky top-0 left-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
+            {/* Header dengan grouping yang lebih jelas */}
+            <tr className="border-b-2 border-gray-600">
+              {/* Basic Info Group */}
+              <th
+                colSpan={4}
+                className="bg-blue-900/30 text-center py-2 px-3 font-bold text-blue-200 text-xs border-r border-gray-600"
+              >
+                📋 INFORMASI DASAR
+              </th>
+              {/* Stock Group */}
+              <th
+                colSpan={3}
+                className="bg-green-900/30 text-center py-2 px-3 font-bold text-green-200 text-xs border-r border-gray-600"
+              >
+                📦 STOK & DELIVERY
+              </th>
+              {/* Input Group */}
+              <th
+                colSpan={3}
+                className="bg-orange-900/30 text-center py-2 px-3 font-bold text-orange-200 text-xs border-r border-gray-600"
+              >
+                ⏰ INPUT JAM KERJA
+              </th>
+              {/* Production Output Group */}
+              <th
+                colSpan={5}
+                className="bg-purple-900/30 text-center py-2 px-3 font-bold text-purple-200 text-xs border-r border-gray-600"
+              >
+                🏭 HASIL PRODUKSI
+              </th>
+              {/* Analysis Group */}
+              <th
+                colSpan={4}
+                className="bg-indigo-900/30 text-center py-2 px-3 font-bold text-indigo-200 text-xs border-r border-gray-600"
+              >
+                📊 ANALISIS CYCLE TIME
+              </th>
+              {/* Stock Planning Group */}
+              <th
+                colSpan={2}
+                className="bg-cyan-900/30 text-center py-2 px-3 font-bold text-cyan-200 text-xs border-r border-gray-600"
+              >
+                📈 PERENCANAAN STOK
+              </th>
+              {/* Actions Group */}
+              <th
+                colSpan={2}
+                className="bg-gray-700 text-center py-2 px-3 font-bold text-gray-200 text-xs"
+              >
+                ⚙️ AKSI
+              </th>
+            </tr>
+
+            {/* Sub headers dengan styling yang lebih baik */}
+            <tr className="border-b border-gray-600">
+              {/* Basic Info */}
+              <th className="sticky top-0 left-0 bg-gray-800 text-center py-4 px-3 font-semibold text-gray-200 text-sm z-30 min-w-[60px] border-r border-gray-600">
                 No
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Tanggal
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-gray-200 text-sm z-30 min-w-[120px] border-r border-gray-600">
+                📅 Tanggal
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Shift
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-gray-200 text-sm z-30 min-w-[80px] border-r border-gray-600">
+                🔄 Shift
               </th>
-              {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Tipe</th> */}
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Status
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-gray-200 text-sm z-30 min-w-[100px] border-r border-gray-600">
+                🚦 Status
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Stok Tersedia
+
+              {/* Stock & Delivery */}
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-green-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                📦 Stok Tersedia
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Stock Saat Ini
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-green-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                📊 Stock Saat Ini
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Delivery
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-green-200 text-sm z-30 min-w-[110px] border-r border-gray-600">
+                🚚 Delivery
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Planning PCS
+
+              {/* Input Fields */}
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-orange-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                ⏰ Planning Hour
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Overtime PCS
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-orange-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                ⏱️ Overtime Hour
               </th>
-              {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Planning PCS</th> */}
-              {/* <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">Sisa Stock</th> */}
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Catatan
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-orange-200 text-sm z-30 min-w-[150px] border-r border-gray-600">
+                🕐 Jam Produksi Aktual
               </th>
-              <th className="sticky top-0 bg-gray-900 text-center py-3 px-2 font-semibold text-gray-300 text-base z-30">
-                Aksi
+
+              {/* Production Output */}
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-purple-200 text-sm z-30 min-w-[150px] border-r border-gray-600">
+                📈 Akumulasi Delivery
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-purple-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                🎯 Planning PCS
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-purple-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                ⚡ Overtime PCS
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-purple-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                🏭 Hasil Produksi
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-purple-200 text-sm z-30 min-w-[170px] border-r border-gray-600">
+                📊 Akumulasi Hasil
+              </th>
+
+              {/* Analysis */}
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-indigo-200 text-sm z-30 min-w-[170px] border-r border-gray-600">
+                ⏲️ Jam Produksi (CT)
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-indigo-200 text-sm z-30 min-w-[150px] border-r border-gray-600">
+                📏 Selisih Detik/PCS
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-indigo-200 text-sm z-30 min-w-[150px] border-r border-gray-600">
+                📐 Selisih Cycle Time
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-indigo-200 text-sm z-30 min-w-[170px] border-r border-gray-600">
+                📊 Selisih CT (PCS)
+              </th>
+
+              {/* Stock Planning */}
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-cyan-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                🧮 Teori Stock
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-cyan-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                📋 Rencana Stock
+              </th>
+
+              {/* Actions */}
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-gray-200 text-sm z-30 min-w-[130px] border-r border-gray-600">
+                📝 Catatan
+              </th>
+              <th className="sticky top-0 bg-gray-800 text-center py-4 px-3 font-semibold text-gray-200 text-sm z-30 min-w-[110px]">
+                ⚙️ Aksi
               </th>
             </tr>
           </thead>
@@ -170,14 +415,35 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                   const isFirst = idx === 0;
                   const rowSpan = isFirst ? group.rows.length : undefined;
                   rowIndex++;
+
+                  // Calculate output fields
+                  const calculated = calculateOutputFields(
+                    row,
+                    flatIdx,
+                    flatRows,
+                  );
+
+                  // Check validations
+                  const validationAlerts = checkValidation(row, calculated);
+
                   // Use precomputed stock values
                   const stokTersedia = stockArr.stokTersedia[flatIdx];
                   const stockSaatIni = stockArr.stockSaatIni[flatIdx];
                   flatIdx++;
+
                   return (
+                    // Perbaikan styling untuk baris tabel
                     <tr
                       key={row.id}
-                      className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors duration-200 text-base"
+                      className={`border-b border-gray-700/50 hover:bg-gray-800/40 transition-all duration-300 text-sm ${
+                        validationAlerts.length > 0
+                          ? "bg-yellow-900/20 border-yellow-600/30"
+                          : ""
+                      } ${
+                        row.shift === "1"
+                          ? "bg-blue-900/10"
+                          : "bg-indigo-900/10"
+                      }`}
                     >
                       {isFirst && (
                         <td
@@ -222,17 +488,6 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                             )}
                         </span>
                       </td>
-                      {/* <td className="py-3 px-2 text-center">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${
-                            row.type.includes("Lembur")
-                              ? "bg-gradient-to-r from-orange-500 to-red-600 text-white"
-                              : "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
-                          }`}
-                        >
-                          {row.type}
-                        </span>
-                      </td> */}
                       <td className="py-3 px-2 text-center">
                         {editingRow === row.id ? (
                           <select
@@ -301,38 +556,158 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                           <span className="font-semibold text-white">-</span>
                         )}
                       </td>
-                      {/* Planning PCS (editable on production day) */}
-                      <td className="py-3 px-2 text-right font-semibold text-blue-200">
+
+                      {/* INPUT FIELDS */}
+                      {/* Planning Hour */}
+                      <td className="py-3 px-2 text-right font-semibold text-green-200">
                         {editingRow === row.id ? (
                           <input
                             type="number"
+                            step="0.1"
                             value={
-                              editForm.planningPcs !== undefined
-                                ? editForm.planningPcs
-                                : (row.planningPcs ?? 0)
+                              editForm.planningHour !== undefined
+                                ? editForm.planningHour
+                                : (row.planningHour ?? "")
                             }
-                            min={0}
-                            className="w-20 px-2 py-1 rounded bg-gray-700 text-white border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onChange={(e) =>
-                              setEditForm((f) => ({
-                                ...f,
-                                planningPcs: Number(e.target.value),
-                              }))
-                            }
+                            onChange={(e) => {
+                              const value =
+                                Number.parseFloat(e.target.value) || 0;
+                              setEditForm((prev) => ({
+                                ...prev,
+                                planningHour: value,
+                              }));
+                            }}
+                            className="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="7"
                           />
-                        ) : row.planningPcs !== undefined ? (
-                          row.planningPcs.toLocaleString()
                         ) : (
-                          "-"
+                          <span className="font-semibold text-green-200">
+                            {row.planningHour !== undefined
+                              ? row.planningHour.toFixed(1)
+                              : "-"}
+                          </span>
                         )}
                       </td>
+
+                      {/* Overtime Hour */}
+                      <td className="py-3 px-2 text-right font-semibold text-orange-200">
+                        {editingRow === row.id ? (
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={
+                              editForm.overtimeHour !== undefined
+                                ? editForm.overtimeHour
+                                : (row.overtimeHour ?? "")
+                            }
+                            onChange={(e) => {
+                              const value =
+                                Number.parseFloat(e.target.value) || 0;
+                              setEditForm((prev) => ({
+                                ...prev,
+                                overtimeHour: value,
+                              }));
+                            }}
+                            className="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="3.5"
+                          />
+                        ) : (
+                          <span className="font-semibold text-orange-200">
+                            {row.overtimeHour !== undefined
+                              ? row.overtimeHour.toFixed(1)
+                              : "-"}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Jam Produksi Aktual */}
+                      <td className="py-3 px-2 text-right font-semibold text-purple-200">
+                        {editingRow === row.id ? (
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={
+                              editForm.jamProduksiAktual !== undefined
+                                ? editForm.jamProduksiAktual
+                                : (row.jamProduksiAktual ?? "")
+                            }
+                            onChange={(e) => {
+                              const value =
+                                Number.parseFloat(e.target.value) || 0;
+                              setEditForm((prev) => ({
+                                ...prev,
+                                jamProduksiAktual: value,
+                              }));
+                            }}
+                            className="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="Optional"
+                          />
+                        ) : (
+                          <span className="font-semibold text-purple-200">
+                            {row.jamProduksiAktual !== undefined
+                              ? row.jamProduksiAktual.toFixed(1)
+                              : "-"}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* OUTPUT FIELDS */}
+                      {/* Akumulasi Delivery */}
+                      <td className="py-3 px-2 text-right font-semibold text-yellow-200">
+                        {calculated.akumulasiDelivery.toLocaleString()}
+                      </td>
+
+                      {/* Planning PCS */}
+                      <td className="py-3 px-2 text-right font-semibold text-blue-200">
+                        {calculated.planningPcs.toLocaleString()}
+                      </td>
+
                       {/* Overtime PCS */}
                       <td className="py-3 px-2 text-right font-semibold text-orange-300">
-                        {row.overtimePcs !== undefined
-                          ? row.overtimePcs.toLocaleString()
-                          : "-"}
+                        {calculated.overtimePcs.toLocaleString()}
                       </td>
-                      {/* Sisa Planning PCS (Shortfall) and Sisa Stock removed as requested */}
+
+                      {/* Hasil Produksi */}
+                      <td className="py-3 px-2 text-right font-semibold text-green-300">
+                        {calculated.hasilProduksi.toLocaleString()}
+                      </td>
+
+                      {/* Akumulasi Hasil Produksi */}
+                      <td className="py-3 px-2 text-right font-semibold text-cyan-200">
+                        {calculated.akumulasiHasilProduksi.toLocaleString()}
+                      </td>
+
+                      {/* Jam Produksi (Cycle Time) */}
+                      <td className="py-3 px-2 text-right font-semibold text-indigo-200">
+                        {calculated.jamProduksiCycleTime.toFixed(2)}
+                      </td>
+
+                      {/* Selisih Detik/PCS */}
+                      <td className="py-3 px-2 text-right font-semibold text-pink-200">
+                        {calculated.selisihDetikPerPcs.toFixed(2)}
+                      </td>
+
+                      {/* Selisih Cycle Time */}
+                      <td className="py-3 px-2 text-right font-semibold text-red-200">
+                        {calculated.selisihCycleTime.toFixed(2)}
+                      </td>
+
+                      {/* Selisih Cycle Time (PCS) */}
+                      <td className="py-3 px-2 text-right font-semibold text-amber-200">
+                        {calculated.selisihCycleTimePcs.toLocaleString()}
+                      </td>
+
+                      {/* Teori Stock */}
+                      <td className="py-3 px-2 text-right font-semibold text-lime-200">
+                        {calculated.teoriStock.toLocaleString()}
+                      </td>
+
+                      {/* Rencana Stock */}
+                      <td className="py-3 px-2 text-right font-semibold text-emerald-200">
+                        {calculated.rencanaStock.toLocaleString()}
+                      </td>
+
+                      {/* Catatan dengan validasi alert */}
                       <td className="py-3 px-2 text-sm">
                         {editingRow === row.id ? (
                           <input
@@ -352,11 +727,26 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                             className="w-32 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:ring-2 focus:ring-blue-500"
                           />
                         ) : (
-                          <span className="text-gray-400">
-                            {row.notes || "-"}
-                          </span>
+                          <div>
+                            <span className="text-gray-400">
+                              {row.notes || "-"}
+                            </span>
+                            {validationAlerts.length > 0 && (
+                              <div className="mt-1">
+                                {validationAlerts.map((alert, i) => (
+                                  <div
+                                    key={i}
+                                    className="text-xs text-yellow-400 bg-yellow-900/20 px-2 py-1 rounded mb-1"
+                                  >
+                                    ⚠️ {alert}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
+
                       <td className="py-3 px-2 text-center align-middle">
                         <div
                           className="flex items-center gap-2 justify-center"
