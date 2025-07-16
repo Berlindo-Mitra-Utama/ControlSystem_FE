@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../../main/contexts/AuthContext";
 import { useSchedule } from "../contexts/ScheduleContext";
 
 const DashboardLayout: React.FC = () => {

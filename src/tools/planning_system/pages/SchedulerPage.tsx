@@ -6,7 +6,7 @@ import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/ui/Modal";
 import CompactDatePicker from "../components/ui/CompactDatePicker";
-import { useNotification } from "../hooks/useNotification";
+import { useNotification } from "../../../hooks/useNotification";
 
 interface ScheduleItem {
   id: string;

@@ -1,21 +1,21 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ScheduleProvider } from "./contexts/ScheduleContext";
+import { AuthProvider } from "./main/contexts/AuthContext";
+import { ScheduleProvider } from "./tools/planning_system/contexts/ScheduleContext";
 
 // Layouts
-import DashboardLayout from "./layouts/DashboardLayout";
-import HitungCoilLayout from "./layouts/HitungCoilLayout";
+import DashboardLayout from "./tools/planning_system/layouts/DashboardLayout";
+import HitungCoilLayout from "./tools/hitung_koil/layouts/HitungCoilLayout";
 
 // Pages
-import Dashboard from "./pages/Dashboard";
-import Scheduler from "./pages/SchedulerPage";
-import SavedSchedules from "./pages/SavedSchedulesPage";
-import AllCharts from "./pages/AllChartsPage";
-import HitungCoil from "./HitungCoil/pages/hitungcoil";
-import LandingPage from "./pages/LandingPage";
-import ToolsDashboard from "./pages/ToolsDashboard";
-import EnhancedLoginPage from "./pages/EnhancedLoginPage";
+import Dashboard from "./tools/planning_system/pages/Dashboard";
+import Scheduler from "./tools/planning_system/pages/SchedulerPage";
+import SavedSchedules from "./tools/planning_system/pages/SavedSchedulesPage";
+import AllCharts from "./tools/planning_system/pages/AllChartsPage";
+import HitungCoil from "./tools/hitung_koil/pages/hitungcoil";
+import LandingPage from "./main/pages/LandingPage";
+import ToolsDashboard from "./main/pages/ToolsDashboard";
+import EnhancedLoginPage from "./main/pages/EnhancedLoginPage";
 
 // Footer import dihapus karena hanya akan digunakan di LandingPage
 
