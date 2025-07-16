@@ -654,13 +654,17 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                   value={row.delivery}
                                   field="delivery"
                                   type="number"
+                                  step={1}
                                   placeholder="0"
+                                  
                                 />
                               )}
                               <EditableField
                                 label="📝 Catatan"
                                 value={row.notes}
                                 field="notes"
+                                type="text"
+                                step={undefined}
                                 placeholder="Tambahkan catatan..."
                               />
                             </div>
