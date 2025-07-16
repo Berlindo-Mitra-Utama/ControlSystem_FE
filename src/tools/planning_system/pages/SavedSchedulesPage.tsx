@@ -33,7 +33,7 @@ const SavedSchedulesPage: React.FC = () => {
 
   const handleLoadSchedule = (savedSchedule: any) => {
     loadSchedule(savedSchedule);
-    navigate("/scheduler");
+    navigate("/dashboard/scheduler");
   };
 
   const handleDeleteSchedule = (scheduleId: string, scheduleName: string) => {
@@ -125,7 +125,7 @@ const SavedSchedulesPage: React.FC = () => {
                   Buat schedule baru untuk part ini
                 </p>
                 <button
-                  onClick={() => navigate("/scheduler")}
+                  onClick={() => navigate("/dashboard/scheduler")}
                   className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                 >
                   Buat Schedule Baru

@@ -97,12 +97,12 @@ const SchedulerPage: React.FC = () => {
     cycle7: 0,
     cycle35: 0,
     stock: 5000,
-    // delivery: 5100, // REMOVE delivery from form, now per-row
     planningHour: 274,
     overtimeHour: 119,
     planningPcs: 3838,
     overtimePcs: 1672,
     isManualPlanningPcs: false,
+    manpowers: [""], // array of names, default 1 kosong
   });
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
@@ -230,9 +230,11 @@ const SchedulerPage: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     const numericValue = Number.parseFloat(value);
-
+    if (name === "manpowers") {
+      // handled by custom handler, not here
+      return;
+    }
     if (numericValue < 0) return;
-
     if (name === "planningPcs") {
       setForm((prev) => ({
         ...prev,
@@ -245,14 +247,12 @@ const SchedulerPage: React.FC = () => {
         [name]: numericValue || 0,
         isManualPlanningPcs: true,
       }));
-
       if (name === "cycle1" && numericValue > 0) {
         setForm((prev) => ({
           ...prev,
           timePerPcs: numericValue,
         }));
       }
-
       if (
         name === "timePerPcs" &&
         numericValue > 0 &&
@@ -275,6 +275,20 @@ const SchedulerPage: React.FC = () => {
     }
   };
 
+  // Handler for manpowers (add/remove)
+  const addManPower = (name: string) => {
+    setForm((prev) => ({
+      ...prev,
+      manpowers: [...(prev.manpowers || []), name],
+    }));
+  };
+  const removeManPower = (name: string) => {
+    setForm((prev) => ({
+      ...prev,
+      manpowers: (prev.manpowers || []).filter((mp) => mp !== name),
+    }));
+  };
+
   const generateSchedule = async () => {
     setIsGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -289,8 +303,12 @@ const SchedulerPage: React.FC = () => {
     // Parameter produksi
     const waktuKerjaShift = 7; // jam kerja per shift
     let timePerPcs = form.timePerPcs;
-    // TODO: Integrasi man power jika sudah di form
-    const kapasitasShift = Math.floor((waktuKerjaShift * 3600) / timePerPcs);
+    let manpowerCount = Array.isArray(form.manpowers) ? form.manpowers.filter(mp => mp.trim() !== "").length : 1;
+    if (manpowerCount < 1) manpowerCount = 1;
+    // Koreksi: waktu produksi per shift = 7 jam, kapasitas produksi per shift = (7*3600) / (timePerPcs/manpowerCount)
+    const kapasitasShift = timePerPcs > 0 && manpowerCount > 0
+      ? Math.floor((waktuKerjaShift * 3600) / (timePerPcs / manpowerCount))
+      : 0;
     let sisaStock = form.stock;
     let shortfall = 0;
     let overtimeRows: ScheduleItem[] = [];
@@ -850,6 +868,9 @@ const SchedulerPage: React.FC = () => {
                   setShowProductionForm(false);
                 }}
                 saveSchedule={saveSchedule}
+                manpowers={form.manpowers}
+                addManPower={addManPower}
+                removeManPower={removeManPower}
               />
             </div>
           </div>

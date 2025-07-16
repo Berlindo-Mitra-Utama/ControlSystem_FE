@@ -17,7 +17,7 @@ interface FormData {
 }
 
 interface ProductionFormProps {
-  form: FormData;
+  form: FormData & { manpowers?: string[] };
   scheduleName: string;
   mockData: any[];
   isGenerating: boolean;
@@ -28,6 +28,9 @@ interface ProductionFormProps {
   generateSchedule: () => void;
   setScheduleName: (name: string) => void;
   saveSchedule: () => void;
+  manpowers?: string[];
+  addManPower?: (name: string) => void;
+  removeManPower?: (name: string) => void;
 }
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
@@ -40,28 +43,35 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   generateSchedule,
   setScheduleName,
   saveSchedule,
+  manpowers,
+  addManPower,
+  removeManPower,
 }) => {
-  // Man Power State
+  // Man Power Input State (for input field only)
   const [manPowerName, setManPowerName] = useState("");
-  const [manPowers, setManPowers] = useState<string[]>([]);
+
+  // Use manpowers from props or from form
+  const manPowers = manpowers || form.manpowers || [];
 
   // Calculate effective time per pcs based on man power
   const effectiveTimePerPcs = form.timePerPcs > 0 && manPowers.length > 0
     ? (3600 / (manPowers.length * 5))
     : form.timePerPcs;
 
-  // Handler for adding man power
+  // Handler for adding man power (calls parent handler)
   const handleAddManPower = () => {
     const name = manPowerName.trim();
-    if (name && !manPowers.includes(name)) {
-      setManPowers([...manPowers, name]);
+    if (name && !manPowers.includes(name) && addManPower) {
+      addManPower(name);
       setManPowerName("");
     }
   };
 
-  // Handler for removing man power
+  // Handler for removing man power (calls parent handler)
   const handleRemoveManPower = (name: string) => {
-    setManPowers(manPowers.filter(mp => mp !== name));
+    if (removeManPower) {
+      removeManPower(name);
+    }
   };
 
   return (
