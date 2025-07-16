@@ -1,7 +1,7 @@
 import { Button } from "@heroui/react";
 import { ArrowRight, BarChart3, Calendar, Factory } from "lucide-react";
 import { Link } from "react-router-dom";
-import Footer from "../../tools_view/planning_system/components/layout/Footer";
+import Footer from "../components/Footer";
 
 export default function LandingPage() {
   return (

@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
           {/* Logo on top of grid */}
           <div className="relative flex items-center justify-center h-[90px] w-[180px] z-10">
             <img
-              src="../src/img/logo.png"
+              src="../src/img/logo_berlindo.png"
               alt="Berlindo company logo with stylized shadow effect, set against a neutral background, conveying a professional and modern tone"
               className="h-40 w-64 object-contain drop-shadow-xl relative"
               style={{ left: '-50px' }}
