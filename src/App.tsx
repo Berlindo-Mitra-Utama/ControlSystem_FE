@@ -1,21 +1,21 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import { AuthProvider } from "./main/contexts/AuthContext";
-import { ScheduleProvider } from "./tools/planning_system/contexts/ScheduleContext";
+import { AuthProvider } from "./main_view/contexts/AuthContext";
+import { ScheduleProvider } from "./tools_view/planning_system/contexts/ScheduleContext";
 
 // Layouts
-import DashboardLayout from "./tools/planning_system/layouts/DashboardLayout";
-import HitungCoilLayout from "./tools/hitung_koil/layouts/HitungCoilLayout";
+import DashboardLayout from "./tools_view/planning_system/layouts/DashboardLayout";
+import HitungCoilLayout from "./tools_view/hitung_koil/layouts/HitungCoilLayout";
 
 // Pages
-import Dashboard from "./tools/planning_system/pages/Dashboard";
-import Scheduler from "./tools/planning_system/pages/SchedulerPage";
-import SavedSchedules from "./tools/planning_system/pages/SavedSchedulesPage";
-import AllCharts from "./tools/planning_system/pages/AllChartsPage";
-import HitungCoil from "./tools/hitung_koil/pages/hitungcoil";
-import LandingPage from "./main/pages/LandingPage";
-import ToolsDashboard from "./main/pages/ToolsDashboard";
-import EnhancedLoginPage from "./main/pages/EnhancedLoginPage";
+import Dashboard from "./tools_view/planning_system/pages/Dashboard";
+import Scheduler from "./tools_view/planning_system/pages/SchedulerPage";
+import SavedSchedules from "./tools_view/planning_system/pages/SavedSchedulesPage";
+import AllCharts from "./tools_view/planning_system/pages/AllChartsPage";
+import HitungCoil from "./tools_view/hitung_koil/pages/hitungcoil";
+import LandingPage from "./main_view/pages/LandingPage";
+import ToolsDashboard from "./main_view/pages/ToolsDashboard";
+import LoginPage from "./main_view/pages/LoginPage";
 
 // Footer import dihapus karena hanya akan digunakan di LandingPage
 
@@ -29,7 +29,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/tools" element={<ToolsDashboard />} />
-              <Route path="/login" element={<EnhancedLoginPage />} />
+              <Route path="/login" element={<LoginPage />} />
 
               {/* Protected Routes - Dashboard */}
               <Route path="/dashboard" element={<DashboardLayout />}>

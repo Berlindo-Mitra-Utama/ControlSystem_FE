@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import { useAuth } from "../../../main/contexts/AuthContext";
+import { useAuth } from "../../../main_view/contexts/AuthContext";
 
 const HitungCoilLayout: React.FC = () => {
   const { handleLogout } = useAuth();

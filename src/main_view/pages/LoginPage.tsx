@@ -4,7 +4,7 @@ import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-export default function EnhancedLoginPage() {
+export default function LoginPage() {
   const { loginForm, setLoginForm, handleLogin } = useAuth();
   const [loginError, setLoginError] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
