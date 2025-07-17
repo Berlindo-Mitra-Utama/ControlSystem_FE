@@ -470,13 +470,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                         const shift1 = flatRows.filter(r => r.day === row.day && r.shift === "1")[0];
                         akumulasiDeliveryShift2 = (shift1?.delivery || 0) + (row.delivery || 0);
                       }
-                      // Planning (jam)
-                      const planningJam = row.planningPcs && outputPerHour > 0 ? (row.planningPcs / outputPerHour).toFixed(2) : "0";
-                      // Overtime (jam)
-                      const overtimeJam = row.overtimePcs && outputPerHour > 0 ? (row.overtimePcs / outputPerHour).toFixed(2) : "0";
-                      // Jam Produksi (Cycle Time)
+                      // Planning (jam) - ceil, 1 digit
+                      const planningJam = row.planningPcs && outputPerHour > 0 ? (Math.ceil((row.planningPcs / outputPerHour) * 10) / 10).toFixed(1) : "0.0";
+                      // Overtime (jam) - ceil, 1 digit
+                      const overtimeJam = row.overtimePcs && outputPerHour > 0 ? (Math.ceil((row.overtimePcs / outputPerHour) * 10) / 10).toFixed(1) : "0.0";
+                      // Jam Produksi (Cycle Time) - ceil, 1 digit
                       const hasilProduksi = row.pcs || 0;
-                      const jamProduksi = hasilProduksi === 0 ? 0 : (hasilProduksi / outputPerHour).toFixed(2);
+                      const jamProduksi = hasilProduksi === 0 ? "0.0" : (Math.ceil((hasilProduksi / outputPerHour) * 10) / 10).toFixed(1);
                       // Akumulasi Hasil Produksi
                       let akumulasiHasilProduksi = 0;
                       for (let i = 0; i < flatIdx; i++) {
@@ -627,22 +627,11 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 icon="📦"
                                 className="bg-emerald-500/10 border-emerald-500/20"
                               />
-                              <DataCard
-                                title="Delivery"
-                                value={row.delivery || 0}
-                                icon="🚚"
-                                className="bg-blue-500/10 border-blue-500/20"
-                              />
-                              <DataCard
-                                title="Hasil Produksi"
-                                value={calculated.hasilProduksi}
-                                icon="🏭"
-                                className="bg-purple-500/10 border-purple-500/20"
-                              />
+                              {/* Delivery and Hasil Produksi moved to Input Parameter */}
                               <DataCard
                                 title="Stock Akhir"
                                 value={calculated.rencanaStock}
-                                icon="📊"
+                                icon="�"
                                 className="bg-cyan-500/10 border-cyan-500/20"
                               />
                             </div>
@@ -650,147 +639,157 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
 
                           {/* Card Content */}
                           <div className="p-6 space-y-6">
-                            {/* Input Section: Manual Input for Planning, Overtime, Hasil Produksi, Jam Produksi Aktual */}
-                            {isEditing && (
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                <EditableField
-                                  label="Planning (pcs)"
-                                  value={editForm.planningPcs ?? row.planningPcs ?? 0}
-                                  field="planningPcs"
-                                  type="number"
-                                  step={1}
-                                  placeholder="0"
-                                />
-                                <EditableField
-                                  label="Overtime (pcs)"
-                                  value={editForm.overtimePcs ?? row.overtimePcs ?? 0}
-                                  field="overtimePcs"
-                                  type="number"
-                                  step={1}
-                                  placeholder="0"
-                                />
-                                <EditableField
-                                  label="Hasil Produksi (pcs)"
-                                  value={editForm.pcs ?? row.pcs ?? 0}
-                                  field="pcs"
-                                  type="number"
-                                  step={1}
-                                  placeholder="0"
-                                />
-                                <EditableField
-                                  label="Jam Produksi Aktual"
-                                  value={editForm.jamProduksiAktual ?? row.jamProduksiAktual ?? 0}
-                                  field="jamProduksiAktual"
-                                  type="number"
-                                  step={0.1}
-                                  placeholder="0"
-                                />
-                                <EditableField
-                                  label="Delivery (pcs)"
-                                  value={editForm.delivery ?? row.delivery ?? 0}
-                                  field="delivery"
-                                  type="number"
-                                  step={1}
-                                  placeholder="0"
-                                />
-                              </div>
-                            )}
-                            {/* Output Section: Custom Output sesuai rumus user */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-300 mt-2">
-                              {/* Output cards: icon and name side-by-side, value below */}
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">🚚</span>
-                                  <span className="font-semibold">Akumulasi Delivery Shift 1</span>
+                            {/* Tampilkan nilai input meski tidak sedang edit */}
+                            <div className="space-y-2 mt-2">
+                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">Input Parameter</div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <span className="text-base">📝</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">Planning (pcs)</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step={1}
+                                    value={row.planningPcs ?? 0}
+                                    onChange={e => {
+                                      row.planningPcs = Number(e.target.value);
+                                      setEditForm(prev => ({ ...prev, planningPcs: row.planningPcs }));
+                                    }}
+                                    className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                  />
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{akumulasiDeliveryShift1}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">🚚</span>
-                                  <span className="font-semibold">Akumulasi Delivery Shift 2</span>
+                                <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <span className="text-base">🚚</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">Delivery (pcs)</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step={1}
+                                    value={row.delivery ?? 0}
+                                    onChange={e => {
+                                      row.delivery = Number(e.target.value);
+                                      setEditForm(prev => ({ ...prev, delivery: row.delivery }));
+                                    }}
+                                    className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                  />
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{akumulasiDeliveryShift2}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">📝</span>
-                                  <span className="font-semibold">Planning (jam)</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <span className="text-base">⏱️</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">Overtime (pcs)</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step={1}
+                                    value={row.overtimePcs ?? 0}
+                                    onChange={e => {
+                                      row.overtimePcs = Number(e.target.value);
+                                      setEditForm(prev => ({ ...prev, overtimePcs: row.overtimePcs }));
+                                    }}
+                                    className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                  />
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{planningJam}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">⏱️</span>
-                                  <span className="font-semibold">Overtime (jam)</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <span className="text-base">🏭</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">Hasil Produksi (pcs)</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step={1}
+                                    value={row.pcs ?? 0}
+                                    onChange={e => {
+                                      row.pcs = Number(e.target.value);
+                                      setEditForm(prev => ({ ...prev, pcs: row.pcs }));
+                                    }}
+                                    className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                  />
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{overtimeJam}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">⏲️</span>
-                                  <span className="font-semibold">Jam Produksi (Cycle Time)</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <span className="text-base">⏲️</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">Jam Produksi Aktual</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step={0.1}
+                                    value={row.jamProduksiAktual ?? 0}
+                                    onChange={e => {
+                                      row.jamProduksiAktual = Number(e.target.value);
+                                      setEditForm(prev => ({ ...prev, jamProduksiAktual: row.jamProduksiAktual }));
+                                    }}
+                                    className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                  />
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{jamProduksi}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">🏭</span>
-                                  <span className="font-semibold">Akumulasi Hasil Produksi</span>
-                                </div>
-                                <span className="font-bold text-white text-base mt-1">{akumulasiHasilProduksi}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">🧮</span>
-                                  <span className="font-semibold">Teori Stock</span>
-                                </div>
-                                <span className="font-bold text-white text-base mt-1">{teoriStockCustom}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">📦</span>
-                                  <span className="font-semibold">Rencana Stock</span>
-                                </div>
-                                <span className="font-bold text-white text-base mt-1">{rencanaStockCustom}</span>
                               </div>
                             </div>
-                            {/* Tampilkan nilai input meski tidak sedang edit */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">📝</span>
-                                  <span className="text-white font-semibold">Planning (pcs)</span>
+                            {/* Output Section: Custom Output sesuai rumus user */}
+                            <div className="space-y-2 mt-2">
+                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">Output Parameter</div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Akumulasi Delivery hanya tampil di shift yang sesuai */}
+                                {row.shift === "1" && (
+                                  <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40">
+                                    <div className="flex items-center gap-1 mb-0.5">
+                                      <span className="text-base">🚚</span>
+                                      <span className="font-semibold text-xs text-blue-200/90">Akumulasi Delivery Shift 1</span>
+                                    </div>
+                                    <span className="font-bold text-blue-100 text-lg mt-0.5">{akumulasiDeliveryShift1}</span>
+                                  </div>
+                                )}
+                                {row.shift === "2" && (
+                                  <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40">
+                                    <div className="flex items-center gap-1 mb-0.5">
+                                      <span className="text-base">🚚</span>
+                                      <span className="font-semibold text-xs text-blue-200/90">Akumulasi Delivery Shift 2</span>
+                                    </div>
+                                    <span className="font-bold text-blue-100 text-lg mt-0.5">{akumulasiDeliveryShift2}</span>
+                                  </div>
+                                )}
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-base">�</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">Planning (jam)</span>
+                                  </div>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{planningJam}</span>
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{row.planningPcs ?? 0}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">⏱️</span>
-                                  <span className="text-white font-semibold">Overtime (pcs)</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-base">⏱️</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">Overtime (jam)</span>
+                                  </div>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{overtimeJam}</span>
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{row.overtimePcs ?? 0}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">🏭</span>
-                                  <span className="text-white font-semibold">Hasil Produksi (pcs)</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-base">⏲️</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">Jam Produksi (Cycle Time)</span>
+                                  </div>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{jamProduksi}</span>
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{row.pcs ?? 0}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">⏲️</span>
-                                  <span className="text-white font-semibold">Jam Produksi Aktual</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-base">🏭</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">Akumulasi Hasil Produksi</span>
+                                  </div>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{akumulasiHasilProduksi}</span>
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{row.jamProduksiAktual ?? 0}</span>
-                              </div>
-                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">🚚</span>
-                                  <span className="text-white font-semibold">Delivery (pcs)</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-base">🧮</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">Teori Stock</span>
+                                  </div>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{teoriStockCustom}</span>
                                 </div>
-                                <span className="font-bold text-white text-base mt-1">{row.delivery ?? 0}</span>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-base">�</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">Rencana Stock</span>
+                                  </div>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{rencanaStockCustom}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
