@@ -479,8 +479,20 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                       const jamProduksi = hasilProduksi === 0 ? "0.0" : (Math.ceil((hasilProduksi / outputPerHour) * 10) / 10).toFixed(1);
                       // Akumulasi Hasil Produksi
                       let akumulasiHasilProduksi = 0;
-                      for (let i = 0; i < flatIdx; i++) {
-                        akumulasiHasilProduksi += flatRows[i].pcs || 0;
+                      if (row.shift === "1") {
+                        // Cari shift 2 di hari sebelumnya
+                        const prevDayGroup = groupedRows[groupIdx - 1];
+                        const prevDayShift2 = prevDayGroup ? prevDayGroup.rows.find(r => r.shift === "2") : undefined;
+                        const prevAkumulasi = prevDayShift2 ? (prevDayShift2.akumulasiHasilProduksi ?? 0) : 0;
+                        akumulasiHasilProduksi = prevAkumulasi + hasilProduksi;
+                        // Simpan ke row supaya bisa dipakai shift berikutnya
+                        row.akumulasiHasilProduksi = akumulasiHasilProduksi;
+                      } else {
+                        // Untuk shift 2, ambil akumulasi dari shift 1 hari yang sama + hasil produksi shift 2
+                        const shift1Row = group.rows.find(r => r.shift === "1");
+                        const shift1Akumulasi = shift1Row ? (shift1Row.akumulasiHasilProduksi ?? 0) : 0;
+                        akumulasiHasilProduksi = shift1Akumulasi + hasilProduksi;
+                        row.akumulasiHasilProduksi = akumulasiHasilProduksi;
                       }
                       // Teori Stock & Rencana Stock (dummy, implementasi detail sesuai rumus user bisa ditambahkan)
                       // ...
