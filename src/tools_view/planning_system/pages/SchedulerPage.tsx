@@ -102,7 +102,7 @@ const SchedulerPage: React.FC = () => {
     planningPcs: 3838,
     overtimePcs: 1672,
     isManualPlanningPcs: false,
-    manpowers: [""], // array of names, default 1 kosong
+    manpowers: [],
   });
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
@@ -846,10 +846,14 @@ const SchedulerPage: React.FC = () => {
 
         {/* Production Form Modal */}
         {showProductionForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
+            onClick={() => setShowProductionForm(false)}
+          >
             <div
               className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
               style={{ maxWidth: "800px", maxHeight: "90vh" }}
+              onClick={(e) => e.stopPropagation()}
             >
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"

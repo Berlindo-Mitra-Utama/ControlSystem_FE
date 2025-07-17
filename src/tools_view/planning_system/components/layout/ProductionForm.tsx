@@ -224,9 +224,14 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                 <input
                   type="number"
                   name="timePerPcs"
-                  value={effectiveTimePerPcs.toFixed(2)}
-                  readOnly
-                  className="w-full px-3 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white text-base cursor-not-allowed opacity-80"
+                  value={
+                    manPowers.length > 0
+                      ? effectiveTimePerPcs.toFixed(2)
+                      : form.timePerPcs
+                  }
+                  readOnly={manPowers.length > 0}
+                  onChange={manPowers.length === 0 ? handleChange : undefined}
+                  className={`w-full px-3 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white text-base ${manPowers.length > 0 ? "cursor-not-allowed opacity-80" : "focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}`}
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 font-medium">
                   sec
