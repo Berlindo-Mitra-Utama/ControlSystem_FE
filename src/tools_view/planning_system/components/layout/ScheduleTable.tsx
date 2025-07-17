@@ -32,6 +32,9 @@ interface ScheduleItem {
   selisihCycleTimePcs?: number;
   teoriStock?: number;
   rencanaStock?: number;
+  // Tambahan untuk custom stock
+  teoriStockCustom?: number;
+  rencanaStockCustom?: number;
 }
 
 interface ScheduleTableProps {
@@ -446,6 +449,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                   {/* Shifts Grid */}
                   <div className="grid gap-6 lg:grid-cols-2">
                     {group.rows.map((row) => {
+                      // --- Custom Output Calculation ---
                       const calculated = calculateOutputFields(
                         row,
                         flatIdx,
@@ -453,6 +457,73 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                       );
                       const validationAlerts = checkValidation(row, calculated);
                       const isEditing = editingRow === row.id;
+
+                      // Output 1 jam
+                      const outputPerHour = timePerPcs > 0 ? Math.floor(3600 / timePerPcs) : 0;
+                      // Akumulasi Delivery Shift 1 & 2
+                      let akumulasiDeliveryShift1 = 0;
+                      let akumulasiDeliveryShift2 = 0;
+                      if (row.shift === "1") {
+                        const prevDay = flatRows.filter(r => r.day === row.day - 1 && r.shift === "2")[0];
+                        akumulasiDeliveryShift1 = (prevDay?.delivery || 0) + (row.delivery || 0);
+                      } else if (row.shift === "2") {
+                        const shift1 = flatRows.filter(r => r.day === row.day && r.shift === "1")[0];
+                        akumulasiDeliveryShift2 = (shift1?.delivery || 0) + (row.delivery || 0);
+                      }
+                      // Planning (jam)
+                      const planningJam = row.planningPcs && outputPerHour > 0 ? (row.planningPcs / outputPerHour).toFixed(2) : "0";
+                      // Overtime (jam)
+                      const overtimeJam = row.overtimePcs && outputPerHour > 0 ? (row.overtimePcs / outputPerHour).toFixed(2) : "0";
+                      // Jam Produksi (Cycle Time)
+                      const hasilProduksi = row.pcs || 0;
+                      const jamProduksi = hasilProduksi === 0 ? 0 : (hasilProduksi / outputPerHour).toFixed(2);
+                      // Akumulasi Hasil Produksi
+                      let akumulasiHasilProduksi = 0;
+                      for (let i = 0; i < flatIdx; i++) {
+                        akumulasiHasilProduksi += flatRows[i].pcs || 0;
+                      }
+                      // Teori Stock & Rencana Stock (dummy, implementasi detail sesuai rumus user bisa ditambahkan)
+                      // ...
+
+                      // --- Teori Stock & Rencana Stock Custom ---
+                      let teoriStockCustom = 0;
+                      let rencanaStockCustom = 0;
+                      const isHariPertama = groupIdx === 0 && row.shift === "1";
+                      const isShift1 = row.shift === "1";
+                      const isShift2 = row.shift === "2";
+                      const prevDayGroup = groupedRows[groupIdx - 1];
+                      const prevDayShift2 = prevDayGroup ? prevDayGroup.rows.find(r => r.shift === "2") : undefined;
+                      const prevTeoriStockShift2 = prevDayShift2 ? prevDayShift2.teoriStockCustom ?? 0 : initialStock;
+                      const prevRencanaStockShift2 = prevDayShift2 ? prevDayShift2.rencanaStockCustom ?? 0 : initialStock;
+                      const hasilProduksiShift1 = isShift1 ? hasilProduksi : 0;
+                      const hasilProduksiShift2 = isShift2 ? hasilProduksi : 0;
+                      const planningPcs = row.planningPcs || 0;
+                      const overtimePcs = row.overtimePcs || 0;
+                      const delivery = row.delivery || 0;
+                      if (isHariPertama) {
+                        teoriStockCustom = initialStock + akumulasiHasilProduksi - akumulasiDeliveryShift1;
+                        rencanaStockCustom = hasilProduksi === 0
+                          ? initialStock + planningPcs + overtimePcs - delivery
+                          : initialStock + hasilProduksi - delivery;
+                      } else if (isShift1) {
+                        teoriStockCustom = prevTeoriStockShift2 + hasilProduksiShift1 - delivery;
+                        rencanaStockCustom = hasilProduksi === 0
+                          ? prevRencanaStockShift2 + planningPcs + overtimePcs - delivery
+                          : prevRencanaStockShift2 + hasilProduksiShift1 - delivery;
+                      } else if (isShift2) {
+                        // cari shift 1 di hari yang sama
+                        const shift1Row = group.rows.find(r => r.shift === "1");
+                        const shift1TeoriStock = shift1Row ? shift1Row.teoriStockCustom ?? 0 : 0;
+                        const shift1RencanaStock = shift1Row ? shift1Row.rencanaStockCustom ?? 0 : 0;
+                        teoriStockCustom = shift1TeoriStock + hasilProduksiShift2 - delivery;
+                        rencanaStockCustom = hasilProduksi === 0
+                          ? shift1RencanaStock + planningPcs + overtimePcs - delivery
+                          : shift1RencanaStock + hasilProduksiShift2 - delivery;
+                      }
+                      // Simpan ke row agar bisa dipakai shift berikutnya
+                      row.teoriStockCustom = teoriStockCustom;
+                      row.rencanaStockCustom = rencanaStockCustom;
+
                       flatIdx++;
 
                       return (
@@ -548,7 +619,6 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 </div>
                               </div>
                             </div>
-
                             {/* Quick Stats */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               <DataCard
@@ -580,316 +650,62 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
 
                           {/* Card Content */}
                           <div className="p-6 space-y-6">
-                            {/* Input Section */}
-                            <div>
-                              <button
-                                onClick={() => toggleSection(`input-${row.id}`)}
-                                className="flex items-center justify-between w-full p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition-all"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">⏰</span>
-                                  <h5 className="font-semibold text-amber-200">
-                                    Input Jam Kerja
-                                  </h5>
-                                </div>
-                                <svg
-                                  className={`w-5 h-5 text-amber-200 transition-transform ${
-                                    expandedSections[`input-${row.id}`]
-                                      ? "rotate-180"
-                                      : ""
-                                  }`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 9l-7 7-7-7"
-                                  />
-                                </svg>
-                              </button>
-
-                              {expandedSections[`input-${row.id}`] && (
-                                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  <EditableField
-                                    label="Planning Hour"
-                                    value={row.planningHour}
-                                    field="planningHour"
-                                    type="number"
-                                    step="0.1"
-                                    placeholder="7.0"
-                                    unit="jam"
-                                  />
-                                  <EditableField
-                                    label="Overtime Hour"
-                                    value={row.overtimeHour}
-                                    field="overtimeHour"
-                                    type="number"
-                                    step="0.1"
-                                    placeholder="3.5"
-                                    unit="jam"
-                                  />
-                                  <EditableField
-                                    label="Jam Produksi Aktual"
-                                    value={row.jamProduksiAktual}
-                                    field="jamProduksiAktual"
-                                    type="number"
-                                    step="0.1"
-                                    placeholder="Optional"
-                                    unit="jam"
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Production Results */}
-                            <div>
-                              <button
-                                onClick={() =>
-                                  toggleSection(`production-${row.id}`)
-                                }
-                                className="flex items-center justify-between w-full p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg hover:bg-purple-500/20 transition-all"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">🏭</span>
-                                  <h5 className="font-semibold text-purple-200">
-                                    Hasil Produksi
-                                  </h5>
-                                </div>
-                                <svg
-                                  className={`w-5 h-5 text-purple-200 transition-transform ${
-                                    expandedSections[`production-${row.id}`]
-                                      ? "rotate-180"
-                                      : ""
-                                  }`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 9l-7 7-7-7"
-                                  />
-                                </svg>
-                              </button>
-
-                              {expandedSections[`production-${row.id}`] && (
-                                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                                  <DataCard
-                                    title="Planning PCS"
-                                    value={calculated.planningPcs}
-                                    icon="🎯"
-                                  />
-                                  <DataCard
-                                    title="Overtime PCS"
-                                    value={calculated.overtimePcs}
-                                    icon="⚡"
-                                  />
-                                  <DataCard
-                                    title="Total Hasil"
-                                    value={calculated.hasilProduksi}
-                                    icon="📈"
-                                  />
-                                  <DataCard
-                                    title="Akumulasi Delivery"
-                                    value={calculated.akumulasiDelivery}
-                                    icon="📊"
-                                  />
-                                  <DataCard
-                                    title="Akumulasi Hasil"
-                                    value={calculated.akumulasiHasilProduksi}
-                                    icon="📈"
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Analysis Section */}
-                            <div>
-                              <button
-                                onClick={() =>
-                                  toggleSection(`analysis-${row.id}`)
-                                }
-                                className="flex items-center justify-between w-full p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg hover:bg-indigo-500/20 transition-all"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">📊</span>
-                                  <h5 className="font-semibold text-indigo-200">
-                                    Analisis Cycle Time
-                                  </h5>
-                                </div>
-                                <svg
-                                  className={`w-5 h-5 text-indigo-200 transition-transform ${
-                                    expandedSections[`analysis-${row.id}`]
-                                      ? "rotate-180"
-                                      : ""
-                                  }`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 9l-7 7-7-7"
-                                  />
-                                </svg>
-                              </button>
-
-                              {expandedSections[`analysis-${row.id}`] && (
-                                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                                  <DataCard
-                                    title="Jam Produksi (CT)"
-                                    value={calculated.jamProduksiCycleTime.toFixed(
-                                      2,
-                                    )}
-                                    unit="jam"
-                                    icon="⏲️"
-                                  />
-                                  <DataCard
-                                    title="Selisih Detik/PCS"
-                                    value={calculated.selisihDetikPerPcs.toFixed(
-                                      2,
-                                    )}
-                                    unit="detik"
-                                    icon="📏"
-                                  />
-                                  <DataCard
-                                    title="Selisih Cycle Time"
-                                    value={calculated.selisihCycleTime.toFixed(
-                                      2,
-                                    )}
-                                    unit="jam"
-                                    icon="📐"
-                                  />
-                                  <DataCard
-                                    title="Selisih CT (PCS)"
-                                    value={calculated.selisihCycleTimePcs}
-                                    icon="📊"
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Stock Planning */}
-                            <div>
-                              <button
-                                onClick={() => toggleSection(`stock-${row.id}`)}
-                                className="flex items-center justify-between w-full p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg hover:bg-cyan-500/20 transition-all"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">📈</span>
-                                  <h5 className="font-semibold text-cyan-200">
-                                    Perencanaan Stok
-                                  </h5>
-                                </div>
-                                <svg
-                                  className={`w-5 h-5 text-cyan-200 transition-transform ${
-                                    expandedSections[`stock-${row.id}`]
-                                      ? "rotate-180"
-                                      : ""
-                                  }`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 9l-7 7-7-7"
-                                  />
-                                </svg>
-                              </button>
-
-                              {expandedSections[`stock-${row.id}`] && (
-                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <DataCard
-                                    title="Teori Stock"
-                                    value={calculated.teoriStock}
-                                    icon="🧮"
-                                  />
-                                  <DataCard
-                                    title="Rencana Stock"
-                                    value={calculated.rencanaStock}
-                                    icon="📋"
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Delivery & Notes */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {row.shift === "1" && (
+                            {/* Input Section: Manual Input for Planning, Overtime, Hasil Produksi, Jam Produksi Aktual */}
+                            {isEditing && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <EditableField
-                                  label="🚚 Delivery (PCS)"
-                                  value={row.delivery}
+                                  label="Planning (pcs)"
+                                  value={editForm.planningPcs ?? row.planningPcs ?? 0}
+                                  field="planningPcs"
+                                  type="number"
+                                  step={1}
+                                  placeholder="0"
+                                />
+                                <EditableField
+                                  label="Overtime (pcs)"
+                                  value={editForm.overtimePcs ?? row.overtimePcs ?? 0}
+                                  field="overtimePcs"
+                                  type="number"
+                                  step={1}
+                                  placeholder="0"
+                                />
+                                <EditableField
+                                  label="Hasil Produksi (pcs)"
+                                  value={editForm.pcs ?? row.pcs ?? 0}
+                                  field="pcs"
+                                  type="number"
+                                  step={1}
+                                  placeholder="0"
+                                />
+                                <EditableField
+                                  label="Jam Produksi Aktual"
+                                  value={editForm.jamProduksiAktual ?? row.jamProduksiAktual ?? 0}
+                                  field="jamProduksiAktual"
+                                  type="number"
+                                  step={0.1}
+                                  placeholder="0"
+                                />
+                                <EditableField
+                                  label="Delivery (pcs)"
+                                  value={editForm.delivery ?? row.delivery ?? 0}
                                   field="delivery"
                                   type="number"
                                   step={1}
                                   placeholder="0"
                                 />
-                              )}
-                              <EditableField
-                                label="📝 Catatan"
-                                value={row.notes}
-                                field="notes"
-                                type="text"
-                                step={undefined}
-                                placeholder="Tambahkan catatan..."
-                              />
+                              </div>
+                            )}
+                            {/* Output Section: Custom Output sesuai rumus user */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-300 mt-2">
+                              <div><span role="img" aria-label="delivery1">🚚</span> Akumulasi Delivery Shift 1: {akumulasiDeliveryShift1}</div>
+                              <div><span role="img" aria-label="delivery2">🚚</span> Akumulasi Delivery Shift 2: {akumulasiDeliveryShift2}</div>
+                              <div><span role="img" aria-label="plan">📝</span> Planning (jam): {planningJam}</div>
+                              <div><span role="img" aria-label="ot">⏱️</span> Overtime (jam): {overtimeJam}</div>
+                              <div><span role="img" aria-label="cycle">⏲️</span> Jam Produksi (Cycle Time): {jamProduksi}</div>
+                              <div><span role="img" aria-label="hasil">🏭</span> Akumulasi Hasil Produksi: {akumulasiHasilProduksi}</div>
+                              <div><span role="img" aria-label="theory">🧮</span> Teori Stock: {teoriStockCustom}</div>
+                              <div><span role="img" aria-label="rencana">📦</span> Rencana Stock: {rencanaStockCustom}</div>
                             </div>
-
-                            {/* Status Edit */}
-                            {isEditing && (
-                              <div>
-                                <label className="text-sm font-medium text-slate-300 mb-2 block">
-                                  🚦 Status
-                                </label>
-                                <select
-                                  value={editForm.status || row.status}
-                                  onChange={(e) =>
-                                    setEditForm((prev) => ({
-                                      ...prev,
-                                      status: e.target.value as any,
-                                    }))
-                                  }
-                                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-                                >
-                                  <option value="Normal">Normal</option>
-                                  <option value="Gangguan">Gangguan</option>
-                                  <option value="Completed">Completed</option>
-                                </select>
-                              </div>
-                            )}
-
-                            {/* Validation Alerts */}
-                            {validationAlerts.length > 0 && (
-                              <div className="space-y-2">
-                                <h6 className="text-sm font-medium text-amber-300 flex items-center gap-2">
-                                  <span>⚠️</span>
-                                  Peringatan
-                                </h6>
-                                {validationAlerts.map((alert, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-start gap-3 p-3 bg-amber-900/30 border border-amber-600/30 rounded-lg"
-                                  >
-                                    <span className="text-amber-400 mt-0.5">
-                                      ⚠️
-                                    </span>
-                                    <span className="text-amber-200 text-sm">
-                                      {alert}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         </div>
                       );

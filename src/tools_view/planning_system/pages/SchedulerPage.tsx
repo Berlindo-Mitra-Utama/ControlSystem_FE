@@ -96,7 +96,7 @@ const SchedulerPage: React.FC = () => {
     cycle1: 0,
     cycle7: 0,
     cycle35: 0,
-    stock: 5000,
+    stock: 0,
     planningHour: 274,
     overtimeHour: 119,
     planningPcs: 3838,
