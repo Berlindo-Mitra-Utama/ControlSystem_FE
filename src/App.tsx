@@ -16,6 +16,7 @@ import HitungCoil from "./tools_view/hitung_koil/pages/hitungcoil";
 import LandingPage from "./main_view/pages/LandingPage";
 import ToolsDashboard from "./main_view/pages/ToolsDashboard";
 import LoginPage from "./main_view/pages/LoginPage";
+import UserManagementPage from "./admin_view/user_management/pages/userManagementPage";
 
 // Footer import dihapus karena hanya akan digunakan di LandingPage
 
@@ -43,6 +44,9 @@ function App() {
               <Route path="/hitungcoil" element={<HitungCoilLayout />}>
                 <Route index element={<HitungCoil />} />
               </Route>
+              
+              {/* Admin Routes */}
+              <Route path="/admin/user-management" element={<UserManagementPage />} />
             </Routes>
           </div>
           {/* Footer dihapus dari sini */}
