@@ -65,6 +65,9 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
   }>({});
+  // Tambahkan state untuk pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const daysPerPage = 5;
 
   const filteredSchedule = searchDate
     ? schedule.filter((row) => row.day.toString().includes(searchDate.trim()))
@@ -79,6 +82,31 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
       groupedRows.push({ day: row.day, rows: [row] });
     }
   });
+
+  // Hitung total halaman
+  const totalPages = Math.ceil(groupedRows.length / daysPerPage);
+  
+  // Dapatkan data untuk halaman saat ini
+  const startIndex = (currentPage - 1) * daysPerPage;
+  const endIndex = Math.min(startIndex + daysPerPage, groupedRows.length);
+  const currentPageData = groupedRows.slice(startIndex, endIndex);
+  
+  // Fungsi untuk navigasi halaman
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
+  const goToPage = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
   const calculateOutputFields = (
     row: ScheduleItem,
@@ -422,9 +450,11 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
       <div className="p-6">
         {viewMode === "cards" ? (
           <div className="space-y-8">
-            {groupedRows.map((group, groupIdx) => {
+            {/* Tampilkan hanya data untuk halaman saat ini */}
+            {currentPageData.map((group, groupIdx) => {
+              // Hitung flatIdx berdasarkan posisi sebenarnya dalam groupedRows
               let flatIdx = groupedRows
-                .slice(0, groupIdx)
+                .slice(0, startIndex + groupIdx)
                 .reduce((sum, g) => sum + g.rows.length, 0);
 
               return (
@@ -459,39 +489,75 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                       const isEditing = editingRow === row.id;
 
                       // Output 1 jam
-                      const outputPerHour = timePerPcs > 0 ? Math.floor(3600 / timePerPcs) : 0;
+                      const outputPerHour =
+                        timePerPcs > 0 ? Math.floor(3600 / timePerPcs) : 0;
                       // Akumulasi Delivery Shift 1 & 2
                       let akumulasiDeliveryShift1 = 0;
                       let akumulasiDeliveryShift2 = 0;
                       if (row.shift === "1") {
-                        const prevDay = flatRows.filter(r => r.day === row.day - 1 && r.shift === "2")[0];
-                        akumulasiDeliveryShift1 = (prevDay?.delivery || 0) + (row.delivery || 0);
+                        const prevDay = flatRows.filter(
+                          (r) => r.day === row.day - 1 && r.shift === "2",
+                        )[0];
+                        akumulasiDeliveryShift1 =
+                          (prevDay?.delivery || 0) + (row.delivery || 0);
                       } else if (row.shift === "2") {
-                        const shift1 = flatRows.filter(r => r.day === row.day && r.shift === "1")[0];
-                        akumulasiDeliveryShift2 = (shift1?.delivery || 0) + (row.delivery || 0);
+                        const shift1 = flatRows.filter(
+                          (r) => r.day === row.day && r.shift === "1",
+                        )[0];
+                        akumulasiDeliveryShift2 =
+                          (shift1?.delivery || 0) + (row.delivery || 0);
                       }
                       // Planning (jam) - ceil, 1 digit
-                      const planningJam = row.planningPcs && outputPerHour > 0 ? (Math.ceil((row.planningPcs / outputPerHour) * 10) / 10).toFixed(1) : "0.0";
+                      const planningJam =
+                        row.planningPcs && outputPerHour > 0
+                          ? (
+                              Math.ceil(
+                                (row.planningPcs / outputPerHour) * 10,
+                              ) / 10
+                            ).toFixed(1)
+                          : "0.0";
                       // Overtime (jam) - ceil, 1 digit
-                      const overtimeJam = row.overtimePcs && outputPerHour > 0 ? (Math.ceil((row.overtimePcs / outputPerHour) * 10) / 10).toFixed(1) : "0.0";
+                      const overtimeJam =
+                        row.overtimePcs && outputPerHour > 0
+                          ? (
+                              Math.ceil(
+                                (row.overtimePcs / outputPerHour) * 10,
+                              ) / 10
+                            ).toFixed(1)
+                          : "0.0";
                       // Jam Produksi (Cycle Time) - ceil, 1 digit
                       const hasilProduksi = row.pcs || 0;
-                      const jamProduksi = hasilProduksi === 0 ? "0.0" : (Math.ceil((hasilProduksi / outputPerHour) * 10) / 10).toFixed(1);
+                      const jamProduksi =
+                        hasilProduksi === 0
+                          ? "0.0"
+                          : (
+                              Math.ceil((hasilProduksi / outputPerHour) * 10) /
+                              10
+                            ).toFixed(1);
                       // Akumulasi Hasil Produksi
                       let akumulasiHasilProduksi = 0;
                       if (row.shift === "1") {
                         // Cari shift 2 di hari sebelumnya
                         const prevDayGroup = groupedRows[groupIdx - 1];
-                        const prevDayShift2 = prevDayGroup ? prevDayGroup.rows.find(r => r.shift === "2") : undefined;
-                        const prevAkumulasi = prevDayShift2 ? (prevDayShift2.akumulasiHasilProduksi ?? 0) : 0;
+                        const prevDayShift2 = prevDayGroup
+                          ? prevDayGroup.rows.find((r) => r.shift === "2")
+                          : undefined;
+                        const prevAkumulasi = prevDayShift2
+                          ? (prevDayShift2.akumulasiHasilProduksi ?? 0)
+                          : 0;
                         akumulasiHasilProduksi = prevAkumulasi + hasilProduksi;
                         // Simpan ke row supaya bisa dipakai shift berikutnya
                         row.akumulasiHasilProduksi = akumulasiHasilProduksi;
                       } else {
                         // Untuk shift 2, ambil akumulasi dari shift 1 hari yang sama + hasil produksi shift 2
-                        const shift1Row = group.rows.find(r => r.shift === "1");
-                        const shift1Akumulasi = shift1Row ? (shift1Row.akumulasiHasilProduksi ?? 0) : 0;
-                        akumulasiHasilProduksi = shift1Akumulasi + hasilProduksi;
+                        const shift1Row = group.rows.find(
+                          (r) => r.shift === "1",
+                        );
+                        const shift1Akumulasi = shift1Row
+                          ? (shift1Row.akumulasiHasilProduksi ?? 0)
+                          : 0;
+                        akumulasiHasilProduksi =
+                          shift1Akumulasi + hasilProduksi;
                         row.akumulasiHasilProduksi = akumulasiHasilProduksi;
                       }
                       // Teori Stock & Rencana Stock (dummy, implementasi detail sesuai rumus user bisa ditambahkan)
@@ -504,34 +570,72 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                       const isShift1 = row.shift === "1";
                       const isShift2 = row.shift === "2";
                       const prevDayGroup = groupedRows[groupIdx - 1];
-                      const prevDayShift2 = prevDayGroup ? prevDayGroup.rows.find(r => r.shift === "2") : undefined;
-                      const prevTeoriStockShift2 = prevDayShift2 ? prevDayShift2.teoriStockCustom ?? 0 : initialStock;
-                      const prevRencanaStockShift2 = prevDayShift2 ? prevDayShift2.rencanaStockCustom ?? 0 : initialStock;
+                      const prevDayShift2 = prevDayGroup
+                        ? prevDayGroup.rows.find((r) => r.shift === "2")
+                        : undefined;
+
+                      // Mengambil stock dari bulan lalu (initialStock) atau dari shift sebelumnya
+                      const prevTeoriStockShift2 = prevDayShift2
+                        ? (prevDayShift2.teoriStockCustom ?? 0)
+                        : initialStock;
+                      const prevRencanaStockShift2 = prevDayShift2
+                        ? (prevDayShift2.rencanaStockCustom ?? 0)
+                        : initialStock;
+
                       const hasilProduksiShift1 = isShift1 ? hasilProduksi : 0;
                       const hasilProduksiShift2 = isShift2 ? hasilProduksi : 0;
                       const planningPcs = row.planningPcs || 0;
                       const overtimePcs = row.overtimePcs || 0;
                       const delivery = row.delivery || 0;
+
                       if (isHariPertama) {
-                        teoriStockCustom = initialStock + akumulasiHasilProduksi - akumulasiDeliveryShift1;
-                        rencanaStockCustom = hasilProduksi === 0
-                          ? initialStock + planningPcs + overtimePcs - delivery
-                          : initialStock + hasilProduksi - delivery;
+                        // Hari pertama shift 1 menggunakan initialStock (stock dari bulan lalu)
+                        teoriStockCustom =
+                          initialStock + hasilProduksiShift1 - delivery;
+                        rencanaStockCustom =
+                          hasilProduksi === 0
+                            ? initialStock +
+                              planningPcs +
+                              overtimePcs -
+                              delivery
+                            : initialStock + hasilProduksiShift1 - delivery;
                       } else if (isShift1) {
-                        teoriStockCustom = prevTeoriStockShift2 + hasilProduksiShift1 - delivery;
-                        rencanaStockCustom = hasilProduksi === 0
-                          ? prevRencanaStockShift2 + planningPcs + overtimePcs - delivery
-                          : prevRencanaStockShift2 + hasilProduksiShift1 - delivery;
+                        // Shift 1 di hari berikutnya mengambil sisa stock dari shift 2 hari sebelumnya
+                        teoriStockCustom =
+                          prevRencanaStockShift2 +
+                          hasilProduksiShift1 -
+                          delivery;
+                        rencanaStockCustom =
+                          hasilProduksi === 0
+                            ? prevRencanaStockShift2 +
+                              planningPcs +
+                              overtimePcs -
+                              delivery
+                            : prevRencanaStockShift2 +
+                              hasilProduksiShift1 -
+                              delivery;
                       } else if (isShift2) {
-                        // cari shift 1 di hari yang sama
-                        const shift1Row = group.rows.find(r => r.shift === "1");
-                        const shift1TeoriStock = shift1Row ? shift1Row.teoriStockCustom ?? 0 : 0;
-                        const shift1RencanaStock = shift1Row ? shift1Row.rencanaStockCustom ?? 0 : 0;
-                        teoriStockCustom = shift1TeoriStock + hasilProduksiShift2 - delivery;
-                        rencanaStockCustom = hasilProduksi === 0
-                          ? shift1RencanaStock + planningPcs + overtimePcs - delivery
-                          : shift1RencanaStock + hasilProduksiShift2 - delivery;
+                        // Shift 2 mengambil sisa stock dari shift 1 di hari yang sama
+                        const shift1Row = group.rows.find(
+                          (r) => r.shift === "1",
+                        );
+                        const shift1RencanaStock = shift1Row
+                          ? (shift1Row.rencanaStockCustom ?? 0)
+                          : 0;
+
+                        teoriStockCustom =
+                          shift1RencanaStock + hasilProduksiShift2 - delivery;
+                        rencanaStockCustom =
+                          hasilProduksi === 0
+                            ? shift1RencanaStock +
+                              planningPcs +
+                              overtimePcs -
+                              delivery
+                            : shift1RencanaStock +
+                              hasilProduksiShift2 -
+                              delivery;
                       }
+
                       // Simpan ke row agar bisa dipakai shift berikutnya
                       row.teoriStockCustom = teoriStockCustom;
                       row.rencanaStockCustom = rencanaStockCustom;
@@ -653,20 +757,27 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                           <div className="p-6 space-y-6">
                             {/* Tampilkan nilai input meski tidak sedang edit */}
                             <div className="space-y-2 mt-2">
-                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">Input Parameter</div>
+                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
+                                Input Parameter
+                              </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">📝</span>
-                                    <span className="text-blue-200/90 font-semibold text-xs">Planning (pcs)</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">
+                                      Planning (pcs)
+                                    </span>
                                   </div>
                                   <input
                                     type="number"
                                     step={1}
                                     value={row.planningPcs ?? 0}
-                                    onChange={e => {
+                                    onChange={(e) => {
                                       row.planningPcs = Number(e.target.value);
-                                      setEditForm(prev => ({ ...prev, planningPcs: row.planningPcs }));
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        planningPcs: row.planningPcs,
+                                      }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
                                   />
@@ -674,15 +785,20 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">🚚</span>
-                                    <span className="text-blue-200/90 font-semibold text-xs">Delivery (pcs)</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">
+                                      Delivery (pcs)
+                                    </span>
                                   </div>
                                   <input
                                     type="number"
                                     step={1}
                                     value={row.delivery ?? 0}
-                                    onChange={e => {
+                                    onChange={(e) => {
                                       row.delivery = Number(e.target.value);
-                                      setEditForm(prev => ({ ...prev, delivery: row.delivery }));
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        delivery: row.delivery,
+                                      }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
                                   />
@@ -690,15 +806,20 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">⏱️</span>
-                                    <span className="text-blue-200/90 font-semibold text-xs">Overtime (pcs)</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">
+                                      Overtime (pcs)
+                                    </span>
                                   </div>
                                   <input
                                     type="number"
                                     step={1}
                                     value={row.overtimePcs ?? 0}
-                                    onChange={e => {
+                                    onChange={(e) => {
                                       row.overtimePcs = Number(e.target.value);
-                                      setEditForm(prev => ({ ...prev, overtimePcs: row.overtimePcs }));
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        overtimePcs: row.overtimePcs,
+                                      }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
                                   />
@@ -706,15 +827,20 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">🏭</span>
-                                    <span className="text-blue-200/90 font-semibold text-xs">Hasil Produksi (pcs)</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">
+                                      Hasil Produksi (pcs)
+                                    </span>
                                   </div>
                                   <input
                                     type="number"
                                     step={1}
                                     value={row.pcs ?? 0}
-                                    onChange={e => {
+                                    onChange={(e) => {
                                       row.pcs = Number(e.target.value);
-                                      setEditForm(prev => ({ ...prev, pcs: row.pcs }));
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        pcs: row.pcs,
+                                      }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
                                   />
@@ -722,15 +848,23 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">⏲️</span>
-                                    <span className="text-blue-200/90 font-semibold text-xs">Jam Produksi Aktual</span>
+                                    <span className="text-blue-200/90 font-semibold text-xs">
+                                      Jam Produksi Aktual
+                                    </span>
                                   </div>
                                   <input
                                     type="number"
                                     step={0.1}
                                     value={row.jamProduksiAktual ?? 0}
-                                    onChange={e => {
-                                      row.jamProduksiAktual = Number(e.target.value);
-                                      setEditForm(prev => ({ ...prev, jamProduksiAktual: row.jamProduksiAktual }));
+                                    onChange={(e) => {
+                                      row.jamProduksiAktual = Number(
+                                        e.target.value,
+                                      );
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        jamProduksiAktual:
+                                          row.jamProduksiAktual,
+                                      }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-lg bg-transparent border-none text-center w-full focus:outline-none"
                                   />
@@ -739,68 +873,102 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                             </div>
                             {/* Output Section: Custom Output sesuai rumus user */}
                             <div className="space-y-2 mt-2">
-                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">Output Parameter</div>
+                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
+                                Output Parameter
+                              </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {/* Akumulasi Delivery hanya tampil di shift yang sesuai */}
                                 {row.shift === "1" && (
                                   <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40">
                                     <div className="flex items-center gap-1 mb-0.5">
                                       <span className="text-base">🚚</span>
-                                      <span className="font-semibold text-xs text-blue-200/90">Akumulasi Delivery Shift 1</span>
+                                      <span className="font-semibold text-xs text-blue-200/90">
+                                        Akumulasi Delivery Shift 1
+                                      </span>
                                     </div>
-                                    <span className="font-bold text-blue-100 text-lg mt-0.5">{akumulasiDeliveryShift1}</span>
+                                    <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                      {akumulasiDeliveryShift1}
+                                    </span>
                                   </div>
                                 )}
                                 {row.shift === "2" && (
                                   <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40">
                                     <div className="flex items-center gap-1 mb-0.5">
                                       <span className="text-base">🚚</span>
-                                      <span className="font-semibold text-xs text-blue-200/90">Akumulasi Delivery Shift 2</span>
+                                      <span className="font-semibold text-xs text-blue-200/90">
+                                        Akumulasi Delivery Shift 2
+                                      </span>
                                     </div>
-                                    <span className="font-bold text-blue-100 text-lg mt-0.5">{akumulasiDeliveryShift2}</span>
+                                    <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                      {akumulasiDeliveryShift2}
+                                    </span>
                                   </div>
                                 )}
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <span className="text-base">�</span>
-                                    <span className="font-semibold text-xs text-blue-200/90">Planning (jam)</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">
+                                      Planning (jam)
+                                    </span>
                                   </div>
-                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{planningJam}</span>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                    {planningJam}
+                                  </span>
                                 </div>
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <span className="text-base">⏱️</span>
-                                    <span className="font-semibold text-xs text-blue-200/90">Overtime (jam)</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">
+                                      Overtime (jam)
+                                    </span>
                                   </div>
-                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{overtimeJam}</span>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                    {overtimeJam}
+                                  </span>
                                 </div>
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <span className="text-base">⏲️</span>
-                                    <span className="font-semibold text-xs text-blue-200/90">Jam Produksi (Cycle Time)</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">
+                                      Jam Produksi (Cycle Time)
+                                    </span>
                                   </div>
-                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{jamProduksi}</span>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                    {jamProduksi}
+                                  </span>
                                 </div>
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <span className="text-base">🏭</span>
-                                    <span className="font-semibold text-xs text-blue-200/90">Akumulasi Hasil Produksi</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">
+                                      Akumulasi Hasil Produksi
+                                    </span>
                                   </div>
-                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{akumulasiHasilProduksi}</span>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                    {akumulasiHasilProduksi}
+                                  </span>
                                 </div>
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <span className="text-base">🧮</span>
-                                    <span className="font-semibold text-xs text-blue-200/90">Teori Stock</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">
+                                      Teori Stock
+                                    </span>
                                   </div>
-                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{teoriStockCustom}</span>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                    {teoriStockCustom}
+                                  </span>
                                 </div>
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <span className="text-base">�</span>
-                                    <span className="font-semibold text-xs text-blue-200/90">Rencana Stock</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">
+                                      Rencana Stock
+                                    </span>
                                   </div>
-                                  <span className="font-bold text-blue-100 text-lg mt-0.5">{rencanaStockCustom}</span>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                    {rencanaStockCustom}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -812,6 +980,49 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                 </div>
               );
             })}
+            
+            {/* Pagination Controls */}
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${currentPage === 1 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Sebelumnya
+              </button>
+              
+              <div className="flex items-center gap-2">
+                {/* Tampilkan nomor halaman */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${currentPage === page ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${currentPage === totalPages ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+              >
+                Selanjutnya
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Informasi halaman */}
+            <div className="text-center text-sm text-slate-400">
+              Menampilkan {startIndex + 1}-{endIndex} dari {groupedRows.length} hari
+            </div>
           </div>
         ) : (
           /* Timeline View */
