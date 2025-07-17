@@ -1,7 +1,7 @@
 import React from "react";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -17,45 +17,134 @@ interface ScheduleItem {
   type: string;
   pcs: number;
   time: string;
-  processes: string;
   status: "Normal" | "Gangguan" | "Completed";
   actualPcs?: number;
   notes?: string;
+  delivery?: number;
+  planningPcs?: number;
+  overtimePcs?: number;
+  planningHour?: number;
+  overtimeHour?: number;
+}
+
+interface SavedSchedule {
+  id: string;
+  name: string;
+  date: string;
+  form: any;
+  schedule: ScheduleItem[];
 }
 
 interface ProductionChartProps {
-  schedule: ScheduleItem[];
-  onViewAllCharts?: () => void; // Menambahkan prop untuk handler tombol Lihat Semua
+  schedules: SavedSchedule[];
+  onViewAllCharts?: () => void;
 }
 
-const ProductionChart: React.FC<ProductionChartProps> = ({ schedule, onViewAllCharts }) => {
+const ProductionChart: React.FC<ProductionChartProps> = ({
+  schedules,
+  onViewAllCharts,
+}) => {
   // Mengolah data untuk chart
   const chartData = React.useMemo(() => {
-    // Mengelompokkan data berdasarkan hari
-    const groupedByDay = schedule.reduce<
-      Record<number, { target: number; actual: number }>
-    >((acc, item) => {
-      if (!acc[item.day]) {
-        acc[item.day] = { target: 0, actual: 0 };
-      }
-      acc[item.day].target += item.pcs;
-      acc[item.day].actual += item.actualPcs || 0;
-      return acc;
-    }, {});
+    // Buat template data untuk semua bulan
+    const months = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
 
-    // Mengubah ke format array untuk recharts
-    return Object.entries(groupedByDay).map(([day, data]) => ({
-      day: `Hari ${day}`,
-      target: data.target,
-      actual: data.actual,
+    // Inisialisasi data untuk semua bulan dengan nilai 0
+    const initialMonthlyData: Record<
+      string,
+      { produksi: number; pengiriman: number; count: number }
+    > = {};
+    months.forEach((month) => {
+      initialMonthlyData[month] = { produksi: 0, pengiriman: 0, count: 0 };
+    });
+
+    if (!schedules || schedules.length === 0) {
+      // Jika tidak ada data, kembalikan template kosong
+      return months.map((month) => ({
+        month,
+        produksi: 0,
+        pengiriman: 0,
+      }));
+    }
+
+    // Mengelompokkan data berdasarkan bulan
+    const monthlyData = schedules.reduce<
+      Record<string, { produksi: number; pengiriman: number; count: number }>
+    >(
+      (acc, savedSchedule) => {
+        // Ekstrak bulan dari nama jadwal (format: "Bulan Tahun")
+        const scheduleName = savedSchedule.name;
+        const monthName = scheduleName.split(" ")[0]; // Ambil nama bulan saja
+
+        if (!acc[monthName]) {
+          // Jika bulan tidak ada di accumulator (seharusnya tidak terjadi karena sudah diinisialisasi)
+          acc[monthName] = { produksi: 0, pengiriman: 0, count: 0 };
+        }
+
+        // Hitung total produksi dan pengiriman untuk jadwal ini
+        let totalProduksi = 0;
+        let totalPengiriman = 0;
+
+        savedSchedule.schedule.forEach((item) => {
+          // Menghitung hasil produksi (planningPcs + overtimePcs)
+          const planningPcs =
+            item.planningPcs ||
+            (item.planningHour
+              ? Math.floor((item.planningHour * 3600) / 257)
+              : 0);
+          const overtimePcs =
+            item.overtimePcs ||
+            (item.overtimeHour
+              ? Math.floor((item.overtimeHour * 3600) / 257)
+              : 0);
+          const hasilProduksi = planningPcs + overtimePcs;
+
+          totalProduksi += hasilProduksi;
+          totalPengiriman += item.delivery || 0;
+        });
+
+        // Tambahkan ke akumulator
+        acc[monthName].produksi += totalProduksi;
+        acc[monthName].pengiriman += totalPengiriman;
+        acc[monthName].count += 1;
+
+        return acc;
+      },
+      initialMonthlyData, // Gunakan template yang sudah diinisialisasi
+    );
+
+    // Ubah ke format array untuk recharts dan hitung rata-rata
+    return months.map((month) => ({
+      month,
+      produksi:
+        monthlyData[month].count > 0
+          ? Math.round(monthlyData[month].produksi / monthlyData[month].count)
+          : 0,
+      pengiriman:
+        monthlyData[month].count > 0
+          ? Math.round(monthlyData[month].pengiriman / monthlyData[month].count)
+          : 0,
     }));
-  }, [schedule]);
+  }, [schedules]);
 
   return (
     <div className="w-full h-96 bg-gray-900 rounded-xl p-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-white">
-          Target vs Actual Production
+          Rata-rata Produksi vs Pengiriman per Bulan
         </h3>
         {onViewAllCharts && (
           <button
@@ -67,22 +156,12 @@ const ProductionChart: React.FC<ProductionChartProps> = ({ schedule, onViewAllCh
         )}
       </div>
       <ResponsiveContainer width="100%" height="85%">
-        <AreaChart
+        <BarChart
           data={chartData}
           margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
         >
-          <defs>
-            <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-            </linearGradient>
-            <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
-            </linearGradient>
-          </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis dataKey="day" stroke="#9ca3af" />
+          <XAxis dataKey="month" stroke="#9ca3af" />
           <YAxis stroke="#9ca3af" />
           <Tooltip
             contentStyle={{
@@ -94,23 +173,19 @@ const ProductionChart: React.FC<ProductionChartProps> = ({ schedule, onViewAllCh
             labelStyle={{ color: "#f9fafb" }}
           />
           <Legend />
-          <Area
-            type="monotone"
-            dataKey="target"
-            name="Target PCS"
-            stroke="#3b82f6"
-            fillOpacity={1}
-            fill="url(#colorTarget)"
+          <Bar
+            dataKey="produksi"
+            name="Rata-rata Hasil Produksi"
+            fill="#3b82f6"
+            radius={[4, 4, 0, 0]}
           />
-          <Area
-            type="monotone"
-            dataKey="actual"
-            name="Actual PCS"
-            stroke="#10b981"
-            fillOpacity={1}
-            fill="url(#colorActual)"
+          <Bar
+            dataKey="pengiriman"
+            name="Rata-rata Pengiriman"
+            fill="#f59e0b"
+            radius={[4, 4, 0, 0]}
           />
-        </AreaChart>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

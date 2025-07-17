@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSchedule } from "../contexts/ScheduleContext";
 import StatsCards from "../components/layout/StatsCards";
@@ -17,6 +17,13 @@ interface ScheduleItem {
   notes?: string;
 }
 
+// Data part dari mockData di SchedulerPage
+const partOptions = [
+  "Engine Block A1",
+  "Transmission Case B2",
+  "Brake Disc C3",
+];
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { savedSchedules } = useSchedule();
@@ -24,6 +31,9 @@ const Dashboard: React.FC = () => {
     savedSchedules.length > 0
       ? savedSchedules[savedSchedules.length - 1].id
       : null,
+  );
+  const [selectedPart, setSelectedPart] = useState<string>(
+    partOptions.length > 0 ? partOptions[0] : "",
   );
 
   // Mendapatkan schedule yang dipilih
@@ -33,9 +43,21 @@ const Dashboard: React.FC = () => {
     return found ? found.schedule : [];
   }, [selectedScheduleId, savedSchedules]);
 
+  // Mendapatkan semua schedule untuk part yang dipilih
+  const filteredSchedules = React.useMemo(() => {
+    return savedSchedules.filter(
+      (schedule) => schedule.form && schedule.form.part === selectedPart,
+    );
+  }, [savedSchedules, selectedPart]);
+
   // Handler untuk tombol Lihat Semua
   const handleViewAllCharts = () => {
-    navigate("dasboard/allcharts");
+    navigate("/dashboard/allcharts");
+  };
+
+  // Handler untuk perubahan part
+  const handlePartChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedPart(e.target.value);
   };
 
   // Calculate stats
@@ -73,9 +95,26 @@ const Dashboard: React.FC = () => {
               <h2 className="text-3xl font-semibold text-blue-400">
                 Production Chart
               </h2>
+              <div className="flex items-center space-x-4">
+                <label htmlFor="partSelect" className="text-white">
+                  Pilih Part:
+                </label>
+                <select
+                  id="partSelect"
+                  value={selectedPart}
+                  onChange={handlePartChange}
+                  className="bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {partOptions.map((part) => (
+                    <option key={part} value={part}>
+                      {part}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <ProductionChart
-              schedule={selectedSchedule}
+              schedules={filteredSchedules}
               onViewAllCharts={handleViewAllCharts}
             />
           </div>
