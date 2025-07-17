@@ -697,14 +697,101 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                             )}
                             {/* Output Section: Custom Output sesuai rumus user */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-300 mt-2">
-                              <div><span role="img" aria-label="delivery1">🚚</span> Akumulasi Delivery Shift 1: {akumulasiDeliveryShift1}</div>
-                              <div><span role="img" aria-label="delivery2">🚚</span> Akumulasi Delivery Shift 2: {akumulasiDeliveryShift2}</div>
-                              <div><span role="img" aria-label="plan">📝</span> Planning (jam): {planningJam}</div>
-                              <div><span role="img" aria-label="ot">⏱️</span> Overtime (jam): {overtimeJam}</div>
-                              <div><span role="img" aria-label="cycle">⏲️</span> Jam Produksi (Cycle Time): {jamProduksi}</div>
-                              <div><span role="img" aria-label="hasil">🏭</span> Akumulasi Hasil Produksi: {akumulasiHasilProduksi}</div>
-                              <div><span role="img" aria-label="theory">🧮</span> Teori Stock: {teoriStockCustom}</div>
-                              <div><span role="img" aria-label="rencana">📦</span> Rencana Stock: {rencanaStockCustom}</div>
+                              {/* Output cards: icon and name side-by-side, value below */}
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">🚚</span>
+                                  <span className="font-semibold">Akumulasi Delivery Shift 1</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{akumulasiDeliveryShift1}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">🚚</span>
+                                  <span className="font-semibold">Akumulasi Delivery Shift 2</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{akumulasiDeliveryShift2}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">📝</span>
+                                  <span className="font-semibold">Planning (jam)</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{planningJam}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">⏱️</span>
+                                  <span className="font-semibold">Overtime (jam)</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{overtimeJam}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">⏲️</span>
+                                  <span className="font-semibold">Jam Produksi (Cycle Time)</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{jamProduksi}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">🏭</span>
+                                  <span className="font-semibold">Akumulasi Hasil Produksi</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{akumulasiHasilProduksi}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">🧮</span>
+                                  <span className="font-semibold">Teori Stock</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{teoriStockCustom}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">📦</span>
+                                  <span className="font-semibold">Rencana Stock</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{rencanaStockCustom}</span>
+                              </div>
+                            </div>
+                            {/* Tampilkan nilai input meski tidak sedang edit */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">📝</span>
+                                  <span className="text-white font-semibold">Planning (pcs)</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{row.planningPcs ?? 0}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">⏱️</span>
+                                  <span className="text-white font-semibold">Overtime (pcs)</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{row.overtimePcs ?? 0}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">🏭</span>
+                                  <span className="text-white font-semibold">Hasil Produksi (pcs)</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{row.pcs ?? 0}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">⏲️</span>
+                                  <span className="text-white font-semibold">Jam Produksi Aktual</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{row.jamProduksiAktual ?? 0}</span>
+                              </div>
+                              <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40 flex flex-col items-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">🚚</span>
+                                  <span className="text-white font-semibold">Delivery (pcs)</span>
+                                </div>
+                                <span className="font-bold text-white text-base mt-1">{row.delivery ?? 0}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
