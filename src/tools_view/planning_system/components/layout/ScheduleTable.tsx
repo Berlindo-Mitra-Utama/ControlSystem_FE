@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState } from "react";
+import * as XLSX from "xlsx";
 
 interface ScheduleItem {
   id: string;
@@ -264,6 +265,46 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
     }));
   };
 
+  // Fungsi untuk download schedule sebagai file Excel
+  const handleDownloadExcel = () => {
+    // Persiapkan data untuk Excel
+    const scheduleData = flatRows.map((item, index) => {
+      const calculated = calculateOutputFields(item, index, flatRows);
+      return {
+        No: index + 1,
+        Hari: item.day,
+        Shift: item.shift,
+        Waktu: item.time,
+        Status: item.status,
+        "Stok Awal": calculated.prevStock,
+        Delivery: item.delivery || 0,
+        "Planning Hour": item.planningHour || 0,
+        "Overtime Hour": item.overtimeHour || 0,
+        "Planning PCS": calculated.planningPcs,
+        "Overtime PCS": calculated.overtimePcs,
+        "Hasil Produksi": calculated.hasilProduksi,
+        "Stok Akhir": calculated.rencanaStock,
+        "Jam Produksi Aktual": item.jamProduksiAktual || 0,
+        Catatan: item.notes || "",
+      };
+    });
+
+    // Buat workbook baru
+    const wb = XLSX.utils.book_new();
+
+    // Buat worksheet untuk data schedule
+    const ws = XLSX.utils.json_to_sheet(scheduleData);
+
+    // Tambahkan worksheet ke workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+
+    // Download file Excel
+    XLSX.writeFile(
+      wb,
+      `schedule_${new Date().toISOString().split("T")[0]}.xlsx`,
+    );
+  };
+
   return (
     <div className="w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
       {/* Enhanced Header */}
@@ -279,6 +320,28 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+            {/* Download Excel Button */}
+            <button
+              onClick={handleDownloadExcel}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all flex items-center gap-2"
+              title="Download Excel"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+              Download Excel
+            </button>
+
             {/* View Mode Toggle */}
             <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-600">
               <button
@@ -768,16 +831,17 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                   value={row.delivery}
                                   field="delivery"
                                   type="number"
+                                  step={1}
                                   placeholder="0"
-                                  step="1"
                                 />
                               )}
                               <EditableField
                                 label="📝 Catatan"
                                 value={row.notes}
                                 field="notes"
+                                type="text"
+                                step={undefined}
                                 placeholder="Tambahkan catatan..."
-                                step="1"
                               />
                             </div>
 
