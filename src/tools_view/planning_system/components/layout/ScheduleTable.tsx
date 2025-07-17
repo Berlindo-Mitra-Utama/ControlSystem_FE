@@ -1,48 +1,48 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
+import type React from "react";
+import { useState } from "react";
 
 interface ScheduleItem {
-  id: string
-  day: number
-  shift: string
-  type: string
-  pcs: number
-  time: string
-  status: "Normal" | "Gangguan" | "Completed"
-  actualPcs?: number
-  notes?: string
-  delivery?: number
-  planningPcs?: number
-  overtimePcs?: number
-  sisaPlanningPcs?: number
-  sisaStock?: number
-  selisih?: number
-  planningHour?: number
-  overtimeHour?: number
-  jamProduksiAktual?: number
-  akumulasiDelivery?: number
-  hasilProduksi?: number
-  akumulasiHasilProduksi?: number
-  jamProduksiCycleTime?: number
-  selisihDetikPerPcs?: number
-  selisihCycleTime?: number
-  selisihCycleTimePcs?: number
-  teoriStock?: number
-  rencanaStock?: number
+  id: string;
+  day: number;
+  shift: string;
+  type: string;
+  pcs: number;
+  time: string;
+  status: "Normal" | "Gangguan" | "Completed";
+  actualPcs?: number;
+  notes?: string;
+  delivery?: number;
+  planningPcs?: number;
+  overtimePcs?: number;
+  sisaPlanningPcs?: number;
+  sisaStock?: number;
+  selisih?: number;
+  planningHour?: number;
+  overtimeHour?: number;
+  jamProduksiAktual?: number;
+  akumulasiDelivery?: number;
+  hasilProduksi?: number;
+  akumulasiHasilProduksi?: number;
+  jamProduksiCycleTime?: number;
+  selisihDetikPerPcs?: number;
+  selisihCycleTime?: number;
+  selisihCycleTimePcs?: number;
+  teoriStock?: number;
+  rencanaStock?: number;
 }
 
 interface ScheduleTableProps {
-  schedule: ScheduleItem[]
-  editingRow: string | null
-  editForm: Partial<ScheduleItem>
-  startEdit: (item: ScheduleItem) => void
-  saveEdit: (itemId: string) => void
-  cancelEdit: () => void
-  setEditForm: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>
-  initialStock: number
-  timePerPcs?: number
+  schedule: ScheduleItem[];
+  editingRow: string | null;
+  editForm: Partial<ScheduleItem>;
+  startEdit: (item: ScheduleItem) => void;
+  saveEdit: (itemId: string) => void;
+  cancelEdit: () => void;
+  setEditForm: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
+  initialStock: number;
+  timePerPcs?: number;
 }
 
 const ScheduleCards: React.FC<ScheduleTableProps> = ({
@@ -56,50 +56,75 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
   initialStock,
   timePerPcs = 257,
 }) => {
-  const [searchDate, setSearchDate] = useState("")
-  const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards")
-  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({})
+  const [searchDate, setSearchDate] = useState("");
+  const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
+  const [expandedSections, setExpandedSections] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const filteredSchedule = searchDate
     ? schedule.filter((row) => row.day.toString().includes(searchDate.trim()))
-    : schedule
+    : schedule;
 
-  const groupedRows: { day: number; rows: typeof filteredSchedule }[] = []
+  const groupedRows: { day: number; rows: typeof filteredSchedule }[] = [];
   filteredSchedule.forEach((row) => {
-    const lastGroup = groupedRows[groupedRows.length - 1]
+    const lastGroup = groupedRows[groupedRows.length - 1];
     if (lastGroup && lastGroup.day === row.day) {
-      lastGroup.rows.push(row)
+      lastGroup.rows.push(row);
     } else {
-      groupedRows.push({ day: row.day, rows: [row] })
+      groupedRows.push({ day: row.day, rows: [row] });
     }
-  })
+  });
 
-  const calculateOutputFields = (row: ScheduleItem, index: number, allRows: ScheduleItem[]) => {
-    const planningHour = row.planningHour || 0
-    const overtimeHour = row.overtimeHour || 0
-    const delivery = row.delivery || 0
+  const calculateOutputFields = (
+    row: ScheduleItem,
+    index: number,
+    allRows: ScheduleItem[],
+  ) => {
+    const planningHour = row.planningHour || 0;
+    const overtimeHour = row.overtimeHour || 0;
+    const delivery = row.delivery || 0;
 
-    const akumulasiDelivery = allRows.slice(0, index).reduce((sum, r) => sum + (r.delivery || 0), 0)
-    const planningPcs = planningHour > 0 ? Math.floor((planningHour * 3600) / timePerPcs) : 0
-    const overtimePcs = overtimeHour > 0 ? Math.floor((overtimeHour * 3600) / timePerPcs) : 0
-    const hasilProduksi = planningPcs + overtimePcs
+    const akumulasiDelivery = allRows
+      .slice(0, index)
+      .reduce((sum, r) => sum + (r.delivery || 0), 0);
+    const planningPcs =
+      planningHour > 0 ? Math.floor((planningHour * 3600) / timePerPcs) : 0;
+    const overtimePcs =
+      overtimeHour > 0 ? Math.floor((overtimeHour * 3600) / timePerPcs) : 0;
+    const hasilProduksi = planningPcs + overtimePcs;
 
     const akumulasiHasilProduksi =
       allRows.slice(0, index).reduce((sum, r) => {
-        const rPlanningPcs = r.planningHour ? Math.floor((r.planningHour * 3600) / timePerPcs) : 0
-        const rOvertimePcs = r.overtimeHour ? Math.floor((r.overtimeHour * 3600) / timePerPcs) : 0
-        return sum + rPlanningPcs + rOvertimePcs
-      }, 0) + hasilProduksi
+        const rPlanningPcs = r.planningHour
+          ? Math.floor((r.planningHour * 3600) / timePerPcs)
+          : 0;
+        const rOvertimePcs = r.overtimeHour
+          ? Math.floor((r.overtimeHour * 3600) / timePerPcs)
+          : 0;
+        return sum + rPlanningPcs + rOvertimePcs;
+      }, 0) + hasilProduksi;
 
-    const jamProduksiCycleTime = hasilProduksi > 0 ? (hasilProduksi * timePerPcs) / 3600 : 0
+    const jamProduksiCycleTime =
+      hasilProduksi > 0 ? (hasilProduksi * timePerPcs) / 3600 : 0;
     const selisihDetikPerPcs =
-      row.jamProduksiAktual && hasilProduksi > 0 ? timePerPcs - (row.jamProduksiAktual * 3600) / hasilProduksi : 0
-    const selisihCycleTime = row.jamProduksiAktual ? jamProduksiCycleTime - row.jamProduksiAktual : 0
-    const selisihCycleTimePcs = selisihCycleTime > 0 ? Math.floor((selisihCycleTime * 3600) / timePerPcs) : 0
+      row.jamProduksiAktual && hasilProduksi > 0
+        ? timePerPcs - (row.jamProduksiAktual * 3600) / hasilProduksi
+        : 0;
+    const selisihCycleTime = row.jamProduksiAktual
+      ? jamProduksiCycleTime - row.jamProduksiAktual
+      : 0;
+    const selisihCycleTimePcs =
+      selisihCycleTime > 0
+        ? Math.floor((selisihCycleTime * 3600) / timePerPcs)
+        : 0;
 
-    const prevStock = index === 0 ? initialStock : allRows[index - 1].rencanaStock || initialStock
-    const teoriStock = prevStock + hasilProduksi
-    const rencanaStock = prevStock + hasilProduksi - delivery
+    const prevStock =
+      index === 0
+        ? initialStock
+        : allRows[index - 1].rencanaStock || initialStock;
+    const teoriStock = prevStock + hasilProduksi;
+    const rencanaStock = prevStock + hasilProduksi - delivery;
 
     return {
       akumulasiDelivery,
@@ -114,32 +139,58 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
       teoriStock,
       rencanaStock,
       prevStock,
-    }
-  }
+    };
+  };
 
   const checkValidation = (row: ScheduleItem, calculated: any) => {
-    const alerts: string[] = []
-    if (calculated.rencanaStock >= (row.delivery || 0) && (row.delivery || 0) > 0) {
-      alerts.push("Stok sudah cukup, tidak perlu produksi.")
+    const alerts: string[] = [];
+    if (
+      calculated.rencanaStock >= (row.delivery || 0) &&
+      (row.delivery || 0) > 0
+    ) {
+      alerts.push("Stok sudah cukup, tidak perlu produksi.");
     }
-    const totalWaktuTersedia = (row.planningHour || 0) + (row.overtimeHour || 0)
+    const totalWaktuTersedia =
+      (row.planningHour || 0) + (row.overtimeHour || 0);
     const waktuDibutuhkan =
-      (((row.delivery || 0) - calculated.rencanaStock + calculated.hasilProduksi) * timePerPcs) / 3600
+      (((row.delivery || 0) -
+        calculated.rencanaStock +
+        calculated.hasilProduksi) *
+        timePerPcs) /
+      3600;
     if (totalWaktuTersedia < waktuDibutuhkan && waktuDibutuhkan > 0) {
-      alerts.push("Waktu produksi tidak cukup untuk memenuhi kebutuhan produksi.")
+      alerts.push(
+        "Waktu produksi tidak cukup untuk memenuhi kebutuhan produksi.",
+      );
     }
-    return alerts
-  }
+    return alerts;
+  };
 
-  const flatRows: ScheduleItem[] = groupedRows.flatMap((g) => g.rows)
+  const flatRows: ScheduleItem[] = groupedRows.flatMap((g) => g.rows);
 
   const StatusBadge = ({ status }: { status: string }) => {
     const statusConfig = {
-      Normal: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30", icon: "✓" },
-      Gangguan: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/30", icon: "⚠" },
-      Completed: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/30", icon: "✓" },
-    }
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.Normal
+      Normal: {
+        bg: "bg-emerald-500/20",
+        text: "text-emerald-400",
+        border: "border-emerald-500/30",
+        icon: "✓",
+      },
+      Gangguan: {
+        bg: "bg-red-500/20",
+        text: "text-red-400",
+        border: "border-red-500/30",
+        icon: "⚠",
+      },
+      Completed: {
+        bg: "bg-blue-500/20",
+        text: "text-blue-400",
+        border: "border-blue-500/30",
+        icon: "✓",
+      },
+    };
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.Normal;
     return (
       <span
         className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}
@@ -147,11 +198,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
         <span className="text-xs">{config.icon}</span>
         {status}
       </span>
-    )
-  }
+    );
+  };
 
   const DataCard = ({ title, value, unit = "", className = "", icon = "" }) => (
-    <div className={`bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 ${className}`}>
+    <div
+      className={`bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 ${className}`}
+    >
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg">{icon}</span>
         <h4 className="text-sm font-medium text-slate-400">{title}</h4>
@@ -161,41 +214,55 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
         {unit && <span className="text-sm text-slate-400 ml-1">{unit}</span>}
       </div>
     </div>
-  )
+  );
 
-  const EditableField = ({ label, value, field, type = "text", step, placeholder, unit = "" }) => (
+  const EditableField = ({
+    label,
+    value,
+    field,
+    type = "text",
+    step,
+    placeholder,
+    unit = "",
+  }) => (
     <div className="space-y-2">
       <label className="text-sm font-medium text-slate-300">{label}</label>
       {editingRow ? (
         <input
           type={type}
           step={step}
-          value={editForm[field] !== undefined ? editForm[field] : (value ?? "")}
+          value={
+            editForm[field] !== undefined ? editForm[field] : (value ?? "")
+          }
           onChange={(e) => {
             const val =
               type === "number"
-                ? (step ? Number.parseFloat(e.target.value) : Number.parseInt(e.target.value)) || 0
-                : e.target.value
-            setEditForm((prev) => ({ ...prev, [field]: val }))
+                ? (step
+                    ? Number.parseFloat(e.target.value)
+                    : Number.parseInt(e.target.value)) || 0
+                : e.target.value;
+            setEditForm((prev) => ({ ...prev, [field]: val }));
           }}
           placeholder={placeholder}
           className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       ) : (
         <div className="px-3 py-2 bg-slate-900/50 rounded-lg text-white font-mono">
-          {typeof value === "number" ? value.toLocaleString("id-ID") : value || "-"}
+          {typeof value === "number"
+            ? value.toLocaleString("id-ID")
+            : value || "-"}
           {unit && <span className="text-slate-400 ml-1">{unit}</span>}
         </div>
       )}
     </div>
-  )
+  );
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => ({
       ...prev,
       [sectionId]: !prev[sectionId],
-    }))
-  }
+    }));
+  };
 
   return (
     <div className="w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
@@ -203,8 +270,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 p-6 border-b border-slate-600/50">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-2">🏭 Dashboard Produksi</h2>
-            <p className="text-slate-400">Monitoring dan perencanaan produksi harian dalam tampilan card</p>
+            <h2 className="text-3xl font-bold text-white mb-2">
+              🏭 Dashboard Produksi
+            </h2>
+            <p className="text-slate-400">
+              Monitoring dan perencanaan produksi harian dalam tampilan card
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
@@ -235,7 +306,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
             {/* Search */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5 text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -256,8 +332,18 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                   onClick={() => setSearchDate("")}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-red-400"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               )}
@@ -271,7 +357,9 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
         {viewMode === "cards" ? (
           <div className="space-y-8">
             {groupedRows.map((group, groupIdx) => {
-              let flatIdx = groupedRows.slice(0, groupIdx).reduce((sum, g) => sum + g.rows.length, 0)
+              let flatIdx = groupedRows
+                .slice(0, groupIdx)
+                .reduce((sum, g) => sum + g.rows.length, 0);
 
               return (
                 <div key={group.day} className="space-y-6">
@@ -282,8 +370,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                         {group.day}
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-white">{group.day} Juli 2024</h3>
-                        <p className="text-slate-400">{group.rows.length} shift produksi</p>
+                        <h3 className="text-2xl font-bold text-white">
+                          {group.day} Juli 2024
+                        </h3>
+                        <p className="text-slate-400">
+                          {group.rows.length} shift produksi
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -291,10 +383,14 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                   {/* Shifts Grid */}
                   <div className="grid gap-6 lg:grid-cols-2">
                     {group.rows.map((row) => {
-                      const calculated = calculateOutputFields(row, flatIdx, flatRows)
-                      const validationAlerts = checkValidation(row, calculated)
-                      const isEditing = editingRow === row.id
-                      flatIdx++
+                      const calculated = calculateOutputFields(
+                        row,
+                        flatIdx,
+                        flatRows,
+                      );
+                      const validationAlerts = checkValidation(row, calculated);
+                      const isEditing = editingRow === row.id;
+                      flatIdx++;
 
                       return (
                         <div
@@ -313,8 +409,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                   {row.shift}
                                 </div>
                                 <div>
-                                  <h4 className="text-xl font-bold text-white">Shift {row.shift}</h4>
-                                  <p className="text-slate-400 text-sm">{row.time}</p>
+                                  <h4 className="text-xl font-bold text-white">
+                                    Shift {row.shift}
+                                  </h4>
+                                  <p className="text-slate-400 text-sm">
+                                    {row.time}
+                                  </p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
@@ -327,7 +427,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                         className="p-2 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-lg transition-all"
                                         title="Simpan"
                                       >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg
+                                          className="w-5 h-5"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
                                           <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
@@ -341,7 +446,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                         className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all"
                                         title="Batal"
                                       >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg
+                                          className="w-5 h-5"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
                                           <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
@@ -357,7 +467,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                       className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-lg transition-all"
                                       title="Edit"
                                     >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
                                         <path
                                           strokeLinecap="round"
                                           strokeLinejoin="round"
@@ -410,11 +525,15 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                               >
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg">⏰</span>
-                                  <h5 className="font-semibold text-amber-200">Input Jam Kerja</h5>
+                                  <h5 className="font-semibold text-amber-200">
+                                    Input Jam Kerja
+                                  </h5>
                                 </div>
                                 <svg
                                   className={`w-5 h-5 text-amber-200 transition-transform ${
-                                    expandedSections[`input-${row.id}`] ? "rotate-180" : ""
+                                    expandedSections[`input-${row.id}`]
+                                      ? "rotate-180"
+                                      : ""
                                   }`}
                                   fill="none"
                                   stroke="currentColor"
@@ -465,16 +584,22 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                             {/* Production Results */}
                             <div>
                               <button
-                                onClick={() => toggleSection(`production-${row.id}`)}
+                                onClick={() =>
+                                  toggleSection(`production-${row.id}`)
+                                }
                                 className="flex items-center justify-between w-full p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg hover:bg-purple-500/20 transition-all"
                               >
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg">🏭</span>
-                                  <h5 className="font-semibold text-purple-200">Hasil Produksi</h5>
+                                  <h5 className="font-semibold text-purple-200">
+                                    Hasil Produksi
+                                  </h5>
                                 </div>
                                 <svg
                                   className={`w-5 h-5 text-purple-200 transition-transform ${
-                                    expandedSections[`production-${row.id}`] ? "rotate-180" : ""
+                                    expandedSections[`production-${row.id}`]
+                                      ? "rotate-180"
+                                      : ""
                                   }`}
                                   fill="none"
                                   stroke="currentColor"
@@ -491,10 +616,26 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
 
                               {expandedSections[`production-${row.id}`] && (
                                 <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                                  <DataCard title="Planning PCS" value={calculated.planningPcs} icon="🎯" />
-                                  <DataCard title="Overtime PCS" value={calculated.overtimePcs} icon="⚡" />
-                                  <DataCard title="Total Hasil" value={calculated.hasilProduksi} icon="📈" />
-                                  <DataCard title="Akumulasi Delivery" value={calculated.akumulasiDelivery} icon="📊" />
+                                  <DataCard
+                                    title="Planning PCS"
+                                    value={calculated.planningPcs}
+                                    icon="🎯"
+                                  />
+                                  <DataCard
+                                    title="Overtime PCS"
+                                    value={calculated.overtimePcs}
+                                    icon="⚡"
+                                  />
+                                  <DataCard
+                                    title="Total Hasil"
+                                    value={calculated.hasilProduksi}
+                                    icon="📈"
+                                  />
+                                  <DataCard
+                                    title="Akumulasi Delivery"
+                                    value={calculated.akumulasiDelivery}
+                                    icon="📊"
+                                  />
                                   <DataCard
                                     title="Akumulasi Hasil"
                                     value={calculated.akumulasiHasilProduksi}
@@ -507,16 +648,22 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                             {/* Analysis Section */}
                             <div>
                               <button
-                                onClick={() => toggleSection(`analysis-${row.id}`)}
+                                onClick={() =>
+                                  toggleSection(`analysis-${row.id}`)
+                                }
                                 className="flex items-center justify-between w-full p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg hover:bg-indigo-500/20 transition-all"
                               >
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg">📊</span>
-                                  <h5 className="font-semibold text-indigo-200">Analisis Cycle Time</h5>
+                                  <h5 className="font-semibold text-indigo-200">
+                                    Analisis Cycle Time
+                                  </h5>
                                 </div>
                                 <svg
                                   className={`w-5 h-5 text-indigo-200 transition-transform ${
-                                    expandedSections[`analysis-${row.id}`] ? "rotate-180" : ""
+                                    expandedSections[`analysis-${row.id}`]
+                                      ? "rotate-180"
+                                      : ""
                                   }`}
                                   fill="none"
                                   stroke="currentColor"
@@ -535,23 +682,33 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                                   <DataCard
                                     title="Jam Produksi (CT)"
-                                    value={calculated.jamProduksiCycleTime.toFixed(2)}
+                                    value={calculated.jamProduksiCycleTime.toFixed(
+                                      2,
+                                    )}
                                     unit="jam"
                                     icon="⏲️"
                                   />
                                   <DataCard
                                     title="Selisih Detik/PCS"
-                                    value={calculated.selisihDetikPerPcs.toFixed(2)}
+                                    value={calculated.selisihDetikPerPcs.toFixed(
+                                      2,
+                                    )}
                                     unit="detik"
                                     icon="📏"
                                   />
                                   <DataCard
                                     title="Selisih Cycle Time"
-                                    value={calculated.selisihCycleTime.toFixed(2)}
+                                    value={calculated.selisihCycleTime.toFixed(
+                                      2,
+                                    )}
                                     unit="jam"
                                     icon="📐"
                                   />
-                                  <DataCard title="Selisih CT (PCS)" value={calculated.selisihCycleTimePcs} icon="📊" />
+                                  <DataCard
+                                    title="Selisih CT (PCS)"
+                                    value={calculated.selisihCycleTimePcs}
+                                    icon="📊"
+                                  />
                                 </div>
                               )}
                             </div>
@@ -564,11 +721,15 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                               >
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg">📈</span>
-                                  <h5 className="font-semibold text-cyan-200">Perencanaan Stok</h5>
+                                  <h5 className="font-semibold text-cyan-200">
+                                    Perencanaan Stok
+                                  </h5>
                                 </div>
                                 <svg
                                   className={`w-5 h-5 text-cyan-200 transition-transform ${
-                                    expandedSections[`stock-${row.id}`] ? "rotate-180" : ""
+                                    expandedSections[`stock-${row.id}`]
+                                      ? "rotate-180"
+                                      : ""
                                   }`}
                                   fill="none"
                                   stroke="currentColor"
@@ -585,8 +746,16 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
 
                               {expandedSections[`stock-${row.id}`] && (
                                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <DataCard title="Teori Stock" value={calculated.teoriStock} icon="🧮" />
-                                  <DataCard title="Rencana Stock" value={calculated.rencanaStock} icon="📋" />
+                                  <DataCard
+                                    title="Teori Stock"
+                                    value={calculated.teoriStock}
+                                    icon="🧮"
+                                  />
+                                  <DataCard
+                                    title="Rencana Stock"
+                                    value={calculated.rencanaStock}
+                                    icon="📋"
+                                  />
                                 </div>
                               )}
                             </div>
@@ -600,6 +769,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                   field="delivery"
                                   type="number"
                                   placeholder="0"
+                                  step="1"
                                 />
                               )}
                               <EditableField
@@ -607,13 +777,16 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                 value={row.notes}
                                 field="notes"
                                 placeholder="Tambahkan catatan..."
+                                step="1"
                               />
                             </div>
 
                             {/* Status Edit */}
                             {isEditing && (
                               <div>
-                                <label className="text-sm font-medium text-slate-300 mb-2 block">🚦 Status</label>
+                                <label className="text-sm font-medium text-slate-300 mb-2 block">
+                                  🚦 Status
+                                </label>
                                 <select
                                   value={editForm.status || row.status}
                                   onChange={(e) =>
@@ -643,19 +816,23 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                     key={i}
                                     className="flex items-start gap-3 p-3 bg-amber-900/30 border border-amber-600/30 rounded-lg"
                                   >
-                                    <span className="text-amber-400 mt-0.5">⚠️</span>
-                                    <span className="text-amber-200 text-sm">{alert}</span>
+                                    <span className="text-amber-400 mt-0.5">
+                                      ⚠️
+                                    </span>
+                                    <span className="text-amber-200 text-sm">
+                                      {alert}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
                             )}
                           </div>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         ) : (
@@ -666,7 +843,9 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
               <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-cyan-500"></div>
 
               {groupedRows.map((group, groupIdx) => {
-                let flatIdx = groupedRows.slice(0, groupIdx).reduce((sum, g) => sum + g.rows.length, 0)
+                let flatIdx = groupedRows
+                  .slice(0, groupIdx)
+                  .reduce((sum, g) => sum + g.rows.length, 0);
 
                 return (
                   <div key={group.day} className="relative">
@@ -676,17 +855,28 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                         {group.day}
                       </div>
                       <div className="bg-slate-800/80 rounded-lg p-4 border border-slate-700/50 flex-1">
-                        <h3 className="text-xl font-bold text-white">{group.day} Juli 2024</h3>
-                        <p className="text-slate-400">{group.rows.length} shift produksi</p>
+                        <h3 className="text-xl font-bold text-white">
+                          {group.day} Juli 2024
+                        </h3>
+                        <p className="text-slate-400">
+                          {group.rows.length} shift produksi
+                        </p>
                       </div>
                     </div>
 
                     {/* Shifts */}
                     <div className="ml-20 space-y-4 mb-8">
                       {group.rows.map((row) => {
-                        const calculated = calculateOutputFields(row, flatIdx, flatRows)
-                        const validationAlerts = checkValidation(row, calculated)
-                        flatIdx++
+                        const calculated = calculateOutputFields(
+                          row,
+                          flatIdx,
+                          flatRows,
+                        );
+                        const validationAlerts = checkValidation(
+                          row,
+                          calculated,
+                        );
+                        flatIdx++;
 
                         return (
                           <div
@@ -699,8 +889,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                   {row.shift}
                                 </div>
                                 <div>
-                                  <h4 className="font-semibold text-white">Shift {row.shift}</h4>
-                                  <p className="text-slate-400 text-sm">{row.time}</p>
+                                  <h4 className="font-semibold text-white">
+                                    Shift {row.shift}
+                                  </h4>
+                                  <p className="text-slate-400 text-sm">
+                                    {row.time}
+                                  </p>
                                 </div>
                               </div>
                               <StatusBadge status={row.status} />
@@ -708,25 +902,33 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                               <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">Stok Awal</div>
+                                <div className="text-xs text-slate-400">
+                                  Stok Awal
+                                </div>
                                 <div className="font-mono font-semibold text-emerald-300">
                                   {calculated.prevStock.toLocaleString()}
                                 </div>
                               </div>
                               <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">Delivery</div>
+                                <div className="text-xs text-slate-400">
+                                  Delivery
+                                </div>
                                 <div className="font-mono font-semibold text-blue-300">
                                   {(row.delivery || 0).toLocaleString()}
                                 </div>
                               </div>
                               <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">Produksi</div>
+                                <div className="text-xs text-slate-400">
+                                  Produksi
+                                </div>
                                 <div className="font-mono font-semibold text-purple-300">
                                   {calculated.hasilProduksi.toLocaleString()}
                                 </div>
                               </div>
                               <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">Stock Akhir</div>
+                                <div className="text-xs text-slate-400">
+                                  Stock Akhir
+                                </div>
                                 <div className="font-mono font-semibold text-cyan-300">
                                   {calculated.rencanaStock.toLocaleString()}
                                 </div>
@@ -739,11 +941,11 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                               </div>
                             )}
                           </div>
-                        )
+                        );
                       })}
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -755,13 +957,18 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400">
             <span>
-              📊 Total Data: <strong className="text-white">{filteredSchedule.length}</strong>
+              📊 Total Data:{" "}
+              <strong className="text-white">{filteredSchedule.length}</strong>
             </span>
             <span>
-              🏭 Time per PCS: <strong className="text-white">{timePerPcs}s</strong>
+              🏭 Time per PCS:{" "}
+              <strong className="text-white">{timePerPcs}s</strong>
             </span>
             <span>
-              📦 Initial Stock: <strong className="text-white">{initialStock.toLocaleString()}</strong>
+              📦 Initial Stock:{" "}
+              <strong className="text-white">
+                {initialStock.toLocaleString()}
+              </strong>
             </span>
           </div>
           <div className="flex items-center gap-4 text-xs">
@@ -781,7 +988,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ScheduleCards
+export default ScheduleCards;

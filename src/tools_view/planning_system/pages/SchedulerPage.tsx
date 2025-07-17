@@ -752,9 +752,9 @@ const SchedulerPage: React.FC = () => {
   };
 
   return (
-    <div className="scheduler-bg w-full min-h-screen">
+    <div className="w-full min-h-screen flex items-start justify-center pt-20">
       {/* SchedulerPage main content */}
-      <div className="w-full max-w-none mx-auto px-2 sm:px-4 lg:px-6 py-8">
+      <div className="w-full max-w-none mx-auto px-2 sm:px-4 lg:px-6 ">
         {/* Main content below */}
         {/* ...existing code... */}
         {/* Add New Production Planning Button (below navbar) */}
@@ -881,16 +881,18 @@ const SchedulerPage: React.FC = () => {
 
         {/* If no schedule, show blank state */}
         {schedule.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-900 border border-gray-800 rounded-3xl p-12">
+          <div className="flex flex-col items-center justify-center min-h-[600px] bg-gray-900 border border-gray-800 rounded-3xl p-16 mx-auto max-w-4xl">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-4xl font-bold text-white mb-4">
                 Jadwal Produksi belum dibuat
               </h2>
-              <p className="text-gray-400 mb-6">Lakukan penjadwalan sekarang</p>
+              <p className="text-xl text-gray-400 mb-8">
+                Lakukan penjadwalan sekarang
+              </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={() => setShowProductionForm(true)}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  className="px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
                   Tambah Penjadwalan
                 </button>
