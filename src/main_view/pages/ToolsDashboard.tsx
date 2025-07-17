@@ -59,6 +59,9 @@ export default function ToolsDashboard() {
         case "hitungcoil":
           navigate("/hitungcoil")
           break
+        case "usermanagement":
+          navigate("/admin/user-management")
+          break
         default:
           alert(`Mengakses tool: ${toolId}`)
       }
@@ -159,7 +162,7 @@ export default function ToolsDashboard() {
       badge: "Admin Only",
       requiresLogin: true,
       badgeColor: "bg-red-500/10 text-red-400 border-red-500/20",
-      maintenance: true,
+      maintenance: false,
     },
     {
       id: "systemconfig",
