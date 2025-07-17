@@ -1,7 +1,8 @@
+
+import React, { useState, useEffect } from "react";
 "use client";
 
-import type React from "react";
-import { useState } from "react";
+
 import * as XLSX from "xlsx";
 
 interface ScheduleItem {
@@ -49,30 +50,45 @@ interface ScheduleTableProps {
   timePerPcs?: number;
 }
 
-const ScheduleCards: React.FC<ScheduleTableProps> = ({
-  schedule,
-  editingRow,
-  editForm,
-  startEdit,
-  saveEdit,
-  cancelEdit,
-  setEditForm,
-  initialStock,
-  timePerPcs = 257,
-}) => {
+
+
+const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
+  const {
+    schedule,
+    editingRow,
+    editForm,
+    startEdit,
+    saveEdit,
+    cancelEdit,
+    setEditForm,
+    initialStock,
+    timePerPcs = 257,
+  } = props;
+  // State untuk loading popup
+  const [isLoading, setIsLoading] = useState(false);
+  // Fungsi untuk handle navigasi dengan loading
+  const handleNavigateDay = (fn: () => void) => {
+    setIsLoading(true);
+    setTimeout(() => {
+      fn();
+      setIsLoading(false);
+    }, 600); // durasi loading 600ms
+  };
+// ...existing code...
   const [searchDate, setSearchDate] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
   }>({});
-  // Tambahkan state untuk pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const daysPerPage = 5;
+  // State untuk navigasi hari
+  const [currentDayIdx, setCurrentDayIdx] = useState(0);
 
+  // Filter schedule berdasarkan search box
   const filteredSchedule = searchDate
     ? schedule.filter((row) => row.day.toString().includes(searchDate.trim()))
     : schedule;
 
+  // Group data berdasarkan hari
   const groupedRows: { day: number; rows: typeof filteredSchedule }[] = [];
   filteredSchedule.forEach((row) => {
     const lastGroup = groupedRows[groupedRows.length - 1];
@@ -83,29 +99,29 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
     }
   });
 
-  // Hitung total halaman
-  const totalPages = Math.ceil(groupedRows.length / daysPerPage);
-  
-  // Dapatkan data untuk halaman saat ini
-  const startIndex = (currentPage - 1) * daysPerPage;
-  const endIndex = Math.min(startIndex + daysPerPage, groupedRows.length);
-  const currentPageData = groupedRows.slice(startIndex, endIndex);
-  
-  // Fungsi untuk navigasi halaman
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+  // Navigasi hari
+  const totalDays = groupedRows.length;
+  const currentDayData = groupedRows[currentDayIdx] ? [groupedRows[currentDayIdx]] : [];
+
+  // Reset ke hari pertama saat search berubah
+  useEffect(() => {
+    setCurrentDayIdx(0);
+  }, [searchDate, filteredSchedule.length]);
+
+  const goToNextDay = () => {
+    if (currentDayIdx < totalDays - 1) {
+      setCurrentDayIdx(currentDayIdx + 1);
     }
   };
-  
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+
+  const goToPreviousDay = () => {
+    if (currentDayIdx > 0) {
+      setCurrentDayIdx(currentDayIdx - 1);
     }
   };
-  
-  const goToPage = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
+
+  const goToDay = (dayIdx: number) => {
+    setCurrentDayIdx(dayIdx);
   };
 
   const calculateOutputFields = (
@@ -450,11 +466,11 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
       <div className="p-6">
         {viewMode === "cards" ? (
           <div className="space-y-8">
-            {/* Tampilkan hanya data untuk halaman saat ini */}
-            {currentPageData.map((group, groupIdx) => {
+            {/* Tampilkan hanya data untuk hari saat ini */}
+            {currentDayData.map((group, groupIdx) => {
               // Hitung flatIdx berdasarkan posisi sebenarnya dalam groupedRows
               let flatIdx = groupedRows
-                .slice(0, startIndex + groupIdx)
+                .slice(0, currentDayIdx)
                 .reduce((sum, g) => sum + g.rows.length, 0);
 
               return (
@@ -560,16 +576,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                           shift1Akumulasi + hasilProduksi;
                         row.akumulasiHasilProduksi = akumulasiHasilProduksi;
                       }
-                      // Teori Stock & Rencana Stock (dummy, implementasi detail sesuai rumus user bisa ditambahkan)
-                      // ...
-
                       // --- Teori Stock & Rencana Stock Custom ---
                       let teoriStockCustom = 0;
                       let rencanaStockCustom = 0;
-                      const isHariPertama = groupIdx === 0 && row.shift === "1";
+                      const isHariPertama = currentDayIdx === 0 && row.shift === "1";
                       const isShift1 = row.shift === "1";
                       const isShift2 = row.shift === "2";
-                      const prevDayGroup = groupedRows[groupIdx - 1];
+                      const prevDayGroup = groupedRows[currentDayIdx - 1];
                       const prevDayShift2 = prevDayGroup
                         ? prevDayGroup.rows.find((r) => r.shift === "2")
                         : undefined;
@@ -760,7 +773,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                               <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
                                 Input Parameter
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">📝</span>
@@ -876,11 +889,11 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                               <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
                                 Output Parameter
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {/* Akumulasi Delivery hanya tampil di shift yang sesuai */}
                                 {row.shift === "1" && (
-                                  <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40">
-                                    <div className="flex items-center gap-1 mb-0.5">
+                                  <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
+                                    <div className="flex items-center gap-1 mb-0.5 w-full">
                                       <span className="text-base">🚚</span>
                                       <span className="font-semibold text-xs text-blue-200/90">
                                         Akumulasi Delivery Shift 1
@@ -892,8 +905,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                   </div>
                                 )}
                                 {row.shift === "2" && (
-                                  <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40">
-                                    <div className="flex items-center gap-1 mb-0.5">
+                                  <div className="bg-blue-900/80 rounded-2xl p-3 border border-blue-400 flex flex-col items-center min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
+                                    <div className="flex items-center gap-1 mb-0.5 w-full">
                                       <span className="text-base">🚚</span>
                                       <span className="font-semibold text-xs text-blue-200/90">
                                         Akumulasi Delivery Shift 2
@@ -904,8 +917,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                     </span>
                                   </div>
                                 )}
-                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
-                                  <div className="flex items-center gap-1 mb-0.5">
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">�</span>
                                     <span className="font-semibold text-xs text-blue-200/90">
                                       Planning (jam)
@@ -915,8 +928,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                     {planningJam}
                                   </span>
                                 </div>
-                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
-                                  <div className="flex items-center gap-1 mb-0.5">
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">⏱️</span>
                                     <span className="font-semibold text-xs text-blue-200/90">
                                       Overtime (jam)
@@ -926,8 +939,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                     {overtimeJam}
                                   </span>
                                 </div>
-                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
-                                  <div className="flex items-center gap-1 mb-0.5">
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">⏲️</span>
                                     <span className="font-semibold text-xs text-blue-200/90">
                                       Jam Produksi (Cycle Time)
@@ -937,8 +950,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                     {jamProduksi}
                                   </span>
                                 </div>
-                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
-                                  <div className="flex items-center gap-1 mb-0.5">
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">🏭</span>
                                     <span className="font-semibold text-xs text-blue-200/90">
                                       Akumulasi Hasil Produksi
@@ -948,8 +961,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                     {akumulasiHasilProduksi}
                                   </span>
                                 </div>
-                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
-                                  <div className="flex items-center gap-1 mb-0.5">
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">🧮</span>
                                     <span className="font-semibold text-xs text-blue-200/90">
                                       Teori Stock
@@ -959,8 +972,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                                     {teoriStockCustom}
                                   </span>
                                 </div>
-                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30">
-                                  <div className="flex items-center gap-1 mb-0.5">
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <span className="text-base">�</span>
                                     <span className="font-semibold text-xs text-blue-200/90">
                                       Rencana Stock
@@ -980,48 +993,129 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                 </div>
               );
             })}
-            
-            {/* Pagination Controls */}
-            <div className="mt-8 flex items-center justify-center gap-4">
+
+            {/* Navigasi Hari */}
+
+            {/* Navigation Helper Function */}
+            <div className="mt-8 flex items-center justify-center gap-2">
+              {/* PREV button */}
               <button
-                onClick={goToPreviousPage}
-                disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${currentPage === 1 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                onClick={() => handleNavigateDay(goToPreviousDay)}
+                disabled={currentDayIdx === 0}
+                className={`px-4 py-2 rounded-full border flex items-center gap-2 font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${currentDayIdx === 0 ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' : 'bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 hover:from-blue-700 hover:to-blue-600 hover:shadow-lg'}`}
+                style={{ minWidth: 60 }}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Sebelumnya
+                PREV
               </button>
-              
-              <div className="flex items-center gap-2">
-                {/* Tampilkan nomor halaman */}
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => goToPage(page)}
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${currentPage === page ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-              
+
+              {/* Page buttons with ellipsis */}
+              {(() => {
+                const maxPageShow = 7;
+                const items = [];
+                // Helper for button style
+                const getBtnClass = (isCurrent: boolean) =>
+                  isCurrent
+                    ? "w-9 h-9 rounded-full border flex items-center justify-center font-semibold text-sm mx-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-lg scale-110 bg-gradient-to-br from-yellow-400 to-emerald-500 text-white border-yellow-400 ring-2 ring-yellow-300"
+                    : "w-9 h-9 rounded-full border flex items-center justify-center font-semibold text-sm mx-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm bg-slate-900 text-slate-300 border-slate-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-lg hover:scale-105";
+                if (totalDays <= maxPageShow) {
+                  for (let i = 0; i < totalDays; i++) {
+                    items.push(
+                      <button
+                        key={i}
+                        onClick={() => handleNavigateDay(() => goToDay(i))}
+                        className={getBtnClass(currentDayIdx === i)}
+                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        disabled={currentDayIdx === i}
+                      >
+                        {groupedRows[i].day}
+                      </button>
+                    );
+                  }
+                } else {
+                  // Always show first, last, current, and neighbors
+                  if (currentDayIdx > 1) {
+                    items.push(
+                      <button
+                        key={0}
+                        onClick={() => handleNavigateDay(() => goToDay(0))}
+                        className={getBtnClass(currentDayIdx === 0)}
+                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        disabled={currentDayIdx === 0}
+                      >
+                        {groupedRows[0].day}
+                      </button>
+                    );
+                  }
+                  if (currentDayIdx > 2) {
+                    items.push(
+                      <span key="start-ellipsis" className="px-1 text-slate-500">...</span>
+                    );
+                  }
+                  // Show previous, current, next
+                  for (let i = Math.max(0, currentDayIdx - 1); i <= Math.min(totalDays - 1, currentDayIdx + 1); i++) {
+                    // Always show current day button, but with distinct style
+                    items.push(
+                      <button
+                        key={i}
+                        onClick={() => handleNavigateDay(() => goToDay(i))}
+                        className={getBtnClass(currentDayIdx === i)}
+                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        disabled={currentDayIdx === i}
+                      >
+                        {groupedRows[i].day}
+                      </button>
+                    );
+                  }
+                  if (currentDayIdx < totalDays - 3) {
+                    items.push(
+                      <span key="end-ellipsis" className="px-1 text-slate-500">...</span>
+                    );
+                  }
+                  if (currentDayIdx < totalDays - 2) {
+                    items.push(
+                      <button
+                        key={totalDays - 1}
+                        onClick={() => handleNavigateDay(() => goToDay(totalDays - 1))}
+                        className={getBtnClass(currentDayIdx === totalDays - 1)}
+                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        disabled={currentDayIdx === totalDays - 1}
+                      >
+                        {groupedRows[totalDays - 1].day}
+                      </button>
+                    );
+                  }
+                }
+                return items;
+              })()}
+
+              {/* NEXT button */}
               <button
-                onClick={goToNextPage}
-                disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${currentPage === totalPages ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                onClick={() => handleNavigateDay(goToNextDay)}
+                disabled={currentDayIdx === totalDays - 1}
+                className={`px-4 py-2 rounded-full border flex items-center gap-2 font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${currentDayIdx === totalDays - 1 ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' : 'bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 hover:from-blue-700 hover:to-blue-600 hover:shadow-lg'}`}
+                style={{ minWidth: 60 }}
               >
-                Selanjutnya
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                NEXT
               </button>
+
+              {/* Loading Popup */}
+              {isLoading && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all">
+                  <div className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-blue-700 via-slate-800 to-blue-900 rounded-2xl shadow-2xl border border-blue-600 animate-fade-in">
+                    <svg className="animate-spin w-12 h-12 text-blue-400" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
+                    <div className="text-lg font-bold text-white">Memuat data hari...</div>
+                    <div className="text-sm text-blue-200">Mohon tunggu sebentar</div>
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {/* Informasi halaman */}
+
+            {/* Informasi hari */}
             <div className="text-center text-sm text-slate-400">
-              Menampilkan {startIndex + 1}-{endIndex} dari {groupedRows.length} hari
+              Menampilkan hari ke-{currentDayIdx + 1} dari {groupedRows.length} hari
             </div>
           </div>
         ) : (
@@ -1159,20 +1253,6 @@ const ScheduleCards: React.FC<ScheduleTableProps> = ({
                 {initialStock.toLocaleString()}
               </strong>
             </span>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-              <span className="text-slate-400">Normal</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-              <span className="text-slate-400">Gangguan</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span className="text-slate-400">Completed</span>
-            </div>
           </div>
         </div>
       </div>
