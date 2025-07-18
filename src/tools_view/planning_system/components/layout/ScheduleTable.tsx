@@ -30,9 +30,10 @@ interface ScheduleItem {
   selisihCycleTime?: number;
   selisihCycleTimePcs?: number;
   teoriStock?: number;
-  rencanaStock?: number;
+  actualStock?: number;
   // Tambahan untuk custom stock
   teoriStockCustom?: number;
+  actualStockCustom?: number;
   rencanaStockCustom?: number;
 }
 
@@ -71,7 +72,6 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
       setIsLoading(false);
     }, 600); // durasi loading 600ms
   };
-  // ...existing code...
   const [searchDate, setSearchDate] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
   const [expandedSections, setExpandedSections] = useState<{
@@ -169,9 +169,9 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
     const prevStock =
       index === 0
         ? initialStock
-        : allRows[index - 1].rencanaStock || initialStock;
+        : allRows[index - 1].actualStock || initialStock;
     const teoriStock = prevStock + hasilProduksi;
-    const rencanaStock = prevStock + hasilProduksi - delivery;
+    const actualStock = prevStock + hasilProduksi - delivery;
 
     return {
       akumulasiDelivery,
@@ -184,7 +184,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
       selisihCycleTime,
       selisihCycleTimePcs,
       teoriStock,
-      rencanaStock,
+      actualStock,
       prevStock,
     };
   };
@@ -192,7 +192,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
   const checkValidation = (row: ScheduleItem, calculated: any) => {
     const alerts: string[] = [];
     if (
-      calculated.rencanaStock >= (row.delivery || 0) &&
+      calculated.actualStock >= (row.delivery || 0) &&
       (row.delivery || 0) > 0
     ) {
       alerts.push("Stok sudah cukup, tidak perlu produksi.");
@@ -201,7 +201,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
       (row.planningHour || 0) + (row.overtimeHour || 0);
     const waktuDibutuhkan =
       (((row.delivery || 0) -
-        calculated.rencanaStock +
+        calculated.actualStock +
         calculated.hasilProduksi) *
         timePerPcs) /
       3600;
@@ -329,7 +329,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
         "Planning PCS": calculated.planningPcs,
         "Overtime PCS": calculated.overtimePcs,
         "Hasil Produksi": calculated.hasilProduksi,
-        "Stok Akhir": calculated.rencanaStock,
+        "Actual Stock": calculated.actualStock,
         "Jam Produksi Aktual": item.jamProduksiAktual || 0,
         Catatan: item.notes || "",
       };
@@ -598,6 +598,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                       }
                       // --- Teori Stock & Rencana Stock Custom ---
                       let teoriStockCustom = 0;
+                      let actualStockCustom = 0;
                       let rencanaStockCustom = 0;
                       const isHariPertama =
                         currentDayIdx === 0 && row.shift === "1";
@@ -610,8 +611,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                         : undefined;
 
                       // Mengambil stock dari bulan lalu (initialStock) atau dari shift sebelumnya
-                      const prevTeoriStockShift2 = prevDayShift2
-                        ? (prevDayShift2.teoriStockCustom ?? 0)
+                      const prevActualStockShift2 = prevDayShift2
+                        ? (prevDayShift2.actualStockCustom ?? 0)
                         : initialStock;
                       const prevRencanaStockShift2 = prevDayShift2
                         ? (prevDayShift2.rencanaStockCustom ?? 0)
@@ -627,52 +628,41 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                         // Hari pertama shift 1 menggunakan initialStock (stock dari bulan lalu)
                         teoriStockCustom =
                           initialStock + hasilProduksiShift1 - delivery;
-                        rencanaStockCustom =
+                        actualStockCustom =
                           hasilProduksi === 0
-                            ? initialStock +
-                              planningPcs +
-                              overtimePcs -
-                              delivery
+                            ? initialStock + planningPcs + overtimePcs - delivery
                             : initialStock + hasilProduksiShift1 - delivery;
+                        rencanaStockCustom = initialStock + planningPcs + overtimePcs - delivery;
                       } else if (isShift1) {
                         // Shift 1 di hari berikutnya mengambil sisa stock dari shift 2 hari sebelumnya
                         teoriStockCustom =
-                          prevRencanaStockShift2 +
-                          hasilProduksiShift1 -
-                          delivery;
-                        rencanaStockCustom =
+                          prevActualStockShift2 + hasilProduksiShift1 - delivery;
+                        actualStockCustom =
                           hasilProduksi === 0
-                            ? prevRencanaStockShift2 +
-                              planningPcs +
-                              overtimePcs -
-                              delivery
-                            : prevRencanaStockShift2 +
-                              hasilProduksiShift1 -
-                              delivery;
+                            ? prevActualStockShift2 + planningPcs + overtimePcs - delivery
+                            : prevActualStockShift2 + hasilProduksiShift1 - delivery;
+                        rencanaStockCustom = prevRencanaStockShift2 + planningPcs + overtimePcs - delivery;
                       } else if (isShift2) {
                         // Shift 2 mengambil sisa stock dari shift 1 di hari yang sama
                         const shift1Row = group.rows.find(
                           (r) => r.shift === "1",
                         );
-                        const shift1RencanaStock = shift1Row
-                          ? (shift1Row.rencanaStockCustom ?? 0)
+                        const shift1ActualStock = shift1Row
+                          ? (shift1Row.actualStockCustom ?? 0)
                           : 0;
 
                         teoriStockCustom =
-                          shift1RencanaStock + hasilProduksiShift2 - delivery;
-                        rencanaStockCustom =
+                          shift1ActualStock + hasilProduksiShift2 - delivery;
+                        actualStockCustom =
                           hasilProduksi === 0
-                            ? shift1RencanaStock +
-                              planningPcs +
-                              overtimePcs -
-                              delivery
-                            : shift1RencanaStock +
-                              hasilProduksiShift2 -
-                              delivery;
+                            ? shift1ActualStock + planningPcs + overtimePcs - delivery
+                            : shift1ActualStock + hasilProduksiShift2 - delivery;
+                        rencanaStockCustom = shift1ActualStock + planningPcs + overtimePcs - delivery;
                       }
 
                       // Simpan ke row agar bisa dipakai shift berikutnya
                       row.teoriStockCustom = teoriStockCustom;
+                      row.actualStockCustom = actualStockCustom;
                       row.rencanaStockCustom = rencanaStockCustom;
 
                       flatIdx++;
@@ -983,7 +973,18 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                                 </div>
                                 <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-base">�</span>
+                                    <span className="text-base">🟦</span>
+                                    <span className="font-semibold text-xs text-blue-200/90">
+                                      Actual Stock
+                                    </span>
+                                  </div>
+                                  <span className="font-bold text-blue-100 text-lg mt-0.5">
+                                    {actualStockCustom}
+                                  </span>
+                                </div>
+                                <div className="bg-blue-950/80 rounded-2xl p-3 border border-blue-700 flex flex-col items-center min-w-[110px] shadow shadow-blue-900/30 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <span className="text-base">🟩</span>
                                     <span className="font-semibold text-xs text-blue-200/90">
                                       Rencana Stock
                                     </span>
@@ -1263,10 +1264,10 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                               </div>
                               <div className="text-center p-2 bg-slate-900/50 rounded">
                                 <div className="text-xs text-slate-400">
-                                  Stock Akhir
+                                  Actual Stock
                                 </div>
                                 <div className="font-mono font-semibold text-cyan-300">
-                                  {calculated.rencanaStock.toLocaleString()}
+                                  {calculated.actualStock.toLocaleString()}
                                 </div>
                               </div>
                             </div>
