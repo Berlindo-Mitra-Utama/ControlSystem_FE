@@ -54,8 +54,8 @@ interface SavedSchedule {
 
 const mockData: DataItem[] = [
   {
-    part: "Engine Block A1",
-    customer: "Toyota Motors",
+    part: "29N MUFFLER",
+    customer: "Sakura",
     timePerPcs: 257,
     cycle1: 14,
     cycle7: 98,

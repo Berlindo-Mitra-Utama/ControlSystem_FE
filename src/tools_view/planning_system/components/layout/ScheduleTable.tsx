@@ -749,21 +749,6 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                               </div>
                             </div>
                             {/* Quick Stats */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                              <DataCard
-                                title="Stok Tersedia"
-                                value={calculated.prevStock}
-                                icon="📦"
-                                className="bg-emerald-500/10 border-emerald-500/20"
-                              />
-                              {/* Delivery and Hasil Produksi moved to Input Parameter */}
-                              <DataCard
-                                title="Stock Akhir"
-                                value={calculated.rencanaStock}
-                                icon="�"
-                                className="bg-cyan-500/10 border-cyan-500/20"
-                              />
-                            </div>
                           </div>
 
                           {/* Card Content */}
