@@ -50,6 +50,143 @@ interface ScheduleTableProps {
   scheduleName?: string;
 }
 
+// Komponen TableView (harus di luar ScheduleCards agar JSX valid)
+const TableView = ({ groupedRows, initialStock, timePerPcs }) => {
+  return (
+    <table className="min-w-full border border-slate-700 rounded-xl bg-slate-900">
+      <thead>
+        <tr>
+          <th className="p-2 border-b border-slate-700 bg-slate-800 text-white text-xs font-bold">Parameter</th>
+          {groupedRows.map((group) => (
+            group.rows.map((row) => (
+              <th key={group.day + '-' + row.shift} className="p-2 border-b border-slate-700 bg-slate-800 text-white text-xs font-bold">
+                {group.day} <br />Shift {row.shift}
+              </th>
+            ))
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {/* Input Parameters */}
+        {["Planning (pcs)", "Delivery (pcs)", "Overtime (pcs)", "Hasil Produksi (pcs)", "Jam Produksi Aktual"].map((param, idx) => (
+          <tr key={param} className="border-b border-slate-700">
+            <td className="p-2 text-blue-300 font-bold text-xs bg-slate-800">{param}</td>
+            {groupedRows.map((group) => (
+              group.rows.map((row) => (
+                <td key={group.day + '-' + row.shift + '-' + param} className="p-2 text-blue-100 text-center">
+                  {(() => {
+                    switch (param) {
+                      case "Planning (pcs)": return row.planningPcs ?? 0;
+                      case "Delivery (pcs)": return row.delivery ?? 0;
+                      case "Overtime (pcs)": return row.overtimePcs ?? 0;
+                      case "Hasil Produksi (pcs)": return row.pcs ?? 0;
+                      case "Jam Produksi Aktual": return row.jamProduksiAktual ?? 0;
+                      default: return "";
+                    }
+                  })()}
+                </td>
+              ))
+            ))}
+          </tr>
+        ))}
+        {/* Output Parameters */}
+        {["Akumulasi Delivery", "Planning (jam)", "Overtime (jam)", "Jam Produksi (Cycle Time)", "Akumulasi Hasil Produksi", "Teori Stock", "Actual Stock", "Rencana Stock"].map((param, idx) => (
+          <tr key={param} className="border-b border-slate-700">
+            <td className="p-2 text-blue-300 font-bold text-xs bg-slate-800">{param}</td>
+            {groupedRows.map((group, groupIdx) => (
+              group.rows.map((row, rowIdx) => {
+                // --- Custom Output Calculation ---
+                const outputPerHour = timePerPcs > 0 ? Math.floor(3600 / timePerPcs) : 0;
+                // Akumulasi Delivery
+                let akumulasiDelivery = 0;
+                if (row.shift === "1") {
+                  if (groupIdx === 0) {
+                    akumulasiDelivery = row.delivery || 0;
+                  } else {
+                    const prevDayGroup = groupedRows[groupIdx - 1];
+                    const prevDay = prevDayGroup ? prevDayGroup.rows.find((r) => r.shift === "2") : undefined;
+                    const prevAkumulasi = prevDay ? (prevDay.akumulasiDelivery ?? 0) : 0;
+                    akumulasiDelivery = prevAkumulasi + (row.delivery || 0);
+                  }
+                } else if (row.shift === "2") {
+                  const shift1Row = group.rows.find((r) => r.shift === "1");
+                  const shift1Akumulasi = shift1Row ? (shift1Row.akumulasiDelivery ?? 0) : 0;
+                  akumulasiDelivery = shift1Akumulasi + (row.delivery || 0);
+                }
+                // Planning (jam)
+                const planningJam = row.planningPcs && outputPerHour > 0 ? (Math.ceil((row.planningPcs / outputPerHour) * 10) / 10).toFixed(1) : "0.0";
+                // Overtime (jam)
+                const overtimeJam = row.overtimePcs && outputPerHour > 0 ? (Math.ceil((row.overtimePcs / outputPerHour) * 10) / 10).toFixed(1) : "0.0";
+                // Jam Produksi (Cycle Time)
+                const hasilProduksi = row.pcs || 0;
+                const jamProduksi = hasilProduksi === 0 ? "0.0" : (Math.ceil((hasilProduksi / outputPerHour) * 10) / 10).toFixed(1);
+                // Akumulasi Hasil Produksi
+                let akumulasiHasilProduksi = 0;
+                if (row.shift === "1") {
+                  const prevDayGroup = groupedRows[groupIdx - 1];
+                  const prevDayShift2 = prevDayGroup ? prevDayGroup.rows.find((r) => r.shift === "2") : undefined;
+                  const prevAkumulasi = prevDayShift2 ? (prevDayShift2.akumulasiHasilProduksi ?? 0) : 0;
+                  akumulasiHasilProduksi = prevAkumulasi + hasilProduksi;
+                } else {
+                  const shift1Row = group.rows.find((r) => r.shift === "1");
+                  const shift1Akumulasi = shift1Row ? (shift1Row.akumulasiHasilProduksi ?? 0) : 0;
+                  akumulasiHasilProduksi = shift1Akumulasi + hasilProduksi;
+                }
+                // --- Teori Stock & Rencana Stock Custom ---
+                let teoriStockCustom = 0;
+                let actualStockCustom = 0;
+                let rencanaStockCustom = 0;
+                const isHariPertama = groupIdx === 0 && row.shift === "1";
+                const isShift1 = row.shift === "1";
+                const isShift2 = row.shift === "2";
+                const prevDayGroup = groupedRows[groupIdx - 1];
+                const prevDayShift2 = prevDayGroup ? prevDayGroup.rows.find((r) => r.shift === "2") : undefined;
+                const prevActualStockShift2 = prevDayShift2 ? (prevDayShift2.actualStockCustom ?? 0) : initialStock;
+                const prevRencanaStockShift2 = prevDayShift2 ? (prevDayShift2.rencanaStockCustom ?? 0) : initialStock;
+                const hasilProduksiShift1 = isShift1 ? hasilProduksi : 0;
+                const hasilProduksiShift2 = isShift2 ? hasilProduksi : 0;
+                const planningPcs = row.planningPcs || 0;
+                const overtimePcs = row.overtimePcs || 0;
+                const delivery = row.delivery || 0;
+                if (isHariPertama) {
+                  teoriStockCustom = initialStock + hasilProduksiShift1 - delivery;
+                  actualStockCustom = hasilProduksi === 0 ? initialStock + planningPcs + overtimePcs - delivery : initialStock + hasilProduksiShift1 - delivery;
+                  rencanaStockCustom = initialStock + planningPcs + overtimePcs - delivery;
+                } else if (isShift1) {
+                  teoriStockCustom = prevActualStockShift2 + hasilProduksiShift1 - delivery;
+                  actualStockCustom = hasilProduksi === 0 ? prevActualStockShift2 + planningPcs + overtimePcs - delivery : prevActualStockShift2 + hasilProduksiShift1 - delivery;
+                  rencanaStockCustom = prevRencanaStockShift2 + planningPcs + overtimePcs - delivery;
+                } else if (isShift2) {
+                  const shift1Row = group.rows.find((r) => r.shift === "1");
+                  const shift1ActualStock = shift1Row ? (shift1Row.actualStockCustom ?? 0) : 0;
+                  teoriStockCustom = shift1ActualStock + hasilProduksiShift2 - delivery;
+                  actualStockCustom = hasilProduksi === 0 ? shift1ActualStock + planningPcs + overtimePcs - delivery : shift1ActualStock + hasilProduksiShift2 - delivery;
+                  rencanaStockCustom = shift1ActualStock + planningPcs + overtimePcs - delivery;
+                }
+                // Simpan ke row agar bisa dipakai shift berikutnya
+                row.teoriStockCustom = teoriStockCustom;
+                row.actualStockCustom = actualStockCustom;
+                row.rencanaStockCustom = rencanaStockCustom;
+                switch (param) {
+                  case "Akumulasi Delivery": return akumulasiDelivery;
+                  case "Planning (jam)": return planningJam;
+                  case "Overtime (jam)": return overtimeJam;
+                  case "Jam Produksi (Cycle Time)": return jamProduksi;
+                  case "Akumulasi Hasil Produksi": return akumulasiHasilProduksi;
+                  case "Teori Stock": return teoriStockCustom;
+                  case "Actual Stock": return actualStockCustom;
+                  case "Rencana Stock": return rencanaStockCustom;
+                  default: return "";
+                }
+              })
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
 const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
   const {
     schedule,
@@ -657,6 +794,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                           hasilProduksi === 0
                             ? shift1ActualStock + planningPcs + overtimePcs - delivery
                             : shift1ActualStock + hasilProduksiShift2 - delivery;
+                        // Rencana Stock untuk shift 2: ambil dari shift 1 + planningPcs + overtimePcs - delivery
                         rencanaStockCustom = shift1ActualStock + planningPcs + overtimePcs - delivery;
                       }
 
@@ -1287,28 +1425,6 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Enhanced Footer */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6 border-t border-slate-600/50">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400">
-            <span>
-              📊 Total Data:{" "}
-              <strong className="text-white">{filteredSchedule.length}</strong>
-            </span>
-            <span>
-              🏭 Time per PCS:{" "}
-              <strong className="text-white">{timePerPcs}s</strong>
-            </span>
-            <span>
-              📦 Initial Stock:{" "}
-              <strong className="text-white">
-                {initialStock.toLocaleString()}
-              </strong>
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
