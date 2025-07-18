@@ -573,19 +573,24 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                       // Akumulasi Hasil Produksi
                       let akumulasiHasilProduksi = 0;
                       if (row.shift === "1") {
-                        // Cari shift 2 di hari sebelumnya
-                        const prevDayGroup = groupedRows[groupIdx - 1];
-                        const prevDayShift2 = prevDayGroup
-                          ? prevDayGroup.rows.find((r) => r.shift === "2")
-                          : undefined;
-                        const prevAkumulasi = prevDayShift2
-                          ? (prevDayShift2.akumulasiHasilProduksi ?? 0)
-                          : 0;
-                        akumulasiHasilProduksi = prevAkumulasi + hasilProduksi;
-                        // Simpan ke row supaya bisa dipakai shift berikutnya
+                        // Untuk shift 1 hari pertama, akumulasi = hasil produksi
+                        if (currentDayIdx === 0) {
+                          akumulasiHasilProduksi = hasilProduksi;
+                        } else {
+                          // Untuk shift 1 hari berikutnya, akumulasi = akumulasi shift 2 hari sebelumnya + hasil produksi shift 1
+                          const prevDay = prevDayGroup
+                            ? prevDayGroup.rows.find((r) => r.shift === "2")
+                            : undefined;
+                          const prevAkumulasi = prevDay
+                            ? (prevDay.akumulasiHasilProduksi ?? 0)
+                            : 0;
+                          akumulasiHasilProduksi =
+                            prevAkumulasi + hasilProduksi;
+                        }
+                        // Simpan ke row agar bisa dipakai shift berikutnya
                         row.akumulasiHasilProduksi = akumulasiHasilProduksi;
-                      } else {
-                        // Untuk shift 2, ambil akumulasi dari shift 1 hari yang sama + hasil produksi shift 2
+                      } else if (row.shift === "2") {
+                        // Untuk shift 2, akumulasi = akumulasi shift 1 hari yang sama + hasil produksi shift 2
                         const shift1Row = group.rows.find(
                           (r) => r.shift === "1",
                         );
@@ -594,6 +599,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                           : 0;
                         akumulasiHasilProduksi =
                           shift1Akumulasi + hasilProduksi;
+                        // Simpan ke row agar bisa dipakai hari berikutnya
                         row.akumulasiHasilProduksi = akumulasiHasilProduksi;
                       }
                       // --- Teori Stock & Rencana Stock Custom ---
@@ -630,18 +636,33 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                           initialStock + hasilProduksiShift1 - delivery;
                         actualStockCustom =
                           hasilProduksi === 0
-                            ? initialStock + planningPcs + overtimePcs - delivery
+                            ? initialStock +
+                              planningPcs +
+                              overtimePcs -
+                              delivery
                             : initialStock + hasilProduksiShift1 - delivery;
-                        rencanaStockCustom = initialStock + planningPcs + overtimePcs - delivery;
+                        rencanaStockCustom =
+                          initialStock + planningPcs + overtimePcs - delivery;
                       } else if (isShift1) {
                         // Shift 1 di hari berikutnya mengambil sisa stock dari shift 2 hari sebelumnya
                         teoriStockCustom =
-                          prevActualStockShift2 + hasilProduksiShift1 - delivery;
+                          prevActualStockShift2 +
+                          hasilProduksiShift1 -
+                          delivery;
                         actualStockCustom =
                           hasilProduksi === 0
-                            ? prevActualStockShift2 + planningPcs + overtimePcs - delivery
-                            : prevActualStockShift2 + hasilProduksiShift1 - delivery;
-                        rencanaStockCustom = prevRencanaStockShift2 + planningPcs + overtimePcs - delivery;
+                            ? prevActualStockShift2 +
+                              planningPcs +
+                              overtimePcs -
+                              delivery
+                            : prevActualStockShift2 +
+                              hasilProduksiShift1 -
+                              delivery;
+                        rencanaStockCustom =
+                          prevRencanaStockShift2 +
+                          planningPcs +
+                          overtimePcs -
+                          delivery;
                       } else if (isShift2) {
                         // Shift 2 mengambil sisa stock dari shift 1 di hari yang sama
                         const shift1Row = group.rows.find(
@@ -655,9 +676,18 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                           shift1ActualStock + hasilProduksiShift2 - delivery;
                         actualStockCustom =
                           hasilProduksi === 0
-                            ? shift1ActualStock + planningPcs + overtimePcs - delivery
-                            : shift1ActualStock + hasilProduksiShift2 - delivery;
-                        rencanaStockCustom = shift1ActualStock + planningPcs + overtimePcs - delivery;
+                            ? shift1ActualStock +
+                              planningPcs +
+                              overtimePcs -
+                              delivery
+                            : shift1ActualStock +
+                              hasilProduksiShift2 -
+                              delivery;
+                        rencanaStockCustom =
+                          shift1ActualStock +
+                          planningPcs +
+                          overtimePcs -
+                          delivery;
                       }
 
                       // Simpan ke row agar bisa dipakai shift berikutnya
