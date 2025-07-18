@@ -46,6 +46,7 @@ interface ScheduleTableProps {
   setEditForm: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
   initialStock: number;
   timePerPcs?: number;
+  scheduleName?: string;
 }
 
 const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
@@ -319,7 +320,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
         No: index + 1,
         Hari: item.day,
         Shift: item.shift,
-        Waktu: item.time,
+        Waktu: item.shift === "1" ? "07:30-16:30" : "19:30-04:30",
         Status: item.status,
         "Stok Awal": calculated.prevStock,
         Delivery: item.delivery || 0,
@@ -481,7 +482,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-white">
-                          {group.day} Juli 2024
+                          {group.day} {props.scheduleName || "Juli 2024"}
                         </h3>
                         <p className="text-slate-400">
                           {group.rows.length} shift produksi
@@ -697,7 +698,9 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                                     Shift {row.shift}
                                   </h4>
                                   <p className="text-slate-400 text-sm">
-                                    {row.time}
+                                    {row.shift === "1"
+                                      ? "07:30-16:30"
+                                      : "19:30-04:30"}
                                   </p>
                                 </div>
                               </div>
@@ -1224,7 +1227,9 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                                     Shift {row.shift}
                                   </h4>
                                   <p className="text-slate-400 text-sm">
-                                    {row.time}
+                                    {row.shift === "1"
+                                      ? "07:30-16:30"
+                                      : "19:30-04:30"}
                                   </p>
                                 </div>
                               </div>
