@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-"use client";
-
+("use client");
 
 import * as XLSX from "xlsx";
 
@@ -50,8 +48,6 @@ interface ScheduleTableProps {
   timePerPcs?: number;
 }
 
-
-
 const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
   const {
     schedule,
@@ -74,7 +70,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
       setIsLoading(false);
     }, 600); // durasi loading 600ms
   };
-// ...existing code...
+  // ...existing code...
   const [searchDate, setSearchDate] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
   const [expandedSections, setExpandedSections] = useState<{
@@ -101,7 +97,9 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
 
   // Navigasi hari
   const totalDays = groupedRows.length;
-  const currentDayData = groupedRows[currentDayIdx] ? [groupedRows[currentDayIdx]] : [];
+  const currentDayData = groupedRows[currentDayIdx]
+    ? [groupedRows[currentDayIdx]]
+    : [];
 
   // Reset ke hari pertama saat search berubah
   useEffect(() => {
@@ -510,18 +508,39 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                       // Akumulasi Delivery Shift 1 & 2
                       let akumulasiDeliveryShift1 = 0;
                       let akumulasiDeliveryShift2 = 0;
+
+                      // Deklarasi prevDayGroup dipindahkan ke sini
+                      const prevDayGroup = groupedRows[currentDayIdx - 1];
+
                       if (row.shift === "1") {
-                        const prevDay = flatRows.filter(
-                          (r) => r.day === row.day - 1 && r.shift === "2",
-                        )[0];
-                        akumulasiDeliveryShift1 =
-                          (prevDay?.delivery || 0) + (row.delivery || 0);
+                        // Untuk shift 1 hari pertama, akumulasi = delivery
+                        if (currentDayIdx === 0) {
+                          akumulasiDeliveryShift1 = row.delivery || 0;
+                        } else {
+                          // Untuk shift 1 hari berikutnya, akumulasi = akumulasi shift 2 hari sebelumnya + delivery shift 1
+                          const prevDay = prevDayGroup
+                            ? prevDayGroup.rows.find((r) => r.shift === "2")
+                            : undefined;
+                          const prevAkumulasi = prevDay
+                            ? (prevDay.akumulasiDelivery ?? 0)
+                            : 0;
+                          akumulasiDeliveryShift1 =
+                            prevAkumulasi + (row.delivery || 0);
+                        }
+                        // Simpan ke row agar bisa dipakai shift berikutnya
+                        row.akumulasiDelivery = akumulasiDeliveryShift1;
                       } else if (row.shift === "2") {
-                        const shift1 = flatRows.filter(
-                          (r) => r.day === row.day && r.shift === "1",
-                        )[0];
+                        // Untuk shift 2, akumulasi = akumulasi shift 1 hari yang sama + delivery shift 2
+                        const shift1Row = group.rows.find(
+                          (r) => r.shift === "1",
+                        );
+                        const shift1Akumulasi = shift1Row
+                          ? (shift1Row.akumulasiDelivery ?? 0)
+                          : 0;
                         akumulasiDeliveryShift2 =
-                          (shift1?.delivery || 0) + (row.delivery || 0);
+                          shift1Akumulasi + (row.delivery || 0);
+                        // Simpan ke row agar bisa dipakai hari berikutnya
+                        row.akumulasiDelivery = akumulasiDeliveryShift2;
                       }
                       // Planning (jam) - ceil, 1 digit
                       const planningJam =
@@ -579,10 +598,12 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                       // --- Teori Stock & Rencana Stock Custom ---
                       let teoriStockCustom = 0;
                       let rencanaStockCustom = 0;
-                      const isHariPertama = currentDayIdx === 0 && row.shift === "1";
+                      const isHariPertama =
+                        currentDayIdx === 0 && row.shift === "1";
                       const isShift1 = row.shift === "1";
                       const isShift2 = row.shift === "2";
-                      const prevDayGroup = groupedRows[currentDayIdx - 1];
+                      // Hapus baris ini karena sudah dideklarasikan di atas
+                      // const prevDayGroup = groupedRows[currentDayIdx - 1];
                       const prevDayShift2 = prevDayGroup
                         ? prevDayGroup.rows.find((r) => r.shift === "2")
                         : undefined;
@@ -987,7 +1008,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
               <button
                 onClick={() => handleNavigateDay(goToPreviousDay)}
                 disabled={currentDayIdx === 0}
-                className={`px-4 py-2 rounded-full border flex items-center gap-2 font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${currentDayIdx === 0 ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' : 'bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 hover:from-blue-700 hover:to-blue-600 hover:shadow-lg'}`}
+                className={`px-4 py-2 rounded-full border flex items-center gap-2 font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${currentDayIdx === 0 ? "bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed" : "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 hover:from-blue-700 hover:to-blue-600 hover:shadow-lg"}`}
                 style={{ minWidth: 60 }}
               >
                 PREV
@@ -1009,11 +1030,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                         key={i}
                         onClick={() => handleNavigateDay(() => goToDay(i))}
                         className={getBtnClass(currentDayIdx === i)}
-                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        style={{
+                          transition: "transform 0.3s cubic-bezier(.4,2,.3,1)",
+                        }}
                         disabled={currentDayIdx === i}
                       >
                         {groupedRows[i].day}
-                      </button>
+                      </button>,
                     );
                   }
                 } else {
@@ -1024,49 +1047,68 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                         key={0}
                         onClick={() => handleNavigateDay(() => goToDay(0))}
                         className={getBtnClass(currentDayIdx === 0)}
-                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        style={{
+                          transition: "transform 0.3s cubic-bezier(.4,2,.3,1)",
+                        }}
                         disabled={currentDayIdx === 0}
                       >
                         {groupedRows[0].day}
-                      </button>
+                      </button>,
                     );
                   }
                   if (currentDayIdx > 2) {
                     items.push(
-                      <span key="start-ellipsis" className="px-1 text-slate-500">...</span>
+                      <span
+                        key="start-ellipsis"
+                        className="px-1 text-slate-500"
+                      >
+                        ...
+                      </span>,
                     );
                   }
                   // Show previous, current, next
-                  for (let i = Math.max(0, currentDayIdx - 1); i <= Math.min(totalDays - 1, currentDayIdx + 1); i++) {
+                  for (
+                    let i = Math.max(0, currentDayIdx - 1);
+                    i <= Math.min(totalDays - 1, currentDayIdx + 1);
+                    i++
+                  ) {
                     // Always show current day button, but with distinct style
                     items.push(
                       <button
                         key={i}
                         onClick={() => handleNavigateDay(() => goToDay(i))}
                         className={getBtnClass(currentDayIdx === i)}
-                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        style={{
+                          transition: "transform 0.3s cubic-bezier(.4,2,.3,1)",
+                        }}
                         disabled={currentDayIdx === i}
                       >
                         {groupedRows[i].day}
-                      </button>
+                      </button>,
                     );
                   }
                   if (currentDayIdx < totalDays - 3) {
                     items.push(
-                      <span key="end-ellipsis" className="px-1 text-slate-500">...</span>
+                      <span key="end-ellipsis" className="px-1 text-slate-500">
+                        ...
+                      </span>,
                     );
                   }
                   if (currentDayIdx < totalDays - 2) {
                     items.push(
                       <button
                         key={totalDays - 1}
-                        onClick={() => handleNavigateDay(() => goToDay(totalDays - 1))}
+                        onClick={() =>
+                          handleNavigateDay(() => goToDay(totalDays - 1))
+                        }
                         className={getBtnClass(currentDayIdx === totalDays - 1)}
-                        style={{ transition: 'transform 0.3s cubic-bezier(.4,2,.3,1)' }}
+                        style={{
+                          transition: "transform 0.3s cubic-bezier(.4,2,.3,1)",
+                        }}
                         disabled={currentDayIdx === totalDays - 1}
                       >
                         {groupedRows[totalDays - 1].day}
-                      </button>
+                      </button>,
                     );
                   }
                 }
@@ -1077,7 +1119,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
               <button
                 onClick={() => handleNavigateDay(goToNextDay)}
                 disabled={currentDayIdx === totalDays - 1}
-                className={`px-4 py-2 rounded-full border flex items-center gap-2 font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${currentDayIdx === totalDays - 1 ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' : 'bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 hover:from-blue-700 hover:to-blue-600 hover:shadow-lg'}`}
+                className={`px-4 py-2 rounded-full border flex items-center gap-2 font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${currentDayIdx === totalDays - 1 ? "bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed" : "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 hover:from-blue-700 hover:to-blue-600 hover:shadow-lg"}`}
                 style={{ minWidth: 60 }}
               >
                 NEXT
@@ -1087,12 +1129,32 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
               {isLoading && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all">
                   <div className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-blue-700 via-slate-800 to-blue-900 rounded-2xl shadow-2xl border border-blue-600 animate-fade-in">
-                    <svg className="animate-spin w-12 h-12 text-blue-400" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                    <svg
+                      className="animate-spin w-12 h-12 text-blue-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-20"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        d="M12 2a10 10 0 0 1 10 10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                      />
                     </svg>
-                    <div className="text-lg font-bold text-white">Memuat data hari...</div>
-                    <div className="text-sm text-blue-200">Mohon tunggu sebentar</div>
+                    <div className="text-lg font-bold text-white">
+                      Memuat data hari...
+                    </div>
+                    <div className="text-sm text-blue-200">
+                      Mohon tunggu sebentar
+                    </div>
                   </div>
                 </div>
               )}
@@ -1100,7 +1162,8 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
 
             {/* Informasi hari */}
             <div className="text-center text-sm text-slate-400">
-              Menampilkan hari ke-{currentDayIdx + 1} dari {groupedRows.length} hari
+              Menampilkan hari ke-{currentDayIdx + 1} dari {groupedRows.length}{" "}
+              hari
             </div>
           </div>
         ) : (
