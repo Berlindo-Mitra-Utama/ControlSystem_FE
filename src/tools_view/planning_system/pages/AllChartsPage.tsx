@@ -46,11 +46,7 @@ interface AllChartsPageProps {
 }
 
 // Data part dari mockData
-const partOptions = [
-  "Engine Block A1",
-  "Transmission Case B2",
-  "Brake Disc C3",
-];
+const partOptions = ["29N Muffler", "Transmission Case B2", "Brake Disc C3"];
 
 const AllChartsPage: React.FC = () => {
   const { savedSchedules } = useSchedule();

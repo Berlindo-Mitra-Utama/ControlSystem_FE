@@ -11,8 +11,8 @@ const SavedSchedulesPage: React.FC = () => {
   // Mock data parts
   const parts = [
     {
-      name: "Engine Block A1",
-      customer: "Toyota Motors",
+      name: "29N Muffler",
+      customer: "Sakura",
       icon: "🔧",
     },
     {
