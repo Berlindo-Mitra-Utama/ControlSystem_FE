@@ -2,175 +2,20 @@ import React, { useState, useEffect } from "react";
 ("use client");
 
 import * as XLSX from "xlsx";
-
-interface ScheduleItem {
-  id: string;
-  day: number;
-  shift: string;
-  type: string;
-  pcs: number;
-  time: string;
-  status: "Normal" | "Gangguan" | "Completed";
-  actualPcs?: number;
-  notes?: string;
-  delivery?: number;
-  planningPcs?: number;
-  overtimePcs?: number;
-  sisaPlanningPcs?: number;
-  sisaStock?: number;
-  selisih?: number;
-  planningHour?: number;
-  overtimeHour?: number;
-  jamProduksiAktual?: number;
-  akumulasiDelivery?: number;
-  hasilProduksi?: number;
-  akumulasiHasilProduksi?: number;
-  jamProduksiCycleTime?: number;
-  selisihDetikPerPcs?: number;
-  selisihCycleTime?: number;
-  selisihCycleTimePcs?: number;
-  teoriStock?: number;
-  actualStock?: number;
-  // Tambahan untuk custom stock
-  teoriStockCustom?: number;
-  actualStockCustom?: number;
-  rencanaStockCustom?: number;
-}
-
-interface ScheduleTableProps {
-  schedule: ScheduleItem[];
-  editingRow: string | null;
-  editForm: Partial<ScheduleItem>;
-  startEdit: (item: ScheduleItem) => void;
-  saveEdit: (itemId: string) => void;
-  cancelEdit: () => void;
-  setEditForm: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
-  initialStock: number;
-  timePerPcs?: number;
-  scheduleName?: string;
-}
-
-// Fungsi untuk mendapatkan jumlah hari dalam bulan
-const getDaysInMonth = (month: number, year: number): number => {
-  // month: 0-11 (Januari = 0, Februari = 1, dst.)
-  return new Date(year, month + 1, 0).getDate();
-};
-
-// Fungsi untuk mendapatkan nama hari dalam bahasa Indonesia
-const getDayName = (day: number, month: number, year: number): string => {
-  const dayNames = [
-    "Minggu",
-    "Senin",
-    "Selasa",
-    "Rabu",
-    "Kamis",
-    "Jumat",
-    "Sabtu",
-  ];
-  const date = new Date(year, month, day);
-  return dayNames[date.getDay()];
-};
-
-// Fungsi untuk mengecek apakah hari adalah weekend
-const isWeekend = (day: number, scheduleName: string): boolean => {
-  const months = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
-
-  let monthIndex = -1;
-  let year = new Date().getFullYear();
-
-  // Cari bulan dalam scheduleName
-  for (let i = 0; i < months.length; i++) {
-    if (scheduleName.includes(months[i])) {
-      monthIndex = i;
-      break;
-    }
-  }
-
-  // Extract tahun menggunakan regex
-  const yearMatch = scheduleName.match(/(\d{4})/);
-  if (yearMatch && yearMatch[1]) {
-    year = parseInt(yearMatch[1]);
-  }
-
-  // Jika bulan tidak ditemukan, gunakan default
-  if (monthIndex === -1) {
-    monthIndex = 6; // Juli sebagai default
-    year = 2025;
-  }
-
-  const date = new Date(year, monthIndex, day);
-  const dayOfWeek = date.getDay(); // 0 = Minggu, 6 = Sabtu
-  return dayOfWeek === 0 || dayOfWeek === 6;
-};
-
-// Fungsi untuk memformat tanggal dengan validasi
-const formatValidDate = (
-  day: number,
-  scheduleName: string,
-): { formattedDate: string; isValid: boolean; dayName: string } => {
-  const months = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
-
-  // Parse scheduleName untuk mendapatkan bulan dan tahun
-  let monthIndex = -1;
-  let year = new Date().getFullYear();
-
-  // Cari bulan dalam scheduleName
-  for (let i = 0; i < months.length; i++) {
-    if (scheduleName.includes(months[i])) {
-      monthIndex = i;
-      break;
-    }
-  }
-
-  // Extract tahun menggunakan regex
-  const yearMatch = scheduleName.match(/(\d{4})/);
-  if (yearMatch && yearMatch[1]) {
-    year = parseInt(yearMatch[1]);
-  }
-
-  // Jika bulan tidak ditemukan, gunakan default
-  if (monthIndex === -1) {
-    monthIndex = 6; // Juli sebagai default
-    year = 2025;
-  }
-
-  const maxDays = getDaysInMonth(monthIndex, year);
-  const isValid = day >= 1 && day <= maxDays;
-  const validDay = isValid ? day : Math.min(day, maxDays);
-  const dayName = getDayName(validDay, monthIndex, year);
-
-  return {
-    formattedDate: `${validDay} ${months[monthIndex]} ${year}`,
-    isValid,
-    dayName,
-  };
-};
+import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
+import {
+  getDaysInMonth,
+  getDayName,
+  isWeekend,
+  formatValidDate,
+} from "../../utils/scheduleDateUtils";
+import {
+  calculateOutputFields,
+  checkValidation,
+} from "../../utils/scheduleCalcUtils";
+import StatusBadge from "../ui/StatusBadge";
+import DataCard from "../ui/DataCard";
+import EditableField from "../ui/EditableField";
 
 // Fungsi untuk mendapatkan jumlah hari maksimal dalam bulan berdasarkan scheduleName
 const getMaxDaysInMonth = (scheduleName: string): number => {
@@ -297,186 +142,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
     }
   };
 
-  const calculateOutputFields = (
-    row: ScheduleItem,
-    index: number,
-    allRows: ScheduleItem[],
-  ) => {
-    const planningHour = row.planningHour || 0;
-    const overtimeHour = row.overtimeHour || 0;
-    const delivery = row.delivery || 0;
-
-    const akumulasiDelivery = allRows
-      .slice(0, index)
-      .reduce((sum, r) => sum + (r.delivery || 0), 0);
-    const planningPcs =
-      planningHour > 0 ? Math.floor((planningHour * 3600) / timePerPcs) : 0;
-    const overtimePcs =
-      overtimeHour > 0 ? Math.floor((overtimeHour * 3600) / timePerPcs) : 0;
-    const hasilProduksi = planningPcs + overtimePcs;
-
-    const akumulasiHasilProduksi =
-      allRows.slice(0, index).reduce((sum, r) => {
-        const rPlanningPcs = r.planningHour
-          ? Math.floor((r.planningHour * 3600) / timePerPcs)
-          : 0;
-        const rOvertimePcs = r.overtimeHour
-          ? Math.floor((r.overtimeHour * 3600) / timePerPcs)
-          : 0;
-        return sum + rPlanningPcs + rOvertimePcs;
-      }, 0) + hasilProduksi;
-
-    const jamProduksiCycleTime =
-      hasilProduksi > 0 ? (hasilProduksi * timePerPcs) / 3600 : 0;
-    const selisihDetikPerPcs =
-      row.jamProduksiAktual && hasilProduksi > 0
-        ? timePerPcs - (row.jamProduksiAktual * 3600) / hasilProduksi
-        : 0;
-    const selisihCycleTime = row.jamProduksiAktual
-      ? jamProduksiCycleTime - row.jamProduksiAktual
-      : 0;
-    const selisihCycleTimePcs =
-      selisihCycleTime > 0
-        ? Math.floor((selisihCycleTime * 3600) / timePerPcs)
-        : 0;
-
-    const prevStock =
-      index === 0
-        ? initialStock
-        : allRows[index - 1].actualStock || initialStock;
-    const teoriStock = prevStock + hasilProduksi;
-    const actualStock = prevStock + hasilProduksi - delivery;
-
-    return {
-      akumulasiDelivery,
-      planningPcs,
-      overtimePcs,
-      hasilProduksi,
-      akumulasiHasilProduksi,
-      jamProduksiCycleTime,
-      selisihDetikPerPcs,
-      selisihCycleTime,
-      selisihCycleTimePcs,
-      teoriStock,
-      actualStock,
-      prevStock,
-    };
-  };
-
-  const checkValidation = (row: ScheduleItem, calculated: any) => {
-    const alerts: string[] = [];
-    if (
-      calculated.actualStock >= (row.delivery || 0) &&
-      (row.delivery || 0) > 0
-    ) {
-      alerts.push("Stok sudah cukup, tidak perlu produksi.");
-    }
-    const totalWaktuTersedia =
-      (row.planningHour || 0) + (row.overtimeHour || 0);
-    const waktuDibutuhkan =
-      (((row.delivery || 0) -
-        calculated.actualStock +
-        calculated.hasilProduksi) *
-        timePerPcs) /
-      3600;
-    if (totalWaktuTersedia < waktuDibutuhkan && waktuDibutuhkan > 0) {
-      alerts.push(
-        "Waktu produksi tidak cukup untuk memenuhi kebutuhan produksi.",
-      );
-    }
-    return alerts;
-  };
-
   const flatRows: ScheduleItem[] = validGroupedRows.flatMap((g) => g.rows);
-
-  const StatusBadge = ({ status }: { status: string }) => {
-    const statusConfig = {
-      Normal: {
-        bg: "bg-emerald-500/20",
-        text: "text-emerald-400",
-        border: "border-emerald-500/30",
-        icon: "✓",
-      },
-      Gangguan: {
-        bg: "bg-red-500/20",
-        text: "text-red-400",
-        border: "border-red-500/30",
-        icon: "⚠",
-      },
-      Completed: {
-        bg: "bg-blue-500/20",
-        text: "text-blue-400",
-        border: "border-blue-500/30",
-        icon: "✓",
-      },
-    };
-    const config =
-      statusConfig[status as keyof typeof statusConfig] || statusConfig.Normal;
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}
-      >
-        <span className="text-xs">{config.icon}</span>
-        {status}
-      </span>
-    );
-  };
-
-  const DataCard = ({ title, value, unit = "", className = "", icon = "" }) => (
-    <div
-      className={`bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 ${className}`}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">{icon}</span>
-        <h4 className="text-sm font-medium text-slate-400">{title}</h4>
-      </div>
-      <div className="text-xl font-bold text-white font-mono">
-        {typeof value === "number" ? value.toLocaleString("id-ID") : value}
-        {unit && <span className="text-sm text-slate-400 ml-1">{unit}</span>}
-      </div>
-    </div>
-  );
-
-  const EditableField = ({
-    label,
-    value,
-    field,
-    type = "text",
-    step,
-    placeholder,
-    unit = "",
-  }) => (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-300">{label}</label>
-      {editingRow ? (
-        <input
-          type={type}
-          step={step}
-          value={
-            editForm[field] !== undefined ? editForm[field] : (value ?? "")
-          }
-          onChange={(e) => {
-            const val =
-              type === "number"
-                ? (step
-                    ? Number.parseFloat(e.target.value)
-                    : Number.parseInt(e.target.value)) || 0
-                : e.target.value;
-            setEditForm((prev) => ({ ...prev, [field]: val }));
-          }}
-          placeholder={placeholder}
-          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      ) : (
-        <div className="px-3 py-2 bg-slate-900/50 rounded-lg text-white font-mono">
-          {typeof value === "number"
-            ? value.toLocaleString("id-ID")
-            : value || "-"}
-          {unit && <span className="text-slate-400 ml-1">{unit}</span>}
-        </div>
-      )}
-    </div>
-  );
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => ({
@@ -489,7 +155,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
   const handleDownloadExcel = () => {
     // Persiapkan data untuk Excel
     const scheduleData = flatRows.map((item, index) => {
-      const calculated = calculateOutputFields(item, index, flatRows);
+      const calculated = calculateOutputFields(
+        item,
+        index,
+        flatRows,
+        timePerPcs,
+        initialStock,
+      );
       return {
         No: index + 1,
         Hari: item.day,
@@ -658,17 +330,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                         {(() => {
                           const dateInfo = formatValidDate(
                             group.day,
-                            props.scheduleName || "Juli 2025",
+                            props.scheduleName || "Februari 2025",
                           );
-                          const isWeekendDay = isWeekend(group.day, props.scheduleName || "Juli 2025");
-                          
                           return (
                             <>
                               <h3
                                 className={`text-2xl font-bold transition-colors ${
-                                  isWeekendDay
-                                    ? "text-red-400"
-                                    : dateInfo.isValid
+                                  dateInfo.isValid
                                     ? "text-white"
                                     : "text-amber-400"
                                 }`}
@@ -676,20 +344,11 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                                 {dateInfo.formattedDate}
                               </h3>
                               <div className="flex items-center gap-3">
-                                <p className={`transition-colors ${
-                                  isWeekendDay ? "text-red-300" : "text-slate-400"
-                                }`}>
-                                  {dateInfo.dayName} • {isWeekendDay ? "LIBUR" : `${group.rows.length} shift produksi`}
+                                <p className="text-slate-400">
+                                  {dateInfo.dayName} • {group.rows.length} shift
+                                  produksi
                                 </p>
-                                {isWeekendDay && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-400 text-xs font-medium rounded-full border border-red-500/30">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Hari Libur
-                                  </span>
-                                )}
-                                {!dateInfo.isValid && !isWeekendDay && (
+                                {!dateInfo.isValid && (
                                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full border border-amber-500/30">
                                     <svg
                                       className="w-3 h-3"
@@ -767,10 +426,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                             row,
                             flatIdx,
                             flatRows,
+                            timePerPcs,
+                            initialStock,
                           );
                           const validationAlerts = checkValidation(
                             row,
                             calculated,
+                            timePerPcs,
                           );
                           const isEditing = editingRow === row.id;
 
@@ -1514,10 +1176,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                           row,
                           flatIdx,
                           flatRows,
+                          timePerPcs,
+                          initialStock,
                         );
                         const validationAlerts = checkValidation(
                           row,
                           calculated,
+                          timePerPcs,
                         );
                         flatIdx++;
 
