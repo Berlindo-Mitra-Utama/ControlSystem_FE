@@ -63,26 +63,23 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
     ];
 
     // Inisialisasi data untuk semua bulan dengan nilai 0
-    const initialMonthlyData: Record<
-      string,
-      { produksi: number; pengiriman: number; count: number }
-    > = {};
+    const initialMonthlyData: Record<string, { akumulasiDelivery: number }> =
+      {};
     months.forEach((month) => {
-      initialMonthlyData[month] = { produksi: 0, pengiriman: 0, count: 0 };
+      initialMonthlyData[month] = { akumulasiDelivery: 0 };
     });
 
     if (!schedules || schedules.length === 0) {
       // Jika tidak ada data, kembalikan template kosong
       return months.map((month) => ({
         month,
-        produksi: 0,
-        pengiriman: 0,
+        akumulasiDelivery: 0,
       }));
     }
 
     // Mengelompokkan data berdasarkan bulan
     const monthlyData = schedules.reduce<
-      Record<string, { produksi: number; pengiriman: number; count: number }>
+      Record<string, { akumulasiDelivery: number }>
     >(
       (acc, savedSchedule) => {
         // Ekstrak bulan dari nama jadwal (format: "Bulan Tahun")
@@ -91,52 +88,28 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
 
         if (!acc[monthName]) {
           // Jika bulan tidak ada di accumulator (seharusnya tidak terjadi karena sudah diinisialisasi)
-          acc[monthName] = { produksi: 0, pengiriman: 0, count: 0 };
+          acc[monthName] = { akumulasiDelivery: 0 };
         }
 
-        // Hitung total produksi dan pengiriman untuk jadwal ini
-        let totalProduksi = 0;
-        let totalPengiriman = 0;
+        // Hitung total pengiriman untuk jadwal ini
+        let totalDelivery = 0;
 
         savedSchedule.schedule.forEach((item) => {
-          // Menghitung hasil produksi (planningPcs + overtimePcs)
-          const planningPcs =
-            item.planningPcs ||
-            (item.planningHour
-              ? Math.floor((item.planningHour * 3600) / 257)
-              : 0);
-          const overtimePcs =
-            item.overtimePcs ||
-            (item.overtimeHour
-              ? Math.floor((item.overtimeHour * 3600) / 257)
-              : 0);
-          const hasilProduksi = planningPcs + overtimePcs;
-
-          totalProduksi += hasilProduksi;
-          totalPengiriman += item.delivery || 0;
+          totalDelivery += item.delivery || 0;
         });
 
         // Tambahkan ke akumulator
-        acc[monthName].produksi += totalProduksi;
-        acc[monthName].pengiriman += totalPengiriman;
-        acc[monthName].count += 1;
+        acc[monthName].akumulasiDelivery += totalDelivery;
 
         return acc;
       },
       initialMonthlyData, // Gunakan template yang sudah diinisialisasi
     );
 
-    // Ubah ke format array untuk recharts dan hitung rata-rata
+    // Ubah ke format array untuk recharts
     return months.map((month) => ({
       month,
-      produksi:
-        monthlyData[month].count > 0
-          ? Math.round(monthlyData[month].produksi / monthlyData[month].count)
-          : 0,
-      pengiriman:
-        monthlyData[month].count > 0
-          ? Math.round(monthlyData[month].pengiriman / monthlyData[month].count)
-          : 0,
+      akumulasiDelivery: monthlyData[month].akumulasiDelivery,
     }));
   }, [schedules]);
 
@@ -144,7 +117,7 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
     <div className="w-full h-96 bg-gray-900 rounded-xl p-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-white">
-          Rata-rata Produksi vs Pengiriman per Bulan
+          Akumulasi Delivery per Bulan
         </h3>
         {onViewAllCharts && (
           <button
@@ -174,15 +147,9 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
           />
           <Legend />
           <Bar
-            dataKey="produksi"
-            name="Rata-rata Hasil Produksi"
-            fill="#3b82f6"
-            radius={[4, 4, 0, 0]}
-          />
-          <Bar
-            dataKey="pengiriman"
-            name="Rata-rata Pengiriman"
-            fill="#f59e0b"
+            dataKey="akumulasiDelivery"
+            name="Akumulasi Delivery"
+            fill="#10b981"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>
