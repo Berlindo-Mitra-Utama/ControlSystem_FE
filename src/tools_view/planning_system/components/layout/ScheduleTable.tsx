@@ -582,7 +582,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                     : "text-slate-400 hover:text-white hover:bg-slate-700"
                 }`}
               >
-                📅 Timeline
+                � Table
               </button>
             </div>
 
