@@ -254,7 +254,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                     : "text-slate-400 hover:text-white hover:bg-slate-700"
                 }`}
               >
-                📅 Timeline
+                � Table
               </button>
             </div>
 
@@ -1260,28 +1260,6 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Enhanced Footer */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6 border-t border-slate-600/50">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400">
-            <span>
-              📊 Total Data:{" "}
-              <strong className="text-white">{filteredSchedule.length}</strong>
-            </span>
-            <span>
-              🏭 Time per PCS:{" "}
-              <strong className="text-white">{timePerPcs}s</strong>
-            </span>
-            <span>
-              📦 Initial Stock:{" "}
-              <strong className="text-white">
-                {initialStock.toLocaleString()}
-              </strong>
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );

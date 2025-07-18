@@ -61,22 +61,6 @@ const mockData: DataItem[] = [
     cycle7: 98,
     cycle35: 49,
   },
-  {
-    part: "Transmission Case B2",
-    customer: "Honda Corp",
-    timePerPcs: 180,
-    cycle1: 10,
-    cycle7: 70,
-    cycle35: 35,
-  },
-  {
-    part: "Brake Disc C3",
-    customer: "Nissan Ltd",
-    timePerPcs: 120,
-    cycle1: 8,
-    cycle7: 56,
-    cycle35: 28,
-  },
 ];
 
 const SchedulerPage: React.FC = () => {
