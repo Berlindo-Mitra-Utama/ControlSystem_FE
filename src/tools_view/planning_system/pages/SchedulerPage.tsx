@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ProductionForm from "../components/layout/ProductionForm";
-import ScheduleTable from "../components/layout/ScheduleTable";
+import ScheduleTable from "../components/layout/ScheduleProduction";
 import React from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";

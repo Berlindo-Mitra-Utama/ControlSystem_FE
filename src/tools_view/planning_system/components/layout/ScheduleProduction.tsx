@@ -16,6 +16,7 @@ import {
 import StatusBadge from "../ui/StatusBadge";
 import DataCard from "../ui/DataCard";
 import EditableField from "../ui/EditableField";
+import ScheduleTableView from "./ScheduleTableView";
 
 // Fungsi untuk mendapatkan jumlah hari maksimal dalam bulan berdasarkan scheduleName
 const getMaxDaysInMonth = (scheduleName: string): number => {
@@ -244,7 +245,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                     : "text-slate-400 hover:text-white hover:bg-slate-700"
                 }`}
               >
-                📋 Cards
+                Cards
               </button>
               <button
                 onClick={() => setViewMode("timeline")}
@@ -254,7 +255,7 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
                     : "text-slate-400 hover:text-white hover:bg-slate-700"
                 }`}
               >
-                � Table
+                Table
               </button>
             </div>
 
@@ -1141,124 +1142,13 @@ const ScheduleCards: React.FC<ScheduleTableProps> = (props) => {
             </div>
           </div>
         ) : (
-          /* Timeline View */
-          <div className="space-y-6">
-            <div className="relative">
-              {/* Timeline Line */}
-              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-cyan-500"></div>
-
-              {validGroupedRows.map((group, groupIdx) => {
-                let flatIdx = validGroupedRows
-                  .slice(0, groupIdx)
-                  .reduce((sum, g) => sum + g.rows.length, 0);
-
-                return (
-                  <div key={group.day} className="relative">
-                    {/* Day Marker */}
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg z-10">
-                        {group.day}
-                      </div>
-                      <div className="bg-slate-800/80 rounded-lg p-4 border border-slate-700/50 flex-1">
-                        <h3 className="text-xl font-bold text-white">
-                          {group.day} Juli 2024
-                        </h3>
-                        <p className="text-slate-400">
-                          {group.rows.length} shift produksi
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Shifts */}
-                    <div className="ml-20 space-y-4 mb-8">
-                      {group.rows.map((row) => {
-                        const calculated = calculateOutputFields(
-                          row,
-                          flatIdx,
-                          flatRows,
-                          timePerPcs,
-                          initialStock,
-                        );
-                        const validationAlerts = checkValidation(
-                          row,
-                          calculated,
-                          timePerPcs,
-                        );
-                        flatIdx++;
-
-                        return (
-                          <div
-                            key={row.id}
-                            className="bg-slate-800/60 rounded-lg p-4 border border-slate-700/50 hover:bg-slate-800/80 transition-all"
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                                  {row.shift}
-                                </div>
-                                <div>
-                                  <h4 className="font-semibold text-white">
-                                    Shift {row.shift}
-                                  </h4>
-                                  <p className="text-slate-400 text-sm">
-                                    {row.shift === "1"
-                                      ? "07:30-16:30"
-                                      : "19:30-04:30"}
-                                  </p>
-                                </div>
-                              </div>
-                              <StatusBadge status={row.status} />
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">
-                                  Stok Awal
-                                </div>
-                                <div className="font-mono font-semibold text-emerald-300">
-                                  {calculated.prevStock.toLocaleString()}
-                                </div>
-                              </div>
-                              <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">
-                                  Delivery
-                                </div>
-                                <div className="font-mono font-semibold text-blue-300">
-                                  {(row.delivery || 0).toLocaleString()}
-                                </div>
-                              </div>
-                              <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">
-                                  Produksi
-                                </div>
-                                <div className="font-mono font-semibold text-purple-300">
-                                  {calculated.hasilProduksi.toLocaleString()}
-                                </div>
-                              </div>
-                              <div className="text-center p-2 bg-slate-900/50 rounded">
-                                <div className="text-xs text-slate-400">
-                                  Actual Stock
-                                </div>
-                                <div className="font-mono font-semibold text-cyan-300">
-                                  {calculated.actualStock.toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
-
-                            {validationAlerts.length > 0 && (
-                              <div className="mt-3 p-2 bg-amber-900/20 border border-amber-600/30 rounded text-xs text-amber-300">
-                                ⚠️ {validationAlerts[0]}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <ScheduleTableView
+            validGroupedRows={validGroupedRows}
+            flatRows={flatRows}
+            timePerPcs={timePerPcs}
+            initialStock={initialStock}
+            scheduleName={props.scheduleName}
+          />
         )}
       </div>
     </div>
