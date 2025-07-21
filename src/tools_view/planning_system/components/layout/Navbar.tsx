@@ -52,7 +52,6 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 
   const handleLogoutAndRedirect = () => {
     handleLogout();
-    navigate("/tools");
   };
 
   return (

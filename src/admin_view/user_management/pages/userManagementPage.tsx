@@ -34,6 +34,7 @@ import {
   AlertTriangle,
   Check,
 } from "lucide-react"
+import { useAuth } from "../../../main_view/contexts/AuthContext"
 
 interface UserData {
   id: string
@@ -56,6 +57,7 @@ interface Tool {
 }
 
 export default function UserManagementPage() {
+  const { handleLogout } = useAuth()
   const [users, setUsers] = useState<UserData[]>([
     {
       id: "1",
@@ -351,14 +353,13 @@ export default function UserManagementPage() {
                 <Plus className="w-4 h-4 mr-2" />
                 Tambah User
               </Button>
-              <Button
-                onClick={() => {
-                  window.location.href = "/tools";
-                }}
-                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-all duration-200"
-              >
-                Logout
-              </Button>
+              
+                <Button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-all duration-200"
+                >
+                  Logout
+                </Button>
             </div>
           </div>
         </div>
@@ -416,7 +417,7 @@ export default function UserManagementPage() {
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                  className="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500/50 focus:border-gray-500"
                 >
                   <option value="all">Semua Role</option>
                   <option value="admin">Administrator</option>

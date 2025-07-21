@@ -17,6 +17,7 @@ import LandingPage from "./main_view/pages/LandingPage";
 import ToolsDashboard from "./main_view/pages/ToolsDashboard";
 import LoginPage from "./main_view/pages/LoginPage";
 import UserManagementPage from "./admin_view/user_management/pages/userManagementPage";
+import ProtectedRoute from "./tools_view/planning_system/components/ProtectedRoute";
 
 // Footer import dihapus karena hanya akan digunakan di LandingPage
 
@@ -33,7 +34,11 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
 
               {/* Protected Routes - Dashboard */}
-              <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }>
                 <Route index element={<Dashboard />} />
                 <Route path="scheduler" element={<Scheduler />} />
                 <Route path="saved" element={<SavedSchedules />} />
@@ -41,12 +46,20 @@ function App() {
               </Route>
 
               {/* Protected Routes - Hitung Coil */}
-              <Route path="/hitungcoil" element={<HitungCoilLayout />}>
+              <Route path="/hitungcoil" element={
+                <ProtectedRoute>
+                  <HitungCoilLayout />
+                </ProtectedRoute>
+              }>
                 <Route index element={<HitungCoil />} />
               </Route>
               
               {/* Admin Routes */}
-              <Route path="/admin/user-management" element={<UserManagementPage />} />
+              <Route path="/admin/user-management" element={
+                <ProtectedRoute>
+                  <UserManagementPage />
+                </ProtectedRoute>
+              } />
             </Routes>
           </div>
           {/* Footer dihapus dari sini */}

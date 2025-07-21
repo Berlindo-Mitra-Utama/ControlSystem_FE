@@ -396,22 +396,6 @@ export default function ToolsDashboard() {
                 <h1 className="text-xl font-bold text-white">Production Tools</h1>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              {isLoggedIn && showToolsView && (
-                <Button
-                  onClick={() => setShowToolsView(false)}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
-                >
-                  Dashboard
-                </Button>
-              )}
-              {isLoggedIn && user && (
-                <div className="flex items-center space-x-2 text-gray-300 bg-gray-800/30 px-4 py-2 rounded-lg">
-                  <User className="w-5 h-5" />
-                  <span>{user.username}</span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </header>
