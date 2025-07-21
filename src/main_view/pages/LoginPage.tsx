@@ -55,7 +55,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoginError("");
     setIsLoading(true);
-
+  
     try {
       if (loginForm.username && loginForm.password) {
         await handleLogin(e, initialChoice || undefined);
@@ -63,8 +63,21 @@ export default function LoginPage() {
         setLoginError("NIP dan Password harus diisi");
       }
     } catch (error) {
-      setLoginError("Terjadi kesalahan saat login");
+      // Tangkap pesan error dari API dengan penanganan yang lebih baik
+      if (error instanceof Error) {
+        setLoginError(error.message);
+        // Reset form password saat password salah
+        setLoginForm(prev => ({ ...prev, password: "" }));
+      } else {
+        setLoginError("Terjadi kesalahan saat login");
+      }
+      // Tambahkan delay kecil untuk mencegah glitch UI
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
+      return; // Keluar dari fungsi untuk mencegah setIsLoading di finally
     }
+    
     setIsLoading(false);
   };
 
