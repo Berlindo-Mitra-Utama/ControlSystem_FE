@@ -15,6 +15,10 @@ const DashboardLayout: React.FC = () => {
         isLoggedIn={isLoggedIn}
         handleLogout={handleLogout}
         savedSchedulesCount={savedSchedules.length}
+        title="Production Scheduler"
+        logo="production"
+        showUserInfo={true}
+        showLogout={true}
       />
       <div className="p-6 lg:p-8">
         <div className="mx-auto max-w-7xl space-y-8">

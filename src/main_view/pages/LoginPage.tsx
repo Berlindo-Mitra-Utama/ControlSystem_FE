@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
   const location = useLocation();
   const initialChoice = new URLSearchParams(location.search).get("tool");
 
@@ -51,14 +52,64 @@ export default function LoginPage() {
 
   const selectedTool = getToolInfo(initialChoice);
 
+  // Load saved credentials on component mount
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem("rememberedCredentials");
+    if (savedCredentials) {
+      try {
+        const credentials = JSON.parse(savedCredentials);
+        setLoginForm({
+          username: credentials.username || "",
+          password: credentials.password || "",
+        });
+        setRememberMe(true);
+      } catch (error) {
+        console.error("Error loading saved credentials:", error);
+        localStorage.removeItem("rememberedCredentials");
+      }
+    }
+  }, []);
+
+  // Function to save credentials
+  const saveCredentials = (username: string, password: string) => {
+    if (rememberMe) {
+      localStorage.setItem(
+        "rememberedCredentials",
+        JSON.stringify({
+          username,
+          password,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+    } else {
+      localStorage.removeItem("rememberedCredentials");
+    }
+  };
+
+  // Function to handle remember me checkbox change
+  const handleRememberMeChange = (checked: boolean) => {
+    setRememberMe(checked);
+    if (!checked) {
+      // If unchecked, clear saved credentials
+      localStorage.removeItem("rememberedCredentials");
+      // Clear form fields if no saved credentials
+      if (!localStorage.getItem("rememberedCredentials")) {
+        setLoginForm({ username: "", password: "" });
+      }
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
     setIsLoading(true);
-  
+
     try {
       if (loginForm.username && loginForm.password) {
         await handleLogin(e, initialChoice || undefined);
+
+        // Save credentials if remember me is checked
+        saveCredentials(loginForm.username, loginForm.password);
       } else {
         setLoginError("NIP dan Password harus diisi");
       }
@@ -67,7 +118,7 @@ export default function LoginPage() {
       if (error instanceof Error) {
         setLoginError(error.message);
         // Reset form password saat password salah
-        setLoginForm(prev => ({ ...prev, password: "" }));
+        setLoginForm((prev) => ({ ...prev, password: "" }));
       } else {
         setLoginError("Terjadi kesalahan saat login");
       }
@@ -77,7 +128,7 @@ export default function LoginPage() {
       }, 300);
       return; // Keluar dari fungsi untuk mencegah setIsLoading di finally
     }
-    
+
     setIsLoading(false);
   };
 
@@ -305,11 +356,18 @@ export default function LoginPage() {
                   <label className="flex items-center space-x-2 text-gray-400 cursor-pointer group">
                     <input
                       type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => handleRememberMeChange(e.target.checked)}
                       className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500/25 focus:ring-2"
                       disabled={isLoading}
                     />
-                    <span className="group-hover:text-gray-300 transition-colors duration-200">
+                    <span className="group-hover:text-gray-300 transition-colors duration-200 flex items-center gap-1">
                       Ingat saya
+                      {localStorage.getItem("rememberedCredentials") && (
+                        <span className="text-blue-400 text-xs">
+                          (Tersimpan)
+                        </span>
+                      )}
                     </span>
                   </label>
                   <button
