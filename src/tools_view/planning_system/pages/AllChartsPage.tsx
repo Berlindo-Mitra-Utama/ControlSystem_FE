@@ -46,11 +46,7 @@ interface AllChartsPageProps {
 }
 
 // Data part dari mockData
-const partOptions = [
-  "Engine Block A1",
-  "Transmission Case B2",
-  "Brake Disc C3",
-];
+const partOptions = ["29N Muffler", "Transmission Case B2", "Brake Disc C3"];
 
 const AllChartsPage: React.FC = () => {
   const { savedSchedules } = useSchedule();
@@ -74,39 +70,33 @@ const AllChartsPage: React.FC = () => {
   const processChartData = (schedule: ScheduleItem[]) => {
     // Mengelompokkan data berdasarkan hari
     const groupedByDay = schedule.reduce<
-      Record<number, { produksi: number; pengiriman: number }>
+      Record<number, { akumulasiDelivery: number }>
     >((acc, item) => {
       if (!acc[item.day]) {
-        acc[item.day] = { produksi: 0, pengiriman: 0 };
+        acc[item.day] = { akumulasiDelivery: 0 };
       }
 
-      // Menghitung hasil produksi (planningPcs + overtimePcs)
-      const planningPcs =
-        item.planningPcs ||
-        (item.planningHour ? Math.floor((item.planningHour * 3600) / 257) : 0);
-      const overtimePcs =
-        item.overtimePcs ||
-        (item.overtimeHour ? Math.floor((item.overtimeHour * 3600) / 257) : 0);
-      const hasilProduksi = planningPcs + overtimePcs;
-
-      acc[item.day].produksi += hasilProduksi;
-      acc[item.day].pengiriman += item.delivery || 0;
+      acc[item.day].akumulasiDelivery += item.delivery || 0;
       return acc;
     }, {});
 
-    // Mengubah ke format array untuk recharts
-    return Object.entries(groupedByDay)
-      .map(([day, data]) => ({
+    // Menghitung akumulasi pengiriman
+    let runningTotal = 0;
+    const days = Object.keys(groupedByDay).sort(
+      (a, b) => parseInt(a) - parseInt(b),
+    );
+
+    const result = days.map((day) => {
+      const dayNum = parseInt(day);
+      runningTotal += groupedByDay[dayNum].akumulasiDelivery;
+
+      return {
         day: `Hari ${day}`,
-        produksi: data.produksi,
-        pengiriman: data.pengiriman,
-      }))
-      .sort((a, b) => {
-        // Mengurutkan berdasarkan nomor hari
-        const dayA = parseInt(a.day.split(" ")[1]);
-        const dayB = parseInt(b.day.split(" ")[1]);
-        return dayA - dayB;
-      });
+        akumulasiDelivery: runningTotal,
+      };
+    });
+
+    return result;
   };
 
   // Fungsi untuk membuat chart dengan data yang sudah diolah
@@ -133,15 +123,9 @@ const AllChartsPage: React.FC = () => {
             />
             <Legend />
             <Bar
-              dataKey="produksi"
-              name="Hasil Produksi"
-              fill="#3b82f6"
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              dataKey="pengiriman"
-              name="Pengiriman"
-              fill="#f59e0b"
+              dataKey="akumulasiDelivery"
+              name="Akumulasi Delivery"
+              fill="#10b981"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

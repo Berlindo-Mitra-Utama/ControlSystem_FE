@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ProductionForm from "../components/layout/ProductionForm";
-import ScheduleTable from "../components/layout/ScheduleTable";
+import ScheduleTable from "../components/layout/ScheduleProduction";
 import React from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
@@ -54,28 +54,12 @@ interface SavedSchedule {
 
 const mockData: DataItem[] = [
   {
-    part: "29N MUFFLER",
+    part: "29N Muffler",
     customer: "Sakura",
     timePerPcs: 257,
     cycle1: 14,
     cycle7: 98,
     cycle35: 49,
-  },
-  {
-    part: "Transmission Case B2",
-    customer: "Honda Corp",
-    timePerPcs: 180,
-    cycle1: 10,
-    cycle7: 70,
-    cycle35: 35,
-  },
-  {
-    part: "Brake Disc C3",
-    customer: "Nissan Ltd",
-    timePerPcs: 120,
-    cycle1: 8,
-    cycle7: 56,
-    cycle35: 28,
   },
 ];
 
@@ -151,6 +135,37 @@ const SchedulerPage: React.FC = () => {
     if (loadedSchedule) {
       setForm(loadedSchedule.form);
       setSchedule(loadedSchedule.schedule);
+
+      // Extract month and year from saved schedule name
+      const scheduleName = loadedSchedule.name;
+      const months = [
+        "Januari",
+        "Februari",
+        "Maret",
+        "April",
+        "Mei",
+        "Juni",
+        "Juli",
+        "Agustus",
+        "September",
+        "Oktober",
+        "November",
+        "Desember",
+      ];
+
+      // Parse the schedule name to get month and year
+      for (let i = 0; i < months.length; i++) {
+        if (scheduleName.includes(months[i])) {
+          setSelectedMonth(i);
+
+          // Extract year using regex
+          const yearMatch = scheduleName.match(/(\d{4})/);
+          if (yearMatch && yearMatch[1]) {
+            setSelectedYear(parseInt(yearMatch[1]));
+          }
+          break;
+        }
+      }
     }
   }, [loadedSchedule]);
 
@@ -689,25 +704,24 @@ const SchedulerPage: React.FC = () => {
       showConfirm(
         `Laporan ${scheduleName} untuk part ${form.part} sudah ada. Apakah Anda ingin menimpanya?`,
         () => {
-          // Remove existing schedule
-          const updatedSchedules = savedSchedules.filter(
-            (s) => s.id !== existingSchedule.id,
-          );
-          setSavedSchedules(updatedSchedules);
-
-          const newSchedule: SavedSchedule = {
-            id: Date.now().toString(),
+          // Update existing schedule instead of creating new one
+          const updatedSchedule: SavedSchedule = {
+            id: existingSchedule.id, // ✅ Gunakan ID yang sudah ada
             name: scheduleName,
             date: new Date().toLocaleDateString(),
             form: { ...form },
             schedule: [...schedule],
           };
 
-          const finalSchedules = [...updatedSchedules, newSchedule];
-          setSavedSchedules(finalSchedules);
+          // Replace the existing schedule with updated one
+          const updatedSchedules = savedSchedules.map((s) =>
+            s.id === existingSchedule.id ? updatedSchedule : s,
+          );
+
+          setSavedSchedules(updatedSchedules);
           localStorage.setItem(
             "savedSchedules",
-            JSON.stringify(finalSchedules),
+            JSON.stringify(updatedSchedules),
           );
           showSuccess("Schedule berhasil diperbarui!");
         },
@@ -1020,6 +1034,8 @@ const SchedulerPage: React.FC = () => {
                 cancelEdit={cancelEdit}
                 setEditForm={setEditForm}
                 initialStock={form.stock}
+                timePerPcs={form.timePerPcs}
+                scheduleName={getScheduleName()}
               />
             </div>
           </div>

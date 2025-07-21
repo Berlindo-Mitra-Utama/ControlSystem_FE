@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
-import * as XLSX from 'xlsx';
+import * as XLSX from "xlsx";
 
 const SavedSchedulesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,8 +11,8 @@ const SavedSchedulesPage: React.FC = () => {
   // Mock data parts
   const parts = [
     {
-      name: "Engine Block A1",
-      customer: "Toyota Motors",
+      name: "29N Muffler",
+      customer: "Sakura",
       icon: "🔧",
     },
     {
@@ -51,23 +51,28 @@ const SavedSchedulesPage: React.FC = () => {
     // Persiapkan data untuk Excel
     const timePerPcs = schedule.form.timePerPcs || 257;
     const initialStock = schedule.form.initialStock || 0;
-    
+
     // Hitung semua nilai yang diperlukan seperti di ScheduleTable.tsx
     const scheduleData = schedule.schedule.map((item: any, index: number) => {
       // Hitung nilai-nilai yang sama seperti di ScheduleTable
       const planningHour = item.planningHour || 0;
       const overtimeHour = item.overtimeHour || 0;
       const delivery = item.delivery || 0;
-      
+
       // Hitung planning dan overtime PCS seperti di ScheduleTable.tsx
-      const planningPcs = planningHour > 0 ? Math.floor((planningHour * 3600) / timePerPcs) : 0;
-      const overtimePcs = overtimeHour > 0 ? Math.floor((overtimeHour * 3600) / timePerPcs) : 0;
+      const planningPcs =
+        planningHour > 0 ? Math.floor((planningHour * 3600) / timePerPcs) : 0;
+      const overtimePcs =
+        overtimeHour > 0 ? Math.floor((overtimeHour * 3600) / timePerPcs) : 0;
       const hasilProduksi = planningPcs + overtimePcs;
-      
+
       // Hitung stok dengan cara yang sama seperti di ScheduleTable.tsx
-      const prevStock = index === 0 ? initialStock : schedule.schedule[index - 1].rencanaStock || initialStock;
+      const prevStock =
+        index === 0
+          ? initialStock
+          : schedule.schedule[index - 1].rencanaStock || initialStock;
       const rencanaStock = prevStock + hasilProduksi - delivery;
-      
+
       // Kembalikan data dalam format yang sama dengan ScheduleTable.tsx
       return {
         No: index + 1,
@@ -75,28 +80,28 @@ const SavedSchedulesPage: React.FC = () => {
         Shift: item.shift,
         Waktu: item.time,
         Status: item.status,
-        'Stok Awal': prevStock,
-        'Delivery': delivery,
-        'Planning Hour': planningHour,
-        'Overtime Hour': overtimeHour,
-        'Planning PCS': planningPcs,
-        'Overtime PCS': overtimePcs,
-        'Hasil Produksi': hasilProduksi,
-        'Stok Akhir': rencanaStock,
-        'Jam Produksi Aktual': item.jamProduksiAktual || 0,
-        'Catatan': item.notes || '',
+        "Stok Awal": prevStock,
+        Delivery: delivery,
+        "Planning Hour": planningHour,
+        "Overtime Hour": overtimeHour,
+        "Planning PCS": planningPcs,
+        "Overtime PCS": overtimePcs,
+        "Hasil Produksi": hasilProduksi,
+        "Stok Akhir": rencanaStock,
+        "Jam Produksi Aktual": item.jamProduksiAktual || 0,
+        Catatan: item.notes || "",
       };
     });
 
     // Buat workbook baru
     const wb = XLSX.utils.book_new();
-    
+
     // Buat worksheet untuk data schedule
     const ws = XLSX.utils.json_to_sheet(scheduleData);
-    
+
     // Tambahkan worksheet ke workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Schedule');
-    
+    XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+
     // Download file Excel
     XLSX.writeFile(wb, `${schedule.name}.xlsx`);
   };
