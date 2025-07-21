@@ -43,4 +43,6 @@ export interface ScheduleTableProps {
   initialStock: number;
   timePerPcs?: number;
   scheduleName?: string;
+  viewMode?: "cards" | "timeline";
+  searchDate?: string;
 }
