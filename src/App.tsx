@@ -45,12 +45,8 @@ function App() {
                 <Route path="allcharts" element={<AllCharts />} />
               </Route>
 
-              {/* Protected Routes - Hitung Coil */}
-              <Route path="/hitungcoil" element={
-                <ProtectedRoute>
-                  <HitungCoilLayout />
-                </ProtectedRoute>
-              }>
+              {/* Public Tools - Hitung Coil */}
+              <Route path="/hitungcoil" element={<HitungCoilLayout />}>
                 <Route index element={<HitungCoil />} />
               </Route>
               
