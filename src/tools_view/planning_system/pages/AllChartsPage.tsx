@@ -90,9 +90,25 @@ const AllChartsPage: React.FC = () => {
       const dayNum = parseInt(day);
       runningTotal += groupedByDay[dayNum].akumulasiDelivery;
 
+      // Buat tanggal untuk tooltip
+      const currentDate = new Date();
+      const scheduleDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        dayNum,
+      );
+      const formattedDate = scheduleDate.toLocaleDateString("id-ID", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
       return {
-        day: `Hari ${day}`,
+        day: dayNum.toString(),
+        dayLabel: `Hari ${day}`,
         akumulasiDelivery: runningTotal,
+        fullDate: formattedDate,
       };
     });
 
@@ -110,7 +126,12 @@ const AllChartsPage: React.FC = () => {
             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="day" stroke="#9ca3af" />
+            <XAxis
+              dataKey="day"
+              stroke="#9ca3af"
+              interval={2}
+              tick={{ fontSize: 12 }}
+            />
             <YAxis stroke="#9ca3af" />
             <Tooltip
               contentStyle={{
@@ -120,6 +141,11 @@ const AllChartsPage: React.FC = () => {
                 color: "#f9fafb",
               }}
               labelStyle={{ color: "#f9fafb" }}
+              formatter={(value, name, props) => [`${value} PCS`, name]}
+              labelFormatter={(label) => {
+                const dataPoint = chartData.find((item) => item.day === label);
+                return dataPoint ? dataPoint.fullDate : `Hari ${label}`;
+              }}
             />
             <Legend />
             <Bar

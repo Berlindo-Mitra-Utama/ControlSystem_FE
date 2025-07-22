@@ -262,8 +262,7 @@ const SavedSchedulesPage: React.FC = () => {
                       );
                     })()}
                   </h2>
-                  <p className="text-gray-400 flex items-center gap-2">
-                    <Package className="w-4 h-4" />
+                  <p className="text-gray-400">
                     {parts.find((p) => p.name === selectedPart)?.customer}
                   </p>
                 </div>
