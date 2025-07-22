@@ -2,6 +2,24 @@ import React, { useState } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
 import { formatValidDate } from "../../utils/scheduleDateUtils";
 import { calculateOutputFields } from "../../utils/scheduleCalcUtils";
+import {
+  Calendar,
+  Clock,
+  Package,
+  Truck,
+  Timer,
+  Factory,
+  Calculator,
+  TrendingUp,
+  BarChart3,
+  Filter,
+  Database,
+  Target,
+  Zap,
+  Gauge,
+  Layers,
+  Activity,
+} from "lucide-react";
 
 interface ScheduleTableViewProps {
   validGroupedRows: { day: number; rows: ScheduleItem[] }[];
@@ -9,6 +27,7 @@ interface ScheduleTableViewProps {
   timePerPcs: number;
   initialStock: number;
   scheduleName?: string;
+  setEditForm?: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
 }
 
 type FilterType =
@@ -24,8 +43,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   timePerPcs,
   initialStock,
   scheduleName,
+  setEditForm,
 }) => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [focusedInputs, setFocusedInputs] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   // Calculate totals
   const totals = {
@@ -60,36 +83,85 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
   // Define all rows with their categories and formatted labels
   const allRows = [
-    { key: "stock", label: "STOCK (PCS)", category: "stock" },
-    { key: "delivery", label: "DELIVERY (PCS)", category: "delivery" },
+    { key: "stock", label: "STOCK (PCS)", category: "stock", icon: Package },
+    {
+      key: "delivery",
+      label: "DELIVERY (PCS)",
+      category: "delivery",
+      icon: Truck,
+    },
     {
       key: "akumulasi-delivery",
       label: "AKUMULASI\nDELIVERY (PCS)",
       category: "delivery",
+      icon: TrendingUp,
     },
-    { key: "planning-jam", label: "PLANNING (JAM)", category: "planning" },
-    { key: "planning-pcs", label: "PLANNING (PCS)", category: "planning" },
-    { key: "overtime-jam", label: "OVERTIME (JAM)", category: "overtime" },
-    { key: "overtime-pcs", label: "OVERTIME (PCS)", category: "overtime" },
+    {
+      key: "planning-jam",
+      label: "PLANNING (JAM)",
+      category: "planning",
+      icon: Clock,
+    },
+    {
+      key: "planning-pcs",
+      label: "PLANNING (PCS)",
+      category: "planning",
+      icon: Target,
+    },
+    {
+      key: "overtime-jam",
+      label: "OVERTIME (JAM)",
+      category: "overtime",
+      icon: Timer,
+    },
+    {
+      key: "overtime-pcs",
+      label: "OVERTIME (PCS)",
+      category: "overtime",
+      icon: Zap,
+    },
     {
       key: "jam-produksi",
       label: "JAM PRODUKSI\n(CYCLETIME)",
       category: "stock",
+      icon: Gauge,
     },
     {
       key: "hasil-produksi",
       label: "HASIL\nPRODUKSI (PCS)",
       category: "hasil-produksi",
+      icon: Factory,
     },
     {
       key: "akumulasi-hasil",
       label: "AKUMULASI HASIL\nPRODUKSI (PCS)",
       category: "hasil-produksi",
+      icon: TrendingUp,
     },
-    { key: "jam-aktual", label: "JAM PRODUKSI\nAKTUAL", category: "stock" },
-    { key: "teori-stock", label: "TEORI STOCK\n(PCS)", category: "stock" },
-    { key: "actual-stock", label: "ACTUAL STOCK\n(PCS)", category: "stock" },
-    { key: "rencana-stock", label: "RENCANA STOCK\n(PCS)", category: "stock" },
+    {
+      key: "jam-aktual",
+      label: "JAM PRODUKSI\nAKTUAL",
+      category: "stock",
+      icon: Activity,
+    },
+    {
+      key: "teori-stock",
+      label: "TEORI STOCK\n(PCS)",
+      category: "stock",
+      icon: Calculator,
+    },
+    {
+      key: "actual-stock",
+      label: "ACTUAL STOCK\n(PCS)",
+      category: "stock",
+      icon: Package,
+    },
+    {
+      key: "rencana-stock",
+      label: "RENCANA STOCK\n(PCS)",
+      category: "stock",
+      icon: Layers,
+    },
   ];
 
   // Filter rows based on active filter
@@ -100,13 +172,32 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
   const filteredRows = getFilteredRows();
 
+  // Function to handle input changes
+  const handleInputChange = (rowId: string, field: string, value: string) => {
+    const numericValue = Number(value) || 0;
+
+    // Update the row data
+    const row = flatRows.find((r) => r.id === rowId);
+    if (row) {
+      (row as any)[field] = numericValue;
+
+      // Update edit form if available
+      if (setEditForm) {
+        setEditForm((prev) => ({
+          ...prev,
+          [field]: numericValue,
+        }));
+      }
+    }
+  };
+
   // Filter menu options
   const filterOptions = [
-    { value: "all", label: "Semua Data", icon: "📊" },
-    { value: "delivery", label: "Delivery", icon: "🚚" },
-    { value: "planning", label: "Planning", icon: "📋" },
-    { value: "overtime", label: "Overtime", icon: "⏰" },
-    { value: "hasil-produksi", label: "Hasil Produksi", icon: "🏭" },
+    { value: "all", label: "Semua Data", icon: BarChart3 },
+    { value: "delivery", label: "Delivery", icon: Truck },
+    { value: "planning", label: "Planning", icon: Target },
+    { value: "overtime", label: "Overtime", icon: Timer },
+    { value: "hasil-produksi", label: "Hasil Produksi", icon: Factory },
   ];
 
   return (
@@ -114,30 +205,33 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       {/* Filter Menu - Enhanced */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
         <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-3">
-          <span className="text-2xl">🔍</span>
+          <Filter className="w-6 h-6 text-blue-400" />
           Filter Data
         </h3>
         <div className="flex flex-wrap gap-3">
-          {filterOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setActiveFilter(option.value as FilterType)}
-              className={`${
-                option.value === "all"
-                  ? "px-4 py-2 rounded-lg text-sm font-medium" // Smaller for "Semua Data"
-                  : "px-6 py-3 rounded-xl text-base font-semibold" // Larger for others
-              } transition-all flex items-center gap-2 ${
-                activeFilter === option.value
-                  ? "bg-blue-600 text-white shadow-xl scale-105"
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white hover:scale-102"
-              }`}
-            >
-              <span className={option.value === "all" ? "text-lg" : "text-xl"}>
-                {option.icon}
-              </span>
-              {option.label}
-            </button>
-          ))}
+          {filterOptions.map((option) => {
+            const IconComponent = option.icon;
+            return (
+              <button
+                key={option.value}
+                onClick={() => setActiveFilter(option.value as FilterType)}
+                className={`${
+                  option.value === "all"
+                    ? "px-4 py-2 rounded-lg text-sm font-medium" // Smaller for "Semua Data"
+                    : "px-6 py-3 rounded-xl text-base font-semibold" // Larger for others
+                } transition-all flex items-center gap-2 ${
+                  activeFilter === option.value
+                    ? "bg-blue-600 text-white shadow-xl scale-105"
+                    : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white hover:scale-102"
+                }`}
+              >
+                <IconComponent
+                  className={option.value === "all" ? "w-4 h-4" : "w-5 h-5"}
+                />
+                {option.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -286,10 +380,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                         (g) => g.day === group.day,
                       );
 
-                      let shift1Value = "-";
-                      let shift2Value = "-";
+                      let shift1Value: string | number = "-";
+                      let shift2Value: string | number = "-";
                       let bgColor = "bg-slate-800";
                       let textColor = "text-white";
+                      let isEditable = false;
+                      let shift1Field = "";
+                      let shift2Field = "";
 
                       switch (row.key) {
                         case "stock":
@@ -316,12 +413,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "delivery":
-                          shift1Value =
-                            shift1?.delivery?.toLocaleString() || "0";
-                          shift2Value =
-                            shift2?.delivery?.toLocaleString() || "0";
+                          shift1Value = shift1?.delivery || 0;
+                          shift2Value = shift2?.delivery || 0;
                           bgColor = "bg-cyan-900/30";
                           textColor = "text-cyan-300";
+                          isEditable = true;
+                          shift1Field = "delivery";
+                          shift2Field = "delivery";
                           break;
 
                         case "akumulasi-delivery":
@@ -385,12 +483,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "planning-pcs":
-                          shift1Value =
-                            shift1?.planningPcs?.toLocaleString() || "0";
-                          shift2Value =
-                            shift2?.planningPcs?.toLocaleString() || "0";
+                          shift1Value = shift1?.planningPcs || 0;
+                          shift2Value = shift2?.planningPcs || 0;
                           bgColor = "bg-yellow-900/30";
                           textColor = "text-yellow-300";
+                          isEditable = true;
+                          shift1Field = "planningPcs";
+                          shift2Field = "planningPcs";
                           break;
 
                         case "overtime-jam":
@@ -419,12 +518,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "overtime-pcs":
-                          shift1Value =
-                            shift1?.overtimePcs?.toLocaleString() || "0";
-                          shift2Value =
-                            shift2?.overtimePcs?.toLocaleString() || "0";
+                          shift1Value = shift1?.overtimePcs || 0;
+                          shift2Value = shift2?.overtimePcs || 0;
                           bgColor = "bg-orange-900/30";
                           textColor = "text-orange-300";
+                          isEditable = true;
+                          shift1Field = "overtimePcs";
+                          shift2Field = "overtimePcs";
                           break;
 
                         case "jam-produksi":
@@ -451,10 +551,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "hasil-produksi":
-                          shift1Value = shift1?.pcs?.toLocaleString() || "0";
-                          shift2Value = shift2?.pcs?.toLocaleString() || "0";
+                          shift1Value = shift1?.pcs || 0;
+                          shift2Value = shift2?.pcs || 0;
                           bgColor = "bg-purple-900/30";
                           textColor = "text-purple-300";
+                          isEditable = true;
+                          shift1Field = "pcs";
+                          shift2Field = "pcs";
                           break;
 
                         case "akumulasi-hasil":
@@ -501,6 +604,9 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             shift2?.jamProduksiAktual?.toFixed(1) || "0.0";
                           bgColor = "bg-green-900/30";
                           textColor = "text-green-300";
+                          isEditable = true;
+                          shift1Field = "jamProduksiAktual";
+                          shift2Field = "jamProduksiAktual";
                           break;
 
                         case "teori-stock":
@@ -694,12 +800,90 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           <div
                             className={`${bgColor} text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
-                            {shift1Value}
+                            {isEditable && shift1 ? (
+                              <input
+                                type="number"
+                                step={
+                                  shift1Field === "jamProduksiAktual"
+                                    ? "0.1"
+                                    : "1"
+                                }
+                                value={
+                                  focusedInputs[`${shift1.id}-${shift1Field}`]
+                                    ? (shift1 as any)[shift1Field] || ""
+                                    : (shift1 as any)[shift1Field] || 0
+                                }
+                                onChange={(e) => {
+                                  handleInputChange(
+                                    shift1.id,
+                                    shift1Field,
+                                    e.target.value,
+                                  );
+                                }}
+                                onFocus={() => {
+                                  setFocusedInputs((prev) => ({
+                                    ...prev,
+                                    [`${shift1.id}-${shift1Field}`]: true,
+                                  }));
+                                }}
+                                onBlur={() => {
+                                  setFocusedInputs((prev) => ({
+                                    ...prev,
+                                    [`${shift1.id}-${shift1Field}`]: false,
+                                  }));
+                                }}
+                                className="w-full bg-transparent border-none text-center focus:outline-none focus:ring-0 font-mono text-sm font-semibold"
+                                placeholder="0"
+                              />
+                            ) : typeof shift1Value === "number" ? (
+                              shift1Value.toLocaleString()
+                            ) : (
+                              shift1Value
+                            )}
                           </div>
                           <div
                             className={`${bgColor} text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
-                            {shift2Value}
+                            {isEditable && shift2 ? (
+                              <input
+                                type="number"
+                                step={
+                                  shift2Field === "jamProduksiAktual"
+                                    ? "0.1"
+                                    : "1"
+                                }
+                                value={
+                                  focusedInputs[`${shift2.id}-${shift2Field}`]
+                                    ? (shift2 as any)[shift2Field] || ""
+                                    : (shift2 as any)[shift2Field] || 0
+                                }
+                                onChange={(e) => {
+                                  handleInputChange(
+                                    shift2.id,
+                                    shift2Field,
+                                    e.target.value,
+                                  );
+                                }}
+                                onFocus={() => {
+                                  setFocusedInputs((prev) => ({
+                                    ...prev,
+                                    [`${shift2.id}-${shift2Field}`]: true,
+                                  }));
+                                }}
+                                onBlur={() => {
+                                  setFocusedInputs((prev) => ({
+                                    ...prev,
+                                    [`${shift2.id}-${shift2Field}`]: false,
+                                  }));
+                                }}
+                                className="w-full bg-transparent border-none text-center focus:outline-none focus:ring-0 font-mono text-sm font-semibold"
+                                placeholder="0"
+                              />
+                            ) : typeof shift2Value === "number" ? (
+                              shift2Value.toLocaleString()
+                            ) : (
+                              shift2Value
+                            )}
                           </div>
                         </div>
                       );
