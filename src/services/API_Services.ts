@@ -25,7 +25,6 @@ export interface LoginResponse {
 }
 
 // Interface untuk login request
-// Interface untuk login request
 export interface LoginRequest {
   nip: string;
   password: string;
@@ -39,6 +38,25 @@ export interface ToolResponse {
     userId: number;
     toolName: string;
   }>;
+}
+
+// Interface untuk user data
+export interface UserData {
+  id: number;
+  nama: string;
+  nip: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+// Interface untuk create/update user request
+export interface UserRequest {
+  nama: string;
+  nip: string;
+  password: string;
+  role: string;
 }
 
 // Service untuk autentikasi
@@ -99,6 +117,102 @@ export const AuthService = {
       throw new Error('Terjadi kesalahan saat menghubungi server');
     }
   },
+
+  // Get all users (admin only)
+  getAllUsers: async (): Promise<UserData[]> => {
+    try {
+      const response = await api.get('/auth/users');
+      return response.data.data.users;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal mendapatkan daftar pengguna');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
+
+  // Create new user (admin only)
+  createUser: async (userData: UserRequest): Promise<UserData> => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      return response.data.data.user;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal membuat pengguna baru');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
+
+  // Update user (admin only)
+  updateUser: async (userId: number, userData: Partial<UserRequest>): Promise<UserData> => {
+    try {
+      const response = await api.post('/auth/users/update', {
+        userId,
+        ...userData
+      });
+      return response.data.data.user;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal memperbarui pengguna');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
+
+  // Delete user (admin only)
+  deleteUser: async (userId: number): Promise<void> => {
+    try {
+      await api.delete(`/auth/users/${userId}`);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal menghapus pengguna');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
+};
+
+// Service untuk user tools
+export const UserToolsService = {
+  // Get tools for specific user (admin only)
+  getUserTools: async (userId: number): Promise<ToolResponse> => {
+    try {
+      const response = await api.get(`/user-tools/users/${userId}/tools`);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal mendapatkan daftar tools pengguna');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
+
+  // Add tool access for user (admin only)
+  addUserTool: async (userId: number, toolName: string): Promise<any> => {
+    try {
+      const response = await api.post('/user-tools/tools/add', { userId, toolName });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal menambahkan akses tool');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
+
+  // Remove tool access from user (admin only)
+  removeUserTool: async (userId: number, toolName: string): Promise<any> => {
+    try {
+      const response = await api.post('/user-tools/tools/remove', { userId, toolName });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal menghapus akses tool');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
 };
 
 // Tambahkan interceptor untuk menangani error
@@ -123,4 +237,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 export default api;
