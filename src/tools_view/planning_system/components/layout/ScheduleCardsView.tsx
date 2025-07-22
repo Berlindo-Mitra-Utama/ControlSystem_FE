@@ -597,15 +597,17 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={1}
-                                    value={row.planningPcs ?? 0}
+                                    value={row.planningPcs ?? ""}
                                     onChange={(e) => {
-                                      row.planningPcs = Number(e.target.value);
+                                      row.planningPcs =
+                                        Number(e.target.value) || 0;
                                       setEditForm((prev) => ({
                                         ...prev,
                                         planningPcs: row.planningPcs,
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                    placeholder=""
                                   />
                                 </div>
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
@@ -620,15 +622,17 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={1}
-                                    value={row.delivery ?? 0}
+                                    value={row.delivery ?? ""}
                                     onChange={(e) => {
-                                      row.delivery = Number(e.target.value);
+                                      row.delivery =
+                                        Number(e.target.value) || 0;
                                       setEditForm((prev) => ({
                                         ...prev,
                                         delivery: row.delivery,
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                    placeholder=""
                                   />
                                 </div>
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
@@ -643,15 +647,17 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={1}
-                                    value={row.overtimePcs ?? 0}
+                                    value={row.overtimePcs ?? ""}
                                     onChange={(e) => {
-                                      row.overtimePcs = Number(e.target.value);
+                                      row.overtimePcs =
+                                        Number(e.target.value) || 0;
                                       setEditForm((prev) => ({
                                         ...prev,
                                         overtimePcs: row.overtimePcs,
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                    placeholder=""
                                   />
                                 </div>
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
@@ -666,15 +672,16 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={1}
-                                    value={row.pcs ?? 0}
+                                    value={row.pcs ?? ""}
                                     onChange={(e) => {
-                                      row.pcs = Number(e.target.value);
+                                      row.pcs = Number(e.target.value) || 0;
                                       setEditForm((prev) => ({
                                         ...prev,
                                         pcs: row.pcs,
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                    placeholder=""
                                   />
                                 </div>
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
@@ -689,11 +696,10 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={0.1}
-                                    value={row.jamProduksiAktual ?? 0}
+                                    value={row.jamProduksiAktual ?? ""}
                                     onChange={(e) => {
-                                      row.jamProduksiAktual = Number(
-                                        e.target.value,
-                                      );
+                                      row.jamProduksiAktual =
+                                        Number(e.target.value) || 0;
                                       setEditForm((prev) => ({
                                         ...prev,
                                         jamProduksiAktual:
@@ -701,6 +707,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                    placeholder=""
                                   />
                                 </div>
                               </div>
