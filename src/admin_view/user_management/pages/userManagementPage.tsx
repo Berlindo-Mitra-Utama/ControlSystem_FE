@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom";
 import { Button } from "../components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/card"
@@ -35,17 +35,16 @@ import {
   Check,
 } from "lucide-react"
 import { useAuth } from "../../../main_view/contexts/AuthContext"
+import { AuthService, UserToolsService, UserData as ApiUserData, UserRequest } from "../../../services/API_Services"
 
 interface UserData {
   id: string
-  name: string
+  nama: string
   nip: string
-  password: string
-  role: "admin" | "supervisor" | "planner" | "operator"
+  role: 'admin' | 'user'
   tools: string[]
   createdAt: string
-  lastLogin?: string
-  status: "active" | "inactive"
+  updatedAt?: string
 }
 
 interface Tool {
@@ -56,76 +55,21 @@ interface Tool {
   requiresRole?: string[]
 }
 
+type RoleType = 'admin' | 'user'
+
 export default function UserManagementPage() {
   const { handleLogout } = useAuth()
-  const [users, setUsers] = useState<UserData[]>([
-    {
-      id: "1",
-      name: "John Admin",
-      nip: "ADM001",
-      password: "admin123",
-      role: "admin",
-      tools: [
-        "usermanagement",
-        "systemconfig",
-        "database",
-        "security",
-        "scheduler",
-        "reports",
-        "monitoring",
-        "analytics",
-        "hitungcoil",
-      ],
-      createdAt: "2024-01-15",
-      lastLogin: "2024-01-17",
-      status: "active",
-    },
-    {
-      id: "2",
-      name: "Sarah Supervisor",
-      nip: "SUP001",
-      password: "super123",
-      role: "supervisor",
-      tools: ["scheduler", "reports", "monitoring", "analytics", "hitungcoil"],
-      createdAt: "2024-01-16",
-      lastLogin: "2024-01-17",
-      status: "active",
-    },
-    {
-      id: "3",
-      name: "Mike Planner",
-      nip: "PLN001",
-      password: "plan123",
-      role: "planner",
-      tools: ["scheduler", "reports", "hitungcoil"],
-      createdAt: "2024-01-16",
-      lastLogin: "2024-01-16",
-      status: "active",
-    },
-    {
-      id: "4",
-      name: "Lisa Operator",
-      nip: "OPR001",
-      password: "oper123",
-      role: "operator",
-      tools: ["hitungcoil"],
-      createdAt: "2024-01-17",
-      status: "inactive",
-    },
-  ])
+  const [users, setUsers] = useState<UserData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [availableTools] = useState<Tool[]>([
-    { id: "hitungcoil", name: "Hitung Coil", category: "production", icon: BarChart3 },
     { id: "scheduler", name: "Planning System", category: "planning", icon: Calendar },
     { id: "reports", name: "Laporan Produksi", category: "reporting", icon: FileText },
-    { id: "monitoring", name: "Real-time Monitor", category: "monitoring", icon: Activity },
     { id: "analytics", name: "Analytics Dashboard", category: "analytics", icon: TrendingUp },
     { id: "usermanagement", name: "User Management", category: "admin", icon: Users, requiresRole: ["admin"] },
     { id: "systemconfig", name: "System Config", category: "admin", icon: Settings, requiresRole: ["admin"] },
-    { id: "database", name: "Database Management", category: "admin", icon: Database, requiresRole: ["admin"] },
-    { id: "security", name: "Security Center", category: "admin", icon: Shield, requiresRole: ["admin"] },
-    { id: "calculator", name: "Kalkulator", category: "public", icon: Calculator },
-    { id: "converter", name: "Unit Converter", category: "public", icon: PieChart },
+    { id: "monitoring", name: "Real-time Monitor", category: "monitoring", icon: Activity },
   ])
 
   const [showAddForm, setShowAddForm] = useState(false)
@@ -138,10 +82,10 @@ export default function UserManagementPage() {
 
   // Form states
   const [formData, setFormData] = useState({
-    name: "",
-    nip: "",
-    password: "",
-    role: "operator" as UserData["role"],
+    nama: '',
+    nip: '',
+    password: '',
+    role: 'user' as RoleType,
     tools: [] as string[],
   })
 
@@ -150,7 +94,7 @@ export default function UserManagementPage() {
   // Filter users based on search and role
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.nip.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === "all" || user.role === roleFilter
     return matchesSearch && matchesRole
@@ -158,130 +102,185 @@ export default function UserManagementPage() {
 
   const validateForm = () => {
     const errors: { [key: string]: string } = {}
-
-    if (!formData.name.trim()) errors.name = "Nama harus diisi"
-    if (!formData.nip.trim()) errors.nip = "NIP harus diisi"
-    if (!formData.password.trim()) errors.password = "Password harus diisi"
-    if (formData.password.length < 6) errors.password = "Password minimal 6 karakter"
-
-    // Check if NIP already exists (except when editing)
+    if (!formData.nama.trim()) errors.nama = 'Nama harus diisi'
+    if (!formData.nip.trim()) errors.nip = 'NIP harus diisi'
+    if (!formData.password.trim()) errors.password = 'Password harus diisi'
+    if (formData.password.length < 6) errors.password = 'Password minimal 6 karakter'
     const existingUser = users.find((u) => u.nip === formData.nip && u.id !== editingUser?.id)
-    if (existingUser) errors.nip = "NIP sudah digunakan"
-
+    if (existingUser) errors.nip = 'NIP sudah digunakan'
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      nip: "",
-      password: "",
-      role: "operator",
+      nama: '',
+      nip: '',
+      password: '',
+      role: 'user',
       tools: [],
     })
     setFormErrors({})
   }
 
-  const getDefaultToolsForRole = (role: UserData["role"]): string[] => {
-    switch (role) {
-      case "admin":
-        return availableTools.map((tool) => tool.id)
-      case "supervisor":
-        return ["scheduler", "reports", "monitoring", "analytics", "hitungcoil", "calculator", "converter"]
-      case "planner":
-        return ["scheduler", "reports", "hitungcoil", "calculator", "converter"]
-      case "operator":
-        return ["hitungcoil", "calculator", "converter"]
-      default:
-        return ["calculator", "converter"]
+  const getDefaultToolsForRole = (role: RoleType): string[] => {
+    if (role === 'admin') return availableTools.map((tool) => tool.id)
+    return availableTools.filter((tool) => tool.category !== 'admin').map((tool) => tool.id)
+  }
+
+  // Fetch all users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true)
+        const apiUsers = await AuthService.getAllUsers()
+        const transformedUsers = apiUsers.map((apiUser: any) => ({
+          id: apiUser.id.toString(),
+          nama: apiUser.nama,
+          nip: apiUser.nip,
+          role: apiUser.role as RoleType,
+          tools: [],
+          createdAt: apiUser.createdAt,
+          updatedAt: apiUser.updatedAt,
+        }))
+        for (const user of transformedUsers) {
+          try {
+            const toolsResponse = await UserToolsService.getUserTools(parseInt(user.id))
+            user.tools = toolsResponse.tools.map((tool: any) => tool.toolName)
+          } catch (toolError) {
+            console.error(`Error fetching tools for user ${user.id}:`, toolError)
+          }
+        }
+        setUsers(transformedUsers)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Gagal memuat data pengguna')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchUsers()
+  }, [])
+
+  const handleAddUser = async () => {
+    if (!validateForm()) return
+    try {
+      const userRequest = {
+        nama: formData.nama,
+        nip: formData.nip,
+        password: formData.password,
+        role: formData.role,
+      }
+      const newApiUser = await AuthService.createUser(userRequest)
+      const toolsToAdd = formData.tools.length > 0 ? formData.tools : getDefaultToolsForRole(formData.role)
+      for (const toolName of toolsToAdd) {
+        try {
+          await UserToolsService.addUserTool(newApiUser.id, toolName)
+        } catch {}
+      }
+      const newUser: UserData = {
+        id: newApiUser.id.toString(),
+        nama: newApiUser.nama,
+        nip: newApiUser.nip,
+        role: newApiUser.role as RoleType,
+        tools: toolsToAdd,
+        createdAt: newApiUser.createdAt,
+        updatedAt: newApiUser.updatedAt,
+      }
+      setUsers([...users, newUser])
+      setShowAddForm(false)
+      resetForm()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal menambahkan pengguna')
     }
   }
 
-  const handleAddUser = () => {
-    if (!validateForm()) return
-
-    const newUser: UserData = {
-      id: Date.now().toString(),
-      name: formData.name,
-      nip: formData.nip,
-      password: formData.password,
-      role: formData.role,
-      tools: formData.tools.length > 0 ? formData.tools : getDefaultToolsForRole(formData.role),
-      createdAt: new Date().toISOString().split("T")[0],
-      status: "active",
+  const handleUpdateUser = async () => {
+    if (!validateForm() || !editingUser) return
+    try {
+      const userRequest: any = {
+        nama: formData.nama,
+        nip: formData.nip,
+        role: formData.role,
+      }
+      if (formData.password !== '••••••••') userRequest.password = formData.password
+      const updatedApiUser = await AuthService.updateUser(parseInt(editingUser.id), userRequest)
+      let currentTools: string[] = []
+      try {
+        const toolsResponse = await UserToolsService.getUserTools(parseInt(editingUser.id))
+        currentTools = toolsResponse.tools.map((tool: any) => tool.toolName)
+      } catch (err) {
+        // Jangan blokir update user jika gagal get tools, cukup warning di console
+        console.warn('Gagal mendapatkan tools pengguna setelah update user:', err)
+        currentTools = formData.tools // fallback ke form
+      }
+      const toolsToAdd = formData.tools.filter((tool) => !currentTools.includes(tool))
+      const toolsToRemove = currentTools.filter((tool) => !formData.tools.includes(tool))
+      for (const toolName of toolsToAdd) {
+        try { await UserToolsService.addUserTool(parseInt(editingUser.id), toolName) } catch {}
+      }
+      for (const toolName of toolsToRemove) {
+        try { await UserToolsService.removeUserTool(parseInt(editingUser.id), toolName) } catch {}
+      }
+      setUsers(users.map((user) => user.id === editingUser.id ? {
+        ...user,
+        nama: formData.nama,
+        nip: formData.nip,
+        role: formData.role,
+        tools: formData.tools,
+      } : user))
+      setEditingUser(null)
+      resetForm()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal memperbarui pengguna')
     }
-
-    setUsers([...users, newUser])
-    setShowAddForm(false)
-    resetForm()
   }
 
-  const handleEditUser = (user: UserData) => {
-    setEditingUser(user)
-    setFormData({
-      name: user.name,
-      nip: user.nip,
-      password: user.password,
-      role: user.role,
-      tools: user.tools,
-    })
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      // Call API to delete user
+      await AuthService.deleteUser(parseInt(userId))
+      
+      // Update state
+      setUsers(users.filter((user) => user.id !== userId))
+      setShowDeleteConfirm(null)
+    } catch (err) {
+      console.error('Error deleting user:', err)
+      alert(err instanceof Error ? err.message : 'Gagal menghapus pengguna')
+    }
   }
 
-  const handleUpdateUser = () => {
-    if (!validateForm()) return
-
-    setUsers(
-      users.map((user) =>
-        user.id === editingUser?.id
-          ? {
-              ...user,
-              ...formData,
-              tools: formData.tools.length > 0 ? formData.tools : getDefaultToolsForRole(formData.role),
-            }
-          : user,
-      ),
-    )
-    setEditingUser(null)
-    resetForm()
-  }
-
-  const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter((user) => user.id !== userId))
-    setShowDeleteConfirm(null)
-  }
-
-  const handleToggleUserStatus = (userId: string) => {
-    setUsers(
-      users.map((user) =>
-        user.id === userId ? { ...user, status: user.status === "active" ? "inactive" : "active" } : user,
-      ),
-    )
-  }
-
-  const handleRoleChange = (role: UserData["role"]) => {
-    setFormData({
-      ...formData,
-      role,
-      tools: getDefaultToolsForRole(role),
-    })
-  }
-
-  const handleToolToggle = (toolId: string, userId?: string) => {
+  const handleToolToggle = async (toolId: string, userId?: string) => {
     if (userId) {
-      // Toggle tool for existing user
-      setUsers(
-        users.map((user) =>
-          user.id === userId
-            ? {
-                ...user,
-                tools: user.tools.includes(toolId) ? user.tools.filter((t) => t !== toolId) : [...user.tools, toolId],
-              }
-            : user,
-        ),
-      )
+      // Toggle tool untuk user yang sudah ada
+      try {
+        const user = users.find(u => u.id === userId)
+        if (!user) return
+        if (user.tools.includes(toolId)) {
+          // Remove tool
+          await UserToolsService.removeUserTool(parseInt(userId), toolId)
+        } else {
+          // Cek dulu, jangan kirim request jika sudah ada
+          if (!user.tools.includes(toolId)) {
+            await UserToolsService.addUserTool(parseInt(userId), toolId)
+          }
+        }
+        // Setelah add/remove, refetch tools user dari API
+        const toolsResponse = await UserToolsService.getUserTools(parseInt(userId))
+        const newTools = toolsResponse.tools.map((tool: any) => tool.toolName)
+        setUsers(
+          users.map((user) =>
+            user.id === userId
+              ? { ...user, tools: newTools }
+              : user,
+          ),
+        )
+      } catch (err: any) {
+        // Tampilkan pesan error detail dari backend jika ada
+        alert(err?.message || 'Gagal mengubah akses tool')
+      }
     } else {
-      // Toggle tool in form
+      // Toggle tool di form (belum simpan ke backend)
       setFormData({
         ...formData,
         tools: formData.tools.includes(toolId)
@@ -377,14 +376,6 @@ export default function UserManagementPage() {
           <Card className="bg-gray-800/50 border-gray-700">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-green-400 mb-1">
-                {users.filter((u) => u.status === "active").length}
-              </div>
-              <div className="text-gray-400 text-sm">Active Users</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-red-400 mb-1">
                 {users.filter((u) => u.role === "admin").length}
               </div>
               <div className="text-gray-400 text-sm">Administrators</div>
@@ -421,9 +412,7 @@ export default function UserManagementPage() {
                 >
                   <option value="all">Semua Role</option>
                   <option value="admin">Administrator</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="planner">Planner</option>
-                  <option value="operator">Operator</option>
+                  <option value="user">User</option>
                 </select>
               </div>
             </div>
@@ -442,28 +431,19 @@ export default function UserManagementPage() {
                     </div>
                     <div>
                       <div className="flex items-center space-x-3 mb-1">
-                        <h3 className="text-lg font-semibold text-white">{user.name}</h3>
+                        <h3 className="text-lg font-semibold text-white">{user.nama}</h3>
                         <Badge className={getRoleColor(user.role)}>
                           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </Badge>
-                        <Badge
-                          className={
-                            user.status === "active"
-                              ? "bg-green-500/10 text-green-400 border-green-500/20"
-                              : "bg-gray-500/10 text-gray-400 border-gray-500/20"
-                          }
-                        >
-                          {user.status === "active" ? "Active" : "Inactive"}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-gray-400">
                         <span>NIP: {user.nip}</span>
                         <span>•</span>
                         <span>Created: {user.createdAt}</span>
-                        {user.lastLogin && (
+                        {user.updatedAt && (
                           <>
                             <span>•</span>
-                            <span>Last Login: {user.lastLogin}</span>
+                            <span>Updated: {user.updatedAt}</span>
                           </>
                         )}
                       </div>
@@ -480,24 +460,12 @@ export default function UserManagementPage() {
                       Tools ({user.tools.length})
                     </Button>
                     <Button
-                      onClick={() => handleEditUser(user)}
+                      onClick={() => setEditingUser(user)}
                       variant="outline"
                       size="sm"
                       className="border-gray-600 text-gray-300 hover:bg-gray-700"
                     >
                       <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      onClick={() => handleToggleUserStatus(user.id)}
-                      variant="outline"
-                      size="sm"
-                      className={
-                        user.status === "active"
-                          ? "border-orange-600 text-orange-300 hover:bg-orange-700/20"
-                          : "border-green-600 text-green-300 hover:bg-green-700/20"
-                      }
-                    >
-                      {user.status === "active" ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                     </Button>
                     <Button
                       onClick={() => setShowDeleteConfirm(user.id)}
@@ -517,7 +485,7 @@ export default function UserManagementPage() {
                       <Lock className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-400">Password:</span>
                       <span className="text-sm text-white font-mono">
-                        {showPasswords[user.id] ? user.password : "••••••••"}
+                        {showPasswords[user.id] ? "••••••••" : "••••••••"}
                       </span>
                     </div>
                     <Button
@@ -594,12 +562,12 @@ export default function UserManagementPage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">Nama Lengkap</label>
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.name ? "border-red-500" : "border-gray-600"}`}
+                    value={formData.nama}
+                    onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.nama ? "border-red-500" : "border-gray-600"}`}
                     placeholder="Masukkan nama lengkap"
                   />
-                  {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
+                  {formErrors.nama && <p className="text-red-400 text-xs mt-1">{formErrors.nama}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">NIP</label>
@@ -630,12 +598,10 @@ export default function UserManagementPage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
                   <select
                     value={formData.role}
-                    onChange={(e) => handleRoleChange(e.target.value as UserData["role"])}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as RoleType })}
                     className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
                   >
-                    <option value="operator">Operator</option>
-                    <option value="planner">Planner</option>
-                    <option value="supervisor">Supervisor</option>
+                    <option value="user">User</option>
                     <option value="admin">Administrator</option>
                   </select>
                 </div>
@@ -724,7 +690,7 @@ export default function UserManagementPage() {
             <CardHeader>
               <CardTitle className="text-white flex items-center space-x-2">
                 <Settings className="w-5 h-5" />
-                <span>Manage Tools - {showToolsModal.name}</span>
+                <span>Manage Tools - {showToolsModal.nama}</span>
               </CardTitle>
               <CardDescription>Kelola tools yang dapat diakses oleh user ini</CardDescription>
             </CardHeader>
