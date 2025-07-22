@@ -13,6 +13,20 @@ import {
 import StatusBadge from "../ui/StatusBadge";
 import DataCard from "../ui/DataCard";
 import EditableField from "../ui/EditableField";
+import {
+  Calendar,
+  Clock,
+  Package,
+  Truck,
+  Timer,
+  Factory,
+  Calculator,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 
 // Fungsi untuk mendapatkan jumlah hari maksimal dalam bulan berdasarkan scheduleName
 const getMaxDaysInMonth = (scheduleName: string): number => {
@@ -59,11 +73,6 @@ const getMaxDaysInMonth = (scheduleName: string): number => {
 
 interface ScheduleCardsViewProps {
   schedule: ScheduleItem[];
-  editingRow: string | null;
-  editForm: Partial<ScheduleItem>;
-  startEdit: (item: ScheduleItem) => void;
-  saveEdit: (itemId: string) => void;
-  cancelEdit: () => void;
   setEditForm: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
   initialStock: number;
   timePerPcs: number;
@@ -73,11 +82,6 @@ interface ScheduleCardsViewProps {
 
 const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   schedule,
-  editingRow,
-  editForm,
-  startEdit,
-  saveEdit,
-  cancelEdit,
   setEditForm,
   initialStock,
   timePerPcs = 257,
@@ -86,6 +90,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 }) => {
   // State untuk loading popup
   const [isLoading, setIsLoading] = useState(false);
+  // State untuk mengelola fokus input
+  const [focusedInputs, setFocusedInputs] = useState<{
+    [key: string]: boolean;
+  }>({});
+
   // Fungsi untuk handle navigasi dengan loading
   const handleNavigateDay = (fn: () => void) => {
     setIsLoading(true);
@@ -201,19 +210,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                             </p>
                             {!dateInfo.isValid && (
                               <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full border border-amber-500/30 w-fit">
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                                  />
-                                </svg>
+                                <AlertTriangle className="w-3 h-3" />
                                 <span className="hidden sm:inline">
                                   Tanggal disesuaikan
                                 </span>
@@ -247,19 +244,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                     <div className="flex items-center justify-center py-8 sm:py-12">
                       <div className="text-center">
                         <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
-                          <svg
-                            className="w-6 h-6 sm:w-8 sm:h-8 text-red-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                          <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-400" />
                         </div>
                         <h3 className="text-lg sm:text-xl font-semibold text-red-400 mb-2">
                           Hari Libur
@@ -288,7 +273,6 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                         calculated,
                         timePerPcs,
                       );
-                      const isEditing = editingRow === row.id;
 
                       // Output 1 jam
                       const outputPerHour =
@@ -485,9 +469,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                       return (
                         <div
                           key={row.id}
-                          className={`bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 transition-all duration-300 hover:shadow-2xl hover:border-slate-600/50 ${
-                            isEditing ? "ring-2 ring-blue-500/50" : ""
-                          }`}
+                          className={`bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 transition-all duration-300 hover:shadow-2xl hover:border-slate-600/50`}
                         >
                           {/* Card Header */}
                           <div className="p-4 sm:p-6 border-b border-slate-700/50">
@@ -509,70 +491,6 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                               </div>
                               <div className="flex items-center gap-2 sm:gap-3">
                                 <StatusBadge status={row.status} />
-                                <div className="flex gap-1 sm:gap-2">
-                                  {isEditing ? (
-                                    <>
-                                      <button
-                                        onClick={() => saveEdit(row.id)}
-                                        className="p-1.5 sm:p-2 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-lg transition-all"
-                                        title="Simpan"
-                                      >
-                                        <svg
-                                          className="w-4 h-4 sm:w-5 sm:h-5"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M5 13l4 4L19 7"
-                                          />
-                                        </svg>
-                                      </button>
-                                      <button
-                                        onClick={cancelEdit}
-                                        className="p-1.5 sm:p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all"
-                                        title="Batal"
-                                      >
-                                        <svg
-                                          className="w-4 h-4 sm:w-5 sm:h-5"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M6 18L18 6M6 6l12 12"
-                                          />
-                                        </svg>
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <button
-                                      onClick={() => startEdit(row)}
-                                      className="p-1.5 sm:p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-lg transition-all"
-                                      title="Edit"
-                                    >
-                                      <svg
-                                        className="w-4 h-4 sm:w-5 sm:h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                        />
-                                      </svg>
-                                    </button>
-                                  )}
-                                </div>
                               </div>
                             </div>
                           </div>
@@ -587,9 +505,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      📝
-                                    </span>
+                                    <Calendar className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
                                       Planning (pcs)
                                     </span>
@@ -597,7 +513,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={1}
-                                    value={row.planningPcs ?? ""}
+                                    value={
+                                      focusedInputs[`${row.id}-planningPcs`]
+                                        ? row.planningPcs || ""
+                                        : row.planningPcs || 0
+                                    }
                                     onChange={(e) => {
                                       row.planningPcs =
                                         Number(e.target.value) || 0;
@@ -606,15 +526,25 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                         planningPcs: row.planningPcs,
                                       }));
                                     }}
+                                    onFocus={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-planningPcs`]: true,
+                                      }));
+                                    }}
+                                    onBlur={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-planningPcs`]: false,
+                                      }));
+                                    }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
                                     placeholder=""
                                   />
                                 </div>
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      🚚
-                                    </span>
+                                    <Truck className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
                                       Delivery (pcs)
                                     </span>
@@ -622,7 +552,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={1}
-                                    value={row.delivery ?? ""}
+                                    value={
+                                      focusedInputs[`${row.id}-delivery`]
+                                        ? row.delivery || ""
+                                        : row.delivery || 0
+                                    }
                                     onChange={(e) => {
                                       row.delivery =
                                         Number(e.target.value) || 0;
@@ -631,15 +565,25 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                         delivery: row.delivery,
                                       }));
                                     }}
+                                    onFocus={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-delivery`]: true,
+                                      }));
+                                    }}
+                                    onBlur={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-delivery`]: false,
+                                      }));
+                                    }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
                                     placeholder=""
                                   />
                                 </div>
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      ⏱️
-                                    </span>
+                                    <Timer className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
                                       Overtime (pcs)
                                     </span>
@@ -647,7 +591,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={1}
-                                    value={row.overtimePcs ?? ""}
+                                    value={
+                                      focusedInputs[`${row.id}-overtimePcs`]
+                                        ? row.overtimePcs || ""
+                                        : row.overtimePcs || 0
+                                    }
                                     onChange={(e) => {
                                       row.overtimePcs =
                                         Number(e.target.value) || 0;
@@ -656,28 +604,16 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                         overtimePcs: row.overtimePcs,
                                       }));
                                     }}
-                                    className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
-                                    placeholder=""
-                                  />
-                                </div>
-                                <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
-                                  <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      🏭
-                                    </span>
-                                    <span className="text-blue-200/90 font-semibold text-xs">
-                                      Hasil Produksi (pcs)
-                                    </span>
-                                  </div>
-                                  <input
-                                    type="number"
-                                    step={1}
-                                    value={row.pcs ?? ""}
-                                    onChange={(e) => {
-                                      row.pcs = Number(e.target.value) || 0;
-                                      setEditForm((prev) => ({
+                                    onFocus={() => {
+                                      setFocusedInputs((prev) => ({
                                         ...prev,
-                                        pcs: row.pcs,
+                                        [`${row.id}-overtimePcs`]: true,
+                                      }));
+                                    }}
+                                    onBlur={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-overtimePcs`]: false,
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
@@ -686,9 +622,45 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 </div>
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      ⏲️
+                                    <Factory className="w-4 h-4 text-blue-300" />
+                                    <span className="text-blue-200/90 font-semibold text-xs">
+                                      Hasil Produksi (pcs)
                                     </span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step={1}
+                                    value={
+                                      focusedInputs[`${row.id}-pcs`]
+                                        ? row.pcs || ""
+                                        : row.pcs || 0
+                                    }
+                                    onChange={(e) => {
+                                      row.pcs = Number(e.target.value) || 0;
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        pcs: row.pcs,
+                                      }));
+                                    }}
+                                    onFocus={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-pcs`]: true,
+                                      }));
+                                    }}
+                                    onBlur={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-pcs`]: false,
+                                      }));
+                                    }}
+                                    className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
+                                    placeholder=""
+                                  />
+                                </div>
+                                <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <Clock className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
                                       Jam Produksi Aktual
                                     </span>
@@ -696,7 +668,13 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <input
                                     type="number"
                                     step={0.1}
-                                    value={row.jamProduksiAktual ?? ""}
+                                    value={
+                                      focusedInputs[
+                                        `${row.id}-jamProduksiAktual`
+                                      ]
+                                        ? row.jamProduksiAktual || ""
+                                        : row.jamProduksiAktual || 0
+                                    }
                                     onChange={(e) => {
                                       row.jamProduksiAktual =
                                         Number(e.target.value) || 0;
@@ -704,6 +682,18 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                         ...prev,
                                         jamProduksiAktual:
                                           row.jamProduksiAktual,
+                                      }));
+                                    }}
+                                    onFocus={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-jamProduksiAktual`]: true,
+                                      }));
+                                    }}
+                                    onBlur={() => {
+                                      setFocusedInputs((prev) => ({
+                                        ...prev,
+                                        [`${row.id}-jamProduksiAktual`]: false,
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
@@ -722,9 +712,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 {row.shift === "1" && (
                                   <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                     <div className="flex items-center gap-1 mb-0.5 w-full">
-                                      <span className="text-sm sm:text-base">
-                                        🚚
-                                      </span>
+                                      <Truck className="w-4 h-4 text-slate-300" />
                                       <span className="font-semibold text-xs text-slate-300/90">
                                         Akumulasi Delivery Shift 1
                                       </span>
@@ -737,9 +725,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 {row.shift === "2" && (
                                   <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                     <div className="flex items-center gap-1 mb-0.5 w-full">
-                                      <span className="text-sm sm:text-base">
-                                        🚚
-                                      </span>
+                                      <Truck className="w-4 h-4 text-slate-300" />
                                       <span className="font-semibold text-xs text-slate-300/90">
                                         Akumulasi Delivery Shift 2
                                       </span>
@@ -751,9 +737,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 )}
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      ⏰
-                                    </span>
+                                    <Clock className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
                                       Planning (jam)
                                     </span>
@@ -764,9 +748,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 </div>
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      ⏱️
-                                    </span>
+                                    <Timer className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
                                       Overtime (jam)
                                     </span>
@@ -777,9 +759,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 </div>
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      ⏲️
-                                    </span>
+                                    <Clock className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
                                       Jam Produksi (Cycle Time)
                                     </span>
@@ -790,9 +770,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 </div>
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      🏭
-                                    </span>
+                                    <Factory className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
                                       Akumulasi Hasil Produksi
                                     </span>
@@ -803,9 +781,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 </div>
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      🧮
-                                    </span>
+                                    <Calculator className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
                                       Teori Stock
                                     </span>
@@ -816,9 +792,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 </div>
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      🟦
-                                    </span>
+                                    <Package className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
                                       Actual Stock
                                     </span>
@@ -829,9 +803,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                 </div>
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <span className="text-sm sm:text-base">
-                                      🟩
-                                    </span>
+                                    <TrendingUp className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
                                       Rencana Stock
                                     </span>
@@ -973,7 +945,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700 shadow-2xl mx-4">
             <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-blue-500"></div>
+              <Loader2 className="animate-spin h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
               <span className="text-white font-medium text-sm sm:text-base">
                 Memuat data...
               </span>

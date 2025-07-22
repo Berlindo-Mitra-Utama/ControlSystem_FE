@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 
 interface CoilFormData {
-  materialType: string; // Material type selection
   speckMaterial: string; // Rms
   diameterLuar: string; // Mm
   diameterDalam: string; // Mm
@@ -36,7 +35,6 @@ interface CoilCalculationResult {
 
 const EnhancedCoilCalculator: React.FC = () => {
   const [formData, setFormData] = useState<CoilFormData>({
-    materialType: "",
     speckMaterial: "",
     diameterLuar: "",
     diameterDalam: "",
@@ -160,7 +158,6 @@ const EnhancedCoilCalculator: React.FC = () => {
 
   const handleClear = () => {
     setFormData({
-      materialType: "",
       speckMaterial: "",
       diameterLuar: "",
       diameterDalam: "",
@@ -171,31 +168,13 @@ const EnhancedCoilCalculator: React.FC = () => {
     });
   };
 
-  // Material options with default speck material values
-  const materialOptions = [
-    { value: "", label: "Pilih Material", speckMaterial: "" },
-    { value: "SUS 309 L", label: "SUS 309 L", speckMaterial: "7.75" },
-    { value: "SUS 409 L", label: "SUS 409 L", speckMaterial: "7.75" },
-    { value: "SPHC", label: "SPHC", speckMaterial: "7.85" },
-    { value: "S400", label: "S400", speckMaterial: "7.85" },
-    { value: "Alumunium", label: "Alumunium", speckMaterial: "2.7" },
-    { value: "Cu", label: "Cu", speckMaterial: "8.93" },
-    { value: "Cr", label: "Cr", speckMaterial: "8.93" },
-  ];
-
-  const handleMaterialChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedMaterial = materialOptions.find(
-      (option) => option.value === e.target.value,
-    );
-
-    setFormData({
-      ...formData,
-      materialType: e.target.value,
-      speckMaterial: selectedMaterial?.speckMaterial || "",
-    });
-  };
-
   const inputFields = [
+    {
+      name: "speckMaterial",
+      label: "Speck Material",
+      unit: "Rms",
+      icon: Package,
+    },
     { name: "diameterLuar", label: "Diameter Luar", unit: "Mm", icon: Ruler },
     { name: "diameterDalam", label: "Diameter Dalam", unit: "Mm", icon: Ruler },
     { name: "lebarCoil", label: "Lebar Coil", unit: "Mm", icon: Ruler },
@@ -302,46 +281,6 @@ const EnhancedCoilCalculator: React.FC = () => {
                 <h2 className="text-lg font-bold text-white">
                   Input Parameters
                 </h2>
-              </div>
-
-              {/* Material Selection Dropdown */}
-              <div className="mb-4">
-                <label className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
-                  <Package className="w-3 h-3" />
-                  Pilih Material
-                </label>
-                <select
-                  value={formData.materialType}
-                  onChange={handleMaterialChange}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 backdrop-blur-sm"
-                >
-                  {materialOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Speck Material Display */}
-              <div className="mb-4">
-                <label className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
-                  <Package className="w-3 h-3" />
-                  Speck Material
-                  <span className="text-gray-500 text-xs">(Rms)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.speckMaterial}
-                    readOnly
-                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm cursor-not-allowed backdrop-blur-sm"
-                    placeholder="Pilih material terlebih dahulu"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs font-medium">
-                    Rms
-                  </div>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
