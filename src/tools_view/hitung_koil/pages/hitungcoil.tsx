@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 interface CoilFormData {
+  materialType: string; // Material type selection
   speckMaterial: string; // Rms
   diameterLuar: string; // Mm
   diameterDalam: string; // Mm
@@ -35,6 +36,7 @@ interface CoilCalculationResult {
 
 const EnhancedCoilCalculator: React.FC = () => {
   const [formData, setFormData] = useState<CoilFormData>({
+    materialType: "",
     speckMaterial: "",
     diameterLuar: "",
     diameterDalam: "",
@@ -53,6 +55,18 @@ const EnhancedCoilCalculator: React.FC = () => {
     waktuProses: 0,
     qty: 0,
   });
+
+  // Material options with default speck material values
+  const materialOptions = [
+    { value: "", label: "Pilih Material", speckMaterial: "" },
+    { value: "SUS 309 L", label: "SUS 309 L", speckMaterial: "7.75" },
+    { value: "SUS 409 L", label: "SUS 409 L", speckMaterial: "7.75" },
+    { value: "SPHC", label: "SPHC", speckMaterial: "7.85" },
+    { value: "S400", label: "S400", speckMaterial: "7.85" },
+    { value: "Alumunium", label: "Alumunium", speckMaterial: "2.7" },
+    { value: "Cu", label: "Cu", speckMaterial: "8.93" },
+    { value: "Cr", label: "Cr", speckMaterial: "8.93" },
+  ];
 
   // Menghitung hasil berdasarkan rumus yang diberikan
   useEffect(() => {
@@ -156,8 +170,22 @@ const EnhancedCoilCalculator: React.FC = () => {
     });
   };
 
+  const handleMaterialChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value;
+    const selectedMaterial = materialOptions.find(
+      (option) => option.value === selectedValue,
+    );
+
+    setFormData({
+      ...formData,
+      materialType: selectedValue,
+      speckMaterial: selectedMaterial?.speckMaterial || "",
+    });
+  };
+
   const handleClear = () => {
     setFormData({
+      materialType: "",
       speckMaterial: "",
       diameterLuar: "",
       diameterDalam: "",
@@ -283,6 +311,25 @@ const EnhancedCoilCalculator: React.FC = () => {
                 </h2>
               </div>
 
+              {/* Material Selection Dropdown */}
+              <div className="mb-4">
+                <label className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
+                  <Package className="w-3 h-3" />
+                  Pilih Material
+                </label>
+                <select
+                  value={formData.materialType}
+                  onChange={handleMaterialChange}
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 backdrop-blur-sm"
+                >
+                  {materialOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {inputFields.map((field, index) => {
                   const IconComponent = field.icon;
@@ -293,16 +340,26 @@ const EnhancedCoilCalculator: React.FC = () => {
                         {field.label}
                       </label>
                       <div className="relative">
-                        <input
-                          type="number"
-                          name={field.name}
-                          value={formData[field.name as keyof CoilFormData]}
-                          onChange={handleChange}
-                          min="0"
-                          step="any"
-                          className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none backdrop-blur-sm"
-                          placeholder="0"
-                        />
+                        {field.name === "speckMaterial" ? (
+                          <input
+                            type="text"
+                            value={formData.speckMaterial}
+                            readOnly
+                            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm cursor-not-allowed backdrop-blur-sm"
+                            placeholder="Pilih material terlebih dahulu"
+                          />
+                        ) : (
+                          <input
+                            type="number"
+                            name={field.name}
+                            value={formData[field.name as keyof CoilFormData]}
+                            onChange={handleChange}
+                            min="0"
+                            step="any"
+                            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none backdrop-blur-sm"
+                            placeholder="0"
+                          />
+                        )}
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs font-medium">
                           {field.unit}
                         </div>
