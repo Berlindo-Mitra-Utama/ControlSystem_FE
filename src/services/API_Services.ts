@@ -182,7 +182,7 @@ export const UserToolsService = {
   // Get tools for specific user (admin only)
   getUserTools: async (userId: number): Promise<ToolResponse> => {
     try {
-      const response = await api.get(`/user-tools/users/${userId}/tools`);
+      const response = await api.get(`/users/${userId}/tools`);
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -195,7 +195,7 @@ export const UserToolsService = {
   // Add tool access for user (admin only)
   addUserTool: async (userId: number, toolName: string): Promise<any> => {
     try {
-      const response = await api.post('/user-tools/tools/add', { userId, toolName });
+      const response = await api.post('/tools/add', { userId, toolName });
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -208,7 +208,7 @@ export const UserToolsService = {
   // Remove tool access from user (admin only)
   removeUserTool: async (userId: number, toolName: string): Promise<any> => {
     try {
-      const response = await api.post('/user-tools/tools/remove', { userId, toolName });
+      const response = await api.post('/tools/remove', { userId, toolName });
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
