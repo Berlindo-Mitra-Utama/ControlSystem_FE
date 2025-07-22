@@ -81,25 +81,30 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="scheduler-bg w-full min-h-screen">
-      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-blue-400 mb-8">Dashboard</h1>
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-blue-400 mb-4 sm:mb-8">
+          Dashboard
+        </h1>
         <StatsCards stats={stats} />
 
         {savedSchedules.length > 0 ? (
-          <div className="mt-20">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-3xl font-semibold text-blue-400">
+          <div className="mt-12 sm:mt-20">
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-2xl sm:text-3xl font-semibold text-blue-400">
                 Production Chart
               </h2>
-              <div className="flex items-center space-x-4">
-                <label htmlFor="partSelect" className="text-white">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                <label
+                  htmlFor="partSelect"
+                  className="text-white text-sm sm:text-base"
+                >
                   Pilih Part:
                 </label>
                 <select
                   id="partSelect"
                   value={selectedPart}
                   onChange={handlePartChange}
-                  className="bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base w-full sm:w-auto"
                 >
                   {partOptions.map((part) => (
                     <option key={part} value={part}>

@@ -5,8 +5,50 @@ import React from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/ui/Modal";
-import CompactDatePicker from "../components/ui/CompactDatePicker";
 import { useNotification } from "../../../hooks/useNotification";
+
+// CSS untuk animasi
+const fadeInUpAnimation = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+// Inject CSS menggunakan useEffect
+const injectCSS = () => {
+  if (typeof document !== "undefined") {
+    const existingStyle = document.getElementById("fadeInUp-animation");
+    if (!existingStyle) {
+      const style = document.createElement("style");
+      style.id = "fadeInUp-animation";
+      style.textContent = fadeInUpAnimation;
+      document.head.appendChild(style);
+    }
+  }
+};
+
+// Konstanta untuk nama bulan
+const MONTHS = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
 interface ScheduleItem {
   id: string;
@@ -19,13 +61,12 @@ interface ScheduleItem {
   status: "Normal" | "Gangguan" | "Completed";
   actualPcs?: number;
   notes?: string;
-  delivery?: number; // jumlah permintaan customer per hari
-  // Kolom hasil perhitungan planning produksi:
+  delivery?: number;
   planningPcs?: number;
   overtimePcs?: number;
   sisaPlanningPcs?: number;
   sisaStock?: number;
-  selisih?: number; // selisih planning pcs jika diedit, hanya untuk tampilan
+  selisih?: number;
 }
 
 interface DataItem {
@@ -73,6 +114,12 @@ const SchedulerPage: React.FC = () => {
     showSuccess,
     showConfirm,
   } = useNotification();
+
+  // Inject CSS untuk animasi
+  useEffect(() => {
+    injectCSS();
+  }, []);
+
   const [form, setForm] = useState({
     part: "",
     customer: "",
@@ -80,7 +127,7 @@ const SchedulerPage: React.FC = () => {
     cycle1: 0,
     cycle7: 0,
     cycle35: 0,
-    stock: 0,
+    stock: 332,
     planningHour: 274,
     overtimeHour: 119,
     planningPcs: 3838,
@@ -91,43 +138,44 @@ const SchedulerPage: React.FC = () => {
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [showProductionForm, setShowProductionForm] = useState(false);
-  // Show "Add New Production Planning" button if a schedule is loaded
-  const [showAddButton, setShowAddButton] = useState(false);
-
-  useEffect(() => {
-    if (loadedSchedule && loadedSchedule.schedule.length > 0) {
-      setShowAddButton(true);
-    } else {
-      setShowAddButton(false);
-    }
-  }, [loadedSchedule]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingRow, setEditingRow] = useState<string | null>(null);
+
   const [editForm, setEditForm] = useState<Partial<ScheduleItem>>({});
-  const [showSavedSchedules, setShowSavedSchedules] = useState(false);
 
   // Date picker states
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [searchDate, setSearchDate] = useState("");
+  const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
+  const [showSavedScheduleModal, setShowSavedScheduleModal] = useState(false);
+  const [tempSelectedMonth, setTempSelectedMonth] = useState(
+    new Date().getMonth(),
+  );
+  const [tempSelectedYear, setTempSelectedYear] = useState(
+    new Date().getFullYear(),
+  );
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showDropdown && !target.closest(".dropdown-container")) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
 
   // Generate schedule name from selected month/year
   const getScheduleName = () => {
-    const months = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-    return `${months[selectedMonth]} ${selectedYear}`;
+    return `${MONTHS[selectedMonth]} ${selectedYear}`;
   };
 
   // Automatically load schedule if loadedSchedule prop changes
@@ -136,26 +184,11 @@ const SchedulerPage: React.FC = () => {
       setForm(loadedSchedule.form);
       setSchedule(loadedSchedule.schedule);
 
-      // Extract month and year from saved schedule name
       const scheduleName = loadedSchedule.name;
-      const months = [
-        "Januari",
-        "Februari",
-        "Maret",
-        "April",
-        "Mei",
-        "Juni",
-        "Juli",
-        "Agustus",
-        "September",
-        "Oktober",
-        "November",
-        "Desember",
-      ];
 
       // Parse the schedule name to get month and year
-      for (let i = 0; i < months.length; i++) {
-        if (scheduleName.includes(months[i])) {
+      for (let i = 0; i < MONTHS.length; i++) {
+        if (scheduleName.includes(MONTHS[i])) {
           setSelectedMonth(i);
 
           // Extract year using regex
@@ -246,7 +279,6 @@ const SchedulerPage: React.FC = () => {
     const { name, value } = e.target;
     const numericValue = Number.parseFloat(value);
     if (name === "manpowers") {
-      // handled by custom handler, not here
       return;
     }
     if (numericValue < 0) return;
@@ -687,13 +719,38 @@ const SchedulerPage: React.FC = () => {
     setEditForm({});
   };
 
-  const saveSchedule = () => {
+  // Modified save function to show saved schedule modal first
+  const handleSaveClick = () => {
+    setTempSelectedMonth(selectedMonth);
+    setTempSelectedYear(selectedYear);
+    setShowSavedScheduleModal(true);
+  };
+
+  // Modified function to handle actual save after modal confirmation
+  const handleConfirmSave = () => {
+    setShowSavedScheduleModal(false);
+
+    // Panggil saveSchedule dengan parameter bulan dan tahun yang dipilih
+    saveSchedule(tempSelectedMonth, tempSelectedYear);
+
+    // Update state setelah save berhasil
+    setSelectedMonth(tempSelectedMonth);
+    setSelectedYear(tempSelectedYear);
+  };
+
+  const saveSchedule = (monthOverride?: number, yearOverride?: number) => {
     if (!form.part) {
       showAlert("Silakan pilih part terlebih dahulu", "Peringatan");
       return;
     }
 
-    const scheduleName = getScheduleName();
+    // Gunakan parameter override jika ada, atau gunakan state yang ada
+    const currentMonth =
+      monthOverride !== undefined ? monthOverride : selectedMonth;
+    const currentYear =
+      yearOverride !== undefined ? yearOverride : selectedYear;
+
+    const scheduleName = `${MONTHS[currentMonth]} ${currentYear}`;
 
     // Check if schedule already exists for this part and month/year
     const existingSchedule = savedSchedules.find(
@@ -745,132 +802,26 @@ const SchedulerPage: React.FC = () => {
     }
   };
 
-  // Load a saved schedule into the current state
-  const loadSchedule = (savedSchedule: SavedSchedule) => {
-    setForm(savedSchedule.form);
-    setSchedule(savedSchedule.schedule);
-    setShowSavedSchedules(false);
-    setTimeout(() => {
-      const tableSection = document.getElementById("schedule-table-section");
-      if (tableSection) {
-        tableSection.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }, 200);
-  };
-
-  // Delete a saved schedule
-  const deleteSchedule = (id: string) => {
-    const updatedSchedules = savedSchedules.filter((s) => s.id !== id);
-    setSavedSchedules(updatedSchedules);
-    localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
-  };
-
   return (
-    <div className="w-full min-h-screen flex items-start justify-center pt-20">
+    <div className="w-full min-h-screen flex items-start justify-center pt-16 sm:pt-20">
       {/* SchedulerPage main content */}
-      <div className="w-full max-w-none mx-auto px-2 sm:px-4 lg:px-6 ">
+      <div className="w-full max-w-none mx-auto px-2 sm:px-4 lg:px-6">
         {/* Main content below */}
         {/* ...existing code... */}
-        {/* Add New Production Planning Button (below navbar) */}
-        {showAddButton && (
-          <div className="flex justify-start mt-6 px-8">
-            <button
-              onClick={() => setShowProductionForm(true)}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Tambah Penjadwalan Baru
-            </button>
-          </div>
-        )}
-        {/* Saved Schedules Modal */}
-        {showSavedSchedules && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-            <div
-              className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
-              style={{ maxWidth: "600px", maxHeight: "90vh" }}
-            >
-              <button
-                className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
-                onClick={() => setShowSavedSchedules(false)}
-                aria-label="Tutup"
-              >
-                ×
-              </button>
-              <div className="p-8">
-                <h2 className="text-xl font-bold text-white mb-4">
-                  Jadwal Tersimpan
-                </h2>
-                {savedSchedules.length === 0 ? (
-                  <div className="text-gray-400">
-                    Belum ada jadwal yang disimpan.
-                  </div>
-                ) : (
-                  <ul className="space-y-4">
-                    {savedSchedules.map((s) => (
-                      <li
-                        key={s.id}
-                        className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3"
-                      >
-                        <div>
-                          <div className="font-semibold text-white">
-                            {s.name}
-                          </div>
-                          <div className="text-xs text-gray-400">{s.date}</div>
-                        </div>
-                        <div className="flex gap-2">
-                          // Di bagian tombol "Tampilkan" dalam modal Saved
-                          Schedules (sekitar baris 604-605):
-                          <button
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                            onClick={() => {
-                              loadSchedule(s);
-                              navigate("/scheduler");
-                            }}
-                          >
-                            Tampilkan
-                          </button>
-                          <button
-                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
-                            onClick={() => deleteSchedule(s.id)}
-                          >
-                            Hapus
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Production Form Modal */}
         {showProductionForm && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
             onClick={() => setShowProductionForm(false)}
           >
             <div
-              className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 relative border border-gray-800 animate-fadeInUp overflow-y-auto"
+              className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl relative border border-gray-800 animate-fadeInUp overflow-y-auto"
               style={{ maxWidth: "800px", maxHeight: "90vh" }}
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-2xl font-bold z-10"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-red-400 text-xl sm:text-2xl font-bold z-10"
                 onClick={() => setShowProductionForm(false)}
                 aria-label="Tutup"
               >
@@ -897,20 +848,163 @@ const SchedulerPage: React.FC = () => {
           </div>
         )}
 
+        {/* Saved Schedule Modal dengan Month/Year Picker */}
+        {showSavedScheduleModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
+            onClick={() => setShowSavedScheduleModal(false)}
+          >
+            <div
+              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl w-full max-w-md relative border border-slate-700"
+              style={{
+                animation: "fadeInUp 0.3s ease-out",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 sm:px-8 py-4 sm:py-6 rounded-t-3xl border-b border-slate-600">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                      <svg
+                        className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                        />
+                      </svg>
+                      Simpan Jadwal
+                    </h2>
+                    <p className="text-slate-400 mt-1 text-sm sm:text-base">
+                      Pilih bulan dan tahun untuk menyimpan jadwal
+                    </p>
+                  </div>
+                  <button
+                    className="text-gray-400 hover:text-red-400 text-xl sm:text-2xl font-bold transition-colors"
+                    onClick={() => setShowSavedScheduleModal(false)}
+                    aria-label="Tutup"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 sm:p-8">
+                {/* Month Picker */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+                    Pilih Bulan
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    {MONTHS.map((month, index) => (
+                      <button
+                        key={month}
+                        onClick={() => setTempSelectedMonth(index)}
+                        className={`px-2 sm:px-4 py-2 sm:py-3 rounded-xl border-2 transition-all duration-200 font-medium text-xs sm:text-sm ${
+                          tempSelectedMonth === index
+                            ? "bg-blue-600 border-blue-500 text-white shadow-lg scale-105"
+                            : "bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500"
+                        }`}
+                      >
+                        {month}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Year Picker */}
+                <div className="mb-6 sm:mb-8">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+                    Pilih Tahun
+                  </label>
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <button
+                      onClick={() => setTempSelectedYear(tempSelectedYear - 1)}
+                      className="p-1.5 sm:p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700 hover:border-slate-500 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4 sm:w-5 sm:h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    <div className="flex-1 text-center">
+                      <span className="text-xl sm:text-2xl font-bold text-white bg-slate-800 border border-slate-600 rounded-lg px-4 sm:px-6 py-2 sm:py-3 inline-block min-w-[100px] sm:min-w-[120px]">
+                        {tempSelectedYear}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => setTempSelectedYear(tempSelectedYear + 1)}
+                      className="p-1.5 sm:p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700 hover:border-slate-500 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4 sm:w-5 sm:h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Buttons - Modified to show only "Simpan" */}
+                <div className="flex gap-3 sm:gap-4">
+                  <button
+                    onClick={() => setShowSavedScheduleModal(false)}
+                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-all duration-200 border border-slate-600 hover:border-slate-500 text-sm sm:text-base"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleConfirmSave}
+                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* If no schedule, show blank state */}
         {schedule.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[600px] bg-gray-900 border border-gray-800 rounded-3xl p-16 mx-auto max-w-4xl">
+          <div className="flex flex-col items-center justify-center min-h-[500px] sm:min-h-[600px] bg-gray-900 border border-gray-800 rounded-3xl p-8 sm:p-16 mx-auto max-w-4xl">
             <div className="text-center">
-              <h2 className="text-4xl font-bold text-white mb-4">
+              <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">
                 Jadwal Produksi belum dibuat
               </h2>
-              <p className="text-xl text-gray-400 mb-8">
+              <p className="text-lg sm:text-xl text-gray-400 mb-6 sm:mb-8">
                 Lakukan penjadwalan sekarang
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={() => setShowProductionForm(true)}
-                  className="px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  className="px-8 sm:px-12 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base sm:text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
                   Tambah Penjadwalan
                 </button>
@@ -918,48 +1012,96 @@ const SchedulerPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div
-            id="schedule-table-section"
-            className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden"
-          >
-            {/* Edit Production Form Button */}
-            <div className="flex justify-end px-8 pt-6">
-              <button
-                onClick={() => setShowProductionForm(true)}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 focus:ring-4 focus:ring-yellow-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                Edit Production Form
-              </button>
-            </div>
-            <div className="border-b border-gray-800 px-8 py-6">
-              <div className="flex items-center justify-between">
+          <div id="schedule-table-section">
+            {/* Dashboard Produksi Header dengan gradasi full */}
+            <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-4 sm:px-8 py-4 sm:py-6 rounded-t-3xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
-                    Production Schedule
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">
+                    🏭 Dashboard Produksi
                   </h2>
-                  <p className="text-gray-400 mt-1">
-                    Your optimized manufacturing timeline - Click to edit status
+                  <p className="text-gray-400 mt-1 text-sm sm:text-base">
+                    Monitoring dan perencanaan produksi harian
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
-                  {/* Month/Year Picker */}
-                  <div className="relative">
+
+                {/* Combined Controls */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+                  {/* View Mode Toggle */}
+                  <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-600">
                     <button
-                      onClick={() => setShowDatePicker(!showDatePicker)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      onClick={() => setViewMode("cards")}
+                      className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
+                        viewMode === "cards"
+                          ? "bg-blue-600 text-white shadow-lg"
+                          : "text-slate-400 hover:text-white hover:bg-slate-700"
+                      }`}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      onClick={() => setViewMode("timeline")}
+                      className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
+                        viewMode === "timeline"
+                          ? "bg-blue-600 text-white shadow-lg"
+                          : "text-slate-400 hover:text-white hover:bg-slate-700"
+                      }`}
+                    >
+                      Table
+                    </button>
+                  </div>
+
+                  {/* Search */}
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg
+                        className="w-4 h-4 text-slate-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={searchDate}
+                      onChange={(e) => setSearchDate(e.target.value)}
+                      placeholder="Cari tanggal..."
+                      className="w-full sm:w-48 pl-10 pr-4 py-2 bg-slate-800/80 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                    {searchDate && (
+                      <button
+                        onClick={() => setSearchDate("")}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-red-400"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  <div className="relative dropdown-container">
+                    <button
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 text-sm"
                     >
                       <svg
                         className="w-4 h-4"
@@ -971,12 +1113,14 @@ const SchedulerPage: React.FC = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
                         />
                       </svg>
-                      <span className="font-medium">{getScheduleName()}</span>
+                      <span className="hidden sm:inline">Menu</span>
                       <svg
-                        className={`w-4 h-4 transition-transform ${showDatePicker ? "rotate-180" : ""}`}
+                        className={`w-4 h-4 transition-transform ${
+                          showDropdown ? "rotate-180" : ""
+                        }`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -990,41 +1134,121 @@ const SchedulerPage: React.FC = () => {
                       </svg>
                     </button>
 
-                    {showDatePicker && (
-                      <CompactDatePicker
-                        selectedMonth={selectedMonth}
-                        selectedYear={selectedYear}
-                        onMonthChange={setSelectedMonth}
-                        onYearChange={setSelectedYear}
-                        onClose={() => setShowDatePicker(false)}
-                      />
+                    {/* Dropdown Content */}
+                    {showDropdown && (
+                      <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-50">
+                        <div className="py-2">
+                          {/* Simpan */}
+                          <button
+                            onClick={() => {
+                              handleSaveClick();
+                              setShowDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 transition-colors flex items-center gap-3 text-sm"
+                          >
+                            <svg
+                              className="w-4 h-4 text-green-400 flex-shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                              />
+                            </svg>
+                            <span className="truncate">Simpan</span>
+                          </button>
+
+                          {/* Tambah Penjadwalan Baru */}
+                          <button
+                            onClick={() => {
+                              setShowProductionForm(true);
+                              setShowDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 transition-colors flex items-center gap-3 text-sm"
+                          >
+                            <svg
+                              className="w-4 h-4 text-blue-400 flex-shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 4v16m8-8H4"
+                              />
+                            </svg>
+                            <span className="truncate">
+                              Tambah Penjadwalan Baru
+                            </span>
+                          </button>
+
+                          {/* Edit Production Form */}
+                          <button
+                            onClick={() => {
+                              setShowProductionForm(true);
+                              setShowDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 transition-colors flex items-center gap-3 text-sm"
+                          >
+                            <svg
+                              className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            <span className="truncate">
+                              Edit Production Form
+                            </span>
+                          </button>
+
+                          <div className="border-t border-slate-600 my-2"></div>
+
+                          {/* Download Excel */}
+                          <button
+                            onClick={() => {
+                              const event = new CustomEvent("downloadExcel");
+                              window.dispatchEvent(event);
+                              setShowDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 transition-colors flex items-center gap-3 text-sm"
+                          >
+                            <svg
+                              className="w-4 h-4 text-green-400 flex-shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                              />
+                            </svg>
+                            <span className="truncate">Download Excel</span>
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
-
-                  <button
-                    onClick={saveSchedule}
-                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 flex items-center gap-2"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                      />
-                    </svg>
-                    Save
-                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="p-4">
+            <div className="bg-gray-900 border border-gray-800 rounded-b-3xl">
               <ScheduleTable
                 schedule={schedule}
                 editingRow={editingRow}
@@ -1036,6 +1260,8 @@ const SchedulerPage: React.FC = () => {
                 initialStock={form.stock}
                 timePerPcs={form.timePerPcs}
                 scheduleName={getScheduleName()}
+                viewMode={viewMode}
+                searchDate={searchDate}
               />
             </div>
           </div>
