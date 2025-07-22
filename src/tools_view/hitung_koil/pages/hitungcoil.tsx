@@ -59,13 +59,13 @@ const EnhancedCoilCalculator: React.FC = () => {
   // Material options with default speck material values
   const materialOptions = [
     { value: "", label: "Pilih Material", speckMaterial: "" },
-    { value: "SUS 309 L", label: "SUS 309 L", speckMaterial: "7.75" },
-    { value: "SUS 409 L", label: "SUS 409 L", speckMaterial: "7.75" },
-    { value: "SPHC", label: "SPHC", speckMaterial: "7.85" },
-    { value: "S400", label: "S400", speckMaterial: "7.85" },
-    { value: "Alumunium", label: "Alumunium", speckMaterial: "2.7" },
-    { value: "Cu", label: "Cu", speckMaterial: "8.93" },
-    { value: "Cr", label: "Cr", speckMaterial: "8.93" },
+    { value: "SUS 309 L", label: "SUS 309 L", speckMaterial: "7,75" },
+    { value: "SUS 409 L", label: "SUS 409 L", speckMaterial: "7,75" },
+    { value: "SPHC", label: "SPHC", speckMaterial: "7,85" },
+    { value: "S400", label: "S400", speckMaterial: "7,85" },
+    { value: "Alumunium", label: "Alumunium", speckMaterial: "2,7" },
+    { value: "Cu", label: "Cu", speckMaterial: "8,93" },
+    { value: "Cr", label: "Cr", speckMaterial: "8,93" },
   ];
 
   // Menghitung hasil berdasarkan rumus yang diberikan
@@ -273,18 +273,6 @@ const EnhancedCoilCalculator: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-4 md:p-8">
       <div className="container mx-auto max-w-6xl">
-        {/* Calculator Header */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-3 p-3 bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800">
-            <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg">
-              <Calculator className="w-6 h-6 text-blue-400" />
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              Hitung Coil
-            </h1>
-          </div>
-        </div>
-
         {/* Calculator Body */}
         <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-3xl overflow-hidden shadow-2xl">
           {/* Calculator Display */}
@@ -406,22 +394,36 @@ const EnhancedCoilCalculator: React.FC = () => {
                                 const menit = Math.round(
                                   (result.waktuProses - jam) * 60,
                                 );
-                                return `${jam}h ${menit}m`;
+                                return jam;
                               })()
                             : field.decimals === 0
-                              ? Math.round(
-                                  result[
-                                    field.key as keyof CoilCalculationResult
-                                  ] as number,
-                                ).toLocaleString()
+                              ? (() => {
+                                  const val = Math.round(
+                                    result[
+                                      field.key as keyof CoilCalculationResult
+                                    ] as number,
+                                  );
+                                  // Untuk qty, hilangkan koma
+                                  return field.key === "qty"
+                                    ? val.toString()
+                                    : val.toString();
+                                })()
                               : (
                                   result[
                                     field.key as keyof CoilCalculationResult
                                   ] as number
-                                ).toFixed(field.decimals)}
+                                ).toFixed(field.decimals).replace('.', ',')}
                         </span>
                         <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded">
-                          {field.unit}
+                          {field.key === "waktuProses"
+                            ? (() => {
+                                const jam = Math.floor(result.waktuProses);
+                                const menit = Math.round(
+                                  (result.waktuProses - jam) * 60,
+                                );
+                                return `${jam} jam ${menit} menit`;
+                              })()
+                            : field.unit}
                         </span>
                       </div>
                     </div>
