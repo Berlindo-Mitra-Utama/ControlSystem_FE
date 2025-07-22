@@ -79,6 +79,7 @@ export default function UserManagementPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({})
+  const [changePassword, setChangePassword] = useState(false)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -90,6 +91,20 @@ export default function UserManagementPage() {
   })
 
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({})
+
+  // Tambahkan useEffect untuk mengisi formData saat editingUser berubah
+  useEffect(() => {
+    if (editingUser) {
+      setFormData({
+        nama: editingUser.nama,
+        nip: editingUser.nip,
+        password: '', // password selalu kosong saat edit
+        role: editingUser.role,
+        tools: editingUser.tools,
+      })
+      setChangePassword(false)
+    }
+  }, [editingUser])
 
   // Filter users based on search and role
   const filteredUsers = users.filter((user) => {
@@ -104,8 +119,9 @@ export default function UserManagementPage() {
     const errors: { [key: string]: string } = {}
     if (!formData.nama.trim()) errors.nama = 'Nama harus diisi'
     if (!formData.nip.trim()) errors.nip = 'NIP harus diisi'
-    if (!formData.password.trim()) errors.password = 'Password harus diisi'
-    if (formData.password.length < 6) errors.password = 'Password minimal 6 karakter'
+    // Password hanya required saat tambah user
+    if (!editingUser && !formData.password.trim()) errors.password = 'Password harus diisi'
+    if (!editingUser && formData.password.length < 6) errors.password = 'Password minimal 6 karakter'
     const existingUser = users.find((u) => u.nip === formData.nip && u.id !== editingUser?.id)
     if (existingUser) errors.nip = 'NIP sudah digunakan'
     setFormErrors(errors)
@@ -169,21 +185,16 @@ export default function UserManagementPage() {
         nama: formData.nama,
         nip: formData.nip,
         password: formData.password,
-        role: formData.role,
+        role: 'user',
       }
       const newApiUser = await AuthService.createUser(userRequest)
-      const toolsToAdd = formData.tools.length > 0 ? formData.tools : getDefaultToolsForRole(formData.role)
-      for (const toolName of toolsToAdd) {
-        try {
-          await UserToolsService.addUserTool(newApiUser.id, toolName)
-        } catch {}
-      }
+      // Tidak assign tools apapun saat create user
       const newUser: UserData = {
         id: newApiUser.id.toString(),
         nama: newApiUser.nama,
         nip: newApiUser.nip,
         role: newApiUser.role as RoleType,
-        tools: toolsToAdd,
+        tools: [],
         createdAt: newApiUser.createdAt,
         updatedAt: newApiUser.updatedAt,
       }
@@ -231,6 +242,7 @@ export default function UserManagementPage() {
       } : user))
       setEditingUser(null)
       resetForm()
+      alert('Berhasil mengupdate user')
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Gagal memperbarui pengguna')
     }
@@ -259,22 +271,39 @@ export default function UserManagementPage() {
         if (user.tools.includes(toolId)) {
           // Remove tool
           await UserToolsService.removeUserTool(parseInt(userId), toolId)
+          // Setelah remove, refetch tools user dari API
+          const toolsResponse = await UserToolsService.getUserTools(parseInt(userId))
+          const newTools = toolsResponse.tools.map((tool: any) => tool.toolName)
+          setUsers(
+            users.map((user) =>
+              user.id === userId
+                ? { ...user, tools: newTools }
+                : user,
+            ),
+          )
+          if (showToolsModal && showToolsModal.id === userId) {
+            setShowToolsModal({ ...showToolsModal, tools: newTools })
+          }
+          alert('Akses tool berhasil dihapus')
         } else {
           // Cek dulu, jangan kirim request jika sudah ada
           if (!user.tools.includes(toolId)) {
             await UserToolsService.addUserTool(parseInt(userId), toolId)
           }
+          // Setelah add, refetch tools user dari API
+          const toolsResponse = await UserToolsService.getUserTools(parseInt(userId))
+          const newTools = toolsResponse.tools.map((tool: any) => tool.toolName)
+          setUsers(
+            users.map((user) =>
+              user.id === userId
+                ? { ...user, tools: newTools }
+                : user,
+            ),
+          )
+          if (showToolsModal && showToolsModal.id === userId) {
+            setShowToolsModal({ ...showToolsModal, tools: newTools })
+          }
         }
-        // Setelah add/remove, refetch tools user dari API
-        const toolsResponse = await UserToolsService.getUserTools(parseInt(userId))
-        const newTools = toolsResponse.tools.map((tool: any) => tool.toolName)
-        setUsers(
-          users.map((user) =>
-            user.id === userId
-              ? { ...user, tools: newTools }
-              : user,
-          ),
-        )
       } catch (err: any) {
         // Tampilkan pesan error detail dari backend jika ada
         alert(err?.message || 'Gagal mengubah akses tool')
@@ -422,107 +451,61 @@ export default function UserManagementPage() {
         {/* Users List */}
         <div className="space-y-4">
           {filteredUsers.map((user) => (
-            <Card key={user.id} className="bg-gray-800/50 border-gray-700">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
-                      <User className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-3 mb-1">
-                        <h3 className="text-lg font-semibold text-white">{user.nama}</h3>
-                        <Badge className={getRoleColor(user.role)}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-400">
-                        <span>NIP: {user.nip}</span>
-                        <span>•</span>
-                        <span>Created: {user.createdAt}</span>
-                        {user.updatedAt && (
-                          <>
-                            <span>•</span>
-                            <span>Updated: {user.updatedAt}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+            <Card key={user.id} className="bg-gray-800/60 border border-gray-700 shadow-lg rounded-xl">
+              <CardContent className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  {/* Avatar inisial nama */}
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-indigo-500 flex items-center justify-center text-2xl font-bold text-white shadow-md">
+                    {user.nama.slice(0,1).toUpperCase()}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      onClick={() => setShowToolsModal(user)}
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                    >
-                      <Settings className="w-4 h-4 mr-1" />
-                      Tools ({user.tools.length})
-                    </Button>
-                    <Button
-                      onClick={() => setEditingUser(user)}
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      onClick={() => setShowDeleteConfirm(user.id)}
-                      variant="outline"
-                      size="sm"
-                      className="border-red-600 text-red-300 hover:bg-red-700/20"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Password Display */}
-                <div className="mb-4 p-3 bg-gray-700/30 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Lock className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-400">Password:</span>
-                      <span className="text-sm text-white font-mono">
-                        {showPasswords[user.id] ? "••••••••" : "••••••••"}
-                      </span>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg font-semibold text-white">{user.nama}</span>
+                      <Badge className={getRoleColor(user.role)}>
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </Badge>
                     </div>
-                    <Button
-                      onClick={() => setShowPasswords({ ...showPasswords, [user.id]: !showPasswords[user.id] })}
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700 h-6 px-2"
-                    >
-                      {showPasswords[user.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Tools Preview */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-300 mb-2">Assigned Tools:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {user.tools.slice(0, 6).map((toolId) => {
-                      const tool = availableTools.find((t) => t.id === toolId)
-                      if (!tool) return null
-                      const IconComponent = tool.icon
-                      return (
-                        <div
-                          key={toolId}
-                          className="flex items-center space-x-1 bg-gray-700/50 px-2 py-1 rounded text-xs"
-                        >
-                          <IconComponent className="w-3 h-3" />
-                          <span>{tool.name}</span>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
+                      <span>NIP: {user.nip}</span>
+                      <span>•</span>
+                      <span>Created: {user.createdAt}</span>
+                      {user.updatedAt && <><span>•</span><span>Updated: {user.updatedAt}</span></>}
+                    </div>
+                    <div className="mt-2">
+                      <span className="font-semibold text-sm text-gray-300">Assigned Tools:</span>
+                      {user.tools.length === 0 ? (
+                        <span className="text-xs text-gray-400 italic ml-2">Belum ada tools yang diassign</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 ml-2 mt-1">
+                          {user.tools.slice(0, 6).map((toolId) => {
+                            const tool = availableTools.find((t) => t.id === toolId)
+                            if (!tool) return null
+                            const IconComponent = tool.icon
+                            return (
+                              <span key={toolId} className="flex items-center gap-1 bg-blue-700/20 border border-blue-500/30 px-2 py-1 rounded-full text-xs text-blue-200 font-medium shadow-sm">
+                                <IconComponent className="w-3 h-3" />
+                                {tool.name}
+                              </span>
+                            )
+                          })}
+                          {user.tools.length > 6 && (
+                            <span className="bg-gray-700/50 px-2 py-1 rounded-full text-xs text-gray-400">+{user.tools.length - 6} more</span>
+                          )}
                         </div>
-                      )
-                    })}
-                    {user.tools.length > 6 && (
-                      <div className="bg-gray-700/50 px-2 py-1 rounded text-xs text-gray-400">
-                        +{user.tools.length - 6} more
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
+                </div>
+                <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-end">
+                  <Button onClick={() => setShowToolsModal(user)} variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                    <Settings className="w-4 h-4 mr-1" /> Tools
+                  </Button>
+                  <Button onClick={() => setEditingUser(user)} variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={() => setShowDeleteConfirm(user.id)} variant="outline" size="sm" className="border-red-600 text-red-300 hover:bg-red-700/20">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -582,79 +565,47 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Pada form tambah user (saat !editingUser): */}
+              {/* 1. Hilangkan dropdown role, set role: 'user' otomatis di formData */}
+              {/* 2. Input password tampil seperti input nama dan NIP (tanpa tombol change password) */}
+              {!editingUser && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.password ? "border-red-500" : "border-gray-600"}`}
+                    className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.password ? 'border-red-500' : 'border-gray-600'}`}
                     placeholder="Masukkan password"
                   />
                   {formErrors.password && <p className="text-red-400 text-xs mt-1">{formErrors.password}</p>}
                 </div>
+              )}
+
+              {/* Pada form edit user, field password tetap seperti sebelumnya (dengan tombol change password) */}
+              {editingUser && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as RoleType })}
-                    className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
-                  >
-                    <option value="user">User</option>
-                    <option value="admin">Administrator</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.password ? "border-red-500" : "border-gray-600"}`}
+                      placeholder="Kosongkan jika tidak ingin mengubah password"
+                      readOnly={!changePassword}
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => setChangePassword((prev) => !prev)}
+                      className={changePassword ? 'bg-gray-600 text-white' : 'bg-blue-600 text-white'}
+                    >
+                      {changePassword ? 'Batal' : 'Change Password'}
+                    </Button>
+                  </div>
+                  {formErrors.password && <p className="text-red-400 text-xs mt-1">{formErrors.password}</p>}
                 </div>
-              </div>
-
-              {/* Tools Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">Tools Access</label>
-                <div className="space-y-4">
-                  {Object.entries(getToolsByCategory(availableTools.map((t) => t.id))).map(([category, tools]) => {
-                    if (tools.length === 0) return null
-                    return (
-                      <div key={category}>
-                        <h4 className="text-sm font-medium text-gray-400 mb-2 capitalize">{category} Tools</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {tools.map((tool) => {
-                            const canAccess = canUserAccessTool(formData.role, tool)
-                            const isSelected = formData.tools.includes(tool.id)
-                            const IconComponent = tool.icon
-
-                            return (
-                              <div
-                                key={tool.id}
-                                className={`flex items-center space-x-3 p-2 rounded-lg border cursor-pointer transition-colors ${
-                                  !canAccess
-                                    ? "bg-gray-700/20 border-gray-600 opacity-50 cursor-not-allowed"
-                                    : isSelected
-                                      ? "bg-blue-500/20 border-blue-500/50"
-                                      : "bg-gray-700/30 border-gray-600 hover:bg-gray-700/50"
-                                }`}
-                                onClick={() => canAccess && handleToolToggle(tool.id)}
-                              >
-                                <div
-                                  className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
-                                    isSelected ? "bg-blue-500 border-blue-500" : "border-gray-500"
-                                  }`}
-                                >
-                                  {isSelected && <Check className="w-3 h-3 text-white" />}
-                                </div>
-                                <IconComponent className="w-4 h-4 text-gray-400" />
-                                <span className={`text-sm ${canAccess ? "text-white" : "text-gray-500"}`}>
-                                  {tool.name}
-                                </span>
-                                {!canAccess && <Lock className="w-3 h-3 text-gray-500 ml-auto" />}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              )}
 
               {/* Actions */}
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
@@ -695,6 +646,11 @@ export default function UserManagementPage() {
               <CardDescription>Kelola tools yang dapat diakses oleh user ini</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {showToolsModal.tools.length === 0 && (
+                <div className="text-center text-gray-400 py-8">
+                  <span>Belum ada tools yang diassign untuk user ini.</span>
+                </div>
+              )}
               {Object.entries(getToolsByCategory(availableTools.map((t) => t.id))).map(([category, tools]) => {
                 if (tools.length === 0) return null
                 return (
