@@ -389,13 +389,7 @@ const EnhancedCoilCalculator: React.FC = () => {
                       <div className="bg-gray-800/50 border border-green-700/20 rounded-lg px-3 py-2 flex items-center justify-between transition-all duration-200 group-hover:border-green-500/40 group-hover:bg-green-950/10 backdrop-blur-sm">
                         <span className="text-white font-mono text-sm font-bold">
                           {field.key === "waktuProses"
-                            ? (() => {
-                                const jam = Math.floor(result.waktuProses);
-                                const menit = Math.round(
-                                  (result.waktuProses - jam) * 60,
-                                );
-                                return jam;
-                              })()
+                            ? ""
                             : field.decimals === 0
                               ? (() => {
                                   const val = Math.round(
@@ -414,17 +408,22 @@ const EnhancedCoilCalculator: React.FC = () => {
                                   ] as number
                                 ).toFixed(field.decimals).replace('.', ',')}
                         </span>
-                        <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded">
-                          {field.key === "waktuProses"
-                            ? (() => {
-                                const jam = Math.floor(result.waktuProses);
-                                const menit = Math.round(
-                                  (result.waktuProses - jam) * 60,
-                                );
-                                return `${jam} jam ${menit} menit`;
-                              })()
-                            : field.unit}
-                        </span>
+                        {field.key === "waktuProses" && (
+                          <span className="w-full text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded">
+                            {(() => {
+                              const jam = Math.floor(result.waktuProses);
+                              const menit = Math.round(
+                                (result.waktuProses - jam) * 60,
+                              );
+                              return `${jam} jam ${menit} menit`;
+                            })()}
+                          </span>
+                        )}
+                        {field.key !== "waktuProses" && (
+                          <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded">
+                            {field.unit}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );

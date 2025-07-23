@@ -33,6 +33,9 @@ import {
   ArrowLeft,
   AlertTriangle,
   Check,
+  Crown,    // Tambahkan impor ini
+  UserCheck, // Tambahkan impor ini
+  Zap       // Tambahkan impor ini
 } from "lucide-react"
 import { useAuth } from "../../../main_view/contexts/AuthContext"
 import { AuthService, UserToolsService, UserData as ApiUserData, UserRequest } from "../../../services/API_Services"
@@ -324,13 +327,13 @@ export default function UserManagementPage() {
       case "admin":
         return "bg-red-500/10 text-red-400 border-red-500/20"
       case "supervisor":
-        return "bg-orange-500/10 text-orange-400 border-orange-500/20"
+        return "bg-orange-500/20 text-orange-300 border-orange-500/30"
       case "planner":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+        return "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-300 border-blue-500/30"
       case "operator":
-        return "bg-green-500/10 text-green-400 border-green-500/20"
+        return "bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 border-green-500/30"
       default:
-        return "bg-gray-500/10 text-gray-400 border-gray-500/20"
+        return "bg-gradient-to-r from-gray-500/20 to-slate-500/20 text-gray-300 border-gray-500/30"
     }
   }
 
@@ -361,151 +364,270 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50">
-        <div className="container mx-auto px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+      {/* Header with enhanced gradient */}
+      <header className="border-b border-gray-800/50 bg-gradient-to-r from-gray-900/80 via-gray-800/60 to-gray-900/80 backdrop-blur-xl">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-3">
-                <Users className="w-6 h-6 text-red-400" />
-                <h1 className="text-xl font-bold text-white">User Management</h1>
-                <Badge className="bg-red-500/10 text-red-400 border-red-500/20">Admin Only</Badge>
+                <div className="p-2 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl shadow-lg">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    User Management
+                  </h1>
+                  <p className="text-xs text-gray-400">Kelola pengguna dan akses sistem</p>
+                </div>
+                <Badge className="bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-300 border border-red-500/30 px-2 py-0.5">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Admin Only
+                </Badge>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
               <Button
                 onClick={() => setShowAddForm(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-sm px-3 py-1.5"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-3 h-3 mr-2" />
                 Tambah User
               </Button>
-              
-                <Button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-all duration-200"
-                >
-                  Logout
-                </Button>
+
+              <Button
+                onClick={handleLogout}
+                className="px-3 py-1.5 bg-gradient-to-r from-gray-700 to-gray-800 text-gray-300 rounded-lg hover:from-gray-600 hover:to-gray-700 hover:text-white transition-all duration-300 shadow-lg text-sm"
+              >
+                Logout
+              </Button>
             </div>
           </div>
         </div>
       </header>
-      
-      <div className="container mx-auto px-6 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-gray-800/50 border-gray-700">
+
+      <div className="container mx-auto px-4 py-6">
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20 backdrop-blur-sm hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-400 mb-1">{users.length}</div>
-              <div className="text-gray-400 text-sm">Total Users</div>
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full">
+                  <Users className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-1">
+                {users.length}
+              </div>
+              <div className="text-gray-400 text-xs font-medium">Total Users</div>
             </CardContent>
           </Card>
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-400 mb-1">
+
+          <Card className="bg-gradient-to-br from-red-500/10 to-pink-500/10 border-red-500/20 backdrop-blur-sm hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-full">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent mb-1">
                 {users.filter((u) => u.role === "admin").length}
               </div>
-              <div className="text-gray-400 text-sm">Administrators</div>
+              <div className="text-gray-400 text-sm font-medium">Administrators</div>
             </CardContent>
           </Card>
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-400 mb-1">{availableTools.length}</div>
-              <div className="text-gray-400 text-sm">Available Tools</div>
+
+          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20 backdrop-blur-sm hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full">
+                  <UserCheck className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent mb-1">
+                {users.filter((u) => u.role === "user").length}
+              </div>
+              <div className="text-gray-400 text-sm font-medium">Regular Users</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 border-purple-500/20 backdrop-blur-sm hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-full">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent mb-1">
+                {availableTools.length}
+              </div>
+              <div className="text-gray-400 text-sm font-medium">Available Tools</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search and Filter */}
-        <Card className="bg-gray-800/50 border-gray-700 mb-6">
-          <CardContent className="p-4">
+        {/* Enhanced Search and Filter */}
+        <Card className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 border-gray-600/50 backdrop-blur-sm mb-8 shadow-xl">
+          <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Cari berdasarkan nama atau NIP..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <select
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500/50 focus:border-gray-500"
-                >
-                  <option value="all">Semua Role</option>
-                  <option value="admin">Administrator</option>
-                  <option value="user">User</option>
-                </select>
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 bg-gray-700/30 px-4 py-3 rounded-xl border border-gray-600/50">
+                  <Filter className="w-5 h-5 text-gray-400" />
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className="bg-transparent text-white focus:outline-none cursor-pointer"
+                  >
+                    <option value="all" className="bg-gray-800">
+                      Semua Role
+                    </option>
+                    <option value="admin" className="bg-gray-800">
+                      Administrator
+                    </option>
+                    <option value="user" className="bg-gray-800">
+                      User
+                    </option>
+                  </select>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Users List */}
-        <div className="space-y-4">
-          {filteredUsers.map((user) => (
-            <Card key={user.id} className="bg-gray-800/60 border border-gray-700 shadow-lg rounded-xl">
-              <CardContent className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  {/* Avatar inisial nama */}
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-indigo-500 flex items-center justify-center text-2xl font-bold text-white shadow-md">
-                    {user.nama.slice(0,1).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg font-semibold text-white">{user.nama}</span>
-                      <Badge className={getRoleColor(user.role)}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
-                      <span>NIP: {user.nip}</span>
-                      <span>•</span>
-                      <span>Created: {user.createdAt}</span>
-                      {user.updatedAt && <><span>•</span><span>Updated: {user.updatedAt}</span></>}
-                    </div>
-                    <div className="mt-2">
-                      <span className="font-semibold text-sm text-gray-300">Assigned Tools:</span>
-                      {user.tools.length === 0 ? (
-                        <span className="text-xs text-gray-400 italic ml-2">Belum ada tools yang diassign</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-2 ml-2 mt-1">
-                          {user.tools.slice(0, 6).map((toolId) => {
-                            const tool = availableTools.find((t) => t.id === toolId)
-                            if (!tool) return null
-                            const IconComponent = tool.icon
-                            return (
-                              <span key={toolId} className="flex items-center gap-1 bg-blue-700/20 border border-blue-500/30 px-2 py-1 rounded-full text-xs text-blue-200 font-medium shadow-sm">
-                                <IconComponent className="w-3 h-3" />
-                                {tool.name}
-                              </span>
-                            )
-                          })}
-                          {user.tools.length > 6 && (
-                            <span className="bg-gray-700/50 px-2 py-1 rounded-full text-xs text-gray-400">+{user.tools.length - 6} more</span>
-                          )}
+        {/* Enhanced Users List */}
+        <div className="space-y-6">
+          {filteredUsers.map((user, index) => (
+            <Card
+              key={user.id}
+              className="bg-gradient-to-r from-gray-800/70 to-gray-700/70 border border-gray-600/50 shadow-xl rounded-2xl backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02] hover:border-gray-500/50"
+            >
+              <CardContent className="p-8">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                  <div className="flex items-start gap-6">
+                    {/* Enhanced Avatar */}
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl ring-4 ring-blue-500/20">
+                        {user.nama.slice(0, 1).toUpperCase()}
+                      </div>
+                      {user.role === "admin" && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Crown className="w-3 h-3 text-white" />
                         </div>
                       )}
                     </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                          {user.nama}
+                        </h3>
+                        <Badge className={`${getRoleColor(user.role)} px-3 py-1 font-medium shadow-lg border`}>
+                          {user.role === "admin" && <Crown className="w-3 h-3 mr-1" />}
+                          {user.role === "user" && <User className="w-3 h-3 mr-1" />}
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </Badge>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400 mb-4">
+                        <div className="flex items-center gap-1 bg-gray-700/30 px-3 py-1 rounded-lg">
+                          <span className="font-medium text-gray-300">NIP:</span>
+                          <span>{user.nip}</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-gray-700/30 px-3 py-1 rounded-lg">
+                          <Calendar className="w-3 h-3" />
+                          <span>{user.createdAt}</span>
+                        </div>
+                        {user.updatedAt && (
+                          <div className="flex items-center gap-1 bg-gray-700/30 px-3 py-1 rounded-lg">
+                            <Edit className="w-3 h-3" />
+                            <span>{user.updatedAt}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Enhanced Tools Display */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Settings className="w-4 h-4 text-gray-400" />
+                          <span className="font-semibold text-sm text-gray-300">Assigned Tools:</span>
+                          <Badge variant="outline" className="text-xs border-gray-600 text-gray-400">
+                            {user.tools.length} tools
+                          </Badge>
+                        </div>
+
+                        {user.tools.length === 0 ? (
+                          <div className="flex items-center gap-2 text-xs text-gray-500 italic bg-gray-700/20 px-3 py-2 rounded-lg border border-gray-600/30">
+                            <AlertTriangle className="w-3 h-3" />
+                            Belum ada tools yang diassign
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {user.tools.slice(0, 4).map((toolId) => {
+                              const tool = availableTools.find((t) => t.id === toolId)
+                              if (!tool) return null
+                              const IconComponent = tool.icon
+                              return (
+                                <div
+                                  key={toolId}
+                                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/30 px-3 py-2 rounded-xl text-xs text-blue-200 font-medium shadow-lg backdrop-blur-sm hover:from-blue-600/30 hover:to-indigo-600/30 transition-all duration-300"
+                                >
+                                  <IconComponent className="w-3 h-3" />
+                                  <span>{tool.name}</span>
+                                </div>
+                              )
+                            })}
+                            {user.tools.length > 4 && (
+                              <div className="flex items-center gap-1 bg-gray-700/40 border border-gray-600/40 px-3 py-2 rounded-xl text-xs text-gray-400 font-medium">
+                                <Plus className="w-3 h-3" />
+                                {user.tools.length - 4} more
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-end">
-                  <Button onClick={() => setShowToolsModal(user)} variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-                    <Settings className="w-4 h-4 mr-1" /> Tools
-                  </Button>
-                  <Button onClick={() => setEditingUser(user)} variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button onClick={() => setShowDeleteConfirm(user.id)} variant="outline" size="sm" className="border-red-600 text-red-300 hover:bg-red-700/20">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+
+                  {/* Enhanced Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3 lg:items-center">
+                    <Button
+                      onClick={() => setShowToolsModal(user)}
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-500/50 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400 transition-all duration-300 shadow-lg backdrop-blur-sm"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Manage Tools
+                    </Button>
+                    <Button
+                      onClick={() => setEditingUser(user)}
+                      variant="outline"
+                      size="sm"
+                      className="border-green-500/50 text-green-300 hover:bg-green-500/20 hover:border-green-400 transition-all duration-300 shadow-lg backdrop-blur-sm"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => setShowDeleteConfirm(user.id)}
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/50 text-red-300 hover:bg-red-500/20 hover:border-red-400 transition-all duration-300 shadow-lg backdrop-blur-sm"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -513,11 +635,20 @@ export default function UserManagementPage() {
         </div>
 
         {filteredUsers.length === 0 && (
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-8 text-center">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-300 mb-2">Tidak ada user ditemukan</h3>
-              <p className="text-gray-400">Coba ubah filter pencarian atau tambah user baru</p>
+          <Card className="bg-gradient-to-br from-gray-800/60 to-gray-700/60 border-gray-600/50 backdrop-blur-sm shadow-xl">
+            <CardContent className="p-12 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <Users className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-300 mb-3">Tidak ada user ditemukan</h3>
+              <p className="text-gray-400 mb-6">Coba ubah filter pencarian atau tambah user baru</p>
+              <Button
+                onClick={() => setShowAddForm(true)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah User Pertama
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -526,89 +657,109 @@ export default function UserManagementPage() {
       {/* Add/Edit User Modal */}
       {(showAddForm || editingUser) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="bg-gray-800 border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center space-x-2">
-                <User className="w-5 h-5" />
-                <span>{editingUser ? "Edit User" : "Tambah User Baru"}</span>
+          <Card className="bg-gradient-to-br from-gray-800/90 to-gray-700/90 border-gray-600/50 w-full max-w-2xl max-h-[90vh] overflow-y-auto backdrop-blur-xl shadow-2xl">
+            <CardHeader className="border-b border-gray-600/50">
+              <CardTitle className="text-white flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl">{editingUser ? "Edit User" : "Tambah User Baru"}</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-400">
                 {editingUser
                   ? "Ubah informasi user dan tools yang dapat diakses"
                   : "Buat akun user baru dengan role dan tools yang sesuai"}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6 p-6">
               {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Nama Lengkap</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Nama Lengkap</label>
                   <input
                     type="text"
                     value={formData.nama}
                     onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                    className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.nama ? "border-red-500" : "border-gray-600"}`}
+                    className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm ${formErrors.nama ? "border-red-500" : "border-gray-600/50"}`}
                     placeholder="Masukkan nama lengkap"
                   />
-                  {formErrors.nama && <p className="text-red-400 text-xs mt-1">{formErrors.nama}</p>}
+                  {formErrors.nama && (
+                    <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {formErrors.nama}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">NIP</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">NIP</label>
                   <input
                     type="text"
                     value={formData.nip}
                     onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
-                    className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.nip ? "border-red-500" : "border-gray-600"}`}
+                    className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm ${formErrors.nip ? "border-red-500" : "border-gray-600/50"}`}
                     placeholder="Masukkan NIP"
                   />
-                  {formErrors.nip && <p className="text-red-400 text-xs mt-1">{formErrors.nip}</p>}
+                  {formErrors.nip && (
+                    <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {formErrors.nip}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Pada form tambah user (saat !editingUser): */}
-              {/* 1. Hilangkan dropdown role, set role: 'user' otomatis di formData */}
-              {/* 2. Input password tampil seperti input nama dan NIP (tanpa tombol change password) */}
+              {/* Password field for new user */}
               {!editingUser && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Password</label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.password ? 'border-red-500' : 'border-gray-600'}`}
+                    className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm ${formErrors.password ? "border-red-500" : "border-gray-600/50"}`}
                     placeholder="Masukkan password"
                   />
-                  {formErrors.password && <p className="text-red-400 text-xs mt-1">{formErrors.password}</p>}
+                  {formErrors.password && (
+                    <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {formErrors.password}
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* Pada form edit user, field password tetap seperti sebelumnya (dengan tombol change password) */}
+              {/* Password field for editing user */}
               {editingUser && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                  <div className="flex items-center space-x-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Password</label>
+                  <div className="flex items-center space-x-3">
                     <input
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${formErrors.password ? "border-red-500" : "border-gray-600"}`}
+                      className={`flex-1 px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm ${formErrors.password ? "border-red-500" : "border-gray-600/50"}`}
                       placeholder="Kosongkan jika tidak ingin mengubah password"
                       readOnly={!changePassword}
                     />
                     <Button
                       type="button"
                       onClick={() => setChangePassword((prev) => !prev)}
-                      className={changePassword ? 'bg-gray-600 text-white' : 'bg-blue-600 text-white'}
+                      className={`px-4 py-3 rounded-xl transition-all duration-300 ${changePassword ? "bg-gray-600 hover:bg-gray-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
                     >
-                      {changePassword ? 'Batal' : 'Change Password'}
+                      {changePassword ? "Batal" : "Change Password"}
                     </Button>
                   </div>
-                  {formErrors.password && <p className="text-red-400 text-xs mt-1">{formErrors.password}</p>}
+                  {formErrors.password && (
+                    <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {formErrors.password}
+                    </p>
+                  )}
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-600/50">
                 <Button
                   onClick={() => {
                     setShowAddForm(false)
@@ -616,14 +767,14 @@ export default function UserManagementPage() {
                     resetForm()
                   }}
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="border-gray-600/50 text-gray-300 hover:bg-gray-700/50 px-6 py-3 rounded-xl transition-all duration-300"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Batal
                 </Button>
                 <Button
                   onClick={editingUser ? handleUpdateUser : handleAddUser}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-3 rounded-xl shadow-lg transition-all duration-300"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {editingUser ? "Update User" : "Tambah User"}
@@ -636,16 +787,18 @@ export default function UserManagementPage() {
 
       {/* Tools Management Modal */}
       {showToolsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="bg-gray-800 border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center space-x-2">
-                <Settings className="w-5 h-5" />
-                <span>Manage Tools - {showToolsModal.nama}</span>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <Card className="bg-gradient-to-br from-gray-800/90 to-gray-700/90 border-gray-600/50 w-full max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl shadow-2xl">
+            <CardHeader className="border-b border-gray-600/50">
+              <CardTitle className="text-white flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg">
+                  <Settings className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl">Manage Tools - {showToolsModal.nama}</span>
               </CardTitle>
-              <CardDescription>Kelola tools yang dapat diakses oleh user ini</CardDescription>
+              <CardDescription className="text-gray-400">Kelola tools yang dapat diakses oleh user ini</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6 p-6">
               {showToolsModal.tools.length === 0 && (
                 <div className="text-center text-gray-400 py-8">
                   <span>Belum ada tools yang diassign untuk user ini.</span>
@@ -708,7 +861,7 @@ export default function UserManagementPage() {
                 )
               })}
 
-              <div className="flex justify-end pt-4 border-t border-gray-700">
+              <div className="flex justify-end pt-4 border-t border-gray-600/50">
                 <Button
                   onClick={() => setShowToolsModal(null)}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
@@ -723,23 +876,25 @@ export default function UserManagementPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="bg-gray-800 border-gray-700 w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center space-x-2">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-                <span>Konfirmasi Hapus</span>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <Card className="bg-gradient-to-br from-gray-800/90 to-gray-700/90 border-red-500/30 w-full max-w-md backdrop-blur-xl shadow-2xl">
+            <CardHeader className="border-b border-gray-600/50">
+              <CardTitle className="text-white flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-red-500 to-pink-600 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl">Konfirmasi Hapus</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-400">
                 Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex justify-end space-x-3">
+            <CardContent className="p-6">
+              <div className="flex justify-end space-x-4">
                 <Button
                   onClick={() => setShowDeleteConfirm(null)}
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="border-gray-600/50 text-gray-300 hover:bg-gray-700"
                 >
                   Batal
                 </Button>
