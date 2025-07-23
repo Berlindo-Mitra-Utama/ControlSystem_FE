@@ -31,7 +31,26 @@ interface ProductionFormProps {
   manpowers?: string[];
   addManPower?: (name: string) => void;
   removeManPower?: (name: string) => void;
+  selectedMonth: number;
+  selectedYear: number;
+  setSelectedMonth: (month: number) => void;
+  setSelectedYear: (year: number) => void;
 }
+
+const MONTHS = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
   form,
@@ -46,9 +65,14 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   manpowers,
   addManPower,
   removeManPower,
+  selectedMonth,
+  selectedYear,
+  setSelectedMonth,
+  setSelectedYear,
 }) => {
   // Man Power Input State (for input field only)
   const [manPowerName, setManPowerName] = useState("");
+  const today = new Date();
 
   // Use manpowers from props or from form
   const manPowers = manpowers || form.manpowers || [];
@@ -75,6 +99,12 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     }
   };
 
+  // Handler untuk generate schedule dengan bulan & tahun
+  const handleGenerateSchedule = () => {
+    setScheduleName(`${MONTHS[selectedMonth]} ${selectedYear}`);
+    generateSchedule();
+  };
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
       <div className="border-b border-gray-800 px-8 py-6">
@@ -87,6 +117,33 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       </div>
 
       <div className="p-8 space-y-8">
+        {/* Pilih Bulan & Tahun Produksi */}
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Bulan Produksi</label>
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {MONTHS.map((m, idx) => (
+                <option key={m} value={idx}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Tahun Produksi</label>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {Array.from({ length: 6 }, (_, i) => today.getFullYear() - 2 + i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </div>
         {/* Part Selection */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-white">Part Selection</h3>
@@ -355,7 +412,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         {/* Action Buttons */}
         <div className="flex justify-center pt-8">
           <button
-            onClick={generateSchedule}
+            onClick={handleGenerateSchedule}
             disabled={isGenerating}
             className="px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-3 shadow-lg"
           >

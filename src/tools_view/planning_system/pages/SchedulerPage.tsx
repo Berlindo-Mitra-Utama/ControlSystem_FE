@@ -278,10 +278,8 @@ const SchedulerPage: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     const numericValue = Number.parseFloat(value);
-    if (name === "manpowers") {
-      return;
-    }
-    if (numericValue < 0) return;
+    if (name === "manpowers") return;
+    if (numericValue < 0 && !isNaN(numericValue)) return;
     if (name === "planningPcs") {
       setForm((prev) => ({
         ...prev,
@@ -843,6 +841,10 @@ const SchedulerPage: React.FC = () => {
                 manpowers={form.manpowers}
                 addManPower={addManPower}
                 removeManPower={removeManPower}
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                setSelectedMonth={setSelectedMonth}
+                setSelectedYear={setSelectedYear}
               />
             </div>
           </div>
