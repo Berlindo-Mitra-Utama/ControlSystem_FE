@@ -767,21 +767,7 @@ const SchedulerPage: React.FC = () => {
 
   // Modified save function to show saved schedule modal first
   const handleSaveClick = () => {
-    setTempSelectedMonth(selectedMonth);
-    setTempSelectedYear(selectedYear);
-    setShowSavedScheduleModal(true);
-  };
-
-  // Modified function to handle actual save after modal confirmation
-  const handleConfirmSave = () => {
-    setShowSavedScheduleModal(false);
-
-    // Panggil saveSchedule dengan parameter bulan dan tahun yang dipilih
-    saveSchedule(tempSelectedMonth, tempSelectedYear);
-
-    // Update state setelah save berhasil
-    setSelectedMonth(tempSelectedMonth);
-    setSelectedYear(tempSelectedYear);
+    saveSchedule();
   };
 
   const saveSchedule = (monthOverride?: number, yearOverride?: number) => {
@@ -848,6 +834,28 @@ const SchedulerPage: React.FC = () => {
     }
   };
 
+  // Tambahkan fungsi resetFormAndSchedule di dalam komponen SchedulerPage
+  const resetFormAndSchedule = () => {
+    setForm({
+      part: "",
+      customer: "",
+      timePerPcs: 257,
+      cycle1: 0,
+      cycle7: 0,
+      cycle35: 0,
+      stock: 332,
+      planningHour: 274,
+      overtimeHour: 119,
+      planningPcs: 3838,
+      overtimePcs: 1672,
+      isManualPlanningPcs: false,
+      manpowers: [],
+    });
+    setSchedule([]);
+    setSelectedMonth(new Date().getMonth());
+    setSelectedYear(new Date().getFullYear());
+  };
+
   return (
     <div className="w-full min-h-screen flex items-start justify-center pt-16 sm:pt-20">
       {/* SchedulerPage main content */}
@@ -899,7 +907,7 @@ const SchedulerPage: React.FC = () => {
         )}
 
         {/* Saved Schedule Modal dengan Month/Year Picker */}
-        {showSavedScheduleModal && (
+        {false && showSavedScheduleModal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
             onClick={() => setShowSavedScheduleModal(false)}
@@ -1030,7 +1038,7 @@ const SchedulerPage: React.FC = () => {
                     Batal
                   </button>
                   <button
-                    onClick={handleConfirmSave}
+                    onClick={handleSaveClick}
                     className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                   >
                     Simpan
@@ -1053,7 +1061,10 @@ const SchedulerPage: React.FC = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
-                  onClick={() => setShowProductionForm(true)}
+                  onClick={() => {
+                    resetFormAndSchedule();
+                    setShowProductionForm(true);
+                  }}
                   className="px-8 sm:px-12 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base sm:text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
                   Tambah Penjadwalan
@@ -1186,7 +1197,10 @@ const SchedulerPage: React.FC = () => {
 
                     {/* Dropdown Content */}
                     {showDropdown && (
-                      <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 border border-slate-600 rounded-xl shadow-2xl z-50 overflow-hidden">
+                      <div
+                        className="absolute right-0 mt-2 w-72 sm:w-80 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 border border-slate-600 rounded-xl shadow-2xl z-50 overflow-y-auto custom-scrollbar"
+                        style={{ overflowX: "hidden" }}
+                      >
                         {/* Header */}
                         <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-3 border-b border-slate-600">
                           <h3 className="text-white font-semibold text-sm flex items-center gap-2">
@@ -1208,8 +1222,11 @@ const SchedulerPage: React.FC = () => {
                         </div>
 
                         {/* Menu Items */}
-                        <div className="py-2 max-h-96 overflow-y-auto custom-scrollbar">
-                          {/* Simpan */}
+                        <div
+                          className="py-2 max-h-96 overflow-y-auto custom-scrollbar"
+                          style={{ overflowX: "hidden" }}
+                        >
+                          {/* Simpan Jadwal */}
                           <div className="relative group menu-item-hover">
                             <button
                               onClick={() => {
@@ -1303,6 +1320,7 @@ const SchedulerPage: React.FC = () => {
                                 {/* Tambah Penjadwalan Baru */}
                                 <button
                                   onClick={() => {
+                                    resetFormAndSchedule();
                                     setShowProductionForm(true);
                                     setShowDropdown(false);
                                     setActiveSubmenu(null);
@@ -1375,131 +1393,46 @@ const SchedulerPage: React.FC = () => {
 
                           {/* Export Section */}
                           <div className="relative group menu-item-hover">
-                            <button
-                              onClick={() =>
-                                setActiveSubmenu(
-                                  activeSubmenu === "export" ? null : "export",
-                                )
-                              }
-                              className="w-full text-left px-4 py-3 text-white hover:bg-gradient-to-r hover:from-purple-600/20 hover:to-pink-600/20 transition-all duration-200 flex items-center gap-3 text-sm group-hover:translate-x-1 relative overflow-hidden group/submenu"
-                              title="Ekspor data jadwal"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/0 to-pink-600/0 group-hover/submenu:from-purple-600/10 group-hover/submenu:to-pink-600/10 transition-all duration-300"></div>
-                              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <svg
-                                  className="w-4 h-4 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                  />
-                                </svg>
-                              </div>
-                              <div className="flex-1">
-                                <span className="font-medium">Export Data</span>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                  Ekspor data jadwal
-                                </p>
-                              </div>
-                              <svg
-                                className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${activeSubmenu === "export" ? "rotate-90" : ""}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                            {/* Download Excel Langsung (bukan submenu) */}
+                            <div className="relative group menu-item-hover">
+                              <button
+                                onClick={() => {
+                                  const event = new CustomEvent(
+                                    "downloadExcel",
+                                  );
+                                  window.dispatchEvent(event);
+                                  setShowDropdown(false);
+                                  setActiveSubmenu(null);
+                                }}
+                                className="w-full text-left px-4 py-3 text-white hover:bg-gradient-to-r hover:from-green-600/20 hover:to-emerald-600/20 transition-all duration-200 flex items-center gap-3 text-sm group-hover:translate-x-1 relative overflow-hidden group/submenu"
+                                title="Download jadwal dalam format Excel"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 5l7 7-7 7"
-                                />
-                              </svg>
-                            </button>
-
-                            {/* Submenu Export */}
-                            {activeSubmenu === "export" && (
-                              <div className="bg-slate-700/50 border-l-2 border-purple-500 ml-4 mr-2 rounded-r-lg overflow-hidden submenu-enter">
-                                {/* Download Excel */}
-                                <button
-                                  onClick={() => {
-                                    const event = new CustomEvent(
-                                      "downloadExcel",
-                                    );
-                                    window.dispatchEvent(event);
-                                    setShowDropdown(false);
-                                    setActiveSubmenu(null);
-                                  }}
-                                  className="w-full text-left px-4 py-3 text-white hover:bg-gradient-to-r hover:from-green-600/30 hover:to-emerald-600/30 transition-all duration-200 flex items-center gap-3 text-sm pl-8 relative overflow-hidden group/submenu"
-                                  title="Download jadwal dalam format Excel"
-                                >
-                                  <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 to-emerald-600/0 group-hover/submenu:from-green-600/10 group-hover/submenu:to-emerald-600/10 transition-all duration-300"></div>
-                                  <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md flex items-center justify-center flex-shrink-0">
-                                    <svg
-                                      className="w-3 h-3 text-white"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                      />
-                                    </svg>
-                                  </div>
-                                  <div className="flex-1">
-                                    <span className="font-medium">
-                                      Download Excel
-                                    </span>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                      Ekspor ke format Excel
-                                    </p>
-                                  </div>
-                                </button>
-
-                                {/* Download PDF */}
-                                <button
-                                  onClick={() => {
-                                    // TODO: Implement PDF download
-                                    setShowDropdown(false);
-                                    setActiveSubmenu(null);
-                                  }}
-                                  className="w-full text-left px-4 py-3 text-white hover:bg-gradient-to-r hover:from-red-600/30 hover:to-pink-600/30 transition-all duration-200 flex items-center gap-3 text-sm pl-8 relative overflow-hidden group/submenu"
-                                  title="Download jadwal dalam format PDF"
-                                >
-                                  <div className="absolute inset-0 bg-gradient-to-r from-red-600/0 to-pink-600/0 group-hover/submenu:from-red-600/10 group-hover/submenu:to-pink-600/10 transition-all duration-300"></div>
-                                  <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-pink-600 rounded-md flex items-center justify-center flex-shrink-0">
-                                    <svg
-                                      className="w-3 h-3 text-white"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                      />
-                                    </svg>
-                                  </div>
-                                  <div className="flex-1">
-                                    <span className="font-medium">
-                                      Download PDF
-                                    </span>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                      Ekspor ke format PDF
-                                    </p>
-                                  </div>
-                                </button>
-                              </div>
-                            )}
+                                <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 to-emerald-600/0 group-hover/submenu:from-green-600/10 group-hover/submenu:to-emerald-600/10 transition-all duration-300"></div>
+                                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <svg
+                                    className="w-4 h-4 text-white"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                    />
+                                  </svg>
+                                </div>
+                                <div className="flex-1">
+                                  <span className="font-medium">
+                                    Download Excel
+                                  </span>
+                                  <p className="text-xs text-slate-400 mt-0.5">
+                                    Ekspor ke format Excel
+                                  </p>
+                                </div>
+                              </button>
+                            </div>
                           </div>
                         </div>
 
