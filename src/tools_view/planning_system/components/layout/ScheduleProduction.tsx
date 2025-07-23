@@ -165,11 +165,6 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
       {viewMode === "cards" ? (
         <ScheduleCardsView
           schedule={props.schedule}
-          editingRow={props.editingRow}
-          editForm={props.editForm}
-          startEdit={props.startEdit}
-          saveEdit={props.saveEdit}
-          cancelEdit={props.cancelEdit}
           setEditForm={props.setEditForm}
           initialStock={props.initialStock}
           timePerPcs={props.timePerPcs}
@@ -183,6 +178,7 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
           timePerPcs={props.timePerPcs}
           initialStock={props.initialStock}
           scheduleName={props.scheduleName}
+          setEditForm={props.setEditForm}
         />
       )}
     </div>
