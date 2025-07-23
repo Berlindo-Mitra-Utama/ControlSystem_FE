@@ -97,28 +97,28 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       icon: TrendingUp,
     },
     {
-      key: "planning-jam",
-      label: "PLANNING (JAM)",
-      category: "planning",
-      icon: Clock,
-    },
-    {
       key: "planning-pcs",
       label: "PLANNING (PCS)",
       category: "planning",
       icon: Target,
     },
     {
-      key: "overtime-jam",
-      label: "OVERTIME (JAM)",
-      category: "overtime",
-      icon: Timer,
+      key: "planning-jam",
+      label: "PLANNING (JAM)",
+      category: "planning",
+      icon: Clock,
     },
     {
       key: "overtime-pcs",
       label: "OVERTIME (PCS)",
       category: "overtime",
       icon: Zap,
+    },
+    {
+      key: "overtime-jam",
+      label: "OVERTIME (JAM)",
+      category: "overtime",
+      icon: Timer,
     },
     {
       key: "jam-produksi",
