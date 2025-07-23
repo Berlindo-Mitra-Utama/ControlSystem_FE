@@ -6,7 +6,13 @@ interface CardProps {
 }
 
 export function Card({ children, className = "" }: CardProps) {
-  return <div className={`bg-gray-800 border border-gray-700 rounded-lg shadow-lg ${className}`}>{children}</div>
+  return (
+    <div
+      className={`bg-gray-800 border border-gray-700 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200 ${className}`}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function CardHeader({ children, className = "" }: CardProps) {
