@@ -180,6 +180,7 @@ const SchedulerPage: React.FC = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState<boolean>(false);
   const [childPartCarouselPage, setChildPartCarouselPage] = useState(0);
   const CHILD_PARTS_PER_PAGE = 5;
+  const [editChildPartIdx, setEditChildPartIdx] = useState<number | null>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1389,6 +1390,7 @@ const SchedulerPage: React.FC = () => {
                           inMaterial={Array.from({ length: days }, () => [null, null])}
                           onInMaterialChange={() => {}}
                           onDelete={undefined}
+                          // Tambahkan prop renderHeaderAction jika ingin custom header
                         />
                         <div className="text-center text-slate-400 py-8 -mt-12">Tidak ada Child Part ditemukan.</div>
                       </div>
@@ -1396,28 +1398,50 @@ const SchedulerPage: React.FC = () => {
                     return (
                       <>
                         <div className="grid grid-cols-1 gap-8">
-                          {pageItems.map((cp, idx) => (
-                            <ChildPartTable
-                              key={startIdx + idx}
-                              partName={cp.partName}
-                              customerName={cp.customerName}
-                              initialStock={cp.stock}
-                              days={days}
-                              schedule={schedule}
-                              onDelete={() => {
-                                // Cari index asli di childParts
-                                const realIdx = childParts.findIndex(c => c === cp);
-                                handleDeleteChildPart(realIdx);
-                                setChildPartCarouselPage(0);
-                              }}
-                              inMaterial={cp.inMaterial}
-                              onInMaterialChange={(val) => {
-                                // Cari index asli di childParts
-                                const realIdx = childParts.findIndex(c => c === cp);
-                                setChildParts((prev) => prev.map((c, i) => i === realIdx ? { ...c, inMaterial: val } : c));
-                              }}
-                            />
-                          ))}
+                          {pageItems.map((cp, idx) => {
+                            const realIdx = childParts.findIndex(c => c === cp);
+                            return (
+                              <ChildPartTable
+                                key={startIdx + idx}
+                                partName={cp.partName}
+                                customerName={cp.customerName}
+                                initialStock={cp.stock}
+                                days={days}
+                                schedule={schedule}
+                                onDelete={() => {
+                                  handleDeleteChildPart(realIdx);
+                                  setChildPartCarouselPage(0);
+                                }}
+                                inMaterial={cp.inMaterial}
+                                onInMaterialChange={(val) => {
+                                  setChildParts((prev) => prev.map((c, i) => i === realIdx ? { ...c, inMaterial: val } : c));
+                                }}
+                                renderHeaderAction={
+                                  <div className="ml-6 flex gap-2 items-center">
+                                    <button
+                                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                                      onClick={() => setEditChildPartIdx(realIdx)}
+                                      type="button"
+                                      style={{ minWidth: 60 }}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-1 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-red-400 transition-all"
+                                      onClick={() => {
+                                        handleDeleteChildPart(realIdx);
+                                        setChildPartCarouselPage(0);
+                                      }}
+                                      type="button"
+                                      style={{ minWidth: 70 }}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                }
+                              />
+                            );
+                          })}
                         </div>
                         {/* Carousel navigation */}
                         {totalPages > 1 && (
@@ -1451,6 +1475,19 @@ const SchedulerPage: React.FC = () => {
               onClose={() => setShowChildPartModal(false)}
               onGenerate={handleGenerateChildPart}
             />
+            {/* Modal Edit Child Part */}
+            {editChildPartIdx !== null && (
+              <ChildPart
+                isOpen={true}
+                onClose={() => setEditChildPartIdx(null)}
+                onGenerate={(data) => {
+                  setChildParts((prev) => prev.map((c, i) => i === editChildPartIdx ? { ...c, ...data } : c));
+                  setEditChildPartIdx(null);
+                }}
+                // Prefill data
+                {...childParts[editChildPartIdx]}
+              />
+            )}
             {/* Jika ingin menampilkan tabel child part, bisa render di sini */}
             {/* {childParts.length > 0 && (
               <div className="mt-6">
