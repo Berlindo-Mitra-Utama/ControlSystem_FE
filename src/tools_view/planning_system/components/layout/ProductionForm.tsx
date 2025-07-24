@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { MONTHS } from "../../utils/scheduleDateUtils";
 
 interface FormData {
   part: string;
@@ -36,21 +37,6 @@ interface ProductionFormProps {
   setSelectedMonth: (month: number) => void;
   setSelectedYear: (year: number) => void;
 }
-
-const MONTHS = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
   form,
@@ -120,26 +106,37 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         {/* Pilih Bulan & Tahun Produksi */}
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Bulan Produksi</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Bulan Produksi
+            </label>
             <select
               value={selectedMonth}
-              onChange={e => setSelectedMonth(Number(e.target.value))}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
               className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {MONTHS.map((m, idx) => (
-                <option key={m} value={idx}>{m}</option>
+                <option key={m} value={idx}>
+                  {m}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Tahun Produksi</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Tahun Produksi
+            </label>
             <select
               value={selectedYear}
-              onChange={e => setSelectedYear(Number(e.target.value))}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {Array.from({ length: 6 }, (_, i) => today.getFullYear() - 2 + i).map(y => (
-                <option key={y} value={y}>{y}</option>
+              {Array.from(
+                { length: 6 },
+                (_, i) => today.getFullYear() - 2 + i,
+              ).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
           </div>

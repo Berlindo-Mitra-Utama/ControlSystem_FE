@@ -5,21 +5,9 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { ScheduleItem } from "../types/scheduleTypes";
 
-interface ScheduleItem {
-  id: string;
-  day: number;
-  shift: string;
-  type: string;
-  pcs: number;
-  time: string;
-  processes: string;
-  status: "Normal" | "Gangguan" | "Completed";
-  actualPcs?: number;
-  notes?: string;
-}
-
-interface SavedSchedule {
+export interface SavedSchedule {
   id: string;
   name: string;
   date: string;

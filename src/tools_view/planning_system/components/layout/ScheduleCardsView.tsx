@@ -5,10 +5,17 @@ import {
   getDayName,
   isWeekend,
   formatValidDate,
+  MONTHS,
+  getMaxDaysInMonth,
 } from "../../utils/scheduleDateUtils";
 import {
   calculateOutputFields,
   checkValidation,
+  calculateOutputPerHour,
+  formatJamProduksi,
+  calculateAkumulasiDelivery,
+  calculateAkumulasiHasilProduksi,
+  calculateStockCustom,
 } from "../../utils/scheduleCalcUtils";
 import StatusBadge from "../ui/StatusBadge";
 import DataCard from "../ui/DataCard";
@@ -27,49 +34,6 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-
-// Fungsi untuk mendapatkan jumlah hari maksimal dalam bulan berdasarkan scheduleName
-const getMaxDaysInMonth = (scheduleName: string): number => {
-  const months = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
-
-  let monthIndex = -1;
-  let year = new Date().getFullYear();
-
-  // Cari bulan dalam scheduleName
-  for (let i = 0; i < months.length; i++) {
-    if (scheduleName.includes(months[i])) {
-      monthIndex = i;
-      break;
-    }
-  }
-
-  // Extract tahun menggunakan regex
-  const yearMatch = scheduleName.match(/(\d{4})/);
-  if (yearMatch && yearMatch[1]) {
-    year = parseInt(yearMatch[1]);
-  }
-
-  // Jika bulan tidak ditemukan, gunakan default
-  if (monthIndex === -1) {
-    monthIndex = 6; // Juli sebagai default
-    year = 2025;
-  }
-
-  return getDaysInMonth(monthIndex, year);
-};
 
 interface ScheduleCardsViewProps {
   schedule: ScheduleItem[];
@@ -275,194 +239,78 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                       );
 
                       // Output 1 jam
-                      const outputPerHour =
-                        timePerPcs > 0 ? Math.floor(3600 / timePerPcs) : 0;
-                      // Akumulasi Delivery Shift 1 & 2
-                      let akumulasiDeliveryShift1 = 0;
-                      let akumulasiDeliveryShift2 = 0;
-
-                      // Deklarasi prevDayGroup dipindahkan ke sini
-                      const prevDayGroup = groupedRows[currentDayIdx - 1];
+                      const outputPerHour = calculateOutputPerHour(
+                        timePerPcs,
+                        [],
+                      );
+                      // Akumulasi Delivery Shift 1 & 2 using utils
+                      const akumulasiDelivery = calculateAkumulasiDelivery(
+                        group.day,
+                        validGroupedRows,
+                        currentDayIdx,
+                      );
 
                       if (row.shift === "1") {
-                        // Untuk shift 1 hari pertama, akumulasi = delivery
-                        if (currentDayIdx === 0) {
-                          akumulasiDeliveryShift1 = row.delivery || 0;
-                        } else {
-                          // Untuk shift 1 hari berikutnya, akumulasi = akumulasi shift 2 hari sebelumnya + delivery shift 1
-                          const prevDay = prevDayGroup
-                            ? prevDayGroup.rows.find((r) => r.shift === "2")
-                            : undefined;
-                          const prevAkumulasi = prevDay
-                            ? (prevDay.akumulasiDelivery ?? 0)
-                            : 0;
-                          akumulasiDeliveryShift1 =
-                            prevAkumulasi + (row.delivery || 0);
-                        }
-                        // Simpan ke row agar bisa dipakai shift berikutnya
-                        row.akumulasiDelivery = akumulasiDeliveryShift1;
+                        row.akumulasiDelivery = akumulasiDelivery.shift1;
                       } else if (row.shift === "2") {
-                        // Untuk shift 2, akumulasi = akumulasi shift 1 hari yang sama + delivery shift 2
-                        const shift1Row = group.rows.find(
-                          (r) => r.shift === "1",
-                        );
-                        const shift1Akumulasi = shift1Row
-                          ? (shift1Row.akumulasiDelivery ?? 0)
-                          : 0;
-                        akumulasiDeliveryShift2 =
-                          shift1Akumulasi + (row.delivery || 0);
-                        // Simpan ke row agar bisa dipakai hari berikutnya
-                        row.akumulasiDelivery = akumulasiDeliveryShift2;
+                        row.akumulasiDelivery = akumulasiDelivery.shift2;
                       }
-                      // Planning (jam) - ceil, 1 digit
-                      const planningJam =
-                        row.planningPcs && outputPerHour > 0
-                          ? (
-                              Math.ceil(
-                                (row.planningPcs / outputPerHour) * 10,
-                              ) / 10
-                            ).toFixed(1)
-                          : "0.0";
+
+                      const akumulasiDeliveryShift1 =
+                        row.shift === "1" ? akumulasiDelivery.shift1 : 0;
+                      const akumulasiDeliveryShift2 =
+                        row.shift === "2" ? akumulasiDelivery.shift2 : 0;
+
+                      // Deklarasi prevDayGroup untuk digunakan di bagian lain
+                      const prevDayGroup = groupedRows[currentDayIdx - 1];
+                      // Planning Produksi (jam) - ceil, 1 digit
+                      const planningJam = formatJamProduksi(
+                        row.planningPcs || 0,
+                        outputPerHour,
+                      );
                       // Overtime (jam) - ceil, 1 digit
-                      const overtimeJam =
-                        row.overtimePcs && outputPerHour > 0
-                          ? (
-                              Math.ceil(
-                                (row.overtimePcs / outputPerHour) * 10,
-                              ) / 10
-                            ).toFixed(1)
-                          : "0.0";
+                      const overtimeJam = formatJamProduksi(
+                        row.overtimePcs || 0,
+                        outputPerHour,
+                      );
                       // Jam Produksi (Cycle Time) - ceil, 1 digit
                       const hasilProduksi = row.pcs || 0;
-                      const jamProduksi =
-                        hasilProduksi === 0
-                          ? "0.0"
-                          : (
-                              Math.ceil((hasilProduksi / outputPerHour) * 10) /
-                              10
-                            ).toFixed(1);
-                      // Akumulasi Hasil Produksi
-                      let akumulasiHasilProduksi = 0;
+                      const jamProduksi = formatJamProduksi(
+                        hasilProduksi,
+                        outputPerHour,
+                      );
+                      // Akumulasi Hasil Produksi Aktual using utils
+                      const akumulasiHasil = calculateAkumulasiHasilProduksi(
+                        group.day,
+                        validGroupedRows,
+                        currentDayIdx,
+                      );
+
                       if (row.shift === "1") {
-                        // Untuk shift 1 hari pertama, akumulasi = hasil produksi
-                        if (currentDayIdx === 0) {
-                          akumulasiHasilProduksi = hasilProduksi;
-                        } else {
-                          // Untuk shift 1 hari berikutnya, akumulasi = akumulasi shift 2 hari sebelumnya + hasil produksi shift 1
-                          const prevDay = prevDayGroup
-                            ? prevDayGroup.rows.find((r) => r.shift === "2")
-                            : undefined;
-                          const prevAkumulasi = prevDay
-                            ? (prevDay.akumulasiHasilProduksi ?? 0)
-                            : 0;
-                          akumulasiHasilProduksi =
-                            prevAkumulasi + hasilProduksi;
-                        }
-                        // Simpan ke row agar bisa dipakai shift berikutnya
-                        row.akumulasiHasilProduksi = akumulasiHasilProduksi;
+                        row.akumulasiHasilProduksi = akumulasiHasil.shift1;
                       } else if (row.shift === "2") {
-                        // Untuk shift 2, akumulasi = akumulasi shift 1 hari yang sama + hasil produksi shift 2
-                        const shift1Row = group.rows.find(
-                          (r) => r.shift === "1",
-                        );
-                        const shift1Akumulasi = shift1Row
-                          ? (shift1Row.akumulasiHasilProduksi ?? 0)
-                          : 0;
-                        akumulasiHasilProduksi =
-                          shift1Akumulasi + hasilProduksi;
-                        // Simpan ke row agar bisa dipakai hari berikutnya
-                        row.akumulasiHasilProduksi = akumulasiHasilProduksi;
+                        row.akumulasiHasilProduksi = akumulasiHasil.shift2;
                       }
-                      // --- Teori Stock & Rencana Stock Custom ---
-                      let teoriStockCustom = 0;
-                      let actualStockCustom = 0;
-                      let rencanaStockCustom = 0;
-                      const isHariPertama =
-                        currentDayIdx === 0 && row.shift === "1";
-                      const isShift1 = row.shift === "1";
-                      const isShift2 = row.shift === "2";
-                      const prevDayShift2 = prevDayGroup
-                        ? prevDayGroup.rows.find((r) => r.shift === "2")
-                        : undefined;
 
-                      // Mengambil stock dari bulan lalu (initialStock) atau dari shift sebelumnya
-                      const prevActualStockShift2 = prevDayShift2
-                        ? (prevDayShift2.actualStockCustom ?? 0)
-                        : initialStock;
-                      const prevRencanaStockShift2 = prevDayShift2
-                        ? (prevDayShift2.rencanaStockCustom ?? 0)
-                        : initialStock;
-
-                      const hasilProduksiShift1 = isShift1 ? hasilProduksi : 0;
-                      const hasilProduksiShift2 = isShift2 ? hasilProduksi : 0;
-                      const planningPcs = row.planningPcs || 0;
-                      const overtimePcs = row.overtimePcs || 0;
-                      const delivery = row.delivery || 0;
-
-                      if (isHariPertama) {
-                        // Hari pertama shift 1 menggunakan initialStock (stock dari bulan lalu)
-                        teoriStockCustom =
-                          initialStock + hasilProduksiShift1 - delivery;
-                        actualStockCustom =
-                          hasilProduksi === 0
-                            ? initialStock +
-                              planningPcs +
-                              overtimePcs -
-                              delivery
-                            : initialStock + hasilProduksiShift1 - delivery;
-                        rencanaStockCustom =
-                          initialStock + planningPcs + overtimePcs - delivery;
-                      } else if (isShift1) {
-                        // Shift 1 di hari berikutnya mengambil sisa stock dari shift 2 hari sebelumnya
-                        teoriStockCustom =
-                          prevActualStockShift2 +
-                          hasilProduksiShift1 -
-                          delivery;
-                        actualStockCustom =
-                          hasilProduksi === 0
-                            ? prevActualStockShift2 +
-                              planningPcs +
-                              overtimePcs -
-                              delivery
-                            : prevActualStockShift2 +
-                              hasilProduksiShift1 -
-                              delivery;
-                        rencanaStockCustom =
-                          prevRencanaStockShift2 +
-                          planningPcs +
-                          overtimePcs -
-                          delivery;
-                      } else if (isShift2) {
-                        // Shift 2 mengambil sisa stock dari shift 1 di hari yang sama
-                        const shift1Row = group.rows.find(
-                          (r) => r.shift === "1",
-                        );
-                        const shift1ActualStock = shift1Row
-                          ? (shift1Row.actualStockCustom ?? 0)
-                          : 0;
-
-                        teoriStockCustom =
-                          shift1ActualStock + hasilProduksiShift2 - delivery;
-                        actualStockCustom =
-                          hasilProduksi === 0
-                            ? shift1ActualStock +
-                              planningPcs +
-                              overtimePcs -
-                              delivery
-                            : shift1ActualStock +
-                              hasilProduksiShift2 -
-                              delivery;
-                        rencanaStockCustom =
-                          shift1ActualStock +
-                          planningPcs +
-                          overtimePcs -
-                          delivery;
-                      }
+                      const akumulasiHasilProduksi =
+                        row.shift === "1"
+                          ? akumulasiHasil.shift1
+                          : akumulasiHasil.shift2;
+                      // --- Actual Stock & Rencana Stock Custom using utils ---
+                      const stockCustom = calculateStockCustom(
+                        row,
+                        group,
+                        validGroupedRows,
+                        currentDayIdx,
+                        initialStock,
+                      );
 
                       // Simpan ke row agar bisa dipakai shift berikutnya
-                      row.teoriStockCustom = teoriStockCustom;
-                      row.actualStockCustom = actualStockCustom;
-                      row.rencanaStockCustom = rencanaStockCustom;
+                      row.actualStockCustom = stockCustom.actualStock;
+                      row.rencanaStockCustom = stockCustom.rencanaStock;
+
+                      const actualStockCustom = stockCustom.actualStock;
+                      const rencanaStockCustom = stockCustom.rencanaStock;
 
                       flatIdx++;
 
@@ -507,7 +355,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Calendar className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
-                                      Planning (pcs)
+                                      Planning Produksi (pcs)
                                     </span>
                                   </div>
                                   <input
@@ -546,7 +394,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Truck className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
-                                      Delivery (pcs)
+                                      Delivery Plan (pcs)
                                     </span>
                                   </div>
                                   <input
@@ -624,7 +472,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Factory className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
-                                      Hasil Produksi (pcs)
+                                      Hasil Produksi Aktual (pcs)
                                     </span>
                                   </div>
                                   <input
@@ -739,7 +587,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Clock className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
-                                      Planning (jam)
+                                      Planning Produksi (jam)
                                     </span>
                                   </div>
                                   <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
@@ -772,24 +620,14 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Factory className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
-                                      Akumulasi Hasil Produksi
+                                      Akumulasi Hasil Produksi Aktual
                                     </span>
                                   </div>
                                   <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
                                     {akumulasiHasilProduksi}
                                   </span>
                                 </div>
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
-                                  <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <Calculator className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
-                                      Teori Stock
-                                    </span>
-                                  </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
-                                    {teoriStockCustom}
-                                  </span>
-                                </div>
+
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Package className="w-4 h-4 text-slate-300" />

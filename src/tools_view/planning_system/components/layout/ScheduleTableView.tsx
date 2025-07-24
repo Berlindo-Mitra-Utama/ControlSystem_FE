@@ -1,7 +1,17 @@
 import React, { useState } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
 import { formatValidDate } from "../../utils/scheduleDateUtils";
-import { calculateOutputFields } from "../../utils/scheduleCalcUtils";
+import {
+  calculateOutputFields,
+  calculateOutputPerHour,
+  calculateScheduleTotals,
+  formatJamProduksi,
+  formatNumber,
+  formatNumberWithDecimal,
+  calculateAkumulasiDelivery,
+  calculateAkumulasiHasilProduksi,
+  calculateStockCustom,
+} from "../../utils/scheduleCalcUtils";
 import {
   Calendar,
   Clock,
@@ -32,6 +42,7 @@ interface ScheduleTableViewProps {
 
 type FilterType =
   | "all"
+  | "stock"
   | "delivery"
   | "planning"
   | "overtime"
@@ -50,43 +61,29 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     [key: string]: boolean;
   }>({});
 
-  // Calculate totals
-  const totals = {
-    delivery: flatRows.reduce((sum, row) => sum + (row.delivery || 0), 0),
-    planningPcs: flatRows.reduce((sum, row) => sum + (row.planningPcs || 0), 0),
-    overtimePcs: flatRows.reduce((sum, row) => sum + (row.overtimePcs || 0), 0),
-    hasilProduksi: flatRows.reduce((sum, row) => sum + (row.pcs || 0), 0),
-    jamProduksiAktual: flatRows.reduce(
-      (sum, row) => sum + (row.jamProduksiAktual || 0),
-      0,
-    ),
-  };
+  // Calculate totals using utils
+  const totals = calculateScheduleTotals(flatRows);
 
   // Calculate total jam produksi (cycle time)
-  const outputPerHour = timePerPcs > 0 ? Math.floor(3600 / timePerPcs) : 0;
-  const totalJamProduksi =
-    totals.hasilProduksi > 0 && outputPerHour > 0
-      ? (Math.ceil((totals.hasilProduksi / outputPerHour) * 10) / 10).toFixed(1)
-      : "0.0";
-
-  // Calculate total planning hours
-  const totalPlanningJam =
-    totals.planningPcs > 0 && outputPerHour > 0
-      ? (Math.ceil((totals.planningPcs / outputPerHour) * 10) / 10).toFixed(1)
-      : "0.0";
-
-  // Calculate total overtime hours
-  const totalOvertimeJam =
-    totals.overtimePcs > 0 && outputPerHour > 0
-      ? (Math.ceil((totals.overtimePcs / outputPerHour) * 10) / 10).toFixed(1)
-      : "0.0";
+  const outputPerHour = calculateOutputPerHour(timePerPcs, []);
+  const totalJamProduksi = formatJamProduksi(
+    totals.hasilProduksi,
+    outputPerHour,
+  );
+  const totalPlanningJam = formatJamProduksi(totals.planningPcs, outputPerHour);
+  const totalOvertimeJam = formatJamProduksi(totals.overtimePcs, outputPerHour);
 
   // Define all rows with their categories and formatted labels
   const allRows = [
-    { key: "stock", label: "STOCK (PCS)", category: "stock", icon: Package },
+    {
+      key: "stock-awal",
+      label: "STOCK AWAL (PCS)",
+      category: "stock",
+      icon: Package,
+    },
     {
       key: "delivery",
-      label: "DELIVERY (PCS)",
+      label: "DELIVERY PLAN (PCS)",
       category: "delivery",
       icon: Truck,
     },
@@ -98,13 +95,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     },
     {
       key: "planning-pcs",
-      label: "PLANNING (PCS)",
+      label: "PLANNING PRODUKSI (PCS)",
       category: "planning",
       icon: Target,
     },
     {
       key: "planning-jam",
-      label: "PLANNING (JAM)",
+      label: "PLANNING PRODUKSI (JAM)",
       category: "planning",
       icon: Clock,
     },
@@ -128,13 +125,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     },
     {
       key: "hasil-produksi",
-      label: "HASIL\nPRODUKSI (PCS)",
+      label: "HASIL PRODUKSI\nAKTUAL (PCS)",
       category: "hasil-produksi",
       icon: Factory,
     },
     {
       key: "akumulasi-hasil",
-      label: "AKUMULASI HASIL\nPRODUKSI (PCS)",
+      label: "AKUMULASI HASIL\nPRODUKSI AKTUAL (PCS)",
       category: "hasil-produksi",
       icon: TrendingUp,
     },
@@ -143,12 +140,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       label: "JAM PRODUKSI\nAKTUAL",
       category: "stock",
       icon: Activity,
-    },
-    {
-      key: "teori-stock",
-      label: "TEORI STOCK\n(PCS)",
-      category: "stock",
-      icon: Calculator,
     },
     {
       key: "actual-stock",
@@ -194,6 +185,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Filter menu options
   const filterOptions = [
     { value: "all", label: "Semua Data", icon: BarChart3 },
+    { value: "stock", label: "Stock", icon: Package },
     { value: "delivery", label: "Delivery", icon: Truck },
     { value: "planning", label: "Planning", icon: Target },
     { value: "overtime", label: "Overtime", icon: Timer },
@@ -278,8 +270,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 let textColor = "text-slate-400";
 
                 switch (row.key) {
+                  case "stock-awal":
+                    totalValue = "332";
+                    bgColor = "bg-slate-800/50";
+                    textColor = "text-slate-200";
+                    break;
                   case "delivery":
-                    totalValue = totals.delivery.toLocaleString();
+                    totalValue = formatNumber(totals.delivery);
                     bgColor = "bg-cyan-800/50";
                     textColor = "text-cyan-200";
                     break;
@@ -289,7 +286,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     textColor = "text-yellow-200";
                     break;
                   case "planning-pcs":
-                    totalValue = totals.planningPcs.toLocaleString();
+                    totalValue = formatNumber(totals.planningPcs);
                     bgColor = "bg-yellow-800/50";
                     textColor = "text-yellow-200";
                     break;
@@ -299,7 +296,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     textColor = "text-orange-200";
                     break;
                   case "overtime-pcs":
-                    totalValue = totals.overtimePcs.toLocaleString();
+                    totalValue = formatNumber(totals.overtimePcs);
                     bgColor = "bg-orange-800/50";
                     textColor = "text-orange-200";
                     break;
@@ -309,12 +306,14 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     textColor = "text-indigo-200";
                     break;
                   case "hasil-produksi":
-                    totalValue = totals.hasilProduksi.toLocaleString();
+                    totalValue = formatNumber(totals.hasilProduksi);
                     bgColor = "bg-purple-800/50";
                     textColor = "text-purple-200";
                     break;
                   case "jam-aktual":
-                    totalValue = totals.jamProduksiAktual.toFixed(1);
+                    totalValue = formatNumberWithDecimal(
+                      totals.jamProduksiAktual || 0,
+                    );
                     bgColor = "bg-green-800/50";
                     textColor = "text-green-200";
                     break;
@@ -389,29 +388,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       let shift2Field = "";
 
                       switch (row.key) {
-                        case "stock":
-                          if (shift1) {
-                            const shift1Calc = calculateOutputFields(
-                              shift1,
-                              flatRows.findIndex((r) => r.id === shift1.id),
-                              flatRows,
-                              timePerPcs,
-                              initialStock,
-                            );
-                            shift1Value = shift1Calc.prevStock.toLocaleString();
-                          }
-                          if (shift2) {
-                            const shift2Calc = calculateOutputFields(
-                              shift2,
-                              flatRows.findIndex((r) => r.id === shift2.id),
-                              flatRows,
-                              timePerPcs,
-                              initialStock,
-                            );
-                            shift2Value = shift2Calc.prevStock.toLocaleString();
-                          }
+                        case "stock-awal":
+                          shift1Value = "-";
+                          shift2Value = "-";
+                          bgColor = "bg-slate-800";
+                          textColor = "text-slate-200";
                           break;
-
                         case "delivery":
                           shift1Value = shift1?.delivery || 0;
                           shift2Value = shift2?.delivery || 0;
@@ -423,61 +405,39 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "akumulasi-delivery":
-                          // Calculate akumulasi delivery
-                          let akumulasiShift1 = 0;
-                          let akumulasiShift2 = 0;
+                          // Calculate akumulasi delivery using utils
+                          const akumulasiDelivery = calculateAkumulasiDelivery(
+                            group.day,
+                            validGroupedRows,
+                            groupIndex,
+                          );
 
                           if (shift1) {
-                            if (groupIndex === 0) {
-                              akumulasiShift1 = shift1.delivery || 0;
-                            } else {
-                              const prevGroup =
-                                validGroupedRows[groupIndex - 1];
-                              const prevShift2 = prevGroup.rows.find(
-                                (r) => r.shift === "2",
-                              );
-                              const prevAkumulasi = prevShift2
-                                ? prevShift2.akumulasiDelivery || 0
-                                : 0;
-                              akumulasiShift1 =
-                                prevAkumulasi + (shift1.delivery || 0);
-                            }
-                            shift1.akumulasiDelivery = akumulasiShift1;
+                            shift1.akumulasiDelivery = akumulasiDelivery.shift1;
                           }
-
                           if (shift2) {
-                            akumulasiShift2 =
-                              akumulasiShift1 + (shift2.delivery || 0);
-                            shift2.akumulasiDelivery = akumulasiShift2;
+                            shift2.akumulasiDelivery = akumulasiDelivery.shift2;
                           }
 
-                          shift1Value = akumulasiShift1.toLocaleString();
-                          shift2Value = akumulasiShift2.toLocaleString();
+                          shift1Value = formatNumber(akumulasiDelivery.shift1);
+                          shift2Value = formatNumber(akumulasiDelivery.shift2);
                           bgColor = "bg-cyan-900/20";
                           textColor = "text-cyan-200";
                           break;
 
                         case "planning-jam":
-                          const planningJamShift1 =
-                            shift1?.planningPcs && outputPerHour > 0
-                              ? (
-                                  Math.ceil(
-                                    (shift1.planningPcs / outputPerHour) * 10,
-                                  ) / 10
-                                ).toFixed(1)
-                              : "0.0";
+                          const planningProduksiJamShift1 = formatJamProduksi(
+                            shift1?.planningPcs || 0,
+                            outputPerHour,
+                          );
 
-                          const planningJamShift2 =
-                            shift2?.planningPcs && outputPerHour > 0
-                              ? (
-                                  Math.ceil(
-                                    (shift2.planningPcs / outputPerHour) * 10,
-                                  ) / 10
-                                ).toFixed(1)
-                              : "0.0";
+                          const planningProduksiJamShift2 = formatJamProduksi(
+                            shift2?.planningPcs || 0,
+                            outputPerHour,
+                          );
 
-                          shift1Value = planningJamShift1;
-                          shift2Value = planningJamShift2;
+                          shift1Value = planningProduksiJamShift1;
+                          shift2Value = planningProduksiJamShift2;
                           bgColor = "bg-yellow-900/30";
                           textColor = "text-yellow-300";
                           break;
@@ -493,23 +453,15 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "overtime-jam":
-                          const overtimeJamShift1 =
-                            shift1?.overtimePcs && outputPerHour > 0
-                              ? (
-                                  Math.ceil(
-                                    (shift1.overtimePcs / outputPerHour) * 10,
-                                  ) / 10
-                                ).toFixed(1)
-                              : "0.0";
+                          const overtimeJamShift1 = formatJamProduksi(
+                            shift1?.overtimePcs || 0,
+                            outputPerHour,
+                          );
 
-                          const overtimeJamShift2 =
-                            shift2?.overtimePcs && outputPerHour > 0
-                              ? (
-                                  Math.ceil(
-                                    (shift2.overtimePcs / outputPerHour) * 10,
-                                  ) / 10
-                                ).toFixed(1)
-                              : "0.0";
+                          const overtimeJamShift2 = formatJamProduksi(
+                            shift2?.overtimePcs || 0,
+                            outputPerHour,
+                          );
 
                           shift1Value = overtimeJamShift1;
                           shift2Value = overtimeJamShift2;
@@ -528,21 +480,15 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "jam-produksi":
-                          const jamProduksiShift1 =
-                            shift1?.pcs && outputPerHour > 0
-                              ? (
-                                  Math.ceil((shift1.pcs / outputPerHour) * 10) /
-                                  10
-                                ).toFixed(1)
-                              : "0.0";
+                          const jamProduksiShift1 = formatJamProduksi(
+                            shift1?.pcs || 0,
+                            outputPerHour,
+                          );
 
-                          const jamProduksiShift2 =
-                            shift2?.pcs && outputPerHour > 0
-                              ? (
-                                  Math.ceil((shift2.pcs / outputPerHour) * 10) /
-                                  10
-                                ).toFixed(1)
-                              : "0.0";
+                          const jamProduksiShift2 = formatJamProduksi(
+                            shift2?.pcs || 0,
+                            outputPerHour,
+                          );
 
                           shift1Value = jamProduksiShift1;
                           shift2Value = jamProduksiShift2;
@@ -561,47 +507,36 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "akumulasi-hasil":
-                          // Calculate akumulasi hasil produksi
-                          let akumulasiHasilShift1 = 0;
-                          let akumulasiHasilShift2 = 0;
+                          // Calculate akumulasi hasil produksi aktual using utils
+                          const akumulasiHasil =
+                            calculateAkumulasiHasilProduksi(
+                              group.day,
+                              validGroupedRows,
+                              groupIndex,
+                            );
 
                           if (shift1) {
-                            if (groupIndex === 0) {
-                              akumulasiHasilShift1 = shift1.pcs || 0;
-                            } else {
-                              const prevGroup =
-                                validGroupedRows[groupIndex - 1];
-                              const prevShift2 = prevGroup.rows.find(
-                                (r) => r.shift === "2",
-                              );
-                              const prevAkumulasi = prevShift2
-                                ? prevShift2.akumulasiHasilProduksi || 0
-                                : 0;
-                              akumulasiHasilShift1 =
-                                prevAkumulasi + (shift1.pcs || 0);
-                            }
                             shift1.akumulasiHasilProduksi =
-                              akumulasiHasilShift1;
+                              akumulasiHasil.shift1;
                           }
-
                           if (shift2) {
-                            akumulasiHasilShift2 =
-                              akumulasiHasilShift1 + (shift2.pcs || 0);
                             shift2.akumulasiHasilProduksi =
-                              akumulasiHasilShift2;
+                              akumulasiHasil.shift2;
                           }
 
-                          shift1Value = akumulasiHasilShift1.toLocaleString();
-                          shift2Value = akumulasiHasilShift2.toLocaleString();
+                          shift1Value = formatNumber(akumulasiHasil.shift1);
+                          shift2Value = formatNumber(akumulasiHasil.shift2);
                           bgColor = "bg-purple-900/20";
                           textColor = "text-purple-200";
                           break;
 
                         case "jam-aktual":
-                          shift1Value =
-                            shift1?.jamProduksiAktual?.toFixed(1) || "0.0";
-                          shift2Value =
-                            shift2?.jamProduksiAktual?.toFixed(1) || "0.0";
+                          shift1Value = formatNumberWithDecimal(
+                            shift1?.jamProduksiAktual || 0,
+                          );
+                          shift2Value = formatNumberWithDecimal(
+                            shift2?.jamProduksiAktual || 0,
+                          );
                           bgColor = "bg-green-900/30";
                           textColor = "text-green-300";
                           isEditable = true;
@@ -609,184 +544,72 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift2Field = "jamProduksiAktual";
                           break;
 
-                        case "teori-stock":
-                          // Calculate teori stock like in cards view
-                          let teoriStockShift1 = 0;
-                          let teoriStockShift2 = 0;
-
-                          if (shift1) {
-                            const shift1Calc = calculateOutputFields(
-                              shift1,
-                              flatRows.findIndex((r) => r.id === shift1.id),
-                              flatRows,
-                              timePerPcs,
-                              initialStock,
-                            );
-                            const hasilProduksiShift1 = shift1.pcs || 0;
-                            const delivery = shift1.delivery || 0;
-
-                            if (groupIndex === 0) {
-                              teoriStockShift1 =
-                                initialStock + hasilProduksiShift1 - delivery;
-                            } else {
-                              const prevGroup =
-                                validGroupedRows[groupIndex - 1];
-                              const prevShift2 = prevGroup.rows.find(
-                                (r) => r.shift === "2",
-                              );
-                              const prevTeoriStock =
-                                prevShift2?.teoriStockCustom ?? initialStock;
-                              teoriStockShift1 =
-                                prevTeoriStock + hasilProduksiShift1 - delivery;
-                            }
-                            shift1.teoriStockCustom = teoriStockShift1;
-                          }
-
-                          if (shift2) {
-                            const hasilProduksiShift2 = shift2.pcs || 0;
-                            const delivery = shift2.delivery || 0;
-                            const shift1Row = group.rows.find(
-                              (r) => r.shift === "1",
-                            );
-                            const shift1TeoriStock =
-                              shift1Row?.teoriStockCustom ?? initialStock;
-
-                            teoriStockShift2 =
-                              shift1TeoriStock + hasilProduksiShift2 - delivery;
-                            shift2.teoriStockCustom = teoriStockShift2;
-                          }
-
-                          shift1Value = teoriStockShift1.toLocaleString();
-                          shift2Value = teoriStockShift2.toLocaleString();
-                          bgColor = "bg-teal-900/30";
-                          textColor = "text-teal-300";
-                          break;
-
                         case "actual-stock":
-                          // Calculate actual stock like in cards view
-                          let actualStockShift1 = 0;
-                          let actualStockShift2 = 0;
-
+                          // Calculate actual stock using utils
                           if (shift1) {
-                            const shift1Calc = calculateOutputFields(
+                            const stockCustom1 = calculateStockCustom(
                               shift1,
-                              flatRows.findIndex((r) => r.id === shift1.id),
-                              flatRows,
-                              timePerPcs,
+                              group,
+                              validGroupedRows,
+                              groupIndex,
                               initialStock,
                             );
-                            const hasilProduksi = shift1.pcs || 0;
-                            const planningPcs = shift1.planningPcs || 0;
-                            const overtimePcs = shift1.overtimePcs || 0;
-                            const delivery = shift1.delivery || 0;
-
-                            if (groupIndex === 0) {
-                              actualStockShift1 =
-                                hasilProduksi === 0
-                                  ? initialStock +
-                                    planningPcs +
-                                    overtimePcs -
-                                    delivery
-                                  : initialStock + hasilProduksi - delivery;
-                            } else {
-                              const prevGroup =
-                                validGroupedRows[groupIndex - 1];
-                              const prevShift2 = prevGroup.rows.find(
-                                (r) => r.shift === "2",
-                              );
-                              const prevActualStock =
-                                prevShift2?.actualStockCustom ?? initialStock;
-                              actualStockShift1 =
-                                hasilProduksi === 0
-                                  ? prevActualStock +
-                                    planningPcs +
-                                    overtimePcs -
-                                    delivery
-                                  : prevActualStock + hasilProduksi - delivery;
-                            }
-                            shift1.actualStockCustom = actualStockShift1;
+                            shift1.actualStockCustom = stockCustom1.actualStock;
+                            shift1Value = formatNumber(
+                              stockCustom1.actualStock,
+                            );
                           }
 
                           if (shift2) {
-                            const hasilProduksi = shift2.pcs || 0;
-                            const planningPcs = shift2.planningPcs || 0;
-                            const overtimePcs = shift2.overtimePcs || 0;
-                            const delivery = shift2.delivery || 0;
-                            const shift1Row = group.rows.find(
-                              (r) => r.shift === "1",
+                            const stockCustom2 = calculateStockCustom(
+                              shift2,
+                              group,
+                              validGroupedRows,
+                              groupIndex,
+                              initialStock,
                             );
-                            const shift1ActualStock =
-                              shift1Row?.actualStockCustom ?? initialStock;
-
-                            actualStockShift2 =
-                              hasilProduksi === 0
-                                ? shift1ActualStock +
-                                  planningPcs +
-                                  overtimePcs -
-                                  delivery
-                                : shift1ActualStock + hasilProduksi - delivery;
-                            shift2.actualStockCustom = actualStockShift2;
+                            shift2.actualStockCustom = stockCustom2.actualStock;
+                            shift2Value = formatNumber(
+                              stockCustom2.actualStock,
+                            );
                           }
 
-                          shift1Value = actualStockShift1.toLocaleString();
-                          shift2Value = actualStockShift2.toLocaleString();
                           bgColor = "bg-emerald-900/30";
                           textColor = "text-emerald-300";
                           break;
 
                         case "rencana-stock":
-                          // Calculate rencana stock like in cards view
-                          let rencanaStockShift1 = 0;
-                          let rencanaStockShift2 = 0;
-
+                          // Calculate rencana stock using utils
                           if (shift1) {
-                            const planningPcs = shift1.planningPcs || 0;
-                            const overtimePcs = shift1.overtimePcs || 0;
-                            const delivery = shift1.delivery || 0;
-
-                            if (groupIndex === 0) {
-                              rencanaStockShift1 =
-                                initialStock +
-                                planningPcs +
-                                overtimePcs -
-                                delivery;
-                            } else {
-                              const prevGroup =
-                                validGroupedRows[groupIndex - 1];
-                              const prevShift2 = prevGroup.rows.find(
-                                (r) => r.shift === "2",
-                              );
-                              const prevRencanaStock =
-                                prevShift2?.rencanaStockCustom ?? initialStock;
-                              rencanaStockShift1 =
-                                prevRencanaStock +
-                                planningPcs +
-                                overtimePcs -
-                                delivery;
-                            }
-                            shift1.rencanaStockCustom = rencanaStockShift1;
+                            const stockCustom1 = calculateStockCustom(
+                              shift1,
+                              group,
+                              validGroupedRows,
+                              groupIndex,
+                              initialStock,
+                            );
+                            shift1.rencanaStockCustom =
+                              stockCustom1.rencanaStock;
+                            shift1Value = formatNumber(
+                              stockCustom1.rencanaStock,
+                            );
                           }
 
                           if (shift2) {
-                            const planningPcs = shift2.planningPcs || 0;
-                            const overtimePcs = shift2.overtimePcs || 0;
-                            const delivery = shift2.delivery || 0;
-                            const shift1Row = group.rows.find(
-                              (r) => r.shift === "1",
+                            const stockCustom2 = calculateStockCustom(
+                              shift2,
+                              group,
+                              validGroupedRows,
+                              groupIndex,
+                              initialStock,
                             );
-                            const shift1RencanaStock =
-                              shift1Row?.rencanaStockCustom ?? initialStock;
-
-                            rencanaStockShift2 =
-                              shift1RencanaStock +
-                              planningPcs +
-                              overtimePcs -
-                              delivery;
-                            shift2.rencanaStockCustom = rencanaStockShift2;
+                            shift2.rencanaStockCustom =
+                              stockCustom2.rencanaStock;
+                            shift2Value = formatNumber(
+                              stockCustom2.rencanaStock,
+                            );
                           }
 
-                          shift1Value = rencanaStockShift1.toLocaleString();
-                          shift2Value = rencanaStockShift2.toLocaleString();
                           bgColor = "bg-amber-900/30";
                           textColor = "text-amber-300";
                           break;
@@ -836,7 +659,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 placeholder="0"
                               />
                             ) : typeof shift1Value === "number" ? (
-                              shift1Value.toLocaleString()
+                              formatNumber(shift1Value)
                             ) : (
                               shift1Value
                             )}
@@ -880,7 +703,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 placeholder="0"
                               />
                             ) : typeof shift2Value === "number" ? (
-                              shift2Value.toLocaleString()
+                              formatNumber(shift2Value)
                             ) : (
                               shift2Value
                             )}

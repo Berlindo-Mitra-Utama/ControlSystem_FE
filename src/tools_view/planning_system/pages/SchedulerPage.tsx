@@ -3,12 +3,29 @@ import ProductionForm from "../components/layout/ProductionForm";
 import ScheduleTable from "../components/layout/ScheduleProduction";
 import React from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
+import type { SavedSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/ui/Modal";
 import { useNotification } from "../../../hooks/useNotification";
 import ChildPart from "../components/layout/ChildPart";
 import ChildPartTable from "../components/layout/ChildPartTable";
 import { X } from "lucide-react";
+import {
+  generateScheduleFromForm,
+  recalculateScheduleWithChanges,
+  updateCalculatedFields,
+  handleFormChange,
+  handlePartSelection,
+  resetFormAndSchedule,
+} from "../utils/scheduleCalcUtils";
+import {
+  MONTHS,
+  mockData,
+  getScheduleName,
+  parseScheduleName,
+} from "../utils/scheduleDateUtils";
+import { ScheduleItem } from "../types/scheduleTypes";
+import { ChildPartData } from "../types/childPartTypes";
 
 // CSS untuk animasi dan custom scrollbar
 const fadeInUpAnimation = `
@@ -84,41 +101,6 @@ const injectCSS = () => {
   }
 };
 
-// Konstanta untuk nama bulan
-const MONTHS = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
-
-interface ScheduleItem {
-  id: string;
-  day: number;
-  shift: string;
-  type: string;
-  pcs: number;
-  time: string;
-  processes: string;
-  status: "Normal" | "Gangguan" | "Completed";
-  actualPcs?: number;
-  notes?: string;
-  delivery?: number;
-  planningPcs?: number;
-  overtimePcs?: number;
-  sisaPlanningPcs?: number;
-  sisaStock?: number;
-  selisih?: number;
-}
-
 interface DataItem {
   part: string;
   customer: string;
@@ -134,26 +116,6 @@ interface SchedulerPageProps {
   setCurrentView: (view: "dashboard" | "scheduler" | "saved") => void;
   loadedSchedule?: SavedSchedule | null;
 }
-
-interface SavedSchedule {
-  id: string;
-  name: string;
-  date: string;
-  form: any;
-  schedule: ScheduleItem[];
-  childParts?: any[];
-}
-
-const mockData: DataItem[] = [
-  {
-    part: "29N Muffler",
-    customer: "Sakura",
-    timePerPcs: 257,
-    cycle1: 14,
-    cycle7: 98,
-    cycle35: 49,
-  },
-];
 
 const SchedulerPage: React.FC = () => {
   const { savedSchedules, setSavedSchedules, loadedSchedule } = useSchedule();
@@ -199,7 +161,7 @@ const SchedulerPage: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [searchDate, setSearchDate] = useState("");
-  const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [showSavedScheduleModal, setShowSavedScheduleModal] = useState(false);
   const [tempSelectedMonth, setTempSelectedMonth] = useState(
     new Date().getMonth(),
@@ -210,7 +172,7 @@ const SchedulerPage: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [showChildPartModal, setShowChildPartModal] = useState(false);
-  const [childParts, setChildParts] = useState<any[]>([]); // Simpan data child part jika ingin digunakan
+  const [childParts, setChildParts] = useState<ChildPartData[]>([]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -228,8 +190,8 @@ const SchedulerPage: React.FC = () => {
   }, [showDropdown]);
 
   // Generate schedule name from selected month/year
-  const getScheduleName = () => {
-    return `${MONTHS[selectedMonth]} ${selectedYear}`;
+  const getCurrentScheduleName = () => {
+    return getScheduleName(selectedMonth, selectedYear);
   };
 
   // Automatically load schedule if loadedSchedule prop changes
@@ -260,7 +222,7 @@ const SchedulerPage: React.FC = () => {
   }, [loadedSchedule]);
 
   useEffect(() => {
-    updateCalculatedFields();
+    doUpdateCalculatedFields();
   }, [form.timePerPcs, form.planningHour, form.overtimeHour]);
 
   useEffect(() => {
@@ -278,103 +240,24 @@ const SchedulerPage: React.FC = () => {
     }
   }, [form.planningPcs, form.isManualPlanningPcs]);
 
-  const updateCalculatedFields = () => {
-    const { timePerPcs, planningHour, overtimeHour, isManualPlanningPcs } =
-      form;
-
-    if (timePerPcs > 0) {
-      const cycle1 = timePerPcs;
-      const cycle7 = timePerPcs * 7;
-      const cycle35 = timePerPcs * 3.5;
-
-      const planningPcs = isManualPlanningPcs
-        ? form.planningPcs
-        : Math.floor((planningHour * 3600) / timePerPcs);
-      const overtimePcs = Math.floor((overtimeHour * 3600) / timePerPcs);
-
+  const doUpdateCalculatedFields = () => {
+    const calculatedFields = updateCalculatedFields(form);
+    if (calculatedFields && typeof calculatedFields === "object") {
       setForm((prev) => ({
         ...prev,
-        cycle1,
-        cycle7,
-        cycle35,
-        planningPcs,
-        overtimePcs,
+        ...calculatedFields,
       }));
     }
   };
 
   const handleSelectPart = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = mockData.find((item) => item.part === e.target.value);
-    if (selected) {
-      setForm((prev) => ({
-        ...prev,
-        part: selected.part,
-        customer: selected.customer,
-        timePerPcs: selected.timePerPcs,
-        cycle1: selected.cycle1,
-        cycle7: selected.cycle7,
-        cycle35: selected.cycle35,
-        isManualPlanningPcs: false,
-      }));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        part: e.target.value,
-        customer: "",
-        timePerPcs: prev.timePerPcs > 0 ? prev.timePerPcs : 0,
-        cycle1: 0,
-        cycle7: 0,
-        cycle35: 0,
-        isManualPlanningPcs: true,
-      }));
-    }
+    handlePartSelection(e, mockData, setForm);
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    const { name, value } = e.target;
-    const numericValue = Number.parseFloat(value);
-    if (name === "manpowers") return;
-    if (numericValue < 0 && !isNaN(numericValue)) return;
-    if (name === "planningPcs") {
-      setForm((prev) => ({
-        ...prev,
-        [name]: numericValue || 0,
-        isManualPlanningPcs: true,
-      }));
-    } else if (["cycle1", "cycle7", "cycle35"].includes(name)) {
-      setForm((prev) => ({
-        ...prev,
-        [name]: numericValue || 0,
-        isManualPlanningPcs: true,
-      }));
-      if (name === "cycle1" && numericValue > 0) {
-        setForm((prev) => ({
-          ...prev,
-          timePerPcs: numericValue,
-        }));
-      }
-      if (
-        name === "timePerPcs" &&
-        numericValue > 0 &&
-        !form.isManualPlanningPcs
-      ) {
-        setForm((prev) => ({
-          ...prev,
-          cycle1: numericValue,
-          cycle7: numericValue * 7,
-          cycle35: numericValue * 3.5,
-        }));
-      }
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        [name]: ["part", "customer", "processes"].includes(name)
-          ? value
-          : numericValue || 0,
-      }));
-    }
+    handleFormChange(e, form, setForm);
   };
 
   // Handler for manpowers (add/remove)
@@ -395,116 +278,8 @@ const SchedulerPage: React.FC = () => {
     setIsGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Save previous delivery values if possible
-    const prevSchedule = schedule;
-    const prevDeliveryMap = new Map<string, number | undefined>();
-    prevSchedule.forEach((item) => {
-      prevDeliveryMap.set(item.id, item.delivery);
-    });
-
-    // Parameter produksi
-    const waktuKerjaShift = 7; // jam kerja per shift
-    let timePerPcs = form.timePerPcs;
-    let manpowerCount = Array.isArray(form.manpowers)
-      ? form.manpowers.filter((mp) => mp.trim() !== "").length
-      : 1;
-    if (manpowerCount < 1) manpowerCount = 1;
-    // Koreksi: waktu produksi per shift = 7 jam, kapasitas produksi per shift = (7*3600) / (timePerPcs/manpowerCount)
-    const kapasitasShift =
-      timePerPcs > 0 && manpowerCount > 0
-        ? Math.floor((waktuKerjaShift * 3600) / (timePerPcs / manpowerCount))
-        : 0;
-    let sisaStock = form.stock;
-    let shortfall = 0;
-    let overtimeRows: ScheduleItem[] = [];
-    const scheduleList: ScheduleItem[] = [];
-
-    // Simulasi 30 hari produksi
-    for (let d = 1; d <= 30; d++) {
-      // Delivery per hari (bisa diisi user, default 0, atau ambil dari prevDeliveryMap shift 1)
-      const idShift1 = `${d}-1`;
-      let deliveryShift1 = prevDeliveryMap.get(idShift1) ?? 0;
-      // Shift 2 tidak ada delivery
-      // Total delivery hari ini
-      let totalDelivery = deliveryShift1;
-      // Bagi delivery ke 2 shift
-      let planningHariIni = Math.min(totalDelivery, sisaStock);
-      let planningShift1 = Math.min(
-        Math.floor(planningHariIni / 2),
-        kapasitasShift,
-        sisaStock,
-      );
-      sisaStock -= planningShift1;
-      let planningShift2 = Math.min(
-        planningHariIni - planningShift1,
-        kapasitasShift,
-        sisaStock,
-      );
-      sisaStock -= planningShift2;
-      // Jika delivery > total produksi hari ini, shortfall
-      let shortfallHariIni = totalDelivery - (planningShift1 + planningShift2);
-      if (shortfallHariIni > 0) {
-        shortfall += shortfallHariIni;
-      }
-      // Row shift 1
-      scheduleList.push({
-        id: idShift1,
-        day: d,
-        shift: "1",
-        type: "Produksi",
-        pcs: planningShift1,
-        time: "07:00-15:00",
-        processes: "",
-        status: "Normal",
-        delivery: deliveryShift1,
-        planningPcs: planningShift1,
-        overtimePcs: 0,
-        notes: "",
-      });
-      // Row shift 2
-      scheduleList.push({
-        id: `${d}-2`,
-        day: d,
-        shift: "2",
-        type: "Produksi",
-        pcs: planningShift2,
-        time: "15:00-23:00",
-        processes: "",
-        status: "Normal",
-        delivery: undefined,
-        planningPcs: planningShift2,
-        overtimePcs: 0,
-        notes: "",
-      });
-      // Setiap 3 hari, shortfall dijadwalkan sebagai lembur 2 hari kemudian
-      if (d % 3 === 0 && shortfall > 0) {
-        const lemburDay = d + 2;
-        if (lemburDay <= 30) {
-          overtimeRows.push({
-            id: `${lemburDay}-OT`,
-            day: lemburDay,
-            shift: "-",
-            type: "Lembur",
-            pcs: shortfall,
-            time: "-",
-            processes: "",
-            status: "Normal",
-            delivery: undefined,
-            planningPcs: 0,
-            overtimePcs: shortfall,
-            notes: `Lembur dari shortfall hari ${d - 2} s/d ${d}`,
-          });
-          sisaStock -= shortfall;
-        }
-        shortfall = 0;
-      }
-    }
-    // Gabungkan lembur ke schedule utama, urutkan berdasarkan hari
-    const allRows = [...scheduleList, ...overtimeRows];
-    allRows.sort(
-      (a, b) => a.day - b.day || (a.shift || "").localeCompare(b.shift || ""),
-    );
-    setSchedule(allRows);
+    const newSchedule = generateScheduleFromForm(form, schedule);
+    setSchedule(newSchedule);
     setIsGenerating(false);
   };
 
@@ -556,7 +331,6 @@ const SchedulerPage: React.FC = () => {
         type: "Lembur",
         pcs: totalDisrupted,
         time: overtimeMinutes.toFixed(2),
-        processes: "",
         status: "Normal",
         actualPcs: totalDisrupted,
         notes: "Kompensasi gangguan produksi",
@@ -684,7 +458,6 @@ const SchedulerPage: React.FC = () => {
         type: "Produksi",
         pcs: planningShift1,
         time: "07:00-15:00",
-        processes: "",
         status:
           oldRow1 && typeof oldRow1.status === "string"
             ? oldRow1.status
@@ -721,7 +494,6 @@ const SchedulerPage: React.FC = () => {
         type: "Produksi",
         pcs: planningShift2,
         time: "15:00-23:00",
-        processes: "",
         status:
           oldRow2 && typeof oldRow2.status === "string"
             ? oldRow2.status
@@ -752,7 +524,6 @@ const SchedulerPage: React.FC = () => {
             type: "Lembur",
             pcs: shortfall,
             time: "-",
-            processes: "",
             status: "Normal",
             delivery: undefined,
             planningPcs: 0,
@@ -870,7 +641,7 @@ const SchedulerPage: React.FC = () => {
   // Handler untuk generate tabel child part
   const handleGenerateChildPart = (data: { partName: string; customerName: string; stock: number }) => {
     setChildParts((prev) => [...prev, { ...data, inMaterial: undefined }]);
-    // TODO: Lakukan aksi generate tabel child part di sini
+    // : Lakukan aksi generate tabel child part di sini
     // Misal: tampilkan tabel child part, atau update state lain
     // Untuk demo, bisa console.log(data)
     console.log("Child Part generated:", data);
@@ -911,7 +682,7 @@ const SchedulerPage: React.FC = () => {
               </button>
               <ProductionForm
                 form={form}
-                scheduleName={getScheduleName()}
+                scheduleName={getCurrentScheduleName()}
                 setScheduleName={() => {}}
                 handleSelectPart={handleSelectPart}
                 handleChange={handleChange}
@@ -1129,9 +900,9 @@ const SchedulerPage: React.FC = () => {
                       Cards
                     </button>
                     <button
-                      onClick={() => setViewMode("timeline")}
+                      onClick={() => setViewMode("table")}
                       className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
-                        viewMode === "timeline"
+                        viewMode === "table"
                           ? "bg-blue-600 text-white shadow-lg"
                           : "text-slate-400 hover:text-white hover:bg-slate-700"
                       }`}
@@ -1488,7 +1259,7 @@ const SchedulerPage: React.FC = () => {
                 setEditForm={setEditForm}
                 initialStock={form.stock}
                 timePerPcs={form.timePerPcs}
-                scheduleName={getScheduleName()}
+                scheduleName={getCurrentScheduleName()}
                 viewMode={viewMode}
                 searchDate={searchDate}
               />

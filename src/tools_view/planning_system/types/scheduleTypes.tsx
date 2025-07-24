@@ -5,6 +5,7 @@ export interface ScheduleItem {
   type: string;
   pcs: number;
   time: string;
+  processes?: string;
   status: "Normal" | "Gangguan" | "Completed";
   actualPcs?: number;
   notes?: string;
@@ -24,10 +25,8 @@ export interface ScheduleItem {
   selisihDetikPerPcs?: number;
   selisihCycleTime?: number;
   selisihCycleTimePcs?: number;
-  teoriStock?: number;
   actualStock?: number;
   // Tambahan untuk custom stock
-  teoriStockCustom?: number;
   actualStockCustom?: number;
   rencanaStockCustom?: number;
 }
@@ -43,6 +42,6 @@ export interface ScheduleTableProps {
   initialStock: number;
   timePerPcs?: number;
   scheduleName?: string;
-  viewMode?: "cards" | "timeline";
+  viewMode?: "cards" | "table";
   searchDate?: string;
 }

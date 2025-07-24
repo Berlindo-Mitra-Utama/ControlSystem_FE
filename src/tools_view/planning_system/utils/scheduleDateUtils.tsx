@@ -1,3 +1,31 @@
+// Konstanta untuk nama bulan
+export const MONTHS = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
+
+// Mock data untuk part selection
+export const mockData = [
+  {
+    part: "29N Muffler",
+    customer: "Sakura",
+    timePerPcs: 257,
+    cycle1: 14,
+    cycle7: 98,
+    cycle35: 49,
+  },
+];
+
 // Fungsi untuk mendapatkan jumlah hari dalam bulan
 export const getDaysInMonth = (month: number, year: number): number => {
   // month: 0-11 (Januari = 0, Februari = 1, dst.)
@@ -5,7 +33,11 @@ export const getDaysInMonth = (month: number, year: number): number => {
 };
 
 // Fungsi untuk mendapatkan nama hari dalam bahasa Indonesia
-export const getDayName = (day: number, month: number, year: number): string => {
+export const getDayName = (
+  day: number,
+  month: number,
+  year: number,
+): string => {
   const dayNames = [
     "Minggu",
     "Senin",
@@ -21,27 +53,12 @@ export const getDayName = (day: number, month: number, year: number): string => 
 
 // Fungsi untuk mengecek apakah hari adalah weekend
 export const isWeekend = (day: number, scheduleName: string): boolean => {
-  const months = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
-
   let monthIndex = -1;
   let year = new Date().getFullYear();
 
   // Cari bulan dalam scheduleName
-  for (let i = 0; i < months.length; i++) {
-    if (scheduleName.includes(months[i])) {
+  for (let i = 0; i < MONTHS.length; i++) {
+    if (scheduleName.includes(MONTHS[i])) {
       monthIndex = i;
       break;
     }
@@ -69,28 +86,13 @@ export const formatValidDate = (
   day: number,
   scheduleName: string,
 ): { formattedDate: string; isValid: boolean; dayName: string } => {
-  const months = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
-
   // Parse scheduleName untuk mendapatkan bulan dan tahun
   let monthIndex = -1;
   let year = new Date().getFullYear();
 
   // Cari bulan dalam scheduleName
-  for (let i = 0; i < months.length; i++) {
-    if (scheduleName.includes(months[i])) {
+  for (let i = 0; i < MONTHS.length; i++) {
+    if (scheduleName.includes(MONTHS[i])) {
       monthIndex = i;
       break;
     }
@@ -114,7 +116,7 @@ export const formatValidDate = (
   const dayName = getDayName(validDay, monthIndex, year);
 
   return {
-    formattedDate: `${validDay} ${months[monthIndex]} ${year}`,
+    formattedDate: `${validDay} ${MONTHS[monthIndex]} ${year}`,
     isValid,
     dayName,
   };
@@ -122,27 +124,12 @@ export const formatValidDate = (
 
 // Fungsi untuk mendapatkan jumlah hari maksimal dalam bulan berdasarkan scheduleName
 export const getMaxDaysInMonth = (scheduleName: string): number => {
-  const months = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
-
   let monthIndex = -1;
   let year = new Date().getFullYear();
 
   // Cari bulan dalam scheduleName
-  for (let i = 0; i < months.length; i++) {
-    if (scheduleName.includes(months[i])) {
+  for (let i = 0; i < MONTHS.length; i++) {
+    if (scheduleName.includes(MONTHS[i])) {
       monthIndex = i;
       break;
     }
@@ -161,4 +148,33 @@ export const getMaxDaysInMonth = (scheduleName: string): number => {
   }
 
   return getDaysInMonth(monthIndex, year);
+};
+
+// Fungsi untuk generate schedule name dari month dan year
+export const getScheduleName = (month: number, year: number): string => {
+  return `${MONTHS[month]} ${year}`;
+};
+
+// Fungsi untuk parse schedule name ke month dan year
+export const parseScheduleName = (
+  scheduleName: string,
+): { month: number; year: number } => {
+  let monthIndex = 6; // Default Juli
+  let year = new Date().getFullYear();
+
+  // Cari bulan dalam scheduleName
+  for (let i = 0; i < MONTHS.length; i++) {
+    if (scheduleName.includes(MONTHS[i])) {
+      monthIndex = i;
+      break;
+    }
+  }
+
+  // Extract tahun menggunakan regex
+  const yearMatch = scheduleName.match(/(\d{4})/);
+  if (yearMatch && yearMatch[1]) {
+    year = parseInt(yearMatch[1]);
+  }
+
+  return { month: monthIndex, year };
 };
