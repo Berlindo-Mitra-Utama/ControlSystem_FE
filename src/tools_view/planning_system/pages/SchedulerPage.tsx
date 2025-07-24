@@ -173,6 +173,13 @@ const SchedulerPage: React.FC = () => {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [showChildPartModal, setShowChildPartModal] = useState(false);
   const [childParts, setChildParts] = useState<ChildPartData[]>([]);
+  const [childPartCarouselIdx, setChildPartCarouselIdx] = useState(0);
+  const [childPartSearch, setChildPartSearch] = useState("");
+  // Ganti childPartFilter menjadi array of string (nama part), 'all' untuk semua
+  const [childPartFilter, setChildPartFilter] = useState<'all' | string[]>("all");
+  const [showFilterDropdown, setShowFilterDropdown] = useState<boolean>(false);
+  const [childPartCarouselPage, setChildPartCarouselPage] = useState(0);
+  const CHILD_PARTS_PER_PAGE = 5;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -281,6 +288,7 @@ const SchedulerPage: React.FC = () => {
     const newSchedule = generateScheduleFromForm(form, schedule);
     setSchedule(newSchedule);
     setIsGenerating(false);
+    setChildPartFilter('all'); // Reset filter ke Semua Child Part setiap generate
   };
 
   const recalculateSchedule = (updatedSchedule: ScheduleItem[]) => {
@@ -1264,32 +1272,176 @@ const SchedulerPage: React.FC = () => {
                 searchDate={searchDate}
               />
               {/* Tombol Tambahkan Material Child Part */}
-              <div className="flex justify-end p-4">
-                <button
-                  onClick={() => setShowChildPartModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg"
-                >
-                  Tambahkan Material Child Part
-                </button>
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2 p-4">
+                {/* Filter By Button & Dropdown */}
+                <div className="relative">
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 font-semibold hover:bg-slate-600 transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={() => setShowFilterDropdown(v => !v)}
+                    type="button"
+                  >
+                    <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
+                    Filter By
+                  </button>
+                  {showFilterDropdown && (
+                    <div className="absolute left-0 mt-2 w-72 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl z-50 p-4 animate-fadeInUp">
+                      <div className="mb-3 border-b border-slate-600 pb-2 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
+                        <span className="text-white font-bold text-base">Filter Child Part</span>
+                      </div>
+                      <div className="mb-2">
+                        <label className="flex items-center gap-2 cursor-pointer py-2 px-2 rounded-lg hover:bg-slate-700 transition-all">
+                          <input
+                            type="checkbox"
+                            checked={childPartFilter === 'all'}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setChildPartFilter('all');
+                              } else {
+                                setChildPartFilter([]); // Uncheck manual, kosongkan filter
+                              }
+                            }}
+                            className="accent-blue-500 w-4 h-4 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <span className="text-white font-medium">Semua Child Part</span>
+                        </label>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-1 mb-3">
+                        {childParts.map((cp, idx) => (
+                          <label key={cp.partName + idx} className={`flex items-center gap-2 py-2 px-2 rounded-lg cursor-pointer transition-all ${Array.isArray(childPartFilter) && childPartFilter.includes(cp.partName) ? 'bg-blue-900/40' : 'hover:bg-slate-700'}`}>
+                            <input
+                              type="checkbox"
+                              checked={Array.isArray(childPartFilter) && childPartFilter.includes(cp.partName)}
+                              disabled={childPartFilter === 'all'}
+                              onChange={e => {
+                                if (childPartFilter === 'all') {
+                                  setChildPartFilter([cp.partName]);
+                                } else if (e.target.checked) {
+                                  setChildPartFilter(prev => {
+                                    if (prev === 'all') return [cp.partName];
+                                    const next = [...prev, cp.partName];
+                                    return next;
+                                  });
+                                } else {
+                                  setChildPartFilter(prev => {
+                                    if (prev === 'all') return [];
+                                    const next = prev.filter(n => n !== cp.partName);
+                                    return next.length === 0 ? 'all' : next;
+                                  });
+                                }
+                              }}
+                              className="accent-blue-500 w-4 h-4 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-slate-200 font-medium">{cp.partName}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex justify-end mt-2">
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow" onClick={() => setShowFilterDropdown(false)}>Tutup</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Search & Add Button */}
+                <div className="flex flex-row items-center gap-2">
+                  <input
+                    type="text"
+                    value={childPartSearch}
+                    onChange={e => setChildPartSearch(e.target.value)}
+                    placeholder="Cari Child Part..."
+                    className="w-48 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm mr-2"
+                  />
+                  <button
+                    onClick={() => setShowChildPartModal(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg"
+                  >
+                    Tambahkan Material Child Part
+                  </button>
+                </div>
               </div>
-              {/* Render ChildPartTable untuk setiap child part yang sudah diinput */}
+              {/* Render ChildPartTable sebagai carousel per 5 item per page */}
               {childParts.length > 0 && (
-                <div className="space-y-8 px-4 pb-8">
-                  {childParts.map((cp, idx) => (
-                    <ChildPartTable
-                      key={idx}
-                      partName={cp.partName}
-                      customerName={cp.customerName}
-                      initialStock={cp.stock}
-                      days={days}
-                      schedule={schedule}
-                      onDelete={() => handleDeleteChildPart(idx)}
-                      inMaterial={cp.inMaterial}
-                      onInMaterialChange={(val) => {
-                        setChildParts((prev) => prev.map((c, i) => i === idx ? { ...c, inMaterial: val } : c));
-                      }}
-                    />
-                  ))}
+                <div className="relative px-4 pb-8">
+                  {(() => {
+                    // Filter childParts by filter dropdown dan search
+                    let filtered = childParts;
+                    if (childPartFilter !== 'all') {
+                      filtered = filtered.filter(cp => childPartFilter.includes(cp.partName));
+                    }
+                    filtered = filtered.filter(cp =>
+                      cp.partName.toLowerCase().includes(childPartSearch.toLowerCase()) ||
+                      cp.customerName.toLowerCase().includes(childPartSearch.toLowerCase())
+                    );
+                    // Pagination logic
+                    const totalPages = Math.ceil(filtered.length / CHILD_PARTS_PER_PAGE);
+                    const page = Math.min(childPartCarouselPage, Math.max(0, totalPages - 1));
+                    const startIdx = page * CHILD_PARTS_PER_PAGE;
+                    const endIdx = startIdx + CHILD_PARTS_PER_PAGE;
+                    const pageItems = filtered.slice(startIdx, endIdx);
+                    if (filtered.length === 0) return (
+                      <div className="grid grid-cols-1 gap-8">
+                        <ChildPartTable
+                          partName={"-"}
+                          customerName={"-"}
+                          initialStock={null}
+                          days={days}
+                          schedule={[]}
+                          inMaterial={Array.from({ length: days }, () => [null, null])}
+                          onInMaterialChange={() => {}}
+                          onDelete={undefined}
+                        />
+                        <div className="text-center text-slate-400 py-8 -mt-12">Tidak ada Child Part ditemukan.</div>
+                      </div>
+                    );
+                    return (
+                      <>
+                        <div className="grid grid-cols-1 gap-8">
+                          {pageItems.map((cp, idx) => (
+                            <ChildPartTable
+                              key={startIdx + idx}
+                              partName={cp.partName}
+                              customerName={cp.customerName}
+                              initialStock={cp.stock}
+                              days={days}
+                              schedule={schedule}
+                              onDelete={() => {
+                                // Cari index asli di childParts
+                                const realIdx = childParts.findIndex(c => c === cp);
+                                handleDeleteChildPart(realIdx);
+                                setChildPartCarouselPage(0);
+                              }}
+                              inMaterial={cp.inMaterial}
+                              onInMaterialChange={(val) => {
+                                // Cari index asli di childParts
+                                const realIdx = childParts.findIndex(c => c === cp);
+                                setChildParts((prev) => prev.map((c, i) => i === realIdx ? { ...c, inMaterial: val } : c));
+                              }}
+                            />
+                          ))}
+                        </div>
+                        {/* Carousel navigation */}
+                        {totalPages > 1 && (
+                          <div className="flex justify-center items-center gap-4 mt-4">
+                            <button
+                              onClick={() => setChildPartCarouselPage(i => Math.max(0, i - 1))}
+                              disabled={page === 0}
+                              className={`px-4 py-2 rounded-lg font-bold text-white bg-slate-700 border border-slate-600 transition-all ${page === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-600'}`}
+                            >
+                              &#8592; Sebelumnya
+                            </button>
+                            <span className="text-slate-300 font-semibold">{page + 1} / {totalPages}</span>
+                            <button
+                              onClick={() => setChildPartCarouselPage(i => Math.min(totalPages - 1, i + 1))}
+                              disabled={page === totalPages - 1}
+                              className={`px-4 py-2 rounded-lg font-bold text-white bg-slate-700 border border-slate-600 transition-all ${page === totalPages - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-600'}`}
+                            >
+                              Selanjutnya &#8594;
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>

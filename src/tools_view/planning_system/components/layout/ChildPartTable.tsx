@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Package, User, Layers, X } from "lucide-react";
 
 interface ScheduleItem {
@@ -14,7 +14,7 @@ interface ScheduleItem {
 interface ChildPartTableProps {
   partName: string;
   customerName: string;
-  initialStock: number;
+  initialStock: number | null;
   days: number;
   schedule: ScheduleItem[];
   onDelete?: () => void;
@@ -33,21 +33,44 @@ const DAY_NAMES = [
   "Sabtu",
 ];
 
-const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName, initialStock, days, schedule, onDelete, inMaterial: inMaterialProp, onInMaterialChange }) => {
+// Komponen input cell memoized
+const InputCell = memo(function InputCell({ value, onChange, className }: { value: number | null, onChange: (val: number | null) => void, className: string }) {
+  return (
+    <input
+      type="number"
+      min={0}
+      value={value ?? ""}
+      onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
+      className={className}
+    />
+  );
+});
+
+const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   // In Material per shift per hari: [ [shift1, shift2], ... ]
   const [inMaterialState, setInMaterialState] = useState<(number|null)[][]>(
-    inMaterialProp ?? Array.from({ length: days }, () => [null, null])
+    props.inMaterial ?? Array.from({ length: props.days }, () => [null, null])
   );
   // Sinkronisasi jika inMaterialProp berubah (misal, load dari localStorage)
   React.useEffect(() => {
-    if (inMaterialProp) setInMaterialState(inMaterialProp);
-  }, [inMaterialProp]);
-  const inMaterial = inMaterialProp ?? inMaterialState;
+    if (props.inMaterial) setInMaterialState(props.inMaterial);
+  }, [props.inMaterial]);
+  const inMaterial = props.inMaterial ?? inMaterialState;
+
+  // State aktualInMaterial benar-benar independen
+  const [aktualInMaterialState, setAktualInMaterialState] = useState<(number|null)[][]>(
+    Array.from({ length: props.days }, () => [null, null])
+  );
+  // JANGAN ada efek yang mengubah aktualInMaterialState dari inMaterialProp
+  const aktualInMaterial = aktualInMaterialState;
+
+  // Gunakan 0 jika initialStock null
+  const safeInitialStock = props.initialStock ?? 0;
 
   // Helper: ambil hasil produksi, planning, overtime dari schedule
   const getScheduleData = (dayIdx: number, shiftIdx: number) => {
     const shiftStr = shiftIdx === 0 ? "1" : "2";
-    const item = schedule.find(
+    const item = props.schedule.find(
       (s) => s.day === dayIdx + 1 && s.shift === shiftStr
     );
     return {
@@ -62,22 +85,22 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
   const teoriStock: number[] = [];
   const rencanaStock: number[] = [];
 
-  for (let d = 0; d < days; d++) {
+  for (let d = 0; d < props.days; d++) {
     for (let s = 0; s < 2; s++) {
       const idx = d * 2 + s;
       const { hasilProduksi, planningPcs, overtimePcs } = getScheduleData(d, s);
       // Teori Stock tetap rumus lama
       if (idx === 0) {
-        teoriStock[idx] = initialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
+        teoriStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
       } else {
         teoriStock[idx] = teoriStock[idx - 1] + (inMaterial[d][s] ?? 0) - hasilProduksi;
       }
       // Rencana Stock pakai rumus baru
       if (idx === 0) {
         if (hasilProduksi === 0) {
-          rencanaStock[idx] = initialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
+          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
         } else {
-          rencanaStock[idx] = initialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
+          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
         }
       } else {
         if (hasilProduksi === 0) {
@@ -91,16 +114,42 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
 
   // Hitung total in material sebulan
   const totalInMaterial = inMaterial.reduce((sum, arr) => sum + (arr[0] ?? 0) + (arr[1] ?? 0), 0);
+  // Hitung total aktual in material sebulan
+  const totalAktualInMaterial = aktualInMaterialState.reduce((sum, arr) => sum + (arr[0] ?? 0) + (arr[1] ?? 0), 0);
 
-  const handleInMaterialChange = (dayIdx: number, shiftIdx: number, value: string) => {
-    const next = inMaterial.map((arr) => [...arr]);
-    next[dayIdx][shiftIdx] = value === "" ? null : Number(value);
-    if (onInMaterialChange) {
-      onInMaterialChange(next);
-    } else {
-      setInMaterialState(next);
+  // Handler input granular
+  const handleInMaterialChange = useCallback((dayIdx: number, shiftIdx: number, value: number | null) => {
+    setInMaterialState(prev => {
+      if (prev[dayIdx][shiftIdx] === value) return prev;
+      const next = prev.map((arr, i) => i === dayIdx ? [...arr] : arr);
+      next[dayIdx][shiftIdx] = value;
+      if (props.onInMaterialChange) props.onInMaterialChange(next);
+      return next;
+    });
+  }, [props.onInMaterialChange]);
+  const handleAktualInMaterialChange = useCallback((dayIdx: number, shiftIdx: number, value: number | null) => {
+    setAktualInMaterialState(prev => {
+      if (prev[dayIdx][shiftIdx] === value) return prev;
+      const next = prev.map((arr, i) => i === dayIdx ? [...arr] : arr);
+      next[dayIdx][shiftIdx] = value;
+      return next;
+    });
+  }, []);
+
+  // Hitung Aktual Stock
+  const aktualStock: number[] = [];
+  for (let d = 0; d < props.days; d++) {
+    for (let s = 0; s < 2; s++) {
+      const idx = d * 2 + s;
+      const { hasilProduksi } = getScheduleData(d, s);
+      const aktualIn = aktualInMaterial[d][s] ?? 0;
+      if (idx === 0) {
+        aktualStock[idx] = safeInitialStock + aktualIn - hasilProduksi;
+      } else {
+        aktualStock[idx] = aktualStock[idx - 1] + aktualIn - hasilProduksi;
+      }
     }
-  };
+  }
 
   // Helper untuk dapatkan nama hari dari urutan hari ke-d (mulai Senin)
   const getDayName = (day: number) => {
@@ -118,28 +167,33 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
           <span className="text-white font-bold text-lg flex items-center gap-2">
             <Layers className="w-5 h-5 text-blue-400" />
             Material Child Part:
-            <span className="text-blue-300 font-bold">{partName}</span>
+            <span className="text-blue-300 font-bold">{props.partName}</span>
           </span>
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 font-semibold text-sm">
             <User className="w-4 h-4 text-emerald-400 mr-1" />
-            {customerName}
+            {props.customerName}
           </span>
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-900 border border-blue-700 rounded-lg text-blue-200 font-semibold text-sm">
             <Package className="w-4 h-4 text-blue-400 mr-1" />
-            Stock Tersedia:
-            <span className="ml-1 font-bold">{initialStock.toLocaleString()}</span>
+            Stock Awal Tersedia:
+            <span className="ml-1 font-bold">{props.initialStock === null ? '-' : props.initialStock.toLocaleString()}</span>
           </span>
         </div>
-        <div className={`flex items-center gap-2${onDelete ? ' pr-12' : ''}`}>
+        <div className={`flex items-center gap-2${props.onDelete ? ' pr-12' : ''}`}>
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-900 border border-green-700 rounded-lg text-green-200 font-semibold text-sm">
             <Layers className="w-4 h-4 text-green-400 mr-1" />
-            Total In Material:
+            Total Rencana In Material:
             <span className="ml-1 font-bold">{totalInMaterial.toLocaleString()}</span>
           </span>
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-900 border border-yellow-700 rounded-lg text-yellow-200 font-semibold text-sm">
+            <Layers className="w-4 h-4 text-yellow-400 mr-1" />
+            Total Aktual In Material:
+            <span className="ml-1 font-bold">{totalAktualInMaterial.toLocaleString()}</span>
+          </span>
         </div>
-        {onDelete && (
+        {props.onDelete && (
           <button
-            onClick={onDelete}
+            onClick={props.onDelete}
             className="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-lg transition-all z-40"
             title="Hapus Child Part"
           >
@@ -161,7 +215,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
                   KETERANGAN
                 </th>
                 {/* Kolom hari utama */}
-                {Array.from({ length: days }, (_, i) => (
+                {Array.from({ length: props.days }, (_, i) => (
                   <th
                     key={i}
                     className="p-2 font-semibold align-bottom sticky top-0 z-20 bg-slate-800"
@@ -176,7 +230,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
                 ))}
               </tr>
               <tr className="bg-slate-800 text-slate-400">
-                {Array.from({ length: days }, (_, i) => [
+                {Array.from({ length: props.days }, (_, i) => [
                   <th
                     key={`shift1-${i}`}
                     className="p-1 font-semibold sticky top-10 z-10 bg-slate-800"
@@ -197,42 +251,58 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
             <tbody>
               {/* In Material */}
               <tr>
-                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>IN MATERIAL</td>
+                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA IN MATERIAL</td>
                 {inMaterial.map((val, dayIdx) => [
                   <td key={`inmat-1-${dayIdx}`} className="p-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={val[0] ?? ""}
-                      onChange={e => handleInMaterialChange(dayIdx, 0, e.target.value)}
+                    <InputCell
+                      value={val[0]}
+                      onChange={v => handleInMaterialChange(dayIdx, 0, v)}
                       className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>,
                   <td key={`inmat-2-${dayIdx}`} className="p-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={val[1] ?? ""}
-                      onChange={e => handleInMaterialChange(dayIdx, 1, e.target.value)}
+                    <InputCell
+                      value={val[1]}
+                      onChange={v => handleInMaterialChange(dayIdx, 1, v)}
                       className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>,
                 ])}
               </tr>
-              {/* Teori Stock */}
+              {/* Aktual In Material */}
               <tr>
-                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>TEORI STOCK (PCS)</td>
-                {Array.from({ length: days }, (_, dayIdx) => [
-                  <td key={`teori-1-${dayIdx}`} className="p-2 text-blue-300 font-mono">{teoriStock[dayIdx * 2]}</td>,
-                  <td key={`teori-2-${dayIdx}`} className="p-2 text-blue-300 font-mono">{teoriStock[dayIdx * 2 + 1]}</td>,
+                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL IN MATERIAL</td>
+                {aktualInMaterial.map((val, dayIdx) => [
+                  <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
+                    <InputCell
+                      value={val[0]}
+                      onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
+                      className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </td>,
+                  <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
+                    <InputCell
+                      value={val[1]}
+                      onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
+                      className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </td>,
                 ])}
               </tr>
               {/* Rencana Stock */}
               <tr>
                 <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
-                {Array.from({ length: days }, (_, dayIdx) => [
+                {Array.from({ length: props.days }, (_, dayIdx) => [
                   <td key={`rencana-1-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2]}</td>,
                   <td key={`rencana-2-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2 + 1]}</td>,
+                ])}
+              </tr>
+              {/* Aktual Stock */}
+              <tr>
+                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
+                {Array.from({ length: props.days }, (_, dayIdx) => [
+                  <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2]}</td>,
+                  <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2 + 1]}</td>,
                 ])}
               </tr>
             </tbody>
@@ -243,4 +313,4 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
   );
 };
 
-export default ChildPartTable; 
+export default memo(ChildPartTable); 
