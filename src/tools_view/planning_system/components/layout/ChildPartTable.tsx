@@ -20,6 +20,7 @@ interface ChildPartTableProps {
   onDelete?: () => void;
   inMaterial?: (number|null)[][];
   onInMaterialChange?: (val: (number|null)[][]) => void;
+  renderHeaderAction?: React.ReactNode;
 }
 
 // Helper untuk nama hari Indonesia
@@ -163,7 +164,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     <div className="mt-6">
       {/* Header Info (freeze, di luar overflow-x-auto) */}
       <div className="p-4 pb-2 bg-slate-900 rounded-t-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-b-0 border-slate-700 relative">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 flex-1">
           <span className="text-white font-bold text-lg flex items-center gap-2">
             <Layers className="w-5 h-5 text-blue-400" />
             Material Child Part:
@@ -179,7 +180,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             <span className="ml-1 font-bold">{props.initialStock === null ? '-' : props.initialStock.toLocaleString()}</span>
           </span>
         </div>
-        <div className={`flex items-center gap-2${props.onDelete ? ' pr-12' : ''}`}>
+        <div className="flex items-center gap-4">
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-900 border border-green-700 rounded-lg text-green-200 font-semibold text-sm">
             <Layers className="w-4 h-4 text-green-400 mr-1" />
             Total Rencana In Material:
@@ -190,16 +191,10 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             Total Aktual In Material:
             <span className="ml-1 font-bold">{totalAktualInMaterial.toLocaleString()}</span>
           </span>
+          {props.renderHeaderAction && (
+            <div className="flex gap-2 items-center ml-2">{props.renderHeaderAction}</div>
+          )}
         </div>
-        {props.onDelete && (
-          <button
-            onClick={props.onDelete}
-            className="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-lg transition-all z-40"
-            title="Hapus Child Part"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
       </div>
       {/* Table scrollable */}
       <div className="overflow-x-auto bg-slate-900 rounded-b-xl border border-t-0 border-slate-700">
