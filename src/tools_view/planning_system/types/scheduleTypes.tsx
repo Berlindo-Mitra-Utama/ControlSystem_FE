@@ -5,6 +5,7 @@ export interface ScheduleItem {
   type: string;
   pcs: number;
   time: string;
+  processes?: string;
   status: "Normal" | "Gangguan" | "Completed";
   actualPcs?: number;
   notes?: string;
@@ -43,6 +44,6 @@ export interface ScheduleTableProps {
   initialStock: number;
   timePerPcs?: number;
   scheduleName?: string;
-  viewMode?: "cards" | "timeline";
+  viewMode?: "cards" | "table";
   searchDate?: string;
 }
