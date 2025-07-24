@@ -373,7 +373,7 @@ export default function UserManagementPage() {
       {/* Professional Dark Header */}
       <header className="bg-gray-900 border-b border-gray-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 gap-4">
             {/* Left side - Title and description */}
             <div className="flex items-center space-x-3">
               <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
@@ -388,7 +388,7 @@ export default function UserManagementPage() {
                 Admin Only
               </Badge>
             </div>
-
+      
             {/* Right side - Admin info and logout */}
             <div className="flex items-center">
               {/* Logged-in Admin Info with integrated logout */}
@@ -424,7 +424,7 @@ export default function UserManagementPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Professional Dark Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -503,7 +503,7 @@ export default function UserManagementPage() {
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
-                    className="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    className="w-full sm:w-auto px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                   >
                     <option value="all">Semua Role</option>
                     <option value="PIC">PIC</option>
@@ -614,16 +614,16 @@ export default function UserManagementPage() {
                   </div>
 
                   {/* Professional Dark Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-2 lg:items-center">
-                    <Button onClick={() => setShowToolsModal(user)} variant="outline" size="sm">
+                  <div className="flex flex-col sm:flex-row gap-2 lg:items-center mt-4 lg:mt-0">
+                    <Button onClick={() => setShowToolsModal(user)} variant="outline" size="sm" className="w-full sm:w-auto">
                       <Settings className="w-4 h-4 mr-2" />
                       Tools
                     </Button>
-                    <Button onClick={() => setEditingUser(user)} variant="secondary" size="sm">
+                    <Button onClick={() => setEditingUser(user)} variant="secondary" size="sm" className="w-full sm:w-auto">
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
-                    <Button onClick={() => setShowDeleteConfirm(user.id)} variant="danger" size="sm">
+                    <Button onClick={() => setShowDeleteConfirm(user.id)} variant="danger" size="sm" className="w-full sm:w-auto">
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete
                     </Button>
