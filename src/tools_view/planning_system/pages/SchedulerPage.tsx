@@ -6,6 +6,9 @@ import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/ui/Modal";
 import { useNotification } from "../../../hooks/useNotification";
+import ChildPart from "../components/layout/ChildPart";
+import ChildPartTable from "../components/layout/ChildPartTable";
+import { X } from "lucide-react";
 
 // CSS untuk animasi dan custom scrollbar
 const fadeInUpAnimation = `
@@ -138,6 +141,7 @@ interface SavedSchedule {
   date: string;
   form: any;
   schedule: ScheduleItem[];
+  childParts?: any[];
 }
 
 const mockData: DataItem[] = [
@@ -205,6 +209,8 @@ const SchedulerPage: React.FC = () => {
   );
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [showChildPartModal, setShowChildPartModal] = useState(false);
+  const [childParts, setChildParts] = useState<any[]>([]); // Simpan data child part jika ingin digunakan
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -231,6 +237,9 @@ const SchedulerPage: React.FC = () => {
     if (loadedSchedule) {
       setForm(loadedSchedule.form);
       setSchedule(loadedSchedule.schedule);
+      if (loadedSchedule.childParts) {
+        setChildParts(loadedSchedule.childParts);
+      }
 
       const scheduleName = loadedSchedule.name;
 
@@ -800,6 +809,7 @@ const SchedulerPage: React.FC = () => {
             date: new Date().toLocaleDateString(),
             form: { ...form },
             schedule: [...schedule],
+            childParts: childParts,
           };
 
           // Replace the existing schedule with updated one
@@ -825,6 +835,7 @@ const SchedulerPage: React.FC = () => {
         date: new Date().toLocaleDateString(),
         form: { ...form },
         schedule: [...schedule],
+        childParts: childParts,
       };
 
       const updatedSchedules = [...savedSchedules, newSchedule];
@@ -855,6 +866,23 @@ const SchedulerPage: React.FC = () => {
     setSelectedMonth(new Date().getMonth());
     setSelectedYear(new Date().getFullYear());
   };
+
+  // Handler untuk generate tabel child part
+  const handleGenerateChildPart = (data: { partName: string; customerName: string; stock: number }) => {
+    setChildParts((prev) => [...prev, { ...data, inMaterial: undefined }]);
+    // TODO: Lakukan aksi generate tabel child part di sini
+    // Misal: tampilkan tabel child part, atau update state lain
+    // Untuk demo, bisa console.log(data)
+    console.log("Child Part generated:", data);
+  };
+
+  // Handler untuk menghapus child part berdasarkan index
+  const handleDeleteChildPart = (idx: number) => {
+    setChildParts((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // Tentukan jumlah hari dari schedule
+  const days = schedule.length > 0 ? Math.max(...schedule.map(s => s.day)) : 30;
 
   return (
     <div className="w-full min-h-screen flex items-start justify-center pt-16 sm:pt-20">
@@ -1464,7 +1492,66 @@ const SchedulerPage: React.FC = () => {
                 viewMode={viewMode}
                 searchDate={searchDate}
               />
+              {/* Tombol Tambahkan Material Child Part */}
+              <div className="flex justify-end p-4">
+                <button
+                  onClick={() => setShowChildPartModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg"
+                >
+                  Tambahkan Material Child Part
+                </button>
+              </div>
+              {/* Render ChildPartTable untuk setiap child part yang sudah diinput */}
+              {childParts.length > 0 && (
+                <div className="space-y-8 px-4 pb-8">
+                  {childParts.map((cp, idx) => (
+                    <ChildPartTable
+                      key={idx}
+                      partName={cp.partName}
+                      customerName={cp.customerName}
+                      initialStock={cp.stock}
+                      days={days}
+                      schedule={schedule}
+                      onDelete={() => handleDeleteChildPart(idx)}
+                      inMaterial={cp.inMaterial}
+                      onInMaterialChange={(val) => {
+                        setChildParts((prev) => prev.map((c, i) => i === idx ? { ...c, inMaterial: val } : c));
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+            {/* Modal Child Part */}
+            <ChildPart
+              isOpen={showChildPartModal}
+              onClose={() => setShowChildPartModal(false)}
+              onGenerate={handleGenerateChildPart}
+            />
+            {/* Jika ingin menampilkan tabel child part, bisa render di sini */}
+            {/* {childParts.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-white mb-2">Daftar Child Part</h3>
+                <table className="w-full bg-slate-800 rounded-xl overflow-hidden">
+                  <thead>
+                    <tr className="text-slate-300">
+                      <th className="p-2">Nama Part</th>
+                      <th className="p-2">Nama Customer</th>
+                      <th className="p-2">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {childParts.map((cp, idx) => (
+                      <tr key={idx} className="text-white">
+                        <td className="p-2">{cp.partName}</td>
+                        <td className="p-2">{cp.customerName}</td>
+                        <td className="p-2">{cp.stock}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )} */}
           </div>
         )}
 
