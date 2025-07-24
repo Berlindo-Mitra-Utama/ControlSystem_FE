@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { ScheduleItem } from "../types/scheduleTypes";
+import { ChildPartData } from "../types/childPartTypes";
 
 export interface SavedSchedule {
   id: string;
@@ -13,6 +14,7 @@ export interface SavedSchedule {
   date: string;
   form: any;
   schedule: ScheduleItem[];
+  childParts?: ChildPartData[];
 }
 
 interface ScheduleContextType {
