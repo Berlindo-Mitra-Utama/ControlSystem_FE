@@ -42,6 +42,7 @@ export interface ToolResponse {
 
 // Interface untuk user data
 export interface UserData {
+  updatedAt: string;
   id: number;
   nama: string;
   nip: string;

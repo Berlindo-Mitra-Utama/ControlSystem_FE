@@ -39,7 +39,7 @@ interface UserData {
   id: number
   nama: string
   nip: string
-  role: "admin" | "user"
+  role: "admin" | "user" | "PIC" | "Supervisor" | "Produksi"
   tools: string[]
   createdAt: string
   updatedAt?: string
@@ -54,7 +54,7 @@ interface Tool {
   requiresRole?: string[]
 }
 
-type RoleType = "admin" | "user"
+type RoleType = "admin" | "user" | "PIC" | "Supervisor" | "Produksi"
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([])
@@ -191,12 +191,6 @@ export default function UserManagementPage() {
     setChangePassword(false)
     setShowPassword(false)
   }
-
-  const getDefaultToolsForRole = (role: RoleType): string[] => {
-    if (role === "admin") return availableTools.map((tool) => tool.id)
-    return availableTools.filter((tool) => tool.category !== "admin").map((tool) => tool.id)
-  }
-
   const handleAddUser = async () => {
     if (!validateForm()) return
     try {
@@ -250,6 +244,7 @@ export default function UserManagementPage() {
           user.id === editingUser.id
             ? {
                 ...updatedUser,
+                role: updatedUser.role as "admin" | "user", // Cast role to expected type
                 tools: user.tools, // Preserve existing tools
               }
             : user
@@ -326,10 +321,12 @@ export default function UserManagementPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "admin":
-        return "warning"
-      case "user":
+      case "PIC":
+        return "success"
+      case "Supervisor":
         return "info"
+      case "Produksi":
+        return "warning" 
       default:
         return "default"
     }
@@ -504,8 +501,9 @@ export default function UserManagementPage() {
                     className="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                   >
                     <option value="all">Semua Role</option>
-                    <option value="admin">Administrator</option>
-                    <option value="user">User</option>
+                    <option value="PIC">PIC</option>
+                    <option value="Supervisor">Supervisor</option>
+                    <option value="Produksi">Produksi</option>
                   </select>
                 </div>
               </div>
@@ -547,7 +545,7 @@ export default function UserManagementPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-semibold text-white">{user.nama}</h3>
                         <Badge variant={getRoleColor(user.role)}>
-                          {user.role === "admin" ? "Administrator" : "User"}
+                          {user.role === "admin" ? "Administrator" : user.role}
                         </Badge>
                       </div>
 
@@ -700,6 +698,20 @@ export default function UserManagementPage() {
                     </p>
                   )}
                 </div>
+              </div>
+              
+              {/* Role Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Role User</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as RoleType })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                >
+                  <option value="PIC">PIC</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Produksi">Produksi</option>
+                </select>
               </div>
 
               {/* Enhanced Password Section */}
