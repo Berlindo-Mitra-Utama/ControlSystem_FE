@@ -39,7 +39,7 @@ interface UserData {
   id: number
   nama: string
   nip: string
-  role: "admin" | "user"
+  role: "admin" | "user" | "PIC" | "Supervisor" | "Produksi"
   tools: string[]
   createdAt: string
   updatedAt?: string
@@ -54,12 +54,13 @@ interface Tool {
   requiresRole?: string[]
 }
 
-type RoleType = "admin" | "user"
+type RoleType = "admin" | "user" | "PIC" | "Supervisor" | "Produksi"
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [userCount, setUserCount] = useState({ adminCount: 0, userCount: 0 })
   
   // Menggunakan AuthContext untuk mendapatkan data admin yang login
   const { user: loggedInUser, handleLogout: authLogout } = useAuth()
@@ -112,6 +113,10 @@ export default function UserManagementPage() {
           status: user.status
         }))
         setUsers(mappedUsers)
+        
+        // Fetch user count
+        const countData = await AuthService.getUserCount()
+        setUserCount(countData)
         
         // Fetch tools for each user
         mappedUsers.forEach(async (user) => {
@@ -191,12 +196,6 @@ export default function UserManagementPage() {
     setChangePassword(false)
     setShowPassword(false)
   }
-
-  const getDefaultToolsForRole = (role: RoleType): string[] => {
-    if (role === "admin") return availableTools.map((tool) => tool.id)
-    return availableTools.filter((tool) => tool.category !== "admin").map((tool) => tool.id)
-  }
-
   const handleAddUser = async () => {
     if (!validateForm()) return
     try {
@@ -250,6 +249,7 @@ export default function UserManagementPage() {
           user.id === editingUser.id
             ? {
                 ...updatedUser,
+                role: updatedUser.role as "admin" | "user", // Cast role to expected type
                 tools: user.tools, // Preserve existing tools
               }
             : user
@@ -326,10 +326,12 @@ export default function UserManagementPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "admin":
-        return "warning"
-      case "user":
-        return "info"
+      case "PIC":
+        return "lime"
+      case "Supervisor":
+        return "zinc"
+      case "Produksi":
+        return "orange" 
       default:
         return "default"
     }
@@ -431,7 +433,7 @@ export default function UserManagementPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-400">Total Users</p>
-                  <p className="text-2xl font-bold text-white">{users.length}</p>
+                  <p className="text-2xl font-bold text-white">{userCount.adminCount + userCount.userCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -445,7 +447,7 @@ export default function UserManagementPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-400">Administrators</p>
-                  <p className="text-2xl font-bold text-white">{users.filter((u) => u.role === "admin").length}</p>
+                  <p className="text-2xl font-bold text-white">{userCount.adminCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -459,12 +461,12 @@ export default function UserManagementPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-400">Regular Users</p>
-                  <p className="text-2xl font-bold text-white">{users.filter((u) => u.role === "user").length}</p>
+                  <p className="text-2xl font-bold text-white">{userCount.userCount}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
+          
           <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -504,8 +506,9 @@ export default function UserManagementPage() {
                     className="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                   >
                     <option value="all">Semua Role</option>
-                    <option value="admin">Administrator</option>
-                    <option value="user">User</option>
+                    <option value="PIC">PIC</option>
+                    <option value="Supervisor">Supervisor</option>
+                    <option value="Produksi">Produksi</option>
                   </select>
                 </div>
               </div>
@@ -547,7 +550,7 @@ export default function UserManagementPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-semibold text-white">{user.nama}</h3>
                         <Badge variant={getRoleColor(user.role)}>
-                          {user.role === "admin" ? "Administrator" : "User"}
+                          {user.role === "admin" ? "Administrator" : user.role}
                         </Badge>
                       </div>
 
@@ -700,6 +703,20 @@ export default function UserManagementPage() {
                     </p>
                   )}
                 </div>
+              </div>
+              
+              {/* Role Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Role User</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as RoleType })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                >
+                  <option value="PIC">PIC</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Produksi">Produksi</option>
+                </select>
               </div>
 
               {/* Enhanced Password Section */}

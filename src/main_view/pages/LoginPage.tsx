@@ -24,7 +24,7 @@ export default function LoginPage() {
         },
         hitungcoil: {
           title: "Hitung Coil",
-          description: "Kalkulasi material coil dan inventory management",
+          description: "Kalkulasi material coil",
         },
         reports: {
           title: "Laporan Produksi",

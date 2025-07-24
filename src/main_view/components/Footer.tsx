@@ -26,7 +26,7 @@ const Footer: React.FC = () => {
           {/* Copyright area */}
           <div className="flex-1 flex flex-col items-center md:items-start justify-center py-6 px-10 order-2 md:order-1">
             <div className="text-blue-200 text-lg font-semibold mb-1">
-              &copy; {new Date().getFullYear()} Control System Scheduler
+              &copy; {new Date().getFullYear()} Berlindo Internal System
             </div>
             <div className="text-blue-400 text-sm">
               All rights reserved.

@@ -295,7 +295,7 @@ const EnhancedCoilCalculator: React.FC = () => {
                   <Settings className="w-5 h-5 text-blue-400" />
                 </div>
                 <h2 className="text-lg font-bold text-white">
-                  Input Parameters
+                  Parameter Input
                 </h2>
               </div>
 
@@ -374,7 +374,7 @@ const EnhancedCoilCalculator: React.FC = () => {
                 <div className="p-2 bg-green-500/10 rounded-lg">
                   <BarChart3 className="w-5 h-5 text-green-400" />
                 </div>
-                <h2 className="text-lg font-bold text-white">Results</h2>
+                <h2 className="text-lg font-bold text-white">Hasil Perhitungan</h2>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
