@@ -25,10 +25,8 @@ export interface ScheduleItem {
   selisihDetikPerPcs?: number;
   selisihCycleTime?: number;
   selisihCycleTimePcs?: number;
-  teoriStock?: number;
   actualStock?: number;
   // Tambahan untuk custom stock
-  teoriStockCustom?: number;
   actualStockCustom?: number;
   rencanaStockCustom?: number;
 }

@@ -263,7 +263,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
                       // Deklarasi prevDayGroup untuk digunakan di bagian lain
                       const prevDayGroup = groupedRows[currentDayIdx - 1];
-                      // Planning (jam) - ceil, 1 digit
+                      // Planning Produksi (jam) - ceil, 1 digit
                       const planningJam = formatJamProduksi(
                         row.planningPcs || 0,
                         outputPerHour,
@@ -279,7 +279,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                         hasilProduksi,
                         outputPerHour,
                       );
-                      // Akumulasi Hasil Produksi using utils
+                      // Akumulasi Hasil Produksi Aktual using utils
                       const akumulasiHasil = calculateAkumulasiHasilProduksi(
                         group.day,
                         validGroupedRows,
@@ -296,7 +296,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                         row.shift === "1"
                           ? akumulasiHasil.shift1
                           : akumulasiHasil.shift2;
-                      // --- Teori Stock & Rencana Stock Custom using utils ---
+                      // --- Actual Stock & Rencana Stock Custom using utils ---
                       const stockCustom = calculateStockCustom(
                         row,
                         group,
@@ -306,11 +306,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                       );
 
                       // Simpan ke row agar bisa dipakai shift berikutnya
-                      row.teoriStockCustom = stockCustom.teoriStock;
                       row.actualStockCustom = stockCustom.actualStock;
                       row.rencanaStockCustom = stockCustom.rencanaStock;
 
-                      const teoriStockCustom = stockCustom.teoriStock;
                       const actualStockCustom = stockCustom.actualStock;
                       const rencanaStockCustom = stockCustom.rencanaStock;
 
@@ -357,7 +355,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Calendar className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
-                                      Planning (pcs)
+                                      Planning Produksi (pcs)
                                     </span>
                                   </div>
                                   <input
@@ -396,7 +394,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Truck className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
-                                      Delivery (pcs)
+                                      Delivery Plan (pcs)
                                     </span>
                                   </div>
                                   <input
@@ -474,7 +472,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Factory className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
-                                      Hasil Produksi (pcs)
+                                      Hasil Produksi Aktual (pcs)
                                     </span>
                                   </div>
                                   <input
@@ -589,7 +587,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Clock className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
-                                      Planning (jam)
+                                      Planning Produksi (jam)
                                     </span>
                                   </div>
                                   <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
@@ -622,24 +620,14 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Factory className="w-4 h-4 text-slate-300" />
                                     <span className="font-semibold text-xs text-slate-300/90">
-                                      Akumulasi Hasil Produksi
+                                      Akumulasi Hasil Produksi Aktual
                                     </span>
                                   </div>
                                   <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
                                     {akumulasiHasilProduksi}
                                   </span>
                                 </div>
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
-                                  <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <Calculator className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
-                                      Teori Stock
-                                    </span>
-                                  </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
-                                    {teoriStockCustom}
-                                  </span>
-                                </div>
+
                                 <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Package className="w-4 h-4 text-slate-300" />

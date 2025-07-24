@@ -47,7 +47,6 @@ export const calculateOutputFields = (
 
   const prevStock =
     index === 0 ? initialStock : allRows[index - 1].actualStock || initialStock;
-  const teoriStock = prevStock + hasilProduksi;
   const actualStock = prevStock + hasilProduksi - delivery;
 
   return {
@@ -60,7 +59,6 @@ export const calculateOutputFields = (
     selisihDetikPerPcs,
     selisihCycleTime,
     selisihCycleTimePcs,
-    teoriStock,
     actualStock,
     prevStock,
   };
@@ -642,14 +640,14 @@ export const calculateAkumulasiHasilProduksi = (
   return { shift1: akumulasiHasilShift1, shift2: akumulasiHasilShift2 };
 };
 
-// Fungsi untuk menghitung stock custom (teori, actual, rencana)
+// Fungsi untuk menghitung stock custom (actual, rencana)
 export const calculateStockCustom = (
   row: ScheduleItem,
   group: { day: number; rows: ScheduleItem[] },
   validGroupedRows: { day: number; rows: ScheduleItem[] }[],
   groupIndex: number,
   initialStock: number,
-): { teoriStock: number; actualStock: number; rencanaStock: number } => {
+): { actualStock: number; rencanaStock: number } => {
   const isHariPertama = groupIndex === 0 && row.shift === "1";
   const isShift1 = row.shift === "1";
   const isShift2 = row.shift === "2";
@@ -672,13 +670,11 @@ export const calculateStockCustom = (
   const overtimePcs = row.overtimePcs || 0;
   const delivery = row.delivery || 0;
 
-  let teoriStock = 0;
   let actualStock = 0;
   let rencanaStock = 0;
 
   if (isHariPertama) {
     // Hari pertama shift 1 menggunakan initialStock
-    teoriStock = initialStock + hasilProduksi - delivery;
     actualStock =
       hasilProduksi === 0
         ? initialStock + planningPcs + overtimePcs - delivery
@@ -686,7 +682,6 @@ export const calculateStockCustom = (
     rencanaStock = initialStock + planningPcs + overtimePcs - delivery;
   } else if (isShift1) {
     // Shift 1 hari berikutnya
-    teoriStock = prevActualStockShift2 + hasilProduksi - delivery;
     actualStock =
       hasilProduksi === 0
         ? prevActualStockShift2 + planningPcs + overtimePcs - delivery
@@ -698,7 +693,6 @@ export const calculateStockCustom = (
     const shift1Row = group.rows.find((r) => r.shift === "1");
     const shift1ActualStock = shift1Row?.actualStockCustom ?? initialStock;
 
-    teoriStock = shift1ActualStock + hasilProduksi - delivery;
     actualStock =
       hasilProduksi === 0
         ? shift1ActualStock + planningPcs + overtimePcs - delivery
@@ -706,5 +700,5 @@ export const calculateStockCustom = (
     rencanaStock = shift1ActualStock + planningPcs + overtimePcs - delivery;
   }
 
-  return { teoriStock, actualStock, rencanaStock };
+  return { actualStock, rencanaStock };
 };

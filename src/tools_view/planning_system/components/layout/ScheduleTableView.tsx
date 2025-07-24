@@ -42,6 +42,7 @@ interface ScheduleTableViewProps {
 
 type FilterType =
   | "all"
+  | "stock"
   | "delivery"
   | "planning"
   | "overtime"
@@ -74,10 +75,15 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
   // Define all rows with their categories and formatted labels
   const allRows = [
-    { key: "stock", label: "STOCK (PCS)", category: "stock", icon: Package },
+    {
+      key: "stock-awal",
+      label: "STOCK AWAL (PCS)",
+      category: "stock",
+      icon: Package,
+    },
     {
       key: "delivery",
-      label: "DELIVERY (PCS)",
+      label: "DELIVERY PLAN (PCS)",
       category: "delivery",
       icon: Truck,
     },
@@ -89,13 +95,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     },
     {
       key: "planning-pcs",
-      label: "PLANNING (PCS)",
+      label: "PLANNING PRODUKSI (PCS)",
       category: "planning",
       icon: Target,
     },
     {
       key: "planning-jam",
-      label: "PLANNING (JAM)",
+      label: "PLANNING PRODUKSI (JAM)",
       category: "planning",
       icon: Clock,
     },
@@ -119,13 +125,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     },
     {
       key: "hasil-produksi",
-      label: "HASIL\nPRODUKSI (PCS)",
+      label: "HASIL PRODUKSI\nAKTUAL (PCS)",
       category: "hasil-produksi",
       icon: Factory,
     },
     {
       key: "akumulasi-hasil",
-      label: "AKUMULASI HASIL\nPRODUKSI (PCS)",
+      label: "AKUMULASI HASIL\nPRODUKSI AKTUAL (PCS)",
       category: "hasil-produksi",
       icon: TrendingUp,
     },
@@ -134,12 +140,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       label: "JAM PRODUKSI\nAKTUAL",
       category: "stock",
       icon: Activity,
-    },
-    {
-      key: "teori-stock",
-      label: "TEORI STOCK\n(PCS)",
-      category: "stock",
-      icon: Calculator,
     },
     {
       key: "actual-stock",
@@ -185,6 +185,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Filter menu options
   const filterOptions = [
     { value: "all", label: "Semua Data", icon: BarChart3 },
+    { value: "stock", label: "Stock", icon: Package },
     { value: "delivery", label: "Delivery", icon: Truck },
     { value: "planning", label: "Planning", icon: Target },
     { value: "overtime", label: "Overtime", icon: Timer },
@@ -269,6 +270,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 let textColor = "text-slate-400";
 
                 switch (row.key) {
+                  case "stock-awal":
+                    totalValue = "332";
+                    bgColor = "bg-slate-800/50";
+                    textColor = "text-slate-200";
+                    break;
                   case "delivery":
                     totalValue = formatNumber(totals.delivery);
                     bgColor = "bg-cyan-800/50";
@@ -382,29 +388,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       let shift2Field = "";
 
                       switch (row.key) {
-                        case "stock":
-                          if (shift1) {
-                            const shift1Calc = calculateOutputFields(
-                              shift1,
-                              flatRows.findIndex((r) => r.id === shift1.id),
-                              flatRows,
-                              timePerPcs,
-                              initialStock,
-                            );
-                            shift1Value = formatNumber(shift1Calc.prevStock);
-                          }
-                          if (shift2) {
-                            const shift2Calc = calculateOutputFields(
-                              shift2,
-                              flatRows.findIndex((r) => r.id === shift2.id),
-                              flatRows,
-                              timePerPcs,
-                              initialStock,
-                            );
-                            shift2Value = formatNumber(shift2Calc.prevStock);
-                          }
+                        case "stock-awal":
+                          shift1Value = "-";
+                          shift2Value = "-";
+                          bgColor = "bg-slate-800";
+                          textColor = "text-slate-200";
                           break;
-
                         case "delivery":
                           shift1Value = shift1?.delivery || 0;
                           shift2Value = shift2?.delivery || 0;
@@ -437,18 +426,18 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "planning-jam":
-                          const planningJamShift1 = formatJamProduksi(
+                          const planningProduksiJamShift1 = formatJamProduksi(
                             shift1?.planningPcs || 0,
                             outputPerHour,
                           );
 
-                          const planningJamShift2 = formatJamProduksi(
+                          const planningProduksiJamShift2 = formatJamProduksi(
                             shift2?.planningPcs || 0,
                             outputPerHour,
                           );
 
-                          shift1Value = planningJamShift1;
-                          shift2Value = planningJamShift2;
+                          shift1Value = planningProduksiJamShift1;
+                          shift2Value = planningProduksiJamShift2;
                           bgColor = "bg-yellow-900/30";
                           textColor = "text-yellow-300";
                           break;
@@ -518,7 +507,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "akumulasi-hasil":
-                          // Calculate akumulasi hasil produksi using utils
+                          // Calculate akumulasi hasil produksi aktual using utils
                           const akumulasiHasil =
                             calculateAkumulasiHasilProduksi(
                               group.day,
@@ -553,36 +542,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           isEditable = true;
                           shift1Field = "jamProduksiAktual";
                           shift2Field = "jamProduksiAktual";
-                          break;
-
-                        case "teori-stock":
-                          // Calculate teori stock using utils
-                          if (shift1) {
-                            const stockCustom1 = calculateStockCustom(
-                              shift1,
-                              group,
-                              validGroupedRows,
-                              groupIndex,
-                              initialStock,
-                            );
-                            shift1.teoriStockCustom = stockCustom1.teoriStock;
-                            shift1Value = formatNumber(stockCustom1.teoriStock);
-                          }
-
-                          if (shift2) {
-                            const stockCustom2 = calculateStockCustom(
-                              shift2,
-                              group,
-                              validGroupedRows,
-                              groupIndex,
-                              initialStock,
-                            );
-                            shift2.teoriStockCustom = stockCustom2.teoriStock;
-                            shift2Value = formatNumber(stockCustom2.teoriStock);
-                          }
-
-                          bgColor = "bg-teal-900/30";
-                          textColor = "text-teal-300";
                           break;
 
                         case "actual-stock":
