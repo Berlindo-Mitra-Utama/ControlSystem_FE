@@ -60,6 +60,12 @@ export interface UserRequest {
   role: string;
 }
 
+// Interface untuk response count pengguna sistem
+export interface UserCountResponse {
+  adminCount: number;
+  userCount: number;
+}
+
 // Service untuk autentikasi
 export const AuthService = {
   // Login user
@@ -172,6 +178,19 @@ export const AuthService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(error.response.data.message || 'Gagal menghapus pengguna');
+      }
+      throw new Error('Terjadi kesalahan saat menghubungi server');
+    }
+  },
+  
+  // Get user count (admin only)
+  getUserCount: async (): Promise<UserCountResponse> => {
+    try {
+      const response = await api.get('/auth/users/count-pengguna-sistem');
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Gagal mendapatkan jumlah pengguna');
       }
       throw new Error('Terjadi kesalahan saat menghubungi server');
     }

@@ -60,6 +60,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [userCount, setUserCount] = useState({ adminCount: 0, userCount: 0 })
   
   // Menggunakan AuthContext untuk mendapatkan data admin yang login
   const { user: loggedInUser, handleLogout: authLogout } = useAuth()
@@ -112,6 +113,10 @@ export default function UserManagementPage() {
           status: user.status
         }))
         setUsers(mappedUsers)
+        
+        // Fetch user count
+        const countData = await AuthService.getUserCount()
+        setUserCount(countData)
         
         // Fetch tools for each user
         mappedUsers.forEach(async (user) => {
@@ -322,11 +327,11 @@ export default function UserManagementPage() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case "PIC":
-        return "success"
+        return "lime"
       case "Supervisor":
-        return "info"
+        return "zinc"
       case "Produksi":
-        return "warning" 
+        return "orange" 
       default:
         return "default"
     }
@@ -428,7 +433,7 @@ export default function UserManagementPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-400">Total Users</p>
-                  <p className="text-2xl font-bold text-white">{users.length}</p>
+                  <p className="text-2xl font-bold text-white">{userCount.adminCount + userCount.userCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -442,7 +447,7 @@ export default function UserManagementPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-400">Administrators</p>
-                  <p className="text-2xl font-bold text-white">{users.filter((u) => u.role === "admin").length}</p>
+                  <p className="text-2xl font-bold text-white">{userCount.adminCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -456,12 +461,12 @@ export default function UserManagementPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-400">Regular Users</p>
-                  <p className="text-2xl font-bold text-white">{users.filter((u) => u.role === "user").length}</p>
+                  <p className="text-2xl font-bold text-white">{userCount.userCount}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
+          
           <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
