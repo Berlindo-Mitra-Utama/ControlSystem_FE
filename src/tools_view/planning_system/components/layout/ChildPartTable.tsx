@@ -14,7 +14,7 @@ interface ScheduleItem {
 interface ChildPartTableProps {
   partName: string;
   customerName: string;
-  initialStock: number;
+  initialStock: number | null;
   days: number;
   schedule: ScheduleItem[];
   onDelete?: () => void;
@@ -44,6 +44,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
   }, [inMaterialProp]);
   const inMaterial = inMaterialProp ?? inMaterialState;
 
+  // Gunakan 0 jika initialStock null
+  const safeInitialStock = initialStock ?? 0;
+
   // Helper: ambil hasil produksi, planning, overtime dari schedule
   const getScheduleData = (dayIdx: number, shiftIdx: number) => {
     const shiftStr = shiftIdx === 0 ? "1" : "2";
@@ -68,16 +71,16 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
       const { hasilProduksi, planningPcs, overtimePcs } = getScheduleData(d, s);
       // Teori Stock tetap rumus lama
       if (idx === 0) {
-        teoriStock[idx] = initialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
+        teoriStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
       } else {
         teoriStock[idx] = teoriStock[idx - 1] + (inMaterial[d][s] ?? 0) - hasilProduksi;
       }
       // Rencana Stock pakai rumus baru
       if (idx === 0) {
         if (hasilProduksi === 0) {
-          rencanaStock[idx] = initialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
+          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
         } else {
-          rencanaStock[idx] = initialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
+          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
         }
       } else {
         if (hasilProduksi === 0) {
@@ -126,8 +129,8 @@ const ChildPartTable: React.FC<ChildPartTableProps> = ({ partName, customerName,
           </span>
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-900 border border-blue-700 rounded-lg text-blue-200 font-semibold text-sm">
             <Package className="w-4 h-4 text-blue-400 mr-1" />
-            Stock Tersedia:
-            <span className="ml-1 font-bold">{initialStock.toLocaleString()}</span>
+            Stock Awal Tersedia:
+            <span className="ml-1 font-bold">{initialStock === null ? '-' : initialStock.toLocaleString()}</span>
           </span>
         </div>
         <div className={`flex items-center gap-2${onDelete ? ' pr-12' : ''}`}>

@@ -1,6 +1,6 @@
 export interface ChildPartData {
   partName: string;
   customerName: string;
-  stock: number;
+  stock: number | null;
   inMaterial?: (number | null)[][];
 } 

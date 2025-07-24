@@ -3,19 +3,19 @@ import React, { useState } from "react";
 interface ChildPartFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (data: { partName: string; customerName: string; stock: number }) => void;
+  onGenerate: (data: { partName: string; customerName: string; stock: number | null }) => void;
 }
 
 const ChildPart: React.FC<ChildPartFormProps> = ({ isOpen, onClose, onGenerate }) => {
   const [partName, setPartName] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [stock, setStock] = useState<number>(0);
+  const [stock, setStock] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!partName || !customerName || stock <= 0) {
-      setError("Semua field wajib diisi dan stock harus lebih dari 0");
+    if (!partName || !customerName) {
+      setError("Semua field wajib diisi");
       return;
     }
     setError("");
@@ -23,7 +23,7 @@ const ChildPart: React.FC<ChildPartFormProps> = ({ isOpen, onClose, onGenerate }
     onClose();
     setPartName("");
     setCustomerName("");
-    setStock(0);
+    setStock(null);
   };
 
   if (!isOpen) return null;
@@ -70,12 +70,11 @@ const ChildPart: React.FC<ChildPartFormProps> = ({ isOpen, onClose, onGenerate }
             <label className="block text-slate-300 font-medium mb-1">Stock Tersedia (pcs)</label>
             <input
               type="number"
-              min={1}
-              value={stock}
-              onChange={e => setStock(Number(e.target.value))}
+              min={0}
+              value={stock === null ? "" : stock}
+              onChange={e => setStock(e.target.value === "" ? null : Number(e.target.value))}
               className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Masukkan jumlah stock"
-              required
             />
           </div>
           {error && <div className="text-red-400 text-sm">{error}</div>}
