@@ -21,6 +21,7 @@ interface ChildPartTableProps {
   inMaterial?: (number|null)[][];
   onInMaterialChange?: (val: (number|null)[][]) => void;
   renderHeaderAction?: React.ReactNode;
+  activeFilter?: string;
 }
 
 // Helper untuk nama hari Indonesia
@@ -244,62 +245,127 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               </tr>
             </thead>
             <tbody>
-              {/* In Material */}
-              <tr>
-                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA IN MATERIAL</td>
-                {inMaterial.map((val, dayIdx) => [
-                  <td key={`inmat-1-${dayIdx}`} className="p-2">
-                    <InputCell
-                      value={val[0]}
-                      onChange={v => handleInMaterialChange(dayIdx, 0, v)}
-                      className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>,
-                  <td key={`inmat-2-${dayIdx}`} className="p-2">
-                    <InputCell
-                      value={val[1]}
-                      onChange={v => handleInMaterialChange(dayIdx, 1, v)}
-                      className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>,
-                ])}
-              </tr>
-              {/* Aktual In Material */}
-              <tr>
-                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL IN MATERIAL</td>
-                {aktualInMaterial.map((val, dayIdx) => [
-                  <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
-                    <InputCell
-                      value={val[0]}
-                      onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
-                      className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </td>,
-                  <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
-                    <InputCell
-                      value={val[1]}
-                      onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
-                      className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </td>,
-                ])}
-              </tr>
-              {/* Rencana Stock */}
-              <tr>
-                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
-                {Array.from({ length: props.days }, (_, dayIdx) => [
-                  <td key={`rencana-1-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2]}</td>,
-                  <td key={`rencana-2-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2 + 1]}</td>,
-                ])}
-              </tr>
-              {/* Aktual Stock */}
-              <tr>
-                <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
-                {Array.from({ length: props.days }, (_, dayIdx) => [
-                  <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2]}</td>,
-                  <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2 + 1]}</td>,
-                ])}
-              </tr>
+              {/* Render baris sesuai filter */}
+              {(props.activeFilter === "all" || !props.activeFilter) && (
+                <>
+                  {/* In Material */}
+                  <tr>
+                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA IN MATERIAL</td>
+                    {inMaterial.map((val, dayIdx) => [
+                      <td key={`inmat-1-${dayIdx}`} className="p-2">
+                        <InputCell
+                          value={val[0]}
+                          onChange={v => handleInMaterialChange(dayIdx, 0, v)}
+                          className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </td>,
+                      <td key={`inmat-2-${dayIdx}`} className="p-2">
+                        <InputCell
+                          value={val[1]}
+                          onChange={v => handleInMaterialChange(dayIdx, 1, v)}
+                          className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </td>,
+                    ])}
+                  </tr>
+                  {/* Aktual In Material */}
+                  <tr>
+                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL IN MATERIAL</td>
+                    {aktualInMaterial.map((val, dayIdx) => [
+                      <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
+                        <InputCell
+                          value={val[0]}
+                          onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
+                          className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </td>,
+                      <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
+                        <InputCell
+                          value={val[1]}
+                          onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
+                          className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </td>,
+                    ])}
+                  </tr>
+                  {/* Rencana Stock */}
+                  <tr>
+                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
+                    {Array.from({ length: props.days }, (_, dayIdx) => [
+                      <td key={`rencana-1-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2]}</td>,
+                      <td key={`rencana-2-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2 + 1]}</td>,
+                    ])}
+                  </tr>
+                  {/* Aktual Stock */}
+                  <tr>
+                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
+                    {Array.from({ length: props.days }, (_, dayIdx) => [
+                      <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2]}</td>,
+                      <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2 + 1]}</td>,
+                    ])}
+                  </tr>
+                </>
+              )}
+              {props.activeFilter === "rencanaInMaterial" && (
+                <tr>
+                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA IN MATERIAL</td>
+                  {inMaterial.map((val, dayIdx) => [
+                    <td key={`inmat-1-${dayIdx}`} className="p-2">
+                      <InputCell
+                        value={val[0]}
+                        onChange={v => handleInMaterialChange(dayIdx, 0, v)}
+                        className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </td>,
+                    <td key={`inmat-2-${dayIdx}`} className="p-2">
+                      <InputCell
+                        value={val[1]}
+                        onChange={v => handleInMaterialChange(dayIdx, 1, v)}
+                        className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </td>,
+                  ])}
+                </tr>
+              )}
+              {props.activeFilter === "aktualInMaterial" && (
+                <tr>
+                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL IN MATERIAL</td>
+                  {aktualInMaterial.map((val, dayIdx) => [
+                    <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
+                      <InputCell
+                        value={val[0]}
+                        onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
+                        className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </td>,
+                    <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
+                      <InputCell
+                        value={val[1]}
+                        onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
+                        className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </td>,
+                  ])}
+                </tr>
+              )}
+              {props.activeFilter === "rencanaStock" && (
+                <tr>
+                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
+                  {Array.from({ length: props.days }, (_, dayIdx) => [
+                    <td key={`rencana-1-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2]}</td>,
+                    <td key={`rencana-2-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2 + 1]}</td>,
+                  ])}
+                </tr>
+              )}
+              {props.activeFilter === "aktualStock" && (
+                <tr>
+                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
+                  {Array.from({ length: props.days }, (_, dayIdx) => [
+                    <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2]}</td>,
+                    <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2 + 1]}</td>,
+                  ])}
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

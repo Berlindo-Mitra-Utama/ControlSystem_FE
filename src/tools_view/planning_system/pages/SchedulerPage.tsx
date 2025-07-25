@@ -26,6 +26,7 @@ import {
 } from "../utils/scheduleDateUtils";
 import { ScheduleItem } from "../types/scheduleTypes";
 import { ChildPartData } from "../types/childPartTypes";
+import { BarChart2, Package, Layers, Target, Factory } from "lucide-react";
 
 // CSS untuk animasi dan custom scrollbar
 const fadeInUpAnimation = `
@@ -181,6 +182,7 @@ const SchedulerPage: React.FC = () => {
   const [childPartCarouselPage, setChildPartCarouselPage] = useState(0);
   const CHILD_PARTS_PER_PAGE = 5;
   const [editChildPartIdx, setEditChildPartIdx] = useState<number | null>(null);
+  const [activeChildPartTableFilter, setActiveChildPartTableFilter] = useState<string>("all");
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1274,92 +1276,113 @@ const SchedulerPage: React.FC = () => {
               />
               {/* Tombol Tambahkan Material Child Part */}
               <div className="flex flex-col sm:flex-row justify-between items-center gap-2 p-4">
-                {/* Filter By Button & Dropdown */}
-                <div className="relative">
-                  <button
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 font-semibold hover:bg-slate-600 transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onClick={() => setShowFilterDropdown(v => !v)}
-                    type="button"
-                  >
-                    <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
-                    Filter By
-                  </button>
-                  {showFilterDropdown && (
-                    <div className="absolute left-0 mt-2 w-72 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl z-50 p-4 animate-fadeInUp">
-                      <div className="mb-3 border-b border-slate-600 pb-2 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
-                        <span className="text-white font-bold text-base">Filter Child Part</span>
-                      </div>
-                      <div className="mb-2">
-                        <label className="flex items-center gap-2 cursor-pointer py-2 px-2 rounded-lg hover:bg-slate-700 transition-all">
-                          <input
-                            type="checkbox"
-                            checked={childPartFilter === 'all'}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setChildPartFilter('all');
-                              } else {
-                                setChildPartFilter([]); // Uncheck manual, kosongkan filter
-                              }
-                            }}
-                            className="accent-blue-500 w-4 h-4 rounded focus:ring-2 focus:ring-blue-500"
-                          />
-                          <span className="text-white font-medium">Semua Child Part</span>
-                        </label>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto space-y-1 mb-3">
-                        {childParts.map((cp, idx) => (
-                          <label key={cp.partName + idx} className={`flex items-center gap-2 py-2 px-2 rounded-lg cursor-pointer transition-all ${Array.isArray(childPartFilter) && childPartFilter.includes(cp.partName) ? 'bg-blue-900/40' : 'hover:bg-slate-700'}`}>
-                            <input
-                              type="checkbox"
-                              checked={Array.isArray(childPartFilter) && childPartFilter.includes(cp.partName)}
-                              disabled={childPartFilter === 'all'}
-                              onChange={e => {
-                                if (childPartFilter === 'all') {
-                                  setChildPartFilter([cp.partName]);
-                                } else if (e.target.checked) {
-                                  setChildPartFilter(prev => {
-                                    if (prev === 'all') return [cp.partName];
-                                    const next = [...prev, cp.partName];
-                                    return next;
-                                  });
-                                } else {
-                                  setChildPartFilter(prev => {
-                                    if (prev === 'all') return [];
-                                    const next = prev.filter(n => n !== cp.partName);
-                                    return next.length === 0 ? 'all' : next;
-                                  });
-                                }
-                              }}
-                              className="accent-blue-500 w-4 h-4 rounded focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-slate-200 font-medium">{cp.partName}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="flex justify-end mt-2">
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow" onClick={() => setShowFilterDropdown(false)}>Tutup</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
                 {/* Search & Add Button */}
-                <div className="flex flex-row items-center gap-2">
+                <div className="flex flex-row items-center gap-4 ml-auto" style={{ maxWidth: 500 }}>
                   <input
                     type="text"
                     value={childPartSearch}
                     onChange={e => setChildPartSearch(e.target.value)}
                     placeholder="Cari Child Part..."
-                    className="w-48 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm mr-2"
+                    className="w-64 h-12 px-4 bg-slate-800 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   />
                   <button
                     onClick={() => setShowChildPartModal(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg"
+                    className="w-64 h-12 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg text-base"
                   >
-                    Tambahkan Material Child Part
+                    Tambahkan Material
                   </button>
                 </div>
               </div>
+              {/* FILTER BAR UNTUK CHILD PART TABLE */}
+              <div className="flex flex-row items-center gap-4 mb-4 mt-8 pl-8 overflow-x-auto">
+                <button
+                  className="px-6 py-2 rounded-xl font-semibold border border-blue-400 text-blue-400 flex items-center gap-2 hover:bg-blue-900 transition"
+                  onClick={() => setShowFilterDropdown(true)}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  Nama Part
+                </button>
+                <div className="flex flex-row gap-2">
+                  <button onClick={() => setActiveChildPartTableFilter("all")}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all ${activeChildPartTableFilter === "all" ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}`}>
+                    <BarChart2 className="w-5 h-5" /> Semua Data
+                  </button>
+                  <button onClick={() => setActiveChildPartTableFilter("rencanaInMaterial")}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all ${activeChildPartTableFilter === "rencanaInMaterial" ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}`}>
+                    <Package className="w-5 h-5" /> Rencana In Material
+                  </button>
+                  <button onClick={() => setActiveChildPartTableFilter("aktualInMaterial")}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all ${activeChildPartTableFilter === "aktualInMaterial" ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}`}>
+                    <Layers className="w-5 h-5" /> Aktual In Material
+                  </button>
+                  <button onClick={() => setActiveChildPartTableFilter("rencanaStock")}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all ${activeChildPartTableFilter === "rencanaStock" ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}`}>
+                    <Target className="w-5 h-5" /> Rencana Stock (PCS)
+                  </button>
+                  <button onClick={() => setActiveChildPartTableFilter("aktualStock")}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all mr-8 ${activeChildPartTableFilter === "aktualStock" ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}`}>
+                    <Factory className="w-5 h-5" /> Aktual Stock (PCS)
+                  </button>
+                </div>
+              </div>
+              {showFilterDropdown && (
+                <div className="absolute z-50 mt-2 ml-8 w-72 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-4 animate-fadeInUp">
+                  <div className="mb-3 border-b border-slate-600 pb-2 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
+                    <span className="text-white font-bold text-base">Filter Child Part</span>
+                  </div>
+                  <div className="mb-2">
+                    <label className="flex items-center gap-2 cursor-pointer py-2 px-2 rounded-lg hover:bg-slate-700 transition-all">
+                      <input
+                        type="checkbox"
+                        checked={childPartFilter === 'all'}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setChildPartFilter('all');
+                          } else {
+                            setChildPartFilter([]); // Uncheck manual, kosongkan filter
+                          }
+                        }}
+                        className="accent-blue-500 w-4 h-4 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-white font-medium">Semua Child Part</span>
+                    </label>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto space-y-1 mb-3">
+                    {childParts.map((cp, idx) => (
+                      <label key={cp.partName + idx} className={`flex items-center gap-2 py-2 px-2 rounded-lg cursor-pointer transition-all ${Array.isArray(childPartFilter) && childPartFilter.includes(cp.partName) ? 'bg-blue-900/40' : 'hover:bg-slate-700'}`}>
+                        <input
+                          type="checkbox"
+                          checked={Array.isArray(childPartFilter) && childPartFilter.includes(cp.partName)}
+                          disabled={childPartFilter === 'all'}
+                          onChange={e => {
+                            if (childPartFilter === 'all') {
+                              setChildPartFilter([cp.partName]);
+                            } else if (e.target.checked) {
+                              setChildPartFilter(prev => {
+                                if (prev === 'all') return [cp.partName];
+                                const next = [...prev, cp.partName];
+                                return next;
+                              });
+                            } else {
+                              setChildPartFilter(prev => {
+                                if (prev === 'all') return [];
+                                const next = prev.filter(n => n !== cp.partName);
+                                return next.length === 0 ? 'all' : next;
+                              });
+                            }
+                          }}
+                          className="accent-blue-500 w-4 h-4 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-slate-200 font-medium">{cp.partName}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition" onClick={() => setShowFilterDropdown(false)}>Tutup</button>
+                  </div>
+                </div>
+              )}
               {/* Render ChildPartTable sebagai carousel per 5 item per page */}
               {childParts.length > 0 && (
                 <div className="relative px-4 pb-8">
@@ -1390,6 +1413,7 @@ const SchedulerPage: React.FC = () => {
                           inMaterial={Array.from({ length: days }, () => [null, null])}
                           onInMaterialChange={() => {}}
                           onDelete={undefined}
+                          activeFilter={activeChildPartTableFilter}
                           // Tambahkan prop renderHeaderAction jika ingin custom header
                         />
                         <div className="text-center text-slate-400 py-8 -mt-12">Tidak ada Child Part ditemukan.</div>
@@ -1439,6 +1463,7 @@ const SchedulerPage: React.FC = () => {
                                     </button>
                                   </div>
                                 }
+                                activeFilter={activeChildPartTableFilter}
                               />
                             );
                           })}
