@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
 import { formatValidDate } from "../../utils/scheduleDateUtils";
 import {
@@ -29,6 +29,9 @@ import {
   Gauge,
   Layers,
   Activity,
+  Plus,
+  Trash2,
+  XCircle,
 } from "lucide-react";
 
 interface ScheduleTableViewProps {
@@ -38,6 +41,14 @@ interface ScheduleTableViewProps {
   initialStock: number;
   scheduleName?: string;
   setEditForm?: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
+  manpowerList: { id: number; name: string }[];
+  setManpowerList: React.Dispatch<
+    React.SetStateAction<{ id: number; name: string }[]>
+  >;
+  newManpower: string;
+  setNewManpower: React.Dispatch<React.SetStateAction<string>>;
+  handleAddManpower: () => void;
+  handleRemoveManpower: (id: number) => void;
 }
 
 type FilterType =
@@ -55,11 +66,62 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   initialStock,
   scheduleName,
   setEditForm,
+  manpowerList,
+  setManpowerList,
+  newManpower,
+  setNewManpower,
+  handleAddManpower,
+  handleRemoveManpower,
 }) => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [focusedInputs, setFocusedInputs] = useState<{
     [key: string]: boolean;
   }>({});
+  // State untuk popup dan list manpower
+  const [showManpowerModal, setShowManpowerModal] = useState(false);
+  // State untuk notifikasi error manpower
+  const [manpowerError, setManpowerError] = useState<string>("");
+  // Ref untuk modal manpower
+  const manpowerModalRef = useRef<HTMLDivElement>(null);
+
+  // Simpan manpowerList ke localStorage setiap kali berubah
+  useEffect(() => {
+    localStorage.setItem("berlindo_manpowerList", JSON.stringify(manpowerList));
+  }, [manpowerList]);
+
+  // Load manpowerList dari localStorage saat mount
+  useEffect(() => {
+    const saved = localStorage.getItem("berlindo_manpowerList");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setManpowerList(parsed);
+      } catch {}
+    }
+  }, []);
+
+  // Tutup dropdown manpower jika klik di luar
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      // Tutup semua dropdown manpower
+      if (
+        manpowerModalRef.current &&
+        !manpowerModalRef.current.contains(event.target as Node)
+      ) {
+        setShowManpowerModal(false);
+      }
+      // Untuk dropdown per cell
+      setFocusedInputs((prev) => {
+        const newObj = { ...prev };
+        Object.keys(newObj).forEach((k) => {
+          if (k.endsWith("-manpowerDropdown")) newObj[k] = false;
+        });
+        return newObj;
+      });
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Calculate totals using utils
   const totals = calculateScheduleTotals(flatRows);
@@ -80,6 +142,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       label: "STOCK AWAL (PCS)",
       category: "stock",
       icon: Package,
+    },
+    {
+      key: "manpower",
+      label: "MANPOWER",
+      category: "stock",
+      icon: Activity,
     },
     {
       key: "delivery",
@@ -185,7 +253,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Filter menu options
   const filterOptions = [
     { value: "all", label: "Semua Data", icon: BarChart3 },
-    { value: "stock", label: "Stock", icon: Package },
     { value: "delivery", label: "Delivery", icon: Truck },
     { value: "planning", label: "Planning", icon: Target },
     { value: "overtime", label: "Overtime", icon: Timer },
@@ -194,13 +261,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Filter Menu - Enhanced */}
+      {/* Filter Menu - Enhanced + Manpower Button */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
         <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-3">
           <Filter className="w-6 h-6 text-blue-400" />
           Filter Data
         </h3>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 items-center">
           {filterOptions.map((option) => {
             const IconComponent = option.icon;
             return (
@@ -209,8 +276,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 onClick={() => setActiveFilter(option.value as FilterType)}
                 className={`${
                   option.value === "all"
-                    ? "px-4 py-2 rounded-lg text-sm font-medium" // Smaller for "Semua Data"
-                    : "px-6 py-3 rounded-xl text-base font-semibold" // Larger for others
+                    ? "px-4 py-2 rounded-lg text-sm font-medium"
+                    : "px-6 py-3 rounded-xl text-base font-semibold"
                 } transition-all flex items-center gap-2 ${
                   activeFilter === option.value
                     ? "bg-blue-600 text-white shadow-xl scale-105"
@@ -224,11 +291,87 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               </button>
             );
           })}
+          {/* Gabungkan button Manpower di sini */}
+          <button
+            className="flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold bg-blue-700 hover:bg-blue-800 text-white shadow transition ml-2"
+            onClick={() => setShowManpowerModal(true)}
+            type="button"
+          >
+            <Activity className="w-5 h-5" />
+            Manpower
+          </button>
         </div>
       </div>
 
       {/* Table - Enhanced */}
       <div className="relative bg-slate-800/50 rounded-xl overflow-hidden border border-slate-700/50">
+        {/* MODAL MANPOWER */}
+        {showManpowerModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div
+              ref={manpowerModalRef}
+              className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl relative"
+            >
+              <button
+                className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                onClick={() => setShowManpowerModal(false)}
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-green-400" />
+                Daftar Manpower
+              </h3>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={newManpower}
+                  onChange={(e) => setNewManpower(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none"
+                  placeholder="Nama manpower baru"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddManpower();
+                  }}
+                />
+                <button
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center"
+                  onClick={handleAddManpower}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <ul className="space-y-2 max-h-48 overflow-y-auto">
+                {manpowerList.length === 0 && (
+                  <li className="text-slate-400 text-sm">
+                    Belum ada manpower.
+                  </li>
+                )}
+                {manpowerList.map((mp, idx) => (
+                  <li
+                    key={mp.id}
+                    className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"
+                  >
+                    <span className="text-white font-medium">
+                      {mp.id}. {mp.name}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveManpower(mp.id)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+        {/* Notifikasi error manpower */}
+        {manpowerError && (
+          <div className="bg-red-600 text-white text-center py-2 rounded mb-2 font-semibold">
+            {manpowerError}
+          </div>
+        )}
         {/* Container with horizontal scroll */}
         <div className="flex">
           {/* Frozen Left Column - DESCRIPTION */}
@@ -275,6 +418,19 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     bgColor = "bg-slate-800/50";
                     textColor = "text-slate-200";
                     break;
+                  case "manpower":
+                    // Hitung rata-rata manpower dari flatRows
+                    const manpowerTotal = flatRows.reduce(
+                      (sum, r) => sum + (r.manpower || 0),
+                      0,
+                    );
+                    const manpowerCount = flatRows.filter(
+                      (r) => typeof r.manpower === "number",
+                    ).length;
+                    totalValue = "-";
+                    bgColor = "bg-slate-800/50";
+                    textColor = "text-slate-200";
+                    break;
                   case "delivery":
                     totalValue = formatNumber(totals.delivery);
                     bgColor = "bg-cyan-800/50";
@@ -301,7 +457,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     textColor = "text-orange-200";
                     break;
                   case "jam-produksi":
-                    totalValue = totalJamProduksi;
+                    totalValue = "-";
                     bgColor = "bg-indigo-800/50";
                     textColor = "text-indigo-200";
                     break;
@@ -311,9 +467,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     textColor = "text-purple-200";
                     break;
                   case "jam-aktual":
-                    totalValue = formatNumberWithDecimal(
-                      totals.jamProduksiAktual || 0,
-                    );
+                    totalValue = "-";
                     bgColor = "bg-green-800/50";
                     textColor = "text-green-200";
                     break;
@@ -393,6 +547,37 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift2Value = "-";
                           bgColor = "bg-slate-800";
                           textColor = "text-slate-200";
+                          break;
+                        case "manpower":
+                          shift1Value =
+                            shift1?.manpowerIds && shift1.manpowerIds.length > 0
+                              ? shift1.manpowerIds
+                                  .map((id) => {
+                                    const mp = manpowerList.find(
+                                      (mp) => mp.id === id,
+                                    );
+                                    return mp ? mp.name : null;
+                                  })
+                                  .filter(Boolean)
+                                  .join(", ")
+                              : "Pilih";
+                          shift2Value =
+                            shift2?.manpowerIds && shift2.manpowerIds.length > 0
+                              ? shift2.manpowerIds
+                                  .map((id) => {
+                                    const mp = manpowerList.find(
+                                      (mp) => mp.id === id,
+                                    );
+                                    return mp ? mp.name : null;
+                                  })
+                                  .filter(Boolean)
+                                  .join(", ")
+                              : "Pilih";
+                          bgColor = "bg-slate-800";
+                          textColor = "text-slate-200";
+                          isEditable = true;
+                          shift1Field = "manpower";
+                          shift2Field = "manpower";
                           break;
                         case "delivery":
                           shift1Value = shift1?.delivery || 0;
@@ -623,41 +808,81 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           <div
                             className={`${bgColor} text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
-                            {isEditable && shift1 ? (
-                              <input
-                                type="number"
-                                step={
-                                  shift1Field === "jamProduksiAktual"
-                                    ? "0.1"
-                                    : "1"
-                                }
-                                value={
-                                  focusedInputs[`${shift1.id}-${shift1Field}`]
-                                    ? (shift1 as any)[shift1Field] || ""
-                                    : (shift1 as any)[shift1Field] || 0
-                                }
-                                onChange={(e) => {
-                                  handleInputChange(
-                                    shift1.id,
-                                    shift1Field,
-                                    e.target.value,
-                                  );
-                                }}
-                                onFocus={() => {
-                                  setFocusedInputs((prev) => ({
-                                    ...prev,
-                                    [`${shift1.id}-${shift1Field}`]: true,
-                                  }));
-                                }}
-                                onBlur={() => {
-                                  setFocusedInputs((prev) => ({
-                                    ...prev,
-                                    [`${shift1.id}-${shift1Field}`]: false,
-                                  }));
-                                }}
-                                className="w-full bg-transparent border-none text-center focus:outline-none focus:ring-0 font-mono text-sm font-semibold"
-                                placeholder="0"
-                              />
+                            {row.key === "manpower" && shift1 ? (
+                              <div className="relative w-full">
+                                <button
+                                  type="button"
+                                  className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-blue-400"
+                                  onClick={() =>
+                                    setFocusedInputs((prev) => ({
+                                      ...prev,
+                                      [`${shift1.id}-manpowerDropdown`]:
+                                        !prev[`${shift1.id}-manpowerDropdown`],
+                                    }))
+                                  }
+                                >
+                                  {shift1.manpowerIds &&
+                                  shift1.manpowerIds.length > 0
+                                    ? shift1.manpowerIds.join(".")
+                                    : "Pilih"}
+                                  <span className="ml-2">▼</span>
+                                </button>
+                                {focusedInputs[
+                                  `${shift1.id}-manpowerDropdown`
+                                ] && (
+                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-xl">
+                                    {manpowerList.map((mp) => (
+                                      <label
+                                        key={mp.id}
+                                        className="flex flex-row items-center gap-2 px-3 py-2 hover:bg-blue-800 cursor-pointer whitespace-nowrap"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={
+                                            shift1.manpowerIds &&
+                                            shift1.manpowerIds.includes(mp.id)
+                                          }
+                                          disabled={
+                                            shift1.manpowerIds &&
+                                            shift1.manpowerIds.length >= 6 &&
+                                            !shift1.manpowerIds.includes(mp.id)
+                                          }
+                                          onChange={(e) => {
+                                            let newIds = shift1.manpowerIds
+                                              ? [...shift1.manpowerIds]
+                                              : [];
+                                            if (e.target.checked) {
+                                              if (newIds.length < 6)
+                                                newIds.push(mp.id);
+                                            } else {
+                                              newIds = newIds.filter(
+                                                (id) => id !== mp.id,
+                                              );
+                                            }
+                                            shift1.manpowerIds = newIds;
+                                            if (setEditForm)
+                                              setEditForm((prev) => ({
+                                                ...prev,
+                                                manpowerIds: newIds,
+                                              }));
+                                          }}
+                                          className="mr-2"
+                                        />
+                                        <span className="text-blue-100">
+                                          {mp.id}. {mp.name}
+                                        </span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                )}
+                                {/* Tidak ada badge/chip ID di bawah field */}
+                                {shift1.manpowerIds &&
+                                  shift1.manpowerIds.length > 6 && (
+                                    <div className="text-red-400 text-xs mt-1">
+                                      Maksimal 6 manpower per shift.
+                                    </div>
+                                  )}
+                              </div>
                             ) : typeof shift1Value === "number" ? (
                               formatNumber(shift1Value)
                             ) : (
@@ -667,41 +892,81 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           <div
                             className={`${bgColor} text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
-                            {isEditable && shift2 ? (
-                              <input
-                                type="number"
-                                step={
-                                  shift2Field === "jamProduksiAktual"
-                                    ? "0.1"
-                                    : "1"
-                                }
-                                value={
-                                  focusedInputs[`${shift2.id}-${shift2Field}`]
-                                    ? (shift2 as any)[shift2Field] || ""
-                                    : (shift2 as any)[shift2Field] || 0
-                                }
-                                onChange={(e) => {
-                                  handleInputChange(
-                                    shift2.id,
-                                    shift2Field,
-                                    e.target.value,
-                                  );
-                                }}
-                                onFocus={() => {
-                                  setFocusedInputs((prev) => ({
-                                    ...prev,
-                                    [`${shift2.id}-${shift2Field}`]: true,
-                                  }));
-                                }}
-                                onBlur={() => {
-                                  setFocusedInputs((prev) => ({
-                                    ...prev,
-                                    [`${shift2.id}-${shift2Field}`]: false,
-                                  }));
-                                }}
-                                className="w-full bg-transparent border-none text-center focus:outline-none focus:ring-0 font-mono text-sm font-semibold"
-                                placeholder="0"
-                              />
+                            {row.key === "manpower" && shift2 ? (
+                              <div className="relative w-full">
+                                <button
+                                  type="button"
+                                  className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-blue-400"
+                                  onClick={() =>
+                                    setFocusedInputs((prev) => ({
+                                      ...prev,
+                                      [`${shift2.id}-manpowerDropdown`]:
+                                        !prev[`${shift2.id}-manpowerDropdown`],
+                                    }))
+                                  }
+                                >
+                                  {shift2.manpowerIds &&
+                                  shift2.manpowerIds.length > 0
+                                    ? shift2.manpowerIds.join(".")
+                                    : "Pilih"}
+                                  <span className="ml-2">▼</span>
+                                </button>
+                                {focusedInputs[
+                                  `${shift2.id}-manpowerDropdown`
+                                ] && (
+                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-xl">
+                                    {manpowerList.map((mp) => (
+                                      <label
+                                        key={mp.id}
+                                        className="flex flex-row items-center gap-2 px-3 py-2 hover:bg-blue-800 cursor-pointer whitespace-nowrap"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={
+                                            shift2.manpowerIds &&
+                                            shift2.manpowerIds.includes(mp.id)
+                                          }
+                                          disabled={
+                                            shift2.manpowerIds &&
+                                            shift2.manpowerIds.length >= 6 &&
+                                            !shift2.manpowerIds.includes(mp.id)
+                                          }
+                                          onChange={(e) => {
+                                            let newIds = shift2.manpowerIds
+                                              ? [...shift2.manpowerIds]
+                                              : [];
+                                            if (e.target.checked) {
+                                              if (newIds.length < 6)
+                                                newIds.push(mp.id);
+                                            } else {
+                                              newIds = newIds.filter(
+                                                (id) => id !== mp.id,
+                                              );
+                                            }
+                                            shift2.manpowerIds = newIds;
+                                            if (setEditForm)
+                                              setEditForm((prev) => ({
+                                                ...prev,
+                                                manpowerIds: newIds,
+                                              }));
+                                          }}
+                                          className="mr-2"
+                                        />
+                                        <span className="text-blue-100">
+                                          {mp.id}. {mp.name}
+                                        </span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                )}
+                                {/* Tidak ada badge/chip ID di bawah field */}
+                                {shift2.manpowerIds &&
+                                  shift2.manpowerIds.length > 6 && (
+                                    <div className="text-red-400 text-xs mt-1">
+                                      Maksimal 6 manpower per shift.
+                                    </div>
+                                  )}
+                              </div>
                             ) : typeof shift2Value === "number" ? (
                               formatNumber(shift2Value)
                             ) : (
