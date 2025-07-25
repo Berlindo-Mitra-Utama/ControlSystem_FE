@@ -33,6 +33,11 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Activity,
+  Plus,
+  Trash2,
+  Target,
+  Zap,
 } from "lucide-react";
 
 interface ScheduleCardsViewProps {
@@ -42,6 +47,14 @@ interface ScheduleCardsViewProps {
   timePerPcs: number;
   scheduleName?: string;
   searchDate?: string;
+  manpowerList: { id: number; name: string }[];
+  setManpowerList: React.Dispatch<
+    React.SetStateAction<{ id: number; name: string }[]>
+  >;
+  newManpower: string;
+  setNewManpower: React.Dispatch<React.SetStateAction<string>>;
+  handleAddManpower: () => void;
+  handleRemoveManpower: (id: number) => void;
 }
 
 const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
@@ -51,6 +64,12 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   timePerPcs = 257,
   scheduleName,
   searchDate = "",
+  manpowerList,
+  setManpowerList,
+  newManpower,
+  setNewManpower,
+  handleAddManpower,
+  handleRemoveManpower,
 }) => {
   // State untuk loading popup
   const [isLoading, setIsLoading] = useState(false);
@@ -134,9 +153,133 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
     }));
   };
 
+  // State untuk popup dan list manpower
+  const [showManpowerModal, setShowManpowerModal] = useState(false);
+
   return (
     <div className="w-full p-3 sm:p-6">
       <div className="space-y-6 sm:space-y-8">
+        {/* HEADER SUMMARY TOTAL */}
+        <div className="w-full mb-4">
+          <div className="flex flex-wrap gap-4 items-center justify-between bg-slate-800/70 rounded-xl p-4 border border-slate-700/50 shadow">
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Card summary untuk setiap total utama */}
+              <SummaryCard
+                icon={<Package className="w-5 h-5 text-blue-400" />}
+                label="Stock Awal"
+                value={initialStock}
+              />
+              <SummaryCard
+                icon={<Activity className="w-5 h-5 text-green-400" />}
+                label="Manpower"
+                value={(() => {
+                  // Rata-rata manpower dari seluruh flatRows
+                  const manpowerTotal = flatRows.reduce(
+                    (sum, r) => sum + (r.manpower || 0),
+                    0,
+                  );
+                  const manpowerCount = flatRows.filter(
+                    (r) => typeof r.manpower === "number",
+                  ).length;
+                  return manpowerCount > 0
+                    ? Math.round(manpowerTotal / manpowerCount)
+                    : "-";
+                })()}
+              />
+              <SummaryCard
+                icon={<Truck className="w-5 h-5 text-cyan-400" />}
+                label="Delivery"
+                value={flatRows.reduce((sum, r) => sum + (r.delivery || 0), 0)}
+              />
+              <SummaryCard
+                icon={<Target className="w-5 h-5 text-yellow-400" />}
+                label="Planning"
+                value={flatRows.reduce(
+                  (sum, r) => sum + (r.planningPcs || 0),
+                  0,
+                )}
+              />
+              <SummaryCard
+                icon={<Zap className="w-5 h-5 text-orange-400" />}
+                label="Overtime"
+                value={flatRows.reduce(
+                  (sum, r) => sum + (r.overtimePcs || 0),
+                  0,
+                )}
+              />
+              <SummaryCard
+                icon={<Factory className="w-5 h-5 text-purple-400" />}
+                label="Hasil Produksi"
+                value={flatRows.reduce((sum, r) => sum + (r.pcs || 0), 0)}
+              />
+            </div>
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-semibold shadow transition"
+              onClick={() => setShowManpowerModal(true)}
+            >
+              <Activity className="w-5 h-5" />
+              Manpower
+            </button>
+          </div>
+        </div>
+        {/* MODAL MANPOWER */}
+        {showManpowerModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl relative">
+              <button
+                className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                onClick={() => setShowManpowerModal(false)}
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-green-400" />
+                Daftar Manpower
+              </h3>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={newManpower}
+                  onChange={(e) => setNewManpower(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none"
+                  placeholder="Nama manpower baru"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddManpower();
+                  }}
+                />
+                <button
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center"
+                  onClick={handleAddManpower}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <ul className="space-y-2 max-h-48 overflow-y-auto">
+                {manpowerList.length === 0 && (
+                  <li className="text-slate-400 text-sm">
+                    Belum ada manpower.
+                  </li>
+                )}
+                {manpowerList.map((mp) => (
+                  <li
+                    key={mp.id}
+                    className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"
+                  >
+                    <span className="text-white font-medium">
+                      {mp.id}. {mp.name}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveManpower(mp.id)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
         {/* Tampilkan hanya data untuk hari saat ini */}
         {currentDayData.map((group, groupIdx) => {
           // Hitung flatIdx berdasarkan posisi sebenarnya dalam groupedRows
@@ -545,8 +688,94 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                       }));
                                     }}
                                     className="mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center w-full focus:outline-none"
-                                    placeholder=""
+                                    placeholder="0"
                                   />
+                                </div>
+                                {/* Manpower (Multi-Select Dropdown) */}
+                                <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
+                                  <div className="flex items-center gap-1 mb-0.5 w-full">
+                                    <Activity className="w-4 h-4 text-blue-300" />
+                                    <span className="text-blue-200/90 font-semibold text-xs">
+                                      Manpower (max 6)
+                                    </span>
+                                  </div>
+                                  {/* Custom Multi-Select Dropdown */}
+                                  <div className="relative w-full">
+                                    <button
+                                      type="button"
+                                      className="w-full mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-blue-400"
+                                      onClick={() =>
+                                        setFocusedInputs((prev) => ({
+                                          ...prev,
+                                          [`${row.id}-manpowerDropdown`]:
+                                            !prev[`${row.id}-manpowerDropdown`],
+                                        }))
+                                      }
+                                    >
+                                      {row.manpowerIds &&
+                                      row.manpowerIds.length > 0
+                                        ? row.manpowerIds.join(".")
+                                        : "Pilih"}
+                                      <span className="ml-2">▼</span>
+                                    </button>
+                                    {/* Dropdown List */}
+                                    {focusedInputs[
+                                      `${row.id}-manpowerDropdown`
+                                    ] && (
+                                      <div className="absolute z-20 left-0 right-0 bg-slate-900 border border-blue-400 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-xl">
+                                        {manpowerList.map((mp) => (
+                                          <label
+                                            key={mp.id}
+                                            className="flex items-center px-3 py-2 hover:bg-blue-800 cursor-pointer"
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={
+                                                row.manpowerIds &&
+                                                row.manpowerIds.includes(mp.id)
+                                              }
+                                              disabled={
+                                                row.manpowerIds &&
+                                                row.manpowerIds.length >= 6 &&
+                                                !row.manpowerIds.includes(mp.id)
+                                              }
+                                              onChange={(e) => {
+                                                let newIds = row.manpowerIds
+                                                  ? [...row.manpowerIds]
+                                                  : [];
+                                                if (e.target.checked) {
+                                                  if (newIds.length < 6)
+                                                    newIds.push(mp.id);
+                                                } else {
+                                                  newIds = newIds.filter(
+                                                    (id) => id !== mp.id,
+                                                  );
+                                                }
+                                                row.manpowerIds = newIds;
+                                                setEditForm((prev) => ({
+                                                  ...prev,
+                                                  manpowerIds: newIds,
+                                                }));
+                                              }}
+                                              className="mr-2"
+                                            />
+                                            <span className="text-blue-100">
+                                              {mp.id}. {mp.name}
+                                            </span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Badge/Chip ID Manpower Terpilih */}
+                                  {/* (Bagian ini dihapus sesuai permintaan) */}
+                                  {/* Error jika lebih dari 6 */}
+                                  {row.manpowerIds &&
+                                    row.manpowerIds.length > 6 && (
+                                      <div className="text-red-400 text-xs mt-1">
+                                        Maksimal 6 manpower per shift.
+                                      </div>
+                                    )}
                                 </div>
                               </div>
                             </div>
@@ -925,5 +1154,23 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
     </div>
   );
 };
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="flex flex-col items-center bg-slate-900 rounded-lg px-4 py-2 min-w-[90px] border border-slate-700 shadow">
+      <div>{icon}</div>
+      <div className="text-xs text-slate-400 font-semibold mt-1">{label}</div>
+      <div className="text-lg font-bold text-white mt-1">{value}</div>
+    </div>
+  );
+}
 
 export default ScheduleCardsView;

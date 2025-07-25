@@ -29,6 +29,8 @@ export interface ScheduleItem {
   // Tambahan untuk custom stock
   actualStockCustom?: number;
   rencanaStockCustom?: number;
+  manpower?: number;
+  manpowerIds?: number[];
 }
 
 export interface ScheduleTableProps {

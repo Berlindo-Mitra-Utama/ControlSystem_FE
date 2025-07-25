@@ -9,6 +9,32 @@ import {
 import ScheduleCardsView from "./ScheduleCardsView";
 import ScheduleTableView from "./ScheduleTableView";
 
+// State and handlers for shared manpower
+const useSharedManpower = () => {
+  const [manpowerList, setManpowerList] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [newManpower, setNewManpower] = useState("");
+  const handleAddManpower = () => {
+    const name = newManpower.trim();
+    if (name && !manpowerList.some((mp) => mp.name === name)) {
+      setManpowerList((prev) => [...prev, { id: prev.length + 1, name }]);
+      setNewManpower("");
+    }
+  };
+  const handleRemoveManpower = (id: number) => {
+    setManpowerList((prev) => prev.filter((mp) => mp.id !== id));
+  };
+  return {
+    manpowerList,
+    setManpowerList,
+    newManpower,
+    setNewManpower,
+    handleAddManpower,
+    handleRemoveManpower,
+  };
+};
+
 const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
   const [viewMode, setViewMode] = useState<"cards" | "table">(
     props.viewMode || "cards",
@@ -74,6 +100,15 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
     };
   }, [flatRows, props.timePerPcs, props.initialStock]);
 
+  const {
+    manpowerList,
+    setManpowerList,
+    newManpower,
+    setNewManpower,
+    handleAddManpower,
+    handleRemoveManpower,
+  } = useSharedManpower();
+
   return (
     <div className="w-full">
       {viewMode === "cards" ? (
@@ -84,6 +119,12 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
           timePerPcs={props.timePerPcs}
           scheduleName={props.scheduleName}
           searchDate={searchDate}
+          manpowerList={manpowerList}
+          setManpowerList={setManpowerList}
+          newManpower={newManpower}
+          setNewManpower={setNewManpower}
+          handleAddManpower={handleAddManpower}
+          handleRemoveManpower={handleRemoveManpower}
         />
       ) : (
         <ScheduleTableView
@@ -93,6 +134,12 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
           initialStock={props.initialStock}
           scheduleName={props.scheduleName}
           setEditForm={props.setEditForm}
+          manpowerList={manpowerList}
+          setManpowerList={setManpowerList}
+          newManpower={newManpower}
+          setNewManpower={setNewManpower}
+          handleAddManpower={handleAddManpower}
+          handleRemoveManpower={handleRemoveManpower}
         />
       )}
     </div>
