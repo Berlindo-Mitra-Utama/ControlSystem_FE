@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
+const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({
@@ -132,42 +132,51 @@ export const AuthService = {
   // Get all users (admin only)
   getAllUsers: async (): Promise<UserData[]> => {
     try {
-      const response = await api.get('/auth/users');
+      const response = await api.get("/auth/users");
       return response.data.data.users;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal mendapatkan daftar pengguna');
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan daftar pengguna",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
 
   // Create new user (admin only)
   createUser: async (userData: UserRequest): Promise<UserData> => {
     try {
-      const response = await api.post('/auth/register', userData);
+      const response = await api.post("/auth/register", userData);
       return response.data.data.user;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal membuat pengguna baru');
+        throw new Error(
+          error.response.data.message || "Gagal membuat pengguna baru",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
 
   // Update user (admin only)
-  updateUser: async (userId: number, userData: Partial<UserRequest>): Promise<UserData> => {
+  updateUser: async (
+    userId: number,
+    userData: Partial<UserRequest>,
+  ): Promise<UserData> => {
     try {
-      const response = await api.post('/auth/users/update', {
+      const response = await api.post("/auth/users/update", {
         userId,
-        ...userData
+        ...userData,
       });
       return response.data.data.user;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal memperbarui pengguna');
+        throw new Error(
+          error.response.data.message || "Gagal memperbarui pengguna",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
 
@@ -177,22 +186,26 @@ export const AuthService = {
       await api.delete(`/auth/users/${userId}`);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal menghapus pengguna');
+        throw new Error(
+          error.response.data.message || "Gagal menghapus pengguna",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
-  
+
   // Get user count (admin only)
   getUserCount: async (): Promise<UserCountResponse> => {
     try {
-      const response = await api.get('/auth/users/count-pengguna-sistem');
+      const response = await api.get("/auth/users/count-pengguna-sistem");
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal mendapatkan jumlah pengguna');
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan jumlah pengguna",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
 };
@@ -206,35 +219,42 @@ export const UserToolsService = {
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal mendapatkan daftar tools pengguna');
+        throw new Error(
+          error.response.data.message ||
+            "Gagal mendapatkan daftar tools pengguna",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
 
   // Add tool access for user (admin only)
   addUserTool: async (userId: number, toolName: string): Promise<any> => {
     try {
-      const response = await api.post('/tools/add', { userId, toolName });
+      const response = await api.post("/tools/add", { userId, toolName });
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal menambahkan akses tool');
+        throw new Error(
+          error.response.data.message || "Gagal menambahkan akses tool",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
 
   // Remove tool access from user (admin only)
   removeUserTool: async (userId: number, toolName: string): Promise<any> => {
     try {
-      const response = await api.post('/tools/remove', { userId, toolName });
+      const response = await api.post("/tools/remove", { userId, toolName });
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Gagal menghapus akses tool');
+        throw new Error(
+          error.response.data.message || "Gagal menghapus akses tool",
+        );
       }
-      throw new Error('Terjadi kesalahan saat menghubungi server');
+      throw new Error("Terjadi kesalahan saat menghubungi server");
     }
   },
 };
@@ -263,4 +283,3 @@ api.interceptors.response.use(
   },
 );
 export default api;
-

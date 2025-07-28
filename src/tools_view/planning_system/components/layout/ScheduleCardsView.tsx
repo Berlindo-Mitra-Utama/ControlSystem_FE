@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
 import {
   getDaysInMonth,
@@ -200,6 +200,35 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   const [showManpowerModal, setShowManpowerModal] = useState(false);
   // State untuk notifikasi error manpower
   const [manpowerError, setManpowerError] = useState<string>("");
+  // Ref for measuring the longest manpower name
+  const manpowerListRef = useRef<HTMLUListElement>(null);
+  const [modalMinWidth, setModalMinWidth] = useState<string | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    if (showManpowerModal && manpowerListRef.current) {
+      // Find the longest name
+      let maxWidth = 0;
+      const items = manpowerListRef.current.querySelectorAll("li span");
+      items.forEach((span) => {
+        // Create a temporary span to measure width
+        const temp = document.createElement("span");
+        temp.style.visibility = "hidden";
+        temp.style.position = "absolute";
+        temp.style.fontWeight = "500";
+        temp.style.fontSize = "16px";
+        temp.style.fontFamily = "inherit";
+        temp.innerText = span.textContent || "";
+        document.body.appendChild(temp);
+        maxWidth = Math.max(maxWidth, temp.offsetWidth);
+        document.body.removeChild(temp);
+      });
+      // Add some padding
+      if (maxWidth > 0) setModalMinWidth(`${maxWidth + 80}px`);
+      else setModalMinWidth(undefined);
+    }
+  }, [showManpowerModal, manpowerList]);
 
   // Tambahkan state untuk temporary manpower selection
   const [tempManpowerSelection, setTempManpowerSelection] = useState<{
@@ -281,7 +310,10 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
         {/* MODAL MANPOWER */}
         {showManpowerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl relative">
+            <div
+              className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl relative"
+              style={modalMinWidth ? { minWidth: modalMinWidth } : {}}
+            >
               <button
                 className="absolute top-2 right-2 text-slate-400 hover:text-white"
                 onClick={() => setShowManpowerModal(false)}
@@ -310,7 +342,10 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              <ul className="space-y-2 max-h-48 overflow-y-auto">
+              <ul
+                className="space-y-2 max-h-48 overflow-y-auto"
+                ref={manpowerListRef}
+              >
                 {manpowerList.length === 0 && (
                   <li className="text-slate-400 text-sm">
                     Belum ada manpower.

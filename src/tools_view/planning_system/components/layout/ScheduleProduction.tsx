@@ -15,15 +15,19 @@ const useSharedManpower = () => {
     { id: number; name: string }[]
   >([]);
   const [newManpower, setNewManpower] = useState("");
+  const reindexManpower = (list: { id: number; name: string }[]) =>
+    list.map((mp, idx) => ({ ...mp, id: idx + 1 }));
   const handleAddManpower = () => {
     const name = newManpower.trim();
     if (name && !manpowerList.some((mp) => mp.name === name)) {
-      setManpowerList((prev) => [...prev, { id: prev.length + 1, name }]);
+      const newList = [...manpowerList, { id: manpowerList.length + 1, name }];
+      setManpowerList(reindexManpower(newList));
       setNewManpower("");
     }
   };
   const handleRemoveManpower = (id: number) => {
-    setManpowerList((prev) => prev.filter((mp) => mp.id !== id));
+    const filtered = manpowerList.filter((mp) => mp.id !== id);
+    setManpowerList(reindexManpower(filtered));
   };
   return {
     manpowerList,
