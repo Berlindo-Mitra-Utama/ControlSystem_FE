@@ -31,6 +31,7 @@ import {
   EyeOff,
   Key,
   LogOut,
+  Menu,
 } from "lucide-react"
 import { AuthService, UserToolsService } from "../../../services/API_Services"
 import { useAuth } from "../../../main_view/contexts/AuthContext" // Import AuthContext
@@ -64,6 +65,8 @@ export default function UserManagementPage() {
   
   // State untuk melacak posisi scroll
   const [scrolled, setScrolled] = useState(false)
+  // State untuk toggle menu mobile
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   // Menggunakan AuthContext untuk mendapatkan data admin yang login
   const { user: loggedInUser, handleLogout: authLogout } = useAuth()
@@ -388,6 +391,11 @@ export default function UserManagementPage() {
     }
   }, [])
 
+  // Toggle menu mobile
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen)
+  }
+
   return (
     <div className="min-h-screen bg-gray-950">
       {/* Professional Dark Header with Animation and Glass Effect */}
@@ -400,30 +408,104 @@ export default function UserManagementPage() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            {/* Left side - Title and description */}
-            <div className="flex items-center space-x-3">
-              <div className={`p-3 bg-blue-600 rounded-xl shadow-lg transition-all duration-300 ${scrolled ? 'scale-90' : 'scale-100'}`}>
-                <Users className="w-6 h-6 text-white" />
+            {/* Left side - Title and description with hamburger for mobile */}
+            <div className="flex items-center justify-between w-full sm:w-auto">
+              <div className="flex items-center space-x-3">
+                <div className={`p-3 bg-blue-600 rounded-xl shadow-lg transition-all duration-300 ${scrolled ? 'scale-90' : 'scale-100'}`}>
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className={`font-bold text-white transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>User Management</h1>
+                  <p className="text-sm text-gray-400">Kelola pengguna dan akses sistem</p>
+                  {/* Badge Admin Only dipindahkan ke bawah teks pada tampilan mobile */}
+                  <Badge variant="warning" className="mt-2 flex sm:hidden items-center">
+                    <Shield className="w-3 h-3 mr-1" />
+                    Admin Only
+                  </Badge>
+                </div>
+                {/* Badge tetap di posisi asli untuk tampilan desktop */}
+                <Badge variant="warning" className="ml-4 hidden sm:flex">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Admin Only
+                </Badge>
               </div>
-              <div>
-                <h1 className={`font-bold text-white transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>User Management</h1>
-                <p className="text-sm text-gray-400">Kelola pengguna dan akses sistem</p>
-              </div>
-              <Badge variant="warning" className="ml-4">
-                <Shield className="w-3 h-3 mr-1" />
-                Admin Only
-              </Badge>
+              
+              {/* Profile Icon Button - Visible only on mobile (menggantikan hamburger) */}
+              <button 
+                onClick={toggleMobileMenu}
+                className="sm:hidden relative p-2 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg"
+              >
+                <User className="w-6 h-6" />
+                {mobileMenuOpen ? (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-900"></span>
+                ) : (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></span>
+                )}
+              </button>
             </div>
       
             {/* Right side - Admin info and logout */}
-            <div className="flex items-center">
-              {/* Logged-in Admin Info with integrated logout */}
-              <div className="flex items-center bg-gray-800/70 px-4 py-3 rounded-xl border border-gray-700 shadow-lg backdrop-blur-sm">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md mr-3">
+            <div 
+              className={`${mobileMenuOpen ? 'flex' : 'hidden'} sm:flex flex-col sm:flex-row items-start sm:items-center w-full sm:w-auto mt-4 sm:mt-0 transition-all duration-300 ease-in-out`}
+            >
+              {/* Mobile dropdown menu with enhanced styling */}
+              <div 
+                className={`${mobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'} sm:hidden w-full bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl border border-gray-700/50 shadow-2xl overflow-hidden transition-all duration-300 ease-in-out`}
+              >
+                {/* Profile header with avatar */}
+                <div className="relative overflow-hidden">
+                  {/* Background gradient decoration */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm"></div>
+                  
+                  <div className="relative p-6 flex flex-col items-center">
+                    {/* Avatar */}
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-xl border-4 border-gray-800 mb-3">
+                      {loggedInUser?.nama?.slice(0, 1).toUpperCase() || "A"}
+                    </div>
+                    
+                    {/* User name with glow effect */}
+                    <h3 className="text-lg font-bold text-white mb-1 text-center drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
+                      {loggedInUser?.nama || "Admin"}
+                    </h3>
+                    
+                    {/* NIP with subtle styling */}
+                    <p className="text-sm text-gray-300 mb-2 flex items-center gap-1">
+                      <Key className="w-3 h-3 text-gray-400" />
+                      NIP: {loggedInUser?.nip || ""}
+                    </p>
+                    
+                    {/* Role badge */}
+                    <Badge variant="warning" className="text-xs py-1 px-3 flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Administrator
+                    </Badge>
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent mx-4"></div>
+                
+                {/* Logout button */}
+                <div className="p-4">
+                  <Button
+                    onClick={handleLogout}
+                    variant="destructive"
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-5 flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Desktop view - original content */}
+              <div className="hidden sm:flex items-center bg-gray-800/70 px-4 py-3 rounded-xl border border-gray-700 shadow-lg backdrop-blur-sm w-full sm:w-auto transition-all duration-300">
+                <div className={`w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md mr-3 transition-all duration-300 ${scrolled ? 'scale-90' : 'scale-100'}`}>
                   {loggedInUser?.nama?.slice(0, 1).toUpperCase() || "A"}
                 </div>
                 <div className="mr-4">
-                  <p className="text-sm font-semibold text-white">{loggedInUser?.nama || "Admin"}</p>
+                  <p className={`text-sm font-semibold text-white transition-all duration-300 ${scrolled ? 'text-xs' : 'text-sm'}`}>{loggedInUser?.nama || "Admin"}</p>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">NIP: {loggedInUser?.nip || ""}</span>
                     <Badge variant="warning" className="text-xs py-0 px-2">
