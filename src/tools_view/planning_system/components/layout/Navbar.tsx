@@ -119,7 +119,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   return (
     <Navbar
       shouldHideOnScroll
-      className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 sm:py-4"
+      className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40"
       onMenuOpenChange={setIsMenuOpen}
     >
       <NavbarBrand>
