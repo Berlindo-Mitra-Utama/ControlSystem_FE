@@ -430,20 +430,77 @@ export default function UserManagementPage() {
                 </Badge>
               </div>
               
-              {/* Hamburger Menu Button - Visible only on mobile */}
+              {/* Profile Icon Button - Visible only on mobile (menggantikan hamburger) */}
               <button 
                 onClick={toggleMobileMenu}
-                className="sm:hidden p-2 rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 transition-colors"
+                className="sm:hidden relative p-2 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg"
               >
-                <Menu className="w-6 h-6" />
+                <User className="w-6 h-6" />
+                {mobileMenuOpen ? (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-900"></span>
+                ) : (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></span>
+                )}
               </button>
             </div>
       
             {/* Right side - Admin info and logout */}
-            <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} sm:flex flex-col sm:flex-row items-start sm:items-center w-full sm:w-auto mt-4 sm:mt-0 ${mobileMenuOpen ? 'bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-lg shadow-xl p-5' : ''} sm:bg-transparent sm:p-0 sm:border-none sm:shadow-none transition-all duration-300`}>
+            <div 
+              className={`${mobileMenuOpen ? 'flex' : 'hidden'} sm:flex flex-col sm:flex-row items-start sm:items-center w-full sm:w-auto mt-4 sm:mt-0 transition-all duration-300 ease-in-out`}
+            >
+              {/* Mobile dropdown menu with enhanced styling */}
+              <div 
+                className={`${mobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'} sm:hidden w-full bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl border border-gray-700/50 shadow-2xl overflow-hidden transition-all duration-300 ease-in-out`}
+              >
+                {/* Profile header with avatar */}
+                <div className="relative overflow-hidden">
+                  {/* Background gradient decoration */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm"></div>
+                  
+                  <div className="relative p-6 flex flex-col items-center">
+                    {/* Avatar */}
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-xl border-4 border-gray-800 mb-3">
+                      {loggedInUser?.nama?.slice(0, 1).toUpperCase() || "A"}
+                    </div>
+                    
+                    {/* User name with glow effect */}
+                    <h3 className="text-lg font-bold text-white mb-1 text-center drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
+                      {loggedInUser?.nama || "Admin"}
+                    </h3>
+                    
+                    {/* NIP with subtle styling */}
+                    <p className="text-sm text-gray-300 mb-2 flex items-center gap-1">
+                      <Key className="w-3 h-3 text-gray-400" />
+                      NIP: {loggedInUser?.nip || ""}
+                    </p>
+                    
+                    {/* Role badge */}
+                    <Badge variant="warning" className="text-xs py-1 px-3 flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Administrator
+                    </Badge>
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent mx-4"></div>
+                
+                {/* Logout button */}
+                <div className="p-4">
+                  <Button
+                    onClick={handleLogout}
+                    variant="destructive"
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-5 flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </Button>
+                </div>
+              </div>
               
-              {/* Logged-in Admin Info with integrated logout */}
-              <div className="flex items-center bg-gray-800/70 px-4 py-3 rounded-xl border border-gray-700 shadow-lg backdrop-blur-sm w-full sm:w-auto transition-all duration-300">
+              {/* Desktop view - original content */}
+              <div className="hidden sm:flex items-center bg-gray-800/70 px-4 py-3 rounded-xl border border-gray-700 shadow-lg backdrop-blur-sm w-full sm:w-auto transition-all duration-300">
                 <div className={`w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md mr-3 transition-all duration-300 ${scrolled ? 'scale-90' : 'scale-100'}`}>
                   {loggedInUser?.nama?.slice(0, 1).toUpperCase() || "A"}
                 </div>
