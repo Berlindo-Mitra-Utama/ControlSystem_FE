@@ -126,6 +126,49 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
     setCurrentDayIdx(0);
   }, [searchDate, filteredSchedule.length]);
 
+  // Clean up invalid manpower IDs when manpowerList changes
+  useEffect(() => {
+    const validManpowerIds = manpowerList.map((mp) => mp.id);
+
+    // Clean up schedule data
+    schedule.forEach((row) => {
+      if (row.manpowerIds && Array.isArray(row.manpowerIds)) {
+        const validIds = row.manpowerIds.filter((id) =>
+          validManpowerIds.includes(id),
+        );
+        if (validIds.length !== row.manpowerIds.length) {
+          row.manpowerIds = validIds;
+        }
+      }
+    });
+
+    // Clean up filteredSchedule data
+    filteredSchedule.forEach((row) => {
+      if (row.manpowerIds && Array.isArray(row.manpowerIds)) {
+        const validIds = row.manpowerIds.filter((id) =>
+          validManpowerIds.includes(id),
+        );
+        if (validIds.length !== row.manpowerIds.length) {
+          row.manpowerIds = validIds;
+        }
+      }
+    });
+
+    // Clean up validGroupedRows data
+    validGroupedRows.forEach((group) => {
+      group.rows.forEach((row) => {
+        if (row.manpowerIds && Array.isArray(row.manpowerIds)) {
+          const validIds = row.manpowerIds.filter((id) =>
+            validManpowerIds.includes(id),
+          );
+          if (validIds.length !== row.manpowerIds.length) {
+            row.manpowerIds = validIds;
+          }
+        }
+      });
+    });
+  }, [manpowerList, schedule, filteredSchedule, validGroupedRows]);
+
   const goToNextDay = () => {
     if (currentDayIdx < totalValidDays - 1) {
       setCurrentDayIdx(currentDayIdx + 1);
@@ -155,6 +198,8 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
   // State untuk popup dan list manpower
   const [showManpowerModal, setShowManpowerModal] = useState(false);
+  // State untuk notifikasi error manpower
+  const [manpowerError, setManpowerError] = useState<string>("");
 
   return (
     <div className="w-full p-3 sm:p-6">
@@ -222,6 +267,12 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
             </button>
           </div>
         </div>
+        {/* Notifikasi error manpower */}
+        {manpowerError && (
+          <div className="bg-red-600 text-white text-center py-2 rounded mb-2 font-semibold">
+            {manpowerError}
+          </div>
+        )}
         {/* MODAL MANPOWER */}
         {showManpowerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -704,13 +755,22 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                     <button
                                       type="button"
                                       className="w-full mt-0.5 font-bold text-blue-100 text-base sm:text-lg bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-blue-400"
-                                      onClick={() =>
+                                      onClick={() => {
+                                        if (manpowerList.length === 0) {
+                                          setManpowerError(
+                                            "Silakan tambahkan manpower terlebih dahulu",
+                                          );
+                                          setTimeout(() => {
+                                            setManpowerError("");
+                                          }, 3000);
+                                          return;
+                                        }
                                         setFocusedInputs((prev) => ({
                                           ...prev,
                                           [`${row.id}-manpowerDropdown`]:
                                             !prev[`${row.id}-manpowerDropdown`],
-                                        }))
-                                      }
+                                        }));
+                                      }}
                                     >
                                       {row.manpowerIds &&
                                       row.manpowerIds.length > 0
