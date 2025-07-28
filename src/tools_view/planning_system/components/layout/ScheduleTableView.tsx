@@ -82,6 +82,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Ref untuk modal manpower
   const manpowerModalRef = useRef<HTMLDivElement>(null);
 
+  // Tambahkan state untuk temporary manpower selection
+  const [tempManpowerSelection, setTempManpowerSelection] = useState<{
+    [key: string]: number[];
+  }>({});
+
   // Simpan manpowerList ke localStorage setiap kali berubah
   useEffect(() => {
     localStorage.setItem("berlindo_manpowerList", JSON.stringify(manpowerList));
@@ -914,69 +919,173 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 >
                                   {shift1.manpowerIds &&
                                   shift1.manpowerIds.length > 0
-                                    ? shift1.manpowerIds.join(".")
+                                    ? shift1.manpowerIds.length.toString()
                                     : "3"}
                                   <span className="ml-2">▼</span>
                                 </button>
                                 {focusedInputs[
                                   `${shift1.id}-manpowerDropdown`
                                 ] && (
-                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-xl manpower-dropdown">
-                                    {manpowerList
-                                      .filter((mp) => mp && mp.id && mp.name)
-                                      .map((mp) => (
-                                        <label
-                                          key={mp.id}
-                                          className="flex flex-row items-center gap-2 px-3 py-2 hover:bg-blue-800 cursor-pointer whitespace-nowrap"
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={
-                                              (shift1.manpowerIds &&
-                                                shift1.manpowerIds.includes(
-                                                  mp.id,
-                                                )) ||
-                                              (!shift1.manpowerIds &&
-                                                mp.id <= 3)
-                                            }
-                                            disabled={
-                                              shift1.manpowerIds &&
-                                              shift1.manpowerIds.length >= 6 &&
-                                              !shift1.manpowerIds.includes(
-                                                mp.id,
-                                              )
-                                            }
-                                            onChange={(e) => {
-                                              let newIds = shift1.manpowerIds
-                                                ? [...shift1.manpowerIds]
-                                                : [1, 2, 3]; // Default 3 manpower
-                                              if (e.target.checked) {
-                                                if (newIds.length < 6)
-                                                  newIds.push(mp.id);
-                                              } else {
-                                                newIds = newIds.filter(
-                                                  (id) => id !== mp.id,
-                                                );
-                                              }
-                                              shift1.manpowerIds = newIds;
-                                              if (setEditForm)
-                                                setEditForm((prev) => ({
-                                                  ...prev,
-                                                  manpowerIds: newIds,
-                                                }));
+                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown">
+                                    {/* Header */}
+                                    <div className="bg-slate-800 px-3 py-2 border-b border-blue-400">
+                                      <h4 className="text-white font-semibold text-sm">
+                                        Pilih Manpower
+                                      </h4>
+                                    </div>
 
-                                              // Notify parent component about data change
-                                              if (onDataChange) {
-                                                onDataChange([...flatRows]);
-                                              }
-                                            }}
-                                            className="mr-2"
-                                          />
-                                          <span className="text-blue-100">
-                                            {mp.id}. {mp.name}
-                                          </span>
-                                        </label>
-                                      ))}
+                                    {/* Manpower List */}
+                                    <div className="p-2">
+                                      {manpowerList.length === 0 ? (
+                                        <div className="text-center py-4">
+                                          <div className="text-slate-400 text-sm">
+                                            Belum ada manpower
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="space-y-1">
+                                          {manpowerList
+                                            .filter(
+                                              (mp) => mp && mp.id && mp.name,
+                                            )
+                                            .map((mp) => (
+                                              <label
+                                                key={mp.id}
+                                                className="flex items-center px-2 py-2 hover:bg-blue-800/50 cursor-pointer rounded transition-colors duration-200"
+                                              >
+                                                <input
+                                                  type="checkbox"
+                                                  checked={(
+                                                    tempManpowerSelection[
+                                                      shift1.id
+                                                    ] ||
+                                                    shift1.manpowerIds || [
+                                                      1, 2, 3,
+                                                    ]
+                                                  ).includes(mp.id)}
+                                                  disabled={
+                                                    (
+                                                      tempManpowerSelection[
+                                                        shift1.id
+                                                      ] ||
+                                                      shift1.manpowerIds || [
+                                                        1, 2, 3,
+                                                      ]
+                                                    ).length >= 6 &&
+                                                    !(
+                                                      tempManpowerSelection[
+                                                        shift1.id
+                                                      ] ||
+                                                      shift1.manpowerIds || [
+                                                        1, 2, 3,
+                                                      ]
+                                                    ).includes(mp.id)
+                                                  }
+                                                  onChange={(e) => {
+                                                    let newIds =
+                                                      tempManpowerSelection[
+                                                        shift1.id
+                                                      ] ||
+                                                        shift1.manpowerIds || [
+                                                          1, 2, 3,
+                                                        ];
+                                                    if (e.target.checked) {
+                                                      if (newIds.length < 6) {
+                                                        newIds = [
+                                                          ...newIds,
+                                                          mp.id,
+                                                        ];
+                                                      }
+                                                    } else {
+                                                      newIds = newIds.filter(
+                                                        (id) => id !== mp.id,
+                                                      );
+                                                    }
+                                                    setTempManpowerSelection(
+                                                      (prev) => ({
+                                                        ...prev,
+                                                        [shift1.id]: newIds,
+                                                      }),
+                                                    );
+                                                  }}
+                                                  className="mr-2 w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+                                                />
+                                                <span className="text-blue-100 text-sm">
+                                                  {mp.id}. {mp.name}
+                                                </span>
+                                              </label>
+                                            ))}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Footer dengan Button */}
+                                    <div className="bg-slate-800 px-3 py-2 border-t border-blue-400">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="text-slate-400 text-xs">
+                                          {
+                                            (
+                                              tempManpowerSelection[
+                                                shift1.id
+                                              ] ||
+                                              shift1.manpowerIds || [1, 2, 3]
+                                            ).length
+                                          }{" "}
+                                          terpilih
+                                        </div>
+                                        <div className="text-slate-400 text-xs">
+                                          Max: 6
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => {
+                                            setFocusedInputs((prev) => ({
+                                              ...prev,
+                                              [`${shift1.id}-manpowerDropdown`]:
+                                                false,
+                                            }));
+                                            // Reset temporary selection
+                                            setTempManpowerSelection(
+                                              (prev) => ({
+                                                ...prev,
+                                                [shift1.id]: undefined,
+                                              }),
+                                            );
+                                          }}
+                                          className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1 px-3 rounded text-xs font-medium transition-colors"
+                                        >
+                                          Batal
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const selectedIds =
+                                              tempManpowerSelection[
+                                                shift1.id
+                                              ] ||
+                                                shift1.manpowerIds || [1, 2, 3];
+                                            shift1.manpowerIds = selectedIds;
+                                            if (setEditForm) {
+                                              setEditForm((prev) => ({
+                                                ...prev,
+                                                manpowerIds: selectedIds,
+                                              }));
+                                            }
+                                            if (onDataChange) {
+                                              onDataChange([...flatRows]);
+                                            }
+                                            setFocusedInputs((prev) => ({
+                                              ...prev,
+                                              [`${shift1.id}-manpowerDropdown`]:
+                                                false,
+                                            }));
+                                          }}
+                                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-xs font-semibold transition-colors"
+                                        >
+                                          OK
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                                 {shift1.manpowerIds &&
@@ -1059,69 +1168,174 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 >
                                   {shift2.manpowerIds &&
                                   shift2.manpowerIds.length > 0
-                                    ? shift2.manpowerIds.join(".")
+                                    ? shift2.manpowerIds.length.toString()
                                     : "3"}
                                   <span className="ml-2">▼</span>
                                 </button>
                                 {focusedInputs[
                                   `${shift2.id}-manpowerDropdown`
                                 ] && (
-                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-xl manpower-dropdown">
-                                    {manpowerList
-                                      .filter((mp) => mp && mp.id && mp.name)
-                                      .map((mp) => (
-                                        <label
-                                          key={mp.id}
-                                          className="flex flex-row items-center gap-2 px-3 py-2 hover:bg-blue-800 cursor-pointer whitespace-nowrap"
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={
-                                              (shift2.manpowerIds &&
-                                                shift2.manpowerIds.includes(
-                                                  mp.id,
-                                                )) ||
-                                              (!shift2.manpowerIds &&
-                                                mp.id <= 3)
-                                            }
-                                            disabled={
-                                              shift2.manpowerIds &&
-                                              shift2.manpowerIds.length >= 6 &&
-                                              !shift2.manpowerIds.includes(
-                                                mp.id,
-                                              )
-                                            }
-                                            onChange={(e) => {
-                                              let newIds = shift2.manpowerIds
-                                                ? [...shift2.manpowerIds]
-                                                : [1, 2, 3]; // Default 3 manpower
-                                              if (e.target.checked) {
-                                                if (newIds.length < 6)
-                                                  newIds.push(mp.id);
-                                              } else {
-                                                newIds = newIds.filter(
-                                                  (id) => id !== mp.id,
-                                                );
-                                              }
-                                              shift2.manpowerIds = newIds;
-                                              if (setEditForm)
-                                                setEditForm((prev) => ({
-                                                  ...prev,
-                                                  manpowerIds: newIds,
-                                                }));
+                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown">
+                                    {/* Header */}
+                                    <div className="bg-slate-800 px-3 py-2 border-b border-blue-400">
+                                      <h4 className="text-white font-semibold text-sm">
+                                        Pilih Manpower
+                                      </h4>
+                                    </div>
 
-                                              // Notify parent component about data change
-                                              if (onDataChange) {
-                                                onDataChange([...flatRows]);
-                                              }
-                                            }}
-                                            className="mr-2"
-                                          />
-                                          <span className="text-blue-100">
-                                            {mp.id}. {mp.name}
-                                          </span>
-                                        </label>
-                                      ))}
+                                    {/* Manpower List */}
+                                    <div className="p-2">
+                                      {manpowerList.length === 0 ? (
+                                        <div className="text-center py-4">
+                                          <div className="text-slate-400 text-sm">
+                                            Belum ada manpower
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="space-y-1">
+                                          {manpowerList
+                                            .filter(
+                                              (mp) => mp && mp.id && mp.name,
+                                            )
+                                            .map((mp) => (
+                                              <label
+                                                key={mp.id}
+                                                className="flex items-center px-2 py-2 hover:bg-blue-800/50 cursor-pointer rounded transition-colors duration-200"
+                                              >
+                                                <input
+                                                  type="checkbox"
+                                                  checked={(
+                                                    tempManpowerSelection[
+                                                      shift2.id
+                                                    ] ||
+                                                    shift2.manpowerIds || [
+                                                      1, 2, 3,
+                                                    ]
+                                                  ).includes(mp.id)}
+                                                  disabled={
+                                                    (
+                                                      tempManpowerSelection[
+                                                        shift2.id
+                                                      ] ||
+                                                      shift2.manpowerIds || [
+                                                        1, 2, 3,
+                                                      ]
+                                                    ).length >= 6 &&
+                                                    !(
+                                                      tempManpowerSelection[
+                                                        shift2.id
+                                                      ] ||
+                                                      shift2.manpowerIds || [
+                                                        1, 2, 3,
+                                                      ]
+                                                    ).includes(mp.id)
+                                                  }
+                                                  onChange={(e) => {
+                                                    let newIds =
+                                                      tempManpowerSelection[
+                                                        shift2.id
+                                                      ] ||
+                                                        shift2.manpowerIds || [
+                                                          1, 2, 3,
+                                                        ];
+                                                    if (e.target.checked) {
+                                                      if (newIds.length < 6) {
+                                                        newIds = [
+                                                          ...newIds,
+                                                          mp.id,
+                                                        ];
+                                                      }
+                                                    } else {
+                                                      newIds = newIds.filter(
+                                                        (id) => id !== mp.id,
+                                                      );
+                                                    }
+                                                    setTempManpowerSelection(
+                                                      (prev) => ({
+                                                        ...prev,
+                                                        [shift2.id]: newIds,
+                                                      }),
+                                                    );
+                                                  }}
+                                                  className="mr-2 w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+                                                />
+                                                <span className="text-blue-100 text-sm">
+                                                  {mp.id}. {mp.name}
+                                                </span>
+                                              </label>
+                                            ))}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Footer dengan Button */}
+                                    <div className="bg-slate-800 px-3 py-2 border-t border-blue-400">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="text-slate-400 text-xs">
+                                          {
+                                            (
+                                              tempManpowerSelection[
+                                                shift2.id
+                                              ] ||
+                                              shift2.manpowerIds || [1, 2, 3]
+                                            ).length
+                                          }{" "}
+                                          terpilih
+                                        </div>
+                                        <div className="text-slate-400 text-xs">
+                                          Max: 6
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => {
+                                            setFocusedInputs((prev) => ({
+                                              ...prev,
+                                              [`${shift2.id}-manpowerDropdown`]:
+                                                false,
+                                            }));
+                                            // Reset temporary selection
+                                            setTempManpowerSelection(
+                                              (prev) => ({
+                                                ...prev,
+                                                [shift2.id]: undefined,
+                                              }),
+                                            );
+                                          }}
+                                          className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1 px-3 rounded text-xs font-medium transition-colors"
+                                        >
+                                          Batal
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const selectedIds =
+                                              tempManpowerSelection[
+                                                shift2.id
+                                              ] ||
+                                                shift2.manpowerIds || [1, 2, 3];
+                                            shift2.manpowerIds = selectedIds;
+                                            if (setEditForm)
+                                              setEditForm((prev) => ({
+                                                ...prev,
+                                                manpowerIds: selectedIds,
+                                              }));
+
+                                            // Notify parent component about data change
+                                            if (onDataChange) {
+                                              onDataChange([...flatRows]);
+                                            }
+                                            setFocusedInputs((prev) => ({
+                                              ...prev,
+                                              [`${shift2.id}-manpowerDropdown`]:
+                                                false,
+                                            }));
+                                          }}
+                                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-xs font-semibold transition-colors"
+                                        >
+                                          OK
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                                 {shift2.manpowerIds &&
