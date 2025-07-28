@@ -7,6 +7,7 @@ import {
   formatValidDate,
   MONTHS,
   getMaxDaysInMonth,
+  parseScheduleName,
 } from "../../utils/scheduleDateUtils";
 import {
   calculateOutputFields,
@@ -108,11 +109,14 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
     }
   });
 
-  // Filter groupedRows berdasarkan hari valid dalam bulan
+  // Filter groupedRows berdasarkan hari valid dalam bulan dan bukan hari Minggu
   const maxDaysInMonth = getMaxDaysInMonth(scheduleName || "Juli 2025");
-  const validGroupedRows = groupedRows.filter(
-    (group) => group.day >= 1 && group.day <= maxDaysInMonth,
-  );
+  const { month, year } = parseScheduleName(scheduleName || "Juli 2025");
+  const validGroupedRows = groupedRows.filter((group) => {
+    const isValidDay = group.day >= 1 && group.day <= maxDaysInMonth;
+    const dayName = getDayName(group.day, month, year);
+    return isValidDay && dayName !== "Minggu";
+  });
 
   // Navigasi hari
   const totalDays = validGroupedRows.length;
@@ -432,12 +436,8 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
               {/* Shifts Grid */}
               {(() => {
-                const isWeekendDay = isWeekend(
-                  group.day,
-                  scheduleName || "Juli 2025",
-                );
-
-                if (isWeekendDay) {
+                const dayName = getDayName(group.day, month, year);
+                if (dayName === "Minggu") {
                   return (
                     <div className="flex items-center justify-center py-8 sm:py-12">
                       <div className="text-center">
@@ -1111,123 +1111,27 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
         {/* Navigation Controls */}
         <div className="mt-6 sm:mt-8 flex items-center justify-center gap-1 sm:gap-2 flex-wrap">
           {(() => {
-            // Selalu tampilkan semua hari dalam bulan dengan ellipsis
-            const maxDays = maxDaysInMonth;
-            const allDays = Array.from({ length: maxDays }, (_, i) => i + 1);
-            const currentDay =
-              validGroupedRows[currentDayIdx]?.day || allDays[0] || 1;
-            // currentDayIndex selalu berdasarkan posisi hari dalam bulan (1-30), bukan dalam hasil pencarian
-            const currentDayIndex = currentDay - 1; // Karena array dimulai dari 0, tapi hari dimulai dari 1
+            // Navigation only for valid (non-Sunday) days
+            if (validGroupedRows.length === 0) return null;
+            const totalDays = validGroupedRows.length;
+            const currentIdx = currentDayIdx;
+            const showAroundCurrent = 1;
+            const startIndex = Math.max(0, currentIdx - showAroundCurrent);
+            const endIndex = Math.min(
+              totalDays - 1,
+              currentIdx + showAroundCurrent,
+            );
 
-            // Fungsi untuk mendapatkan next/prev day berdasarkan urutan dalam hasil pencarian
-            const getNextDayInSearch = () => {
-              if (currentDayIdx < validGroupedRows.length - 1) {
-                return currentDayIdx + 1;
-              }
-              return currentDayIdx; // Tetap di posisi sekarang jika tidak ada next
-            };
-
-            const getPrevDayInSearch = () => {
-              if (currentDayIdx > 0) {
-                return currentDayIdx - 1;
-              }
-              return currentDayIdx; // Tetap di posisi sekarang jika tidak ada prev
-            };
-
-            // Fungsi navigasi yang benar-benar berdasarkan urutan hari normal
-            const getNextDay = () => {
-              const nextDayInMonth = currentDay + 1;
-              if (nextDayInMonth <= maxDays) {
-                // Cari apakah next day ada di hasil pencarian
-                const nextDayIdx = validGroupedRows.findIndex(
-                  (g) => g.day === nextDayInMonth,
-                );
-                if (nextDayIdx !== -1) {
-                  return nextDayIdx;
-                } else {
-                  // Jika next day tidak ada di hasil pencarian, cari hari berikutnya yang ada
-                  for (let day = nextDayInMonth + 1; day <= maxDays; day++) {
-                    const dayIdx = validGroupedRows.findIndex(
-                      (g) => g.day === day,
-                    );
-                    if (dayIdx !== -1) {
-                      return dayIdx;
-                    }
-                  }
-                  // Jika tidak ada hari berikutnya dalam hasil pencarian, cari hari terdekat yang ada
-                  const allDaysInSearch = validGroupedRows
-                    .map((g) => g.day)
-                    .sort((a, b) => a - b);
-                  if (allDaysInSearch.length > 0) {
-                    const lastDay = allDaysInSearch[allDaysInSearch.length - 1];
-                    if (lastDay > currentDay) {
-                      return validGroupedRows.findIndex(
-                        (g) => g.day === lastDay,
-                      );
-                    }
-                  }
-                }
-              }
-              return currentDayIdx; // Tetap di posisi sekarang jika tidak ada next
-            };
-
-            const getPrevDay = () => {
-              const prevDayInMonth = currentDay - 1;
-              if (prevDayInMonth >= 1) {
-                // Cari apakah prev day ada di hasil pencarian
-                const prevDayIdx = validGroupedRows.findIndex(
-                  (g) => g.day === prevDayInMonth,
-                );
-                if (prevDayIdx !== -1) {
-                  return prevDayIdx;
-                } else {
-                  // Jika prev day tidak ada di hasil pencarian, cari hari sebelumnya yang ada
-                  for (let day = prevDayInMonth - 1; day >= 1; day--) {
-                    const dayIdx = validGroupedRows.findIndex(
-                      (g) => g.day === day,
-                    );
-                    if (dayIdx !== -1) {
-                      return dayIdx;
-                    }
-                  }
-                  // Jika tidak ada hari sebelumnya dalam hasil pencarian, cari hari terdekat yang ada
-                  const allDaysInSearch = validGroupedRows
-                    .map((g) => g.day)
-                    .sort((a, b) => a - b);
-                  if (allDaysInSearch.length > 0) {
-                    const firstDay = allDaysInSearch[0];
-                    if (firstDay < currentDay) {
-                      return validGroupedRows.findIndex(
-                        (g) => g.day === firstDay,
-                      );
-                    }
-                  }
-                }
-              }
-              return currentDayIdx; // Tetap di posisi sekarang jika tidak ada prev
-            };
-
-            // Fungsi untuk menentukan apakah tombol harus disabled
-            const isPrevDisabled = () => {
-              // Disabled jika tidak ada prev day yang valid
-              const prevDay = getPrevDay();
-              return prevDay === currentDayIdx;
-            };
-
-            const isNextDisabled = () => {
-              // Disabled jika tidak ada next day yang valid
-              const nextDay = getNextDay();
-              return nextDay === currentDayIdx;
-            };
-
-            // Tombol Prev
+            // Prev/Next logic
+            const isPrevDisabled = currentIdx === 0;
+            const isNextDisabled = currentIdx === totalDays - 1;
             const prevButton = (
               <button
                 key="prev"
-                onClick={() => handleNavigateDay(() => goToDay(getPrevDay()))}
-                disabled={isPrevDisabled()}
+                onClick={() => handleNavigateDay(() => goToDay(currentIdx - 1))}
+                disabled={isPrevDisabled}
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border font-bold text-base flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${
-                  isPrevDisabled()
+                  isPrevDisabled
                     ? "bg-slate-800/50 text-slate-500 border-slate-700 cursor-not-allowed"
                     : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-slate-600"
                 }`}
@@ -1236,15 +1140,13 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 {"<"}
               </button>
             );
-
-            // Tombol Next
             const nextButton = (
               <button
                 key="next"
-                onClick={() => handleNavigateDay(() => goToDay(getNextDay()))}
-                disabled={isNextDisabled()}
+                onClick={() => handleNavigateDay(() => goToDay(currentIdx + 1))}
+                disabled={isNextDisabled}
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border font-bold text-base flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${
-                  isNextDisabled()
+                  isNextDisabled
                     ? "bg-slate-800/50 text-slate-500 border-slate-700 cursor-not-allowed"
                     : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-slate-600"
                 }`}
@@ -1253,102 +1155,52 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 {">"}
               </button>
             );
-
-            // Fungsi buat button hari
-            const createDayButton = (day) => {
-              const isActive = currentDay === day;
-              const hasData = validGroupedRows.some((g) => g.day === day);
-
-              return (
-                <button
-                  key={day}
-                  onClick={() => {
-                    // Cari index group yang day-nya sama
-                    const idx = validGroupedRows.findIndex(
-                      (g) => g.day === day,
-                    );
-                    if (idx !== -1) {
-                      handleNavigateDay(() => goToDay(idx));
-                    } else {
-                      // Jika hari tidak ada dalam hasil pencarian, cari hari terdekat yang ada
-                      const allDaysInSearch = validGroupedRows
-                        .map((g) => g.day)
-                        .sort((a, b) => a - b);
-                      let targetIdx = 0;
-
-                      // Cari hari terdekat yang lebih besar atau sama dengan target
-                      for (let i = 0; i < allDaysInSearch.length; i++) {
-                        if (allDaysInSearch[i] >= day) {
-                          targetIdx = validGroupedRows.findIndex(
-                            (g) => g.day === allDaysInSearch[i],
-                          );
-                          break;
-                        }
-                      }
-
-                      // Jika tidak ada yang lebih besar, gunakan hari terakhir
-                      if (targetIdx === 0 && allDaysInSearch.length > 0) {
-                        targetIdx = validGroupedRows.findIndex(
-                          (g) =>
-                            g.day ===
-                            allDaysInSearch[allDaysInSearch.length - 1],
-                        );
-                      }
-
-                      if (targetIdx !== -1) {
-                        handleNavigateDay(() => goToDay(targetIdx));
-                      }
-                    }
-                  }}
-                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border font-semibold text-xs sm:text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${
-                    isActive
-                      ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 shadow-lg scale-110"
-                      : hasData
-                        ? "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-slate-600"
-                        : "bg-slate-800/30 text-slate-500 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-400"
-                  }`}
-                  title={`Hari ${day}${!hasData ? " (Tidak ada data)" : ""}`}
-                >
-                  {day}
-                </button>
-              );
-            };
-
-            // Fungsi buat ellipsis
-            const createEllipsis = (key) => (
-              <span
-                key={key}
-                className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-slate-500 font-bold text-xs sm:text-sm"
-              >
-                ...
-              </span>
-            );
-
-            // Pagination logic: selalu tampilkan pagination normal dengan ellipsis
-            const showAroundCurrent = 1;
-            const startIndex = Math.max(1, currentDay - showAroundCurrent);
-            const endIndex = Math.min(
-              maxDays - 1,
-              currentDay + showAroundCurrent,
-            );
-
+            // Day buttons
             const dayButtons = [];
-            // Always show first day
-            dayButtons.push(createDayButton(1));
-            // Ellipsis jika ada gap
-            if (startIndex > 2) dayButtons.push(createEllipsis("ellipsis1"));
+            // Always show first day (label 1)
+            dayButtons.push(createDayButton(0));
+            // Ellipsis if needed
+            if (startIndex > 1) dayButtons.push(createEllipsis("ellipsis1"));
             // Days around current
             for (let i = startIndex; i <= endIndex; i++) {
-              if (i !== 1 && i !== maxDays) {
+              if (i !== 0 && i !== totalDays - 1) {
                 dayButtons.push(createDayButton(i));
               }
             }
-            // Ellipsis jika ada gap
-            if (endIndex < maxDays - 1)
+            // Ellipsis if needed
+            if (endIndex < totalDays - 2)
               dayButtons.push(createEllipsis("ellipsis2"));
-            // Always show last day
-            if (maxDays > 1) dayButtons.push(createDayButton(maxDays));
-            // Gabungkan prev, dayButtons, next
+            // Always show last day (label totalDays)
+            if (totalDays > 1) dayButtons.push(createDayButton(totalDays - 1));
+            // Helper for day button
+            function createDayButton(idx) {
+              const isActive = currentIdx === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleNavigateDay(() => goToDay(idx))}
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border font-semibold text-xs sm:text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${
+                    isActive
+                      ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 shadow-lg scale-110"
+                      : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-slate-600"
+                  }`}
+                  title={`Hari ke-${idx + 1}`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            }
+            // Helper for ellipsis
+            function createEllipsis(key) {
+              return (
+                <span
+                  key={key}
+                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-slate-500 font-bold text-xs sm:text-sm"
+                >
+                  ...
+                </span>
+              );
+            }
             return [prevButton, ...dayButtons, nextButton];
           })()}
         </div>

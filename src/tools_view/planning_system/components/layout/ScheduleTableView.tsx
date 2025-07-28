@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
-import { formatValidDate } from "../../utils/scheduleDateUtils";
+import {
+  formatValidDate,
+  parseScheduleName,
+  getDayName,
+} from "../../utils/scheduleDateUtils";
 import {
   calculateOutputPerHour,
   calculateScheduleTotals,
@@ -182,6 +186,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   );
   const totalPlanningJam = formatJamProduksi(totals.planningPcs, outputPerHour);
   const totalOvertimeJam = formatJamProduksi(totals.overtimePcs, outputPerHour);
+
+  // After validGroupedRows is received as a prop, filter out Sundays for display
+  const { month, year } = parseScheduleName(scheduleName || "Juli 2025");
+  const filteredValidGroupedRows = validGroupedRows.filter(
+    (group) => getDayName(group.day, month, year) !== "Minggu",
+  );
 
   // Define all rows with their categories and formatted labels
   const allRows = [
@@ -542,7 +552,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           {/* Scrollable Right Section - Date Columns - Enhanced */}
           <div className="flex-1 overflow-x-auto">
             <div className="flex min-w-max">
-              {validGroupedRows.map((group) => (
+              {filteredValidGroupedRows.map((group) => (
                 <div
                   key={group.day}
                   className="flex-shrink-0 w-40 border-r border-slate-600"
