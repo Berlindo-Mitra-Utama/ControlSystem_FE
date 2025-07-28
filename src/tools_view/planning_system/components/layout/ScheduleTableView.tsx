@@ -166,7 +166,10 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Calculate totals using utils
   const totals = calculateScheduleTotals(flatRows);
 
-  // Calculate total jam produksi (cycle time)
+  // Calculate total jam produksi (cycle time) with manpower consideration
+  // Default: 3 manpower = 14 pcs/jam (14/3 = 4.666 pcs per manpower)
+  const defaultManpowerCount = 3;
+  const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
   const outputPerHour = calculateOutputPerHour(timePerPcs, []);
   const totalJamProduksi = formatJamProduksi(
     totals.hasilProduksi,
@@ -657,14 +660,25 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "planning-jam":
+                          // Calculate effective output per hour based on manpower
+                          const shift1ManpowerCount =
+                            shift1?.manpowerIds?.length || defaultManpowerCount;
+                          const shift2ManpowerCount =
+                            shift2?.manpowerIds?.length || defaultManpowerCount;
+
+                          const shift1OutputPerHour =
+                            shift1ManpowerCount * pcsPerManpower;
+                          const shift2OutputPerHour =
+                            shift2ManpowerCount * pcsPerManpower;
+
                           const planningProduksiJamShift1 = formatJamProduksi(
                             shift1?.planningPcs || 0,
-                            outputPerHour,
+                            shift1OutputPerHour,
                           );
 
                           const planningProduksiJamShift2 = formatJamProduksi(
                             shift2?.planningPcs || 0,
-                            outputPerHour,
+                            shift2OutputPerHour,
                           );
 
                           shift1Value = planningProduksiJamShift1;
@@ -684,14 +698,25 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "overtime-jam":
+                          // Calculate effective output per hour based on manpower
+                          const overtimeShift1ManpowerCount =
+                            shift1?.manpowerIds?.length || defaultManpowerCount;
+                          const overtimeShift2ManpowerCount =
+                            shift2?.manpowerIds?.length || defaultManpowerCount;
+
+                          const overtimeShift1OutputPerHour =
+                            overtimeShift1ManpowerCount * pcsPerManpower;
+                          const overtimeShift2OutputPerHour =
+                            overtimeShift2ManpowerCount * pcsPerManpower;
+
                           const overtimeJamShift1 = formatJamProduksi(
                             shift1?.overtimePcs || 0,
-                            outputPerHour,
+                            overtimeShift1OutputPerHour,
                           );
 
                           const overtimeJamShift2 = formatJamProduksi(
                             shift2?.overtimePcs || 0,
-                            outputPerHour,
+                            overtimeShift2OutputPerHour,
                           );
 
                           shift1Value = overtimeJamShift1;
@@ -711,14 +736,25 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           break;
 
                         case "jam-produksi":
+                          // Calculate effective output per hour based on manpower
+                          const jamProduksiShift1ManpowerCount =
+                            shift1?.manpowerIds?.length || defaultManpowerCount;
+                          const jamProduksiShift2ManpowerCount =
+                            shift2?.manpowerIds?.length || defaultManpowerCount;
+
+                          const jamProduksiShift1OutputPerHour =
+                            jamProduksiShift1ManpowerCount * pcsPerManpower;
+                          const jamProduksiShift2OutputPerHour =
+                            jamProduksiShift2ManpowerCount * pcsPerManpower;
+
                           const jamProduksiShift1 = formatJamProduksi(
                             shift1?.pcs || 0,
-                            outputPerHour,
+                            jamProduksiShift1OutputPerHour,
                           );
 
                           const jamProduksiShift2 = formatJamProduksi(
                             shift2?.pcs || 0,
-                            outputPerHour,
+                            jamProduksiShift2OutputPerHour,
                           );
 
                           shift1Value = jamProduksiShift1;
@@ -879,7 +915,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                   {shift1.manpowerIds &&
                                   shift1.manpowerIds.length > 0
                                     ? shift1.manpowerIds.join(".")
-                                    : "Pilih"}
+                                    : "3"}
                                   <span className="ml-2">▼</span>
                                 </button>
                                 {focusedInputs[
@@ -896,8 +932,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                           <input
                                             type="checkbox"
                                             checked={
-                                              shift1.manpowerIds &&
-                                              shift1.manpowerIds.includes(mp.id)
+                                              (shift1.manpowerIds &&
+                                                shift1.manpowerIds.includes(
+                                                  mp.id,
+                                                )) ||
+                                              (!shift1.manpowerIds &&
+                                                mp.id <= 3)
                                             }
                                             disabled={
                                               shift1.manpowerIds &&
@@ -909,7 +949,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                             onChange={(e) => {
                                               let newIds = shift1.manpowerIds
                                                 ? [...shift1.manpowerIds]
-                                                : [];
+                                                : [1, 2, 3]; // Default 3 manpower
                                               if (e.target.checked) {
                                                 if (newIds.length < 6)
                                                   newIds.push(mp.id);
@@ -1020,7 +1060,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                   {shift2.manpowerIds &&
                                   shift2.manpowerIds.length > 0
                                     ? shift2.manpowerIds.join(".")
-                                    : "Pilih"}
+                                    : "3"}
                                   <span className="ml-2">▼</span>
                                 </button>
                                 {focusedInputs[
@@ -1037,8 +1077,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                           <input
                                             type="checkbox"
                                             checked={
-                                              shift2.manpowerIds &&
-                                              shift2.manpowerIds.includes(mp.id)
+                                              (shift2.manpowerIds &&
+                                                shift2.manpowerIds.includes(
+                                                  mp.id,
+                                                )) ||
+                                              (!shift2.manpowerIds &&
+                                                mp.id <= 3)
                                             }
                                             disabled={
                                               shift2.manpowerIds &&
@@ -1050,7 +1094,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                             onChange={(e) => {
                                               let newIds = shift2.manpowerIds
                                                 ? [...shift2.manpowerIds]
-                                                : [];
+                                                : [1, 2, 3]; // Default 3 manpower
                                               if (e.target.checked) {
                                                 if (newIds.length < 6)
                                                   newIds.push(mp.id);

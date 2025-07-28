@@ -418,12 +418,20 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     {group.rows.map((row, rowIdx) => {
-                      // --- Custom Output Calculation ---
+                      // --- Custom Output Calculation with Manpower ---
+                      // Default: 3 manpower = 14 pcs/jam (14/3 = 4.666 pcs per manpower)
+                      const defaultManpowerCount = 3;
+                      const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
+                      const manpowerCount =
+                        row.manpowerIds?.length || defaultManpowerCount;
+                      const effectiveTimePerPcs =
+                        3600 / (manpowerCount * pcsPerManpower);
+
                       const calculated = calculateOutputFields(
                         row,
                         flatIdx,
                         flatRows,
-                        timePerPcs,
+                        effectiveTimePerPcs,
                         initialStock,
                       );
                       const validationAlerts = checkValidation(
@@ -432,11 +440,8 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                         timePerPcs,
                       );
 
-                      // Output 1 jam
-                      const outputPerHour = calculateOutputPerHour(
-                        timePerPcs,
-                        [],
-                      );
+                      // Output 1 jam with manpower consideration
+                      const outputPerHour = manpowerCount * pcsPerManpower;
                       // Akumulasi Delivery Shift 1 & 2 using utils
                       const akumulasiDelivery = calculateAkumulasiDelivery(
                         group.day,
@@ -775,7 +780,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                       {row.manpowerIds &&
                                       row.manpowerIds.length > 0
                                         ? row.manpowerIds.join(".")
-                                        : "Pilih"}
+                                        : "3"}
                                       <span className="ml-2">▼</span>
                                     </button>
                                     {/* Dropdown List */}
@@ -791,8 +796,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                             <input
                                               type="checkbox"
                                               checked={
-                                                row.manpowerIds &&
-                                                row.manpowerIds.includes(mp.id)
+                                                (row.manpowerIds &&
+                                                  row.manpowerIds.includes(
+                                                    mp.id,
+                                                  )) ||
+                                                (!row.manpowerIds && mp.id <= 3)
                                               }
                                               disabled={
                                                 row.manpowerIds &&
@@ -802,7 +810,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                               onChange={(e) => {
                                                 let newIds = row.manpowerIds
                                                   ? [...row.manpowerIds]
-                                                  : [];
+                                                  : [1, 2, 3]; // Default 3 manpower
                                                 if (e.target.checked) {
                                                   if (newIds.length < 6)
                                                     newIds.push(mp.id);
