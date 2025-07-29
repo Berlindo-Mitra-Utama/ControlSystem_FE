@@ -253,23 +253,6 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 value={initialStock}
               />
               <SummaryCard
-                icon={<Activity className="w-5 h-5 text-green-400" />}
-                label="Manpower"
-                value={(() => {
-                  // Rata-rata manpower dari seluruh flatRows
-                  const manpowerTotal = flatRows.reduce(
-                    (sum, r) => sum + (r.manpower || 0),
-                    0,
-                  );
-                  const manpowerCount = flatRows.filter(
-                    (r) => typeof r.manpower === "number",
-                  ).length;
-                  return manpowerCount > 0
-                    ? Math.round(manpowerTotal / manpowerCount)
-                    : "-";
-                })()}
-              />
-              <SummaryCard
                 icon={<Truck className="w-5 h-5 text-cyan-400" />}
                 label="Delivery"
                 value={flatRows.reduce((sum, r) => sum + (r.delivery || 0), 0)}
@@ -299,16 +282,15 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 icon={<Activity className="w-5 h-5 text-blue-400" />}
                 label="Total Manpower"
                 value={(() => {
-                  const manpowerTotal = flatRows.reduce(
-                    (sum, r) => sum + (r.manpowerIds?.length || 0),
-                    0,
-                  );
-                  const manpowerCount = flatRows.filter(
-                    (r) => r.manpowerIds && r.manpowerIds.length > 0,
-                  ).length;
-                  return manpowerCount > 0
-                    ? Math.round(manpowerTotal / manpowerCount)
-                    : 0;
+                  return validGroupedRows.reduce((total, group) => {
+                    const shift1 = group.rows.find((r) => r.shift === "1");
+                    const shift2 = group.rows.find((r) => r.shift === "2");
+
+                    const shift1Manpower = shift1?.manpowerIds?.length || 3; // default 3
+                    const shift2Manpower = shift2?.manpowerIds?.length || 3; // default 3
+
+                    return total + shift1Manpower + shift2Manpower;
+                  }, 0);
                 })()}
               />
             </div>
