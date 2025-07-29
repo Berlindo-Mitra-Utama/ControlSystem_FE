@@ -435,10 +435,21 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             </div>
           </div>
         )}
-        {/* Notifikasi error manpower */}
+        {/* Ganti notifikasi error manpower dengan pop up modal kecil di tengah layar */}
         {manpowerError && (
-          <div className="bg-red-600 text-white text-center py-2 rounded mb-2 font-semibold">
-            {manpowerError}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-red-600 text-white px-6 py-4 rounded-xl shadow-2xl min-w-[260px] max-w-xs relative animate-fade-in-out">
+              <button
+                className="absolute top-2 right-2 text-white/80 hover:text-white text-lg font-bold"
+                onClick={() => setManpowerError("")}
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+              <div className="font-semibold text-base text-center">
+                {manpowerError}
+              </div>
+            </div>
           </div>
         )}
 
@@ -486,13 +497,17 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                   case "manpower":
                     // Hitung rata-rata manpower dari flatRows
                     const manpowerTotal = flatRows.reduce(
-                      (sum, r) => sum + (r.manpower || 0),
+                      (sum, r) => sum + (r.manpowerIds?.length || 0),
                       0,
                     );
                     const manpowerCount = flatRows.filter(
-                      (r) => typeof r.manpower === "number",
+                      (r) => r.manpowerIds && r.manpowerIds.length > 0,
                     ).length;
-                    totalValue = "-";
+                    const averageManpower =
+                      manpowerCount > 0
+                        ? Math.round(manpowerTotal / manpowerCount)
+                        : 0;
+                    totalValue = averageManpower.toString();
                     bgColor = "bg-slate-800/50";
                     textColor = "text-slate-200";
                     break;
@@ -910,9 +925,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                       setManpowerError(
                                         "Silakan tambahkan manpower terlebih dahulu",
                                       );
-                                      setTimeout(() => {
-                                        setManpowerError("");
-                                      }, 3000);
                                       return;
                                     }
                                     setFocusedInputs((prev) => ({
@@ -1159,9 +1171,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                       setManpowerError(
                                         "Silakan tambahkan manpower terlebih dahulu",
                                       );
-                                      setTimeout(() => {
-                                        setManpowerError("");
-                                      }, 3000);
                                       return;
                                     }
                                     setFocusedInputs((prev) => ({
