@@ -43,7 +43,7 @@ const ChildPart: React.FC<ChildPartFormProps> = ({ isOpen, onClose, onGenerate }
           ×
         </button>
         <form onSubmit={handleSubmit} className="p-8 flex flex-col gap-5">
-          <h2 className="text-xl font-bold text-white mb-2">Tambah Material Child Part</h2>
+          <h2 className="text-xl font-bold text-white mb-2">Material Child Part</h2>
           <div>
             <label className="block text-slate-300 font-medium mb-1">Nama Part</label>
             <input

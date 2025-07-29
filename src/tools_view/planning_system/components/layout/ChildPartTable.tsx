@@ -84,32 +84,18 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
   // Hitung Teori Stock dan Rencana Stock per shift
   // Flat array: index = day*2 + shift (0=shift1, 1=shift2)
-  const teoriStock: number[] = [];
   const rencanaStock: number[] = [];
 
   for (let d = 0; d < props.days; d++) {
     for (let s = 0; s < 2; s++) {
       const idx = d * 2 + s;
       const { hasilProduksi, planningPcs, overtimePcs } = getScheduleData(d, s);
-      // Teori Stock tetap rumus lama
+      
+      // Rencana Stock: menggunakan planning + overtime
       if (idx === 0) {
-        teoriStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
+        rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
       } else {
-        teoriStock[idx] = teoriStock[idx - 1] + (inMaterial[d][s] ?? 0) - hasilProduksi;
-      }
-      // Rencana Stock pakai rumus baru
-      if (idx === 0) {
-        if (hasilProduksi === 0) {
-          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
-        } else {
-          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
-        }
-      } else {
-        if (hasilProduksi === 0) {
-          rencanaStock[idx] = rencanaStock[idx - 1] + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
-        } else {
-          rencanaStock[idx] = rencanaStock[idx - 1] + (inMaterial[d][s] ?? 0) - hasilProduksi;
-        }
+        rencanaStock[idx] = rencanaStock[idx - 1] + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
       }
     }
   }
@@ -144,7 +130,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     for (let s = 0; s < 2; s++) {
       const idx = d * 2 + s;
       const { hasilProduksi } = getScheduleData(d, s);
-      const aktualIn = aktualInMaterial[d][s] ?? 0;
+      const aktualIn = aktualInMaterialState[d][s] ?? 0;
       if (idx === 0) {
         aktualStock[idx] = safeInitialStock + aktualIn - hasilProduksi;
       } else {
@@ -164,37 +150,42 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   return (
     <div className="mt-6">
       {/* Header Info (freeze, di luar overflow-x-auto) */}
-      <div className="p-4 pb-2 bg-slate-900 rounded-t-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-b-0 border-slate-700 relative">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <span className="text-white font-bold text-lg flex items-center gap-2">
-            <Layers className="w-5 h-5 text-blue-400" />
-            Material Child Part:
-            <span className="text-blue-300 font-bold">{props.partName}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 font-semibold text-sm">
-            <User className="w-4 h-4 text-emerald-400 mr-1" />
-            {props.customerName}
-          </span>
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-900 border border-blue-700 rounded-lg text-blue-200 font-semibold text-sm">
-            <Package className="w-4 h-4 text-blue-400 mr-1" />
-            Stock Awal Tersedia:
-            <span className="ml-1 font-bold">{props.initialStock === null ? '-' : props.initialStock.toLocaleString()}</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-900 border border-green-700 rounded-lg text-green-200 font-semibold text-sm">
-            <Layers className="w-4 h-4 text-green-400 mr-1" />
-            Total Rencana In Material:
-            <span className="ml-1 font-bold">{totalInMaterial.toLocaleString()}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-900 border border-yellow-700 rounded-lg text-yellow-200 font-semibold text-sm">
-            <Layers className="w-4 h-4 text-yellow-400 mr-1" />
-            Total Aktual In Material:
-            <span className="ml-1 font-bold">{totalAktualInMaterial.toLocaleString()}</span>
-          </span>
-          {props.renderHeaderAction && (
-            <div className="flex gap-2 items-center ml-2">{props.renderHeaderAction}</div>
-          )}
+      <div className="p-4 pb-2 bg-slate-900 rounded-t-xl flex flex-col gap-4 border border-b-0 border-slate-700 relative">
+        {/* Main Header Content */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
+            <div className="flex items-center gap-3">
+              <span className="text-white font-bold text-lg">
+                {props.partName}
+              </span>
+              {props.renderHeaderAction && (
+                <div className="flex gap-2 items-center">
+                  {props.renderHeaderAction}
+                </div>
+              )}
+            </div>
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 font-semibold text-sm">
+              <User className="w-4 h-4 text-emerald-400 mr-1" />
+              {props.customerName}
+            </span>
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-900 border border-blue-700 rounded-lg text-blue-200 font-semibold text-sm">
+              <Package className="w-4 h-4 text-blue-400 mr-1" />
+              Stock Awal Tersedia:
+              <span className="ml-1 font-bold">{props.initialStock === null ? '-' : props.initialStock.toLocaleString()}</span>
+            </span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-900 border border-green-700 rounded-lg text-green-200 font-semibold text-sm">
+              <Layers className="w-4 h-4 text-green-400 mr-1" />
+              Total Rencana In Material:
+              <span className="ml-1 font-bold">{totalInMaterial.toLocaleString()}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-900 border border-yellow-700 rounded-lg text-yellow-200 font-semibold text-sm">
+              <Layers className="w-4 h-4 text-yellow-400 mr-1" />
+              Total Aktual In Material:
+              <span className="ml-1 font-bold">{totalAktualInMaterial.toLocaleString()}</span>
+            </span>
+          </div>
         </div>
       </div>
       {/* Table scrollable */}
