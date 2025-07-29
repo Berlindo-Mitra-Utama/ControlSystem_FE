@@ -19,6 +19,10 @@ import LoginPage from "./main_view/pages/LoginPage";
 import UserManagementPage from "./admin_view/user_management/pages/userManagementPage";
 import ProtectedRoute from "./tools_view/planning_system/components/ProtectedRoute";
 
+// Progress Tracker
+import DashboardProgres from "./tools_view/progres_tracker/pages/dashboard";
+import ManageProgres from "./tools_view/progres_tracker/pages/manage_progres";
+
 function App() {
   return (
     <AuthProvider>
@@ -45,6 +49,32 @@ function App() {
                 <Route path="saved" element={<SavedSchedules />} />
                 <Route path="allcharts" element={<AllCharts />} />
               </Route>
+
+              {/* Protected Routes - Progress Tracker */}
+              <Route
+                path="/progress"
+                element={
+                  <ProtectedRoute>
+                    <DashboardProgres />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/progress/manage"
+                element={
+                  <ProtectedRoute>
+                    <ManageProgres />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/progress/manage"
+                element={
+                  <ProtectedRoute>
+                    <ManageProgres />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Public Tools - Hitung Coil */}
               <Route path="/hitungcoil" element={<HitungCoilLayout />}>

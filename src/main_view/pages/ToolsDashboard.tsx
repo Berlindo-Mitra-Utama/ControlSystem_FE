@@ -61,6 +61,9 @@ export default function ToolsDashboard() {
         case "hitungcoil":
           navigate("/hitungcoil")
           break
+        case "progress":
+          navigate("/progress")
+          break
         case "usermanagement":
           navigate("/admin/user-management")
           break
@@ -120,6 +123,19 @@ export default function ToolsDashboard() {
       icon: Calendar,
       gradient: "from-purple-500 to-pink-500",
       hoverGradient: "from-purple-600 to-pink-600",
+      category: "professional",
+      badge: "Staff Only",
+      requiresLogin: true,
+      badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+      maintenance: false,
+    },
+    {
+      id: "progress",
+      title: "Progress Tracker",
+      description: "Pantau dan kelola progres produksi",
+      icon: BarChart3,
+      gradient: "from-blue-500 to-cyan-500",
+      hoverGradient: "from-blue-600 to-cyan-600",
       category: "professional",
       badge: "Staff Only",
       requiresLogin: true,
