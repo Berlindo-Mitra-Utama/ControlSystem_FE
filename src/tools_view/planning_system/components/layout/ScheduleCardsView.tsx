@@ -299,9 +299,10 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
             <button
               className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-semibold shadow transition"
               onClick={() => setShowManpowerModal(true)}
+              title="Tambah Manpower"
             >
-              <Activity className="w-5 h-5" />
-              Manpower
+              <Plus className="w-5 h-5" />
+              Add Manpower
             </button>
           </div>
         </div>

@@ -196,12 +196,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Define all rows with their categories and formatted labels
   const allRows = [
     {
-      key: "stock-awal",
-      label: "STOCK AWAL (PCS)",
-      category: "stock",
-      icon: Package,
-    },
-    {
       key: "manpower",
       label: "MANPOWER",
       category: "stock",
@@ -326,6 +320,27 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     <div className="space-y-6">
       {/* Filter Menu - Enhanced + Manpower Button */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+        {/* Info Stock Awal & Add Manpower */}
+        <div className="flex flex-wrap gap-4 items-center mb-6 justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-slate-700 text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-slate-600">
+              <Package className="w-5 h-5 text-blue-400" />
+              Stock Awal: <span className="ml-1">{initialStock}</span>
+            </div>
+          </div>
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-semibold bg-blue-700 hover:bg-blue-800 text-white shadow border border-blue-600 transition"
+            onClick={() => setShowManpowerModal(true)}
+            type="button"
+            title="Tambah Manpower"
+          >
+            <Plus className="w-5 h-5" />
+            Add Manpower
+          </button>
+        </div>
+        {/* Divider */}
+        <div className="border-b border-slate-600 mb-4" />
+        {/* Judul Filter Data */}
         <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-3">
           <Filter className="w-6 h-6 text-blue-400" />
           Filter Data
@@ -354,15 +369,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               </button>
             );
           })}
-          {/* Gabungkan button Manpower di sini */}
-          <button
-            className="flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold bg-blue-700 hover:bg-blue-800 text-white shadow transition ml-2"
-            onClick={() => setShowManpowerModal(true)}
-            type="button"
-          >
-            <Activity className="w-5 h-5" />
-            Manpower
-          </button>
         </div>
       </div>
 
@@ -477,11 +483,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 let textColor = "text-slate-400";
 
                 switch (row.key) {
-                  case "stock-awal":
-                    totalValue = "332";
-                    bgColor = "bg-slate-800/50";
-                    textColor = "text-slate-200";
-                    break;
                   case "manpower":
                     // Hitung rata-rata manpower dari flatRows
                     const manpowerTotal = flatRows.reduce(
@@ -606,12 +607,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       let shift2Field = "";
 
                       switch (row.key) {
-                        case "stock-awal":
-                          shift1Value = "-";
-                          shift2Value = "-";
-                          bgColor = "bg-slate-800";
-                          textColor = "text-slate-200";
-                          break;
                         case "manpower":
                           shift1Value =
                             shift1?.manpowerIds && shift1.manpowerIds.length > 0
