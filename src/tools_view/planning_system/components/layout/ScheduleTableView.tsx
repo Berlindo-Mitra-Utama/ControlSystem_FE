@@ -495,19 +495,20 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                 switch (row.key) {
                   case "manpower":
-                    // Hitung rata-rata manpower dari flatRows
-                    const manpowerTotal = flatRows.reduce(
-                      (sum, r) => sum + (r.manpowerIds?.length || 0),
+                    // Hitung akumulasi total manpower dari awal sampai akhir (gunakan filteredValidGroupedRows)
+                    const totalManpower = filteredValidGroupedRows.reduce(
+                      (total, group) => {
+                        const shift1 = group.rows.find((r) => r.shift === "1");
+                        const shift2 = group.rows.find((r) => r.shift === "2");
+
+                        const shift1Manpower = shift1?.manpowerIds?.length || 3; // default 3
+                        const shift2Manpower = shift2?.manpowerIds?.length || 3; // default 3
+
+                        return total + shift1Manpower + shift2Manpower;
+                      },
                       0,
                     );
-                    const manpowerCount = flatRows.filter(
-                      (r) => r.manpowerIds && r.manpowerIds.length > 0,
-                    ).length;
-                    const averageManpower =
-                      manpowerCount > 0
-                        ? Math.round(manpowerTotal / manpowerCount)
-                        : 0;
-                    totalValue = averageManpower.toString();
+                    totalValue = totalManpower.toString();
                     bgColor = "bg-slate-800/50";
                     textColor = "text-slate-200";
                     break;
