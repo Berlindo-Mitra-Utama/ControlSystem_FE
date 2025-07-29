@@ -295,20 +295,48 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 label="Hasil Produksi"
                 value={flatRows.reduce((sum, r) => sum + (r.pcs || 0), 0)}
               />
+              <SummaryCard
+                icon={<Activity className="w-5 h-5 text-blue-400" />}
+                label="Total Manpower"
+                value={(() => {
+                  const manpowerTotal = flatRows.reduce(
+                    (sum, r) => sum + (r.manpowerIds?.length || 0),
+                    0,
+                  );
+                  const manpowerCount = flatRows.filter(
+                    (r) => r.manpowerIds && r.manpowerIds.length > 0,
+                  ).length;
+                  return manpowerCount > 0
+                    ? Math.round(manpowerTotal / manpowerCount)
+                    : 0;
+                })()}
+              />
             </div>
             <button
               className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-semibold shadow transition"
               onClick={() => setShowManpowerModal(true)}
+              title="Tambah Manpower"
             >
-              <Activity className="w-5 h-5" />
-              Manpower
+              <Plus className="w-5 h-5" />
+              Add Manpower
             </button>
           </div>
         </div>
-        {/* Notifikasi error manpower */}
+        {/* Ganti notifikasi error manpower dengan pop up modal kecil di tengah layar */}
         {manpowerError && (
-          <div className="bg-red-600 text-white text-center py-2 rounded mb-2 font-semibold">
-            {manpowerError}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-red-600 text-white px-6 py-4 rounded-xl shadow-2xl min-w-[260px] max-w-xs relative animate-fade-in-out">
+              <button
+                className="absolute top-2 right-2 text-white/80 hover:text-white text-lg font-bold"
+                onClick={() => setManpowerError("")}
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+              <div className="font-semibold text-base text-center">
+                {manpowerError}
+              </div>
+            </div>
           </div>
         )}
         {/* MODAL MANPOWER */}
