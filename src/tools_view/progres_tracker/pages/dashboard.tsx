@@ -486,7 +486,7 @@ function ProcessDetailModal({ isOpen, onClose, process, categoryName, processPro
                 {process.children.map((child, childIndex) => (
                   <Card
                     key={child.id}
-                    className="bg-gradient-to-br from-gray-700/60 to-gray-800/60 border-gray-600/40 hover:border-gray-500/60 transition-all duration-300 hover:shadow-lg"
+                    className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg"
                     style={{
                       animation: `slideInUp 0.4s ease-out ${childIndex * 100}ms both`,
                     }}
@@ -562,7 +562,7 @@ function ProcessDetailModal({ isOpen, onClose, process, categoryName, processPro
 
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-700">
-            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
+            <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-blue-400 mb-1">
                   {process.children ? process.children.length : 0}
@@ -570,7 +570,7 @@ function ProcessDetailModal({ isOpen, onClose, process, categoryName, processPro
                 <div className="text-sm text-blue-300">Total Tasks</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
+            <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-green-400 mb-1">
                   {process.children ? process.children.filter((child) => child.completed).length : 0}
@@ -578,7 +578,7 @@ function ProcessDetailModal({ isOpen, onClose, process, categoryName, processPro
                 <div className="text-sm text-green-300">Completed</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-orange-500/20">
+            <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-orange-400 mb-1">
                   {process.children ? process.children.filter((child) => !child.completed).length : 0}
@@ -767,7 +767,7 @@ export default function Dashboard() {
               return (
                 <Card
                   key={part.id}
-                  className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 border-gray-700 hover:border-gray-600 transition-all duration-500 hover:shadow-2xl backdrop-blur-sm group animate-fade-in"
+                  className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-500 hover:shadow-2xl group animate-fade-in"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <CardHeader className="pb-4 relative overflow-hidden">
@@ -910,7 +910,7 @@ export default function Dashboard() {
                             return (
                               <Card
                                 key={`${progressCategory.id}-${process.id}`}
-                                className="bg-gradient-to-br from-gray-700/60 to-gray-800/60 border-gray-600/40 hover:border-gray-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer group"
+                                className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg cursor-pointer group"
                                 onClick={() => openProcessDetail(process, progressCategory.name)}
                               >
                                 <CardContent className="p-4">
