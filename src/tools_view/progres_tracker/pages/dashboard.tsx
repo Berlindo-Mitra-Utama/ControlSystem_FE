@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/card"
 import { Badge } from "../components/badge"
 import { Button } from "../components/button"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/dialog"
+import { useAuth } from "../../../main_view/contexts/AuthContext"
 import {
   Package,
   CheckCircle2,
@@ -24,6 +25,8 @@ import {
   MessageSquare,
   ExternalLink,
   Edit,
+  LogOut,
+  User,
 } from "lucide-react"
 
 // Types and Interfaces
@@ -591,8 +594,10 @@ function ProcessDetailModal({ isOpen, onClose, process, categoryName, processPro
 }
 
 // Main Dashboard Component
-export default function DashboardProgres() {
+export default function Dashboard() {
   const [parts, setParts] = useState<Part[]>(initialParts)
+  const { user, handleLogout } = useAuth()
+  const navigate = useNavigate()
   const [selectedProcess, setSelectedProcess] = useState<{
     process: Process
     categoryName: string
@@ -692,6 +697,51 @@ export default function DashboardProgres() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      {/* Header/Navigation Bar */}
+      <header className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm sticky top-0 z-40">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link to="/tools">
+                <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent">
+                  ← Kembali
+                </Button>
+              </Link>
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    Progress Tracker
+                  </h1>
+                  <p className="text-sm text-gray-400">Pantau progres produksi</p>
+                </div>
+              </div>
+            </div>
+
+            {/* User Info and Logout */}
+            {user && (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-700/50">
+                  <User className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm text-gray-300">{user.nama || user.username}</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent flex items-center gap-2"
+                  onClick={() => handleLogout()}
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
       <div className="relative z-10 p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header with title and manage button */}
