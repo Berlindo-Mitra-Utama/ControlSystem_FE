@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
+import { getCategoryColor } from "../../../const/colors";
 import {
   formatValidDate,
   parseScheduleName,
@@ -514,43 +515,52 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     break;
                   case "delivery":
                     totalValue = formatNumber(totals.delivery);
-                    bgColor = "bg-cyan-800/50";
-                    textColor = "text-cyan-200";
+                    const deliveryColor = getCategoryColor("delivery");
+                    bgColor = deliveryColor.bg;
+                    textColor = deliveryColor.text;
                     break;
                   case "planning-jam":
                     totalValue = totalPlanningJam;
-                    bgColor = "bg-yellow-800/50";
-                    textColor = "text-yellow-200";
+                    const planningColor = getCategoryColor("planning");
+                    bgColor = planningColor.bg;
+                    textColor = planningColor.text;
                     break;
                   case "planning-pcs":
                     totalValue = formatNumber(totals.planningPcs);
-                    bgColor = "bg-yellow-800/50";
-                    textColor = "text-yellow-200";
+                    const planningPcsColor = getCategoryColor("planning");
+                    bgColor = planningPcsColor.bg;
+                    textColor = planningPcsColor.text;
                     break;
                   case "overtime-jam":
                     totalValue = totalOvertimeJam;
-                    bgColor = "bg-orange-800/50";
-                    textColor = "text-orange-200";
+                    const overtimeColor = getCategoryColor("overtime");
+                    bgColor = overtimeColor.bg;
+                    textColor = overtimeColor.text;
                     break;
                   case "overtime-pcs":
                     totalValue = formatNumber(totals.overtimePcs);
-                    bgColor = "bg-orange-800/50";
-                    textColor = "text-orange-200";
+                    const overtimePcsColor = getCategoryColor("overtime");
+                    bgColor = overtimePcsColor.bg;
+                    textColor = overtimePcsColor.text;
                     break;
                   case "jam-produksi":
                     totalValue = "-";
-                    bgColor = "bg-indigo-800/50";
-                    textColor = "text-indigo-200";
+                    const stockColor = getCategoryColor("stock");
+                    bgColor = stockColor.bg;
+                    textColor = stockColor.text;
                     break;
                   case "hasil-produksi":
                     totalValue = formatNumber(totals.hasilProduksi);
-                    bgColor = "bg-purple-800/50";
-                    textColor = "text-purple-200";
+                    const hasilProduksiColor =
+                      getCategoryColor("hasilProduksi");
+                    bgColor = hasilProduksiColor.bg;
+                    textColor = hasilProduksiColor.text;
                     break;
                   case "jam-aktual":
                     totalValue = "-";
-                    bgColor = "bg-green-800/50";
-                    textColor = "text-green-200";
+                    const jamAktualColor = getCategoryColor("jamAktual");
+                    bgColor = jamAktualColor.bg;
+                    textColor = jamAktualColor.text;
                     break;
                 }
 
@@ -657,8 +667,9 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                         case "delivery":
                           shift1Value = shift1?.delivery || 0;
                           shift2Value = shift2?.delivery || 0;
-                          bgColor = "bg-cyan-900/30";
-                          textColor = "text-cyan-300";
+                          const deliveryColor = getCategoryColor("delivery");
+                          bgColor = deliveryColor.bg.replace("/50", "/30");
+                          textColor = deliveryColor.text.replace("200", "300");
                           isEditable = true;
                           shift1Field = "delivery";
                           shift2Field = "delivery";
@@ -681,8 +692,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = formatNumber(akumulasiDelivery.shift1);
                           shift2Value = formatNumber(akumulasiDelivery.shift2);
-                          bgColor = "bg-cyan-900/20";
-                          textColor = "text-cyan-200";
+                          const akumulasiDeliveryColor =
+                            getCategoryColor("delivery");
+                          bgColor = akumulasiDeliveryColor.bg.replace(
+                            "/50",
+                            "/20",
+                          );
+                          textColor = akumulasiDeliveryColor.text;
                           break;
 
                         case "planning-jam":
@@ -709,15 +725,23 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = planningProduksiJamShift1;
                           shift2Value = planningProduksiJamShift2;
-                          bgColor = "bg-yellow-900/30";
-                          textColor = "text-yellow-300";
+                          const planningJamColor = getCategoryColor("planning");
+                          bgColor = planningJamColor.bg.replace("/50", "/30");
+                          textColor = planningJamColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           break;
 
                         case "planning-pcs":
                           shift1Value = shift1?.planningPcs || 0;
                           shift2Value = shift2?.planningPcs || 0;
-                          bgColor = "bg-yellow-900/30";
-                          textColor = "text-yellow-300";
+                          const planningPcsColor = getCategoryColor("planning");
+                          bgColor = planningPcsColor.bg.replace("/50", "/30");
+                          textColor = planningPcsColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           isEditable = true;
                           shift1Field = "planningPcs";
                           shift2Field = "planningPcs";
@@ -747,15 +771,23 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = overtimeJamShift1;
                           shift2Value = overtimeJamShift2;
-                          bgColor = "bg-orange-900/30";
-                          textColor = "text-orange-300";
+                          const overtimeJamColor = getCategoryColor("overtime");
+                          bgColor = overtimeJamColor.bg.replace("/50", "/30");
+                          textColor = overtimeJamColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           break;
 
                         case "overtime-pcs":
                           shift1Value = shift1?.overtimePcs || 0;
                           shift2Value = shift2?.overtimePcs || 0;
-                          bgColor = "bg-orange-900/30";
-                          textColor = "text-orange-300";
+                          const overtimePcsColor = getCategoryColor("overtime");
+                          bgColor = overtimePcsColor.bg.replace("/50", "/30");
+                          textColor = overtimePcsColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           isEditable = true;
                           shift1Field = "overtimePcs";
                           shift2Field = "overtimePcs";
@@ -785,15 +817,24 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = jamProduksiShift1;
                           shift2Value = jamProduksiShift2;
-                          bgColor = "bg-indigo-900/30";
-                          textColor = "text-indigo-300";
+                          const jamProduksiColor = getCategoryColor("stock");
+                          bgColor = jamProduksiColor.bg.replace("/50", "/30");
+                          textColor = jamProduksiColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           break;
 
                         case "hasil-produksi":
                           shift1Value = shift1?.pcs || 0;
                           shift2Value = shift2?.pcs || 0;
-                          bgColor = "bg-purple-900/30";
-                          textColor = "text-purple-300";
+                          const hasilProduksiColor =
+                            getCategoryColor("hasilProduksi");
+                          bgColor = hasilProduksiColor.bg.replace("/50", "/30");
+                          textColor = hasilProduksiColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           isEditable = true;
                           shift1Field = "pcs";
                           shift2Field = "pcs";
@@ -819,8 +860,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = formatNumber(akumulasiHasil.shift1);
                           shift2Value = formatNumber(akumulasiHasil.shift2);
-                          bgColor = "bg-purple-900/20";
-                          textColor = "text-purple-200";
+                          const akumulasiHasilColor =
+                            getCategoryColor("hasilProduksi");
+                          bgColor = akumulasiHasilColor.bg.replace(
+                            "/50",
+                            "/20",
+                          );
+                          textColor = akumulasiHasilColor.text;
                           break;
 
                         case "jam-aktual":
@@ -830,8 +876,9 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift2Value = formatNumberWithDecimal(
                             shift2?.jamProduksiAktual || 0,
                           );
-                          bgColor = "bg-green-900/30";
-                          textColor = "text-green-300";
+                          const jamAktualColor = getCategoryColor("jamAktual");
+                          bgColor = jamAktualColor.bg.replace("/50", "/30");
+                          textColor = jamAktualColor.text.replace("200", "300");
                           isEditable = true;
                           shift1Field = "jamProduksiAktual";
                           shift2Field = "jamProduksiAktual";
@@ -867,8 +914,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             );
                           }
 
-                          bgColor = "bg-emerald-900/30";
-                          textColor = "text-emerald-300";
+                          const actualStockColor = getCategoryColor("stock");
+                          bgColor = actualStockColor.bg.replace("/50", "/30");
+                          textColor = actualStockColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           break;
 
                         case "rencana-stock":
@@ -903,8 +954,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             );
                           }
 
-                          bgColor = "bg-amber-900/30";
-                          textColor = "text-amber-300";
+                          const rencanaStockColor = getCategoryColor("stock");
+                          bgColor = rencanaStockColor.bg.replace("/50", "/30");
+                          textColor = rencanaStockColor.text.replace(
+                            "200",
+                            "300",
+                          );
                           break;
                       }
 
