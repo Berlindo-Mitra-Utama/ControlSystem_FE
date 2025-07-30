@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useEffect } from "react";
 import { Package, User, Layers, X } from "lucide-react";
 
 interface ScheduleItem {
@@ -20,6 +20,8 @@ interface ChildPartTableProps {
   onDelete?: () => void;
   inMaterial?: (number|null)[][];
   onInMaterialChange?: (val: (number|null)[][]) => void;
+  aktualInMaterial?: (number|null)[][];
+  onAktualInMaterialChange?: (val: (number|null)[][]) => void;
   renderHeaderAction?: React.ReactNode;
   activeFilter?: string;
 }
@@ -48,6 +50,22 @@ const InputCell = memo(function InputCell({ value, onChange, className }: { valu
   );
 });
 
+const Modal: React.FC<{ open: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string; }> = ({ open, onClose, onConfirm, title, message }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+      <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 max-w-sm w-full">
+        <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
+        <p className="text-gray-300 mb-6">{message}</p>
+        <div className="flex gap-4 justify-end">
+          <button onClick={onClose} className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600">Batal</button>
+          <button onClick={onConfirm} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Hapus</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   // In Material per shift per hari: [ [shift1, shift2], ... ]
   const [inMaterialState, setInMaterialState] = useState<(number|null)[][]>(
@@ -57,14 +75,37 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   React.useEffect(() => {
     if (props.inMaterial) setInMaterialState(props.inMaterial);
   }, [props.inMaterial]);
-  const inMaterial = props.inMaterial ?? inMaterialState;
+  
+  // Ensure inMaterialState is properly initialized for all days
+  const inMaterial = React.useMemo(() => {
+    const base = props.inMaterial ?? inMaterialState;
+    // Ensure array has correct length and all days are initialized
+    const result = Array.from({ length: props.days }, (_, dayIdx) => {
+      if (base[dayIdx] && Array.isArray(base[dayIdx])) {
+        return [base[dayIdx][0] ?? null, base[dayIdx][1] ?? null];
+      }
+      return [null, null];
+    });
+    return result;
+  }, [props.inMaterial, inMaterialState, props.days]);
 
-  // State aktualInMaterial benar-benar independen
-  const [aktualInMaterialState, setAktualInMaterialState] = useState<(number|null)[][]>(
-    Array.from({ length: props.days }, () => [null, null])
-  );
-  // JANGAN ada efek yang mengubah aktualInMaterialState dari inMaterialProp
-  const aktualInMaterial = aktualInMaterialState;
+  // State aktualInMaterial benar-benar independen - now using props
+  // const [aktualInMaterialState, setAktualInMaterialState] = useState<(number|null)[][]>(
+  //   Array.from({ length: props.days }, () => [null, null])
+  // );
+  
+  // Ensure aktualInMaterial is properly initialized for all days
+  const aktualInMaterial = React.useMemo(() => {
+    const base = props.aktualInMaterial ?? Array.from({ length: props.days }, () => [null, null]);
+    // Ensure array has correct length and all days are initialized
+    const result = Array.from({ length: props.days }, (_, dayIdx) => {
+      if (base[dayIdx] && Array.isArray(base[dayIdx])) {
+        return [base[dayIdx][0] ?? null, base[dayIdx][1] ?? null];
+      }
+      return [null, null];
+    });
+    return result;
+  }, [props.aktualInMaterial, props.days]);
 
   // Gunakan 0 jika initialStock null
   const safeInitialStock = props.initialStock ?? 0;
@@ -84,6 +125,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
   // Hitung Teori Stock dan Rencana Stock per shift
   // Flat array: index = day*2 + shift (0=shift1, 1=shift2)
+  // This cascades from shift to shift and day to day until the end
   const rencanaStock: number[] = [];
 
   for (let d = 0; d < props.days; d++) {
@@ -91,11 +133,25 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       const idx = d * 2 + s;
       const { hasilProduksi, planningPcs, overtimePcs } = getScheduleData(d, s);
       
-      // Rencana Stock: menggunakan planning + overtime
-      if (idx === 0) {
-        rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
+      // Rencana Stock calculation based on formula - cascades through all days/shifts
+      if (hasilProduksi === 0) {
+        // If Hasil Produksi = 0, use Stock Tersedia + Rencana In Material - (Planning + Overtime)
+        if (idx === 0) {
+          // First shift of first day: use initial stock
+          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
+        } else {
+          // All subsequent shifts/days: use previous stock + current input - (planning + overtime)
+          rencanaStock[idx] = rencanaStock[idx - 1] + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
+        }
       } else {
-        rencanaStock[idx] = rencanaStock[idx - 1] + (inMaterial[d][s] ?? 0) - (planningPcs + overtimePcs);
+        // If Hasil Produksi != 0, use Previous Stock + Rencana In Material - Hasil Produksi
+        if (idx === 0) {
+          // First shift of first day: use initial stock
+          rencanaStock[idx] = safeInitialStock + (inMaterial[d][s] ?? 0) - hasilProduksi;
+        } else {
+          // All subsequent shifts/days: use previous stock + current input - actual production
+          rencanaStock[idx] = rencanaStock[idx - 1] + (inMaterial[d][s] ?? 0) - hasilProduksi;
+        }
       }
     }
   }
@@ -103,7 +159,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   // Hitung total in material sebulan
   const totalInMaterial = inMaterial.reduce((sum, arr) => sum + (arr[0] ?? 0) + (arr[1] ?? 0), 0);
   // Hitung total aktual in material sebulan
-  const totalAktualInMaterial = aktualInMaterialState.reduce((sum, arr) => sum + (arr[0] ?? 0) + (arr[1] ?? 0), 0);
+  const totalAktualInMaterial = aktualInMaterial.reduce((sum, arr) => sum + (arr[0] ?? 0) + (arr[1] ?? 0), 0);
 
   // Handler input granular
   const handleInMaterialChange = useCallback((dayIdx: number, shiftIdx: number, value: number | null) => {
@@ -116,25 +172,41 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     });
   }, [props.onInMaterialChange]);
   const handleAktualInMaterialChange = useCallback((dayIdx: number, shiftIdx: number, value: number | null) => {
-    setAktualInMaterialState(prev => {
-      if (prev[dayIdx][shiftIdx] === value) return prev;
-      const next = prev.map((arr, i) => i === dayIdx ? [...arr] : arr);
-      next[dayIdx][shiftIdx] = value;
-      return next;
-    });
-  }, []);
+    if (props.onAktualInMaterialChange) {
+      const currentAktualInMaterial = props.aktualInMaterial ?? Array.from({ length: props.days }, () => [null, null]);
+      const updated = currentAktualInMaterial.map((arr, i) => i === dayIdx ? [...arr] : arr);
+      updated[dayIdx][shiftIdx] = value;
+      props.onAktualInMaterialChange(updated);
+    }
+  }, [props.onAktualInMaterialChange, props.aktualInMaterial, props.days]);
 
-  // Hitung Aktual Stock
+  // Hitung Aktual Stock - cascades from shift to shift and day to day until the end
   const aktualStock: number[] = [];
   for (let d = 0; d < props.days; d++) {
     for (let s = 0; s < 2; s++) {
       const idx = d * 2 + s;
-      const { hasilProduksi } = getScheduleData(d, s);
-      const aktualIn = aktualInMaterialState[d][s] ?? 0;
-      if (idx === 0) {
-        aktualStock[idx] = safeInitialStock + aktualIn - hasilProduksi;
+      const { hasilProduksi, planningPcs, overtimePcs } = getScheduleData(d, s);
+      const aktualIn = aktualInMaterial[d][s] ?? 0;
+      
+      // Aktual Stock calculation based on formula - cascades through all days/shifts
+      if (hasilProduksi === 0) {
+        // If Hasil Produksi = 0, use Stock Tersedia + Aktual In Material - (Planning + Overtime)
+        if (idx === 0) {
+          // First shift of first day: use initial stock
+          aktualStock[idx] = safeInitialStock + aktualIn - (planningPcs + overtimePcs);
+        } else {
+          // All subsequent shifts/days: use previous stock + current input - (planning + overtime)
+          aktualStock[idx] = aktualStock[idx - 1] + aktualIn - (planningPcs + overtimePcs);
+        }
       } else {
-        aktualStock[idx] = aktualStock[idx - 1] + aktualIn - hasilProduksi;
+        // If Hasil Produksi != 0, use Previous Stock + Aktual In Material - Hasil Produksi
+        if (idx === 0) {
+          // First shift of first day: use initial stock
+          aktualStock[idx] = safeInitialStock + aktualIn - hasilProduksi;
+        } else {
+          // All subsequent shifts/days: use previous stock + current input - actual production
+          aktualStock[idx] = aktualStock[idx - 1] + aktualIn - hasilProduksi;
+        }
       }
     }
   }
@@ -146,6 +218,40 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     const offset = 2; // 0=Minggu, 1=Senin, 2=Selasa, dst
     return DAY_NAMES[(offset + day) % 7];
   };
+
+  // Add state for modal and loading
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Wrap delete
+  const handleDeleteClick = () => setShowDeleteModal(true);
+  const handleDeleteConfirm = () => {
+    setShowDeleteModal(false);
+    if (props.onDelete) props.onDelete();
+  };
+
+  // Loading logic for navigation/filter
+  // If you have navigation/filter change, wrap setState with:
+  // setLoading(true); setTimeout(() => { ...setState...; setLoading(false); }, 500);
+
+  // Input reset effect - ensure all days are properly initialized
+  useEffect(() => {
+    // Ensure inMaterialState is properly initialized for all days
+    setInMaterialState(prev => {
+      const next = [...prev];
+      // Initialize any missing days with [null, null]
+      for (let i = 0; i < props.days; i++) {
+        if (!next[i]) {
+          next[i] = [null, null];
+        }
+      }
+      return next;
+    });
+    
+    // Note: aktualInMaterial is now managed by props, so no local state reset needed
+  }, [props.days]); // Run when days prop changes
+
+
 
   return (
     <div className="mt-6">
@@ -245,6 +351,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {inMaterial.map((val, dayIdx) => [
                       <td key={`inmat-1-${dayIdx}`} className="p-2">
                         <InputCell
+                          key={`rencana-table-shift1-day${dayIdx}`}
                           value={val[0]}
                           onChange={v => handleInMaterialChange(dayIdx, 0, v)}
                           className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -252,6 +359,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                       </td>,
                       <td key={`inmat-2-${dayIdx}`} className="p-2">
                         <InputCell
+                          key={`rencana-table-shift2-day${dayIdx}`}
                           value={val[1]}
                           onChange={v => handleInMaterialChange(dayIdx, 1, v)}
                           className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -265,6 +373,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {aktualInMaterial.map((val, dayIdx) => [
                       <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
                         <InputCell
+                          key={`aktual-table-shift1-day${dayIdx}`}
                           value={val[0]}
                           onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
                           className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -272,6 +381,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                       </td>,
                       <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
                         <InputCell
+                          key={`aktual-table-shift2-day${dayIdx}`}
                           value={val[1]}
                           onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
                           className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -303,6 +413,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   {inMaterial.map((val, dayIdx) => [
                     <td key={`inmat-1-${dayIdx}`} className="p-2">
                       <InputCell
+                        key={`rencana-filtered-shift1-day${dayIdx}`}
                         value={val[0]}
                         onChange={v => handleInMaterialChange(dayIdx, 0, v)}
                         className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -310,6 +421,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     </td>,
                     <td key={`inmat-2-${dayIdx}`} className="p-2">
                       <InputCell
+                        key={`rencana-filtered-shift2-day${dayIdx}`}
                         value={val[1]}
                         onChange={v => handleInMaterialChange(dayIdx, 1, v)}
                         className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -324,6 +436,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   {aktualInMaterial.map((val, dayIdx) => [
                     <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
                       <InputCell
+                        key={`aktual-filtered-shift1-day${dayIdx}`}
                         value={val[0]}
                         onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
                         className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -331,6 +444,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     </td>,
                     <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
                       <InputCell
+                        key={`aktual-filtered-shift2-day${dayIdx}`}
                         value={val[1]}
                         onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
                         className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -361,6 +475,12 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
           </table>
         </div>
       </div>
+      {loading && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={handleDeleteConfirm} title="Konfirmasi Hapus" message="Apakah Anda yakin ingin menghapus data ini?" />
     </div>
   );
 };

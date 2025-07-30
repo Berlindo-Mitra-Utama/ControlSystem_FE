@@ -192,6 +192,9 @@ const SchedulerPage: React.FC = () => {
     useState<string>("all");
   // Tambahkan state untuk mobile detection:
   const [isMobile, setIsMobile] = useState(false);
+  // Add state for delete confirmation modal (after other state declarations)
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
 
   // Tambahkan useEffect untuk detect mobile:
   useEffect(() => {
@@ -691,7 +694,11 @@ const SchedulerPage: React.FC = () => {
     customerName: string;
     stock: number;
   }) => {
-    setChildParts((prev) => [...prev, { ...data, inMaterial: undefined }]);
+    setChildParts((prev) => [...prev, { 
+      ...data, 
+      inMaterial: Array.from({ length: 30 }, () => [null, null]), // Initialize with proper array structure
+      aktualInMaterial: Array.from({ length: 30 }, () => [null, null]) // Initialize with proper array structure
+    }]);
     // : Lakukan aksi generate tabel child part di sini
     // Misal: tampilkan tabel child part, atau update state lain
     // Untuk demo, bisa console.log(data)
@@ -700,7 +707,24 @@ const SchedulerPage: React.FC = () => {
 
   // Handler untuk menghapus child part berdasarkan index
   const handleDeleteChildPart = (idx: number) => {
-    setChildParts((prev) => prev.filter((_, i) => i !== idx));
+    setDeleteTargetIndex(idx);
+    setShowDeleteConfirmModal(true);
+  };
+
+  // Add confirmation handler
+  const handleConfirmDelete = () => {
+    if (deleteTargetIndex !== null) {
+      setChildParts((prev) => prev.filter((_, i) => i !== deleteTargetIndex));
+      setChildPartCarouselPage(0);
+    }
+    setShowDeleteConfirmModal(false);
+    setDeleteTargetIndex(null);
+  };
+
+  // Add cancel handler
+  const handleCancelDelete = () => {
+    setShowDeleteConfirmModal(false);
+    setDeleteTargetIndex(null);
   };
 
   // Tentukan jumlah hari dari schedule
@@ -1642,6 +1666,16 @@ const SchedulerPage: React.FC = () => {
                                   ),
                                 );
                               },
+                              aktualInMaterial: cp.aktualInMaterial,
+                              onAktualInMaterialChange: (val: any) => {
+                                setChildParts((prev) =>
+                                  prev.map((c, i) =>
+                                    i === realIdx
+                                      ? { ...c, aktualInMaterial: val }
+                                      : c,
+                                  ),
+                                );
+                              },
                               renderHeaderAction: (
                                 <div className="flex gap-2 items-center">
                                   <button
@@ -1842,6 +1876,28 @@ const SchedulerPage: React.FC = () => {
         >
           {notification.message}
         </Modal>
+        {showDeleteConfirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 max-w-sm w-full">
+              <h2 className="text-xl font-bold text-white mb-2">Konfirmasi Hapus</h2>
+              <p className="text-gray-300 mb-6">Apakah Anda yakin ingin menghapus part ini?</p>
+              <div className="flex gap-4 justify-end">
+                <button 
+                  onClick={handleCancelDelete} 
+                  className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={handleConfirmDelete} 
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
