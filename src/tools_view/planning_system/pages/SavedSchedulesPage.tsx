@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
+import { Colors } from "../../const/colors";
 import {
   ArrowLeft,
   Calendar,
@@ -31,31 +32,31 @@ const SavedSchedulesPage: React.FC = () => {
   // Mock data parts dengan ikon yang lebih cantik
   const parts = [
     {
-      name: "29N Muffler",
-      customer: "Sakura",
+      name: Colors.parts.muffler.name,
+      customer: Colors.parts.muffler.customer,
       icon: Package,
-      color: "from-blue-500 to-cyan-500",
-      bgColor: "bg-blue-500/10",
-      borderColor: "border-blue-500/20",
-      description: "Komponen sistem pembuangan",
+      color: Colors.parts.muffler.color,
+      bgColor: Colors.parts.muffler.bgColor,
+      borderColor: Colors.parts.muffler.borderColor,
+      description: Colors.parts.muffler.description,
     },
     {
-      name: "Transmission Case B2",
-      customer: "Honda Corp",
+      name: Colors.parts.transmission.name,
+      customer: Colors.parts.transmission.customer,
       icon: Cog,
-      color: "from-green-500 to-emerald-500",
-      bgColor: "bg-green-500/10",
-      borderColor: "border-green-500/20",
-      description: "Casing transmisi otomatis",
+      color: Colors.parts.transmission.color,
+      bgColor: Colors.parts.transmission.bgColor,
+      borderColor: Colors.parts.transmission.borderColor,
+      description: Colors.parts.transmission.description,
     },
     {
-      name: "Brake Disc C3",
-      customer: "Nissan Ltd",
+      name: Colors.parts.brakeDisc.name,
+      customer: Colors.parts.brakeDisc.customer,
       icon: Wrench,
-      color: "from-purple-500 to-pink-500",
-      bgColor: "bg-purple-500/10",
-      borderColor: "border-purple-500/20",
-      description: "Cakram rem performa tinggi",
+      color: Colors.parts.brakeDisc.color,
+      bgColor: Colors.parts.brakeDisc.bgColor,
+      borderColor: Colors.parts.brakeDisc.borderColor,
+      description: Colors.parts.brakeDisc.description,
     },
   ];
 

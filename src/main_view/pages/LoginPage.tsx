@@ -38,6 +38,10 @@ export default function LoginPage() {
           title: "User Management",
           description: "Kelola akses pengguna sistem",
         },
+        progress: {
+          title: "Progress Tracker",
+          description: "Pantau progres produksi",
+        },
         systemconfig: {
           title: "System Config",
           description: "Konfigurasi dan maintenance sistem",
