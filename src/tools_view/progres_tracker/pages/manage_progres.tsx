@@ -46,296 +46,8 @@ interface Part {
   progress: ProgressCategory[]
 }
 
-// Sample Data
-const initialParts: Part[] = [
-  {
-    id: "1",
-    partName: "Engine Block",
-    partNumber: "ENG-001",
-    customer: "Toyota Motor",
-    progress: [
-      {
-        id: "machining",
-        name: "Machining",
-        processes: [
-          {
-            id: "rough-machining",
-            name: "Rough Machining",
-            completed: true,
-            notes: "Completed ahead of schedule. All dimensions within tolerance.",
-            children: [
-              { id: "setup", name: "Setup Mesin", completed: true, notes: "Machine calibrated successfully" },
-              {
-                id: "cutting",
-                name: "Proses Cutting",
-                completed: true,
-                notes: "Used new cutting tools, excellent surface finish",
-              },
-              {
-                id: "inspection-1",
-                name: "Inspeksi Dimensi",
-                completed: true,
-                notes: "All measurements verified and documented",
-              },
-            ],
-          },
-          {
-            id: "finish-machining",
-            name: "Finish Machining",
-            completed: false,
-            notes: "Waiting for specialized tooling delivery. Expected completion: 2 days.",
-            children: [
-              {
-                id: "fine-cutting",
-                name: "Fine Cutting",
-                completed: true,
-                notes: "Precision cutting completed with 0.01mm tolerance",
-              },
-              {
-                id: "surface-finish",
-                name: "Surface Finishing",
-                completed: false,
-                notes: "Scheduled for tomorrow morning shift",
-              },
-              { id: "final-inspection", name: "Final Inspection", completed: false },
-            ],
-          },
-        ],
-      },
-      {
-        id: "assembly",
-        name: "Assembly",
-        processes: [
-          {
-            id: "pre-assembly",
-            name: "Pre Assembly",
-            completed: false,
-            notes: "Parts cleaning in progress. Assembly area prepared.",
-            children: [
-              {
-                id: "parts-preparation",
-                name: "Persiapan Parts",
-                completed: true,
-                notes: "All components sorted and labeled",
-              },
-              { id: "cleaning", name: "Cleaning", completed: false, notes: "Using ultrasonic cleaning process" },
-            ],
-          },
-          {
-            id: "main-assembly",
-            name: "Main Assembly",
-            completed: false,
-            children: [
-              { id: "component-install", name: "Install Komponen", completed: false },
-              { id: "torque-check", name: "Torque Check", completed: false },
-              { id: "function-test", name: "Function Test", completed: false },
-            ],
-          },
-        ],
-      },
-      {
-        id: "quality-control",
-        name: "Quality Control",
-        processes: [
-          {
-            id: "dimensional-check",
-            name: "Dimensional Check",
-            completed: false,
-            children: [
-              { id: "measurement", name: "Pengukuran", completed: false },
-              { id: "documentation", name: "Dokumentasi", completed: false },
-            ],
-          },
-          {
-            id: "final-qa",
-            name: "Final QA",
-            completed: false,
-            notes: "QA checklist prepared. Waiting for assembly completion.",
-            children: [
-              { id: "visual-inspection", name: "Visual Inspection", completed: false },
-              { id: "performance-test", name: "Performance Test", completed: false },
-              { id: "packaging", name: "Packaging", completed: false, notes: "Custom packaging design approved" },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "2",
-    partName: "Transmission Gear",
-    partNumber: "TRN-002",
-    customer: "Honda Motors",
-    progress: [
-      {
-        id: "forging",
-        name: "Forging",
-        processes: [
-          {
-            id: "heating",
-            name: "Heating Process",
-            completed: true,
-            notes: "Optimal temperature achieved. Material properties verified.",
-            children: [
-              {
-                id: "furnace-setup",
-                name: "Setup Furnace",
-                completed: true,
-                notes: "Temperature calibration completed",
-              },
-              {
-                id: "temperature-control",
-                name: "Temperature Control",
-                completed: true,
-                notes: "Maintained at 1200°C for 45 minutes",
-              },
-              {
-                id: "heating-time",
-                name: "Heating Time",
-                completed: true,
-                notes: "Heating cycle completed successfully",
-              },
-            ],
-          },
-          {
-            id: "forming",
-            name: "Forming Process",
-            completed: true,
-            notes: "Excellent forming results. No defects detected.",
-            children: [
-              { id: "die-setup", name: "Die Setup", completed: true, notes: "New die installed and tested" },
-              {
-                id: "press-operation",
-                name: "Press Operation",
-                completed: true,
-                notes: "Applied 500 tons pressure as specified",
-              },
-              { id: "cooling", name: "Cooling", completed: true, notes: "Controlled cooling rate maintained" },
-            ],
-          },
-        ],
-      },
-      {
-        id: "heat-treatment",
-        name: "Heat Treatment",
-        processes: [
-          {
-            id: "hardening",
-            name: "Hardening",
-            completed: true,
-            notes: "Hardness test results: 58-62 HRC. Within specification.",
-            children: [
-              { id: "quenching", name: "Quenching", completed: true, notes: "Oil quenching at 850°C" },
-              { id: "tempering", name: "Tempering", completed: true, notes: "Tempered at 200°C for 2 hours" },
-            ],
-          },
-        ],
-      },
-      {
-        id: "finishing",
-        name: "Finishing",
-        processes: [
-          {
-            id: "grinding",
-            name: "Grinding",
-            completed: false,
-            notes: "Precision grinding scheduled for next shift.",
-            children: [
-              {
-                id: "rough-grinding",
-                name: "Rough Grinding",
-                completed: true,
-                notes: "Surface roughness achieved: Ra 1.6",
-              },
-              {
-                id: "fine-grinding",
-                name: "Fine Grinding",
-                completed: false,
-                notes: "Waiting for fine grinding wheel replacement",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "3",
-    partName: "Brake Disc",
-    partNumber: "BRK-003",
-    customer: "Nissan Motors",
-    progress: [
-      {
-        id: "casting",
-        name: "Casting",
-        processes: [
-          {
-            id: "mold-preparation",
-            name: "Mold Preparation",
-            completed: true,
-            notes: "Mold inspection passed. Ready for casting.",
-            children: [
-              { id: "mold-setup", name: "Mold Setup", completed: true, notes: "Mold assembled and secured" },
-              {
-                id: "mold-inspection",
-                name: "Mold Inspection",
-                completed: true,
-                notes: "No defects found in mold cavity",
-              },
-            ],
-          },
-          {
-            id: "pouring",
-            name: "Pouring",
-            completed: true,
-            notes: "Casting completed successfully. No porosity detected.",
-            children: [
-              { id: "metal-heating", name: "Metal Heating", completed: true, notes: "Iron heated to 1500°C" },
-              {
-                id: "pouring-process",
-                name: "Pouring Process",
-                completed: true,
-                notes: "Smooth pouring, no splashing",
-              },
-              { id: "cooling", name: "Cooling", completed: true, notes: "Cooling time: 4 hours as specified" },
-            ],
-          },
-        ],
-      },
-      {
-        id: "machining",
-        name: "Machining",
-        processes: [
-          {
-            id: "turning",
-            name: "Turning",
-            completed: true,
-            notes: "Turning operation completed with excellent surface finish.",
-            children: [
-              { id: "rough-turning", name: "Rough Turning", completed: true, notes: "Material removal completed" },
-              { id: "finish-turning", name: "Finish Turning", completed: true, notes: "Final dimensions achieved" },
-            ],
-          },
-          {
-            id: "drilling",
-            name: "Drilling",
-            completed: false,
-            notes: "Drilling holes for mounting bolts. 3 of 5 holes completed.",
-            children: [
-              {
-                id: "center-drilling",
-                name: "Center Drilling",
-                completed: true,
-                notes: "Center holes marked and drilled",
-              },
-              { id: "hole-drilling", name: "Hole Drilling", completed: false, notes: "Using 12mm carbide drill bits" },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-]
+// Sample Data - Empty initial array, data will be loaded from localStorage
+const initialParts: Part[] = []
 
 // Utility Functions
 const calculateProcessProgress = (process: Process): number => {
@@ -369,6 +81,53 @@ const calculateOverallProgress = (part: Part): number => {
 
 const generateId = (): string => {
   return Math.random().toString(36).substr(2, 9)
+}
+
+// Add a new part
+const addPart = (parts: Part[], partData: { partName: string; partNumber: string; customer: string }): Part[] => {
+  const newPart: Part = {
+    id: generateId(),
+    partName: partData.partName,
+    partNumber: partData.partNumber,
+    customer: partData.customer,
+    progress: [
+      {
+        id: "design",
+        name: "Design",
+        processes: [],
+      },
+      {
+        id: "manufacturing",
+        name: "Manufacturing",
+        processes: [],
+      },
+      {
+        id: "quality",
+        name: "Quality Control",
+        processes: [],
+      },
+    ],
+  }
+  return [...parts, newPart]
+}
+
+// Edit an existing part
+const editPart = (parts: Part[], partId: string, partData: { partName: string; partNumber: string; customer: string }): Part[] => {
+  return parts.map((part) => {
+    if (part.id !== partId) return part
+
+    return {
+      ...part,
+      partName: partData.partName,
+      partNumber: partData.partNumber,
+      customer: partData.customer,
+    }
+  })
+}
+
+// Delete a part
+const deletePart = (parts: Part[], partId: string): Part[] => {
+  return parts.filter((part) => part.id !== partId)
 }
 
 const addProcess = (parts: Part[], partId: string, categoryId: string, newProcess: Omit<Process, "id">): Part[] => {
@@ -642,10 +401,134 @@ function ProcessFormModal({ isOpen, onClose, onSave, process, title, isSubProces
   )
 }
 
+// Part Form Modal Component
+function PartFormModal({
+  isOpen,
+  onClose,
+  onSave,
+  part,
+  title,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onSave: (partData: { partName: string; partNumber: string; customer: string }) => void
+  part?: Part
+  title: string
+}) {
+  const [partName, setPartName] = useState(part?.partName || "")
+  const [partNumber, setPartNumber] = useState(part?.partNumber || "")
+  const [customer, setCustomer] = useState(part?.customer || "")
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen && part) {
+      setPartName(part.partName)
+      setPartNumber(part.partNumber)
+      setCustomer(part.customer)
+    } else if (isOpen) {
+      setPartName("")
+      setPartNumber("")
+      setCustomer("")
+    }
+  }, [isOpen, part])
+
+  const handleClose = () => {
+    onClose()
+  }
+
+  const handleSave = () => {
+    onSave({
+      partName: partName.trim(),
+      partNumber: partNumber.trim(),
+      customer: customer.trim(),
+    })
+    onClose()
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-white">{title}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div>
+            <Label htmlFor="partName" className="text-sm font-medium text-gray-300">
+              Part Name
+            </Label>
+            <Input
+              id="partName"
+              value={partName}
+              onChange={(e) => setPartName(e.target.value)}
+              placeholder="Enter part name"
+              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="partNumber" className="text-sm font-medium text-gray-300">
+              Part Number
+            </Label>
+            <Input
+              id="partNumber"
+              value={partNumber}
+              onChange={(e) => setPartNumber(e.target.value)}
+              placeholder="Enter part number"
+              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="customer" className="text-sm font-medium text-gray-300">
+              Customer
+            </Label>
+            <Input
+              id="customer"
+              value={customer}
+              onChange={(e) => setCustomer(e.target.value)}
+              placeholder="Enter customer name"
+              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <Button
+            onClick={handleClose}
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!partName.trim() || !partNumber.trim() || !customer.trim()}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // Main Manage Progress Component
 export default function ManageProgres() {
   const [parts, setParts] = useState<Part[]>(initialParts)
   const [hasChanges, setHasChanges] = useState(false)
+  const [partModal, setPartModal] = useState<{
+    isOpen: boolean
+    type: "add" | "edit"
+    partId?: string
+    part?: Part
+  }>({
+    isOpen: false,
+    type: "add",
+  })
   const [processModal, setProcessModal] = useState<{
     isOpen: boolean
     type: "add" | "edit"
@@ -662,7 +545,7 @@ export default function ManageProgres() {
   })
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean
-    type: "process" | "subprocess"
+    type: "process" | "subprocess" | "part"
     partId?: string
     categoryId?: string
     processId?: string
@@ -670,7 +553,7 @@ export default function ManageProgres() {
     name?: string
   }>({
     isOpen: false,
-    type: "process",
+    type: "process"
   })
 
   // Load data from localStorage on mount
@@ -678,6 +561,36 @@ export default function ManageProgres() {
     const savedParts = localStorage.getItem("parts-data")
     if (savedParts) {
       setParts(JSON.parse(savedParts))
+    } else {
+      // If no data exists, create a sample part to get started
+      const samplePart: Part = {
+        id: generateId(),
+        partName: "Sample Part",
+        partNumber: "SP-001",
+        customer: "Demo Customer",
+        progress: [
+          {
+            id: "design",
+            name: "Design",
+            processes: [],
+          },
+          {
+            id: "manufacturing",
+            name: "Manufacturing",
+            processes: [],
+          },
+          {
+            id: "quality",
+            name: "Quality Control",
+            processes: [],
+          },
+        ],
+      }
+      setParts([samplePart])
+      // Save to localStorage
+      localStorage.setItem("parts-data", JSON.stringify([samplePart]))
+      // Notify other components
+      window.dispatchEvent(new Event("parts-updated"))
     }
   }, [])
 
@@ -754,20 +667,41 @@ export default function ManageProgres() {
     setHasChanges(true)
   }
 
+  // Handle part form save
+  const handlePartSave = (partData: { partName: string; partNumber: string; customer: string }) => {
+    const { partId, type } = partModal
+
+    if (type === "add") {
+      setParts(addPart(parts, partData))
+    } else if (type === "edit" && partId) {
+      setParts(editPart(parts, partId, partData))
+    }
+
+    setHasChanges(true)
+  }
+
   // Handle delete confirmation
   const handleDelete = () => {
     const { partId, categoryId, processId, subProcessId, type } = deleteDialog
 
-    if (!partId || !categoryId || !processId) return
-
-    if (type === "subprocess" && subProcessId) {
+    if (type === "part" && partId) {
+      setParts(deletePart(parts, partId))
+    } else if (type === "subprocess" && partId && categoryId && processId && subProcessId) {
       setParts(deleteSubProcess(parts, partId, categoryId, processId, subProcessId))
-    } else if (type === "process") {
+    } else if (type === "process" && partId && categoryId && processId) {
       setParts(deleteProcess(parts, partId, categoryId, processId))
     }
 
-    setHasChanges(true)
-    setDeleteDialog({ isOpen: false, type: "process" })
+    // Close the dialog but preserve the type
+    setDeleteDialog({
+      isOpen: false,
+      type,
+      partId: undefined,
+      categoryId: undefined,
+      processId: undefined,
+      subProcessId: undefined,
+      name: undefined
+    })
   }
 
   return (
@@ -791,6 +725,13 @@ export default function ManageProgres() {
             <p className="text-gray-400">Update process completion status for all parts</p>
           </div>
           <div className="flex space-x-4">
+            <Button
+              onClick={() => setPartModal({ isOpen: true, type: "add" })}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Part
+            </Button>
             <Button
               onClick={resetData}
               variant="outline"
@@ -836,9 +777,52 @@ export default function ManageProgres() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-white">{overallProgress}%</div>
-                      <div className="text-sm text-gray-400">Overall Progress</div>
+                    <div className="flex items-start gap-4">
+                      <div className="text-right">
+                        <div className="text-3xl font-bold text-white">{overallProgress}%</div>
+                        <div className="text-sm text-gray-400">Overall Progress</div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              setPartModal({
+                                isOpen: true,
+                                type: "edit",
+                                partId: part.id,
+                                part,
+                              })
+                            }
+                            className="text-gray-300 hover:bg-gray-700"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Part
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              setDeleteDialog({
+                                isOpen: true,
+                                type: "part",
+                                partId: part.id,
+                                name: part.partName,
+                              })
+                            }
+                            className="text-red-400 hover:bg-red-900/20"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Part
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                   <div className="mt-4">
@@ -1068,6 +1052,15 @@ export default function ManageProgres() {
         </div>
       </div>
 
+      {/* Part Form Modal */}
+      <PartFormModal
+        isOpen={partModal.isOpen}
+        onClose={() => setPartModal({ ...partModal, isOpen: false })}
+        onSave={handlePartSave}
+        part={partModal.part}
+        title={partModal.type === "add" ? "Add New Part" : "Edit Part"}
+      />
+
       {/* Process Form Modal */}
       <ProcessFormModal
         isOpen={processModal.isOpen}
@@ -1085,7 +1078,20 @@ export default function ManageProgres() {
       {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={deleteDialog.isOpen}
-        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, isOpen: open })}
+        onOpenChange={(open) => {
+          if (!open) {
+            // When dialog is closed by clicking outside or pressing escape, preserve the type
+            setDeleteDialog({
+              isOpen: false,
+              type: deleteDialog.type,
+              partId: undefined,
+              categoryId: undefined,
+              processId: undefined,
+              subProcessId: undefined,
+              name: undefined
+            })
+          }
+        }}
       >
         <AlertDialogContent className="bg-gray-800 border-gray-700 text-white">
           <AlertDialogHeader>
@@ -1094,9 +1100,11 @@ export default function ManageProgres() {
               Confirm Deletion
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
-              Are you sure you want to delete the {deleteDialog.type === "subprocess" ? "sub-process" : "process"} "
+              Are you sure you want to delete the 
+              {deleteDialog.type === "subprocess" ? "sub-process" : deleteDialog.type === "part" ? "part" : "process"} "
               {deleteDialog.name}"?
               {deleteDialog.type === "process" && " This will also delete all its sub-processes."}
+              {deleteDialog.type === "part" && " This will also delete all its processes and sub-processes."}
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
