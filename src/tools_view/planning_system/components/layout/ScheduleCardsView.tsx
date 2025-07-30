@@ -466,7 +466,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 }
 
                 return (
-                  <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                     {group.rows.map((row, rowIdx) => {
                       // --- Custom Output Calculation with Manpower ---
                       // Default: 3 manpower = 14 pcs/jam (14/3 = 4.666 pcs per manpower)
