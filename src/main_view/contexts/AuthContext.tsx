@@ -172,6 +172,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             case "usermanagement":
               navigate("/admin/user-management"); // Mengarahkan ke halaman user management
               break;
+            case "progress":
+              navigate("/progress");
+              break;
             case "systemconfig":
               navigate("/dashboard"); // atau route khusus untuk system config
               break;
