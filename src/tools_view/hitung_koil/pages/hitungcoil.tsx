@@ -1,7 +1,7 @@
 "use client";
 
-import type React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { Colors } from "../../const/colors";
 import {
   Calculator,
   Settings,
@@ -374,7 +374,9 @@ const EnhancedCoilCalculator: React.FC = () => {
                 <div className="p-2 bg-green-500/10 rounded-lg">
                   <BarChart3 className="w-5 h-5 text-green-400" />
                 </div>
-                <h2 className="text-lg font-bold text-white">Hasil Perhitungan</h2>
+                <h2 className="text-lg font-bold text-white">
+                  Hasil Perhitungan
+                </h2>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -406,7 +408,9 @@ const EnhancedCoilCalculator: React.FC = () => {
                                   result[
                                     field.key as keyof CoilCalculationResult
                                   ] as number
-                                ).toFixed(field.decimals).replace('.', ',')}
+                                )
+                                  .toFixed(field.decimals)
+                                  .replace(".", ",")}
                         </span>
                         {field.key === "waktuProses" && (
                           <span className="w-full text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded">
