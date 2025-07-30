@@ -13,7 +13,9 @@ const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
   className = "",
 }) => {
   return (
-    <div className={`flex bg-slate-800 rounded-lg p-1 border border-slate-600 ${className}`}>
+    <div
+      className={`hidden sm:flex bg-slate-800 rounded-lg p-1 border border-slate-600 ${className}`}
+    >
       <button
         onClick={() => onViewChange("cards")}
         className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex items-center gap-2 ${
@@ -40,4 +42,4 @@ const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
   );
 };
 
-export default ViewModeToggle; 
+export default ViewModeToggle;

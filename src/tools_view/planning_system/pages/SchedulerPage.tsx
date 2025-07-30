@@ -179,13 +179,31 @@ const SchedulerPage: React.FC = () => {
   const [childPartCarouselIdx, setChildPartCarouselIdx] = useState(0);
   const [childPartSearch, setChildPartSearch] = useState("");
   // Ganti childPartFilter menjadi array of string (nama part), 'all' untuk semua
-  const [childPartFilter, setChildPartFilter] = useState<'all' | string[]>("all");
+  const [childPartFilter, setChildPartFilter] = useState<"all" | string[]>(
+    "all",
+  );
   const [showFilterDropdown, setShowFilterDropdown] = useState<boolean>(false);
-  const [showPartFilterDropdown, setShowPartFilterDropdown] = useState<boolean>(false);
+  const [showPartFilterDropdown, setShowPartFilterDropdown] =
+    useState<boolean>(false);
   const [childPartCarouselPage, setChildPartCarouselPage] = useState(0);
   const CHILD_PARTS_PER_PAGE = 2;
   const [editChildPartIdx, setEditChildPartIdx] = useState<number | null>(null);
-  const [activeChildPartTableFilter, setActiveChildPartTableFilter] = useState<string>("all");
+  const [activeChildPartTableFilter, setActiveChildPartTableFilter] =
+    useState<string>("all");
+  // Tambahkan state untuk mobile detection:
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Tambahkan useEffect untuk detect mobile:
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -309,7 +327,7 @@ const SchedulerPage: React.FC = () => {
     const newSchedule = generateScheduleFromForm(form, schedule);
     setSchedule(newSchedule);
     setIsGenerating(false);
-    setChildPartFilter('all'); // Reset filter ke Semua Child Part setiap generate
+    setChildPartFilter("all"); // Reset filter ke Semua Child Part setiap generate
   };
 
   const recalculateSchedule = (updatedSchedule: ScheduleItem[]) => {
@@ -668,7 +686,11 @@ const SchedulerPage: React.FC = () => {
   };
 
   // Handler untuk generate tabel child part
-  const handleGenerateChildPart = (data: { partName: string; customerName: string; stock: number }) => {
+  const handleGenerateChildPart = (data: {
+    partName: string;
+    customerName: string;
+    stock: number;
+  }) => {
     setChildParts((prev) => [...prev, { ...data, inMaterial: undefined }]);
     // : Lakukan aksi generate tabel child part di sini
     // Misal: tampilkan tabel child part, atau update state lain
@@ -682,7 +704,8 @@ const SchedulerPage: React.FC = () => {
   };
 
   // Tentukan jumlah hari dari schedule
-  const days = schedule.length > 0 ? Math.max(...schedule.map(s => s.day)) : 30;
+  const days =
+    schedule.length > 0 ? Math.max(...schedule.map((s) => s.day)) : 30;
 
   return (
     <div className="w-full min-h-screen flex items-start justify-center pt-16 sm:pt-20">
@@ -1281,7 +1304,7 @@ const SchedulerPage: React.FC = () => {
                   <input
                     type="text"
                     value={childPartSearch}
-                    onChange={e => setChildPartSearch(e.target.value)}
+                    onChange={(e) => setChildPartSearch(e.target.value)}
                     placeholder="Cari Child Part..."
                     className="w-full sm:w-64 h-12 px-4 bg-slate-800 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   />
@@ -1292,56 +1315,120 @@ const SchedulerPage: React.FC = () => {
                     Tambahkan Material
                   </button>
                 </div>
-                
+
                 {/* Consolidated Filter Button */}
                 <div className="flex items-center gap-4">
                   {/* Part Name Filter Dropdown */}
                   <div className="relative">
                     <button
                       className="px-6 py-2 rounded-xl font-semibold border border-blue-400 text-blue-400 flex items-center gap-2 hover:bg-blue-900 transition"
-                      onClick={() => setShowPartFilterDropdown(!showPartFilterDropdown)}
+                      onClick={() =>
+                        setShowPartFilterDropdown(!showPartFilterDropdown)
+                      }
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 6h16M4 12h16M4 18h16"
+                        />
+                      </svg>
                       Nama Part
-                      <svg className={`w-4 h-4 transition-transform ${showPartFilterDropdown ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <svg
+                        className={`w-4 h-4 transition-transform ${showPartFilterDropdown ? "rotate-180" : ""}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
                       </svg>
                     </button>
-                    
+
                     {/* Part Name Filter Options */}
                     {showPartFilterDropdown && (
                       <div className="absolute z-50 mt-2 w-64 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-4 animate-fadeInUp part-filter-dropdown">
                         <div className="mb-3 border-b border-slate-600 pb-2 flex items-center gap-2">
-                          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                          <span className="text-white font-bold text-base">Filter Nama Part</span>
+                          <svg
+                            className="w-5 h-5 text-blue-400"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                            />
+                          </svg>
+                          <span className="text-white font-bold text-base">
+                            Filter Nama Part
+                          </span>
                         </div>
-                        
+
                         <div className="space-y-2 mb-4">
-                          <button 
+                          <button
                             onClick={() => {
-                              setChildPartFilter('all');
+                              setChildPartFilter("all");
                               setShowPartFilterDropdown(false);
                             }}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${childPartFilter === 'all' ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                            className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${childPartFilter === "all" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
                             Semua Part
                           </button>
-                          {Array.from(new Set(childParts.map(cp => cp.partName))).map((partName) => (
-                            <button 
+                          {Array.from(
+                            new Set(childParts.map((cp) => cp.partName)),
+                          ).map((partName) => (
+                            <button
                               key={partName}
                               onClick={() => {
                                 setChildPartFilter([partName]);
                                 setShowPartFilterDropdown(false);
                               }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${childPartFilter !== 'all' && childPartFilter.includes(partName) ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${childPartFilter !== "all" && childPartFilter.includes(partName) ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                />
+                              </svg>
                               {partName}
                             </button>
                           ))}
                         </div>
-                        
+
                         <div className="border-t border-slate-600 pt-3">
                           <button
                             onClick={() => setShowPartFilterDropdown(false)}
@@ -1353,7 +1440,7 @@ const SchedulerPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Data Filter Dropdown Button */}
                   <div className="relative">
                     <button
@@ -1362,54 +1449,93 @@ const SchedulerPage: React.FC = () => {
                     >
                       <BarChart2 className="w-5 h-5" />
                       Filter Data
-                      <svg className={`w-4 h-4 transition-transform ${showFilterDropdown ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <svg
+                        className={`w-4 h-4 transition-transform ${showFilterDropdown ? "rotate-180" : ""}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
                       </svg>
                     </button>
-                    
+
                     {/* Filter Options Dropdown */}
                     {showFilterDropdown && (
                       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                         <div className="w-80 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 animate-fadeInUp">
                           <div className="mb-4 border-b border-slate-600 pb-3 flex items-center gap-2">
-                            <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
-                            <span className="text-white font-bold text-base">Filter Data</span>
+                            <svg
+                              className="w-5 h-5 text-blue-400"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z"
+                              />
+                            </svg>
+                            <span className="text-white font-bold text-base">
+                              Filter Data
+                            </span>
                           </div>
-                          
+
                           {/* Data Type Filters */}
                           <div className="space-y-2 mb-4">
-                            <button 
-                              onClick={() => setActiveChildPartTableFilter("all")}
+                            <button
+                              onClick={() =>
+                                setActiveChildPartTableFilter("all")
+                              }
                               className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "all" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <BarChart2 className="w-4 h-4" /> Semua Data
                             </button>
-                            <button 
-                              onClick={() => setActiveChildPartTableFilter("rencanaInMaterial")}
+                            <button
+                              onClick={() =>
+                                setActiveChildPartTableFilter(
+                                  "rencanaInMaterial",
+                                )
+                              }
                               className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "rencanaInMaterial" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
-                              <Package className="w-4 h-4" /> Rencana In Material
+                              <Package className="w-4 h-4" /> Rencana In
+                              Material
                             </button>
-                            <button 
-                              onClick={() => setActiveChildPartTableFilter("aktualInMaterial")}
+                            <button
+                              onClick={() =>
+                                setActiveChildPartTableFilter(
+                                  "aktualInMaterial",
+                                )
+                              }
                               className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "aktualInMaterial" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <Layers className="w-4 h-4" /> Aktual In Material
                             </button>
-                            <button 
-                              onClick={() => setActiveChildPartTableFilter("rencanaStock")}
+                            <button
+                              onClick={() =>
+                                setActiveChildPartTableFilter("rencanaStock")
+                              }
                               className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "rencanaStock" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <Target className="w-4 h-4" /> Rencana Stock (PCS)
                             </button>
-                            <button 
-                              onClick={() => setActiveChildPartTableFilter("aktualStock")}
+                            <button
+                              onClick={() =>
+                                setActiveChildPartTableFilter("aktualStock")
+                              }
                               className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "aktualStock" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <Factory className="w-4 h-4" /> Aktual Stock (PCS)
                             </button>
                           </div>
-                          
+
                           <div className="border-t border-slate-600 pt-3">
                             <button
                               onClick={() => setShowFilterDropdown(false)}
@@ -1431,54 +1557,77 @@ const SchedulerPage: React.FC = () => {
                   {(() => {
                     // Filter childParts by filter dropdown dan search
                     let filtered = childParts;
-                    if (childPartFilter !== 'all') {
-                      filtered = filtered.filter(cp => childPartFilter.includes(cp.partName));
+                    if (childPartFilter !== "all") {
+                      filtered = filtered.filter((cp) =>
+                        childPartFilter.includes(cp.partName),
+                      );
                     }
-                    filtered = filtered.filter(cp =>
-                      cp.partName.toLowerCase().includes(childPartSearch.toLowerCase()) ||
-                      cp.customerName.toLowerCase().includes(childPartSearch.toLowerCase())
+                    filtered = filtered.filter(
+                      (cp) =>
+                        cp.partName
+                          .toLowerCase()
+                          .includes(childPartSearch.toLowerCase()) ||
+                        cp.customerName
+                          .toLowerCase()
+                          .includes(childPartSearch.toLowerCase()),
                     );
                     // Pagination logic
-                    const totalPages = Math.ceil(filtered.length / CHILD_PARTS_PER_PAGE);
-                    const page = Math.min(childPartCarouselPage, Math.max(0, totalPages - 1));
+                    const totalPages = Math.ceil(
+                      filtered.length / CHILD_PARTS_PER_PAGE,
+                    );
+                    const page = Math.min(
+                      childPartCarouselPage,
+                      Math.max(0, totalPages - 1),
+                    );
                     const startIdx = page * CHILD_PARTS_PER_PAGE;
                     const endIdx = startIdx + CHILD_PARTS_PER_PAGE;
                     const pageItems = filtered.slice(startIdx, endIdx);
-                    if (filtered.length === 0) return (
-                      <div className="grid grid-cols-1 gap-8">
-                        {viewMode === "cards" ? (
-                          <ChildPartCardView
-                            partName={"-"}
-                            customerName={"-"}
-                            initialStock={null}
-                            days={days}
-                            schedule={[]}
-                            inMaterial={Array.from({ length: days }, () => [null, null])}
-                            onInMaterialChange={() => {}}
-                            onDelete={undefined}
-                            activeFilter={activeChildPartTableFilter}
-                          />
-                        ) : (
-                          <ChildPartTable
-                            partName={"-"}
-                            customerName={"-"}
-                            initialStock={null}
-                            days={days}
-                            schedule={[]}
-                            inMaterial={Array.from({ length: days }, () => [null, null])}
-                            onInMaterialChange={() => {}}
-                            onDelete={undefined}
-                            activeFilter={activeChildPartTableFilter}
-                          />
-                        )}
-                        <div className="text-center text-slate-400 py-8 -mt-12">Tidak ada Child Part ditemukan.</div>
-                      </div>
-                    );
+                    if (filtered.length === 0)
+                      return (
+                        <div className="grid grid-cols-1 gap-8">
+                          {viewMode === "cards" ? (
+                            <ChildPartCardView
+                              partName={"-"}
+                              customerName={"-"}
+                              initialStock={null}
+                              days={days}
+                              schedule={[]}
+                              inMaterial={Array.from({ length: days }, () => [
+                                null,
+                                null,
+                              ])}
+                              onInMaterialChange={() => {}}
+                              onDelete={undefined}
+                              activeFilter={activeChildPartTableFilter}
+                            />
+                          ) : (
+                            <ChildPartTable
+                              partName={"-"}
+                              customerName={"-"}
+                              initialStock={null}
+                              days={days}
+                              schedule={[]}
+                              inMaterial={Array.from({ length: days }, () => [
+                                null,
+                                null,
+                              ])}
+                              onInMaterialChange={() => {}}
+                              onDelete={undefined}
+                              activeFilter={activeChildPartTableFilter}
+                            />
+                          )}
+                          <div className="text-center text-slate-400 py-8 -mt-12">
+                            Tidak ada Child Part ditemukan.
+                          </div>
+                        </div>
+                      );
                     return (
                       <>
                         <div className="grid grid-cols-1 gap-8">
                           {pageItems.map((cp, idx) => {
-                            const realIdx = childParts.findIndex(c => c === cp);
+                            const realIdx = childParts.findIndex(
+                              (c) => c === cp,
+                            );
                             const commonProps = {
                               key: startIdx + idx,
                               partName: cp.partName,
@@ -1492,7 +1641,13 @@ const SchedulerPage: React.FC = () => {
                               },
                               inMaterial: cp.inMaterial,
                               onInMaterialChange: (val: any) => {
-                                setChildParts((prev) => prev.map((c, i) => i === realIdx ? { ...c, inMaterial: val } : c));
+                                setChildParts((prev) =>
+                                  prev.map((c, i) =>
+                                    i === realIdx
+                                      ? { ...c, inMaterial: val }
+                                      : c,
+                                  ),
+                                );
                               },
                               renderHeaderAction: (
                                 <div className="flex gap-2 items-center">
@@ -1502,8 +1657,18 @@ const SchedulerPage: React.FC = () => {
                                     type="button"
                                     title="Edit"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                      />
                                     </svg>
                                   </button>
                                   <button
@@ -1515,8 +1680,18 @@ const SchedulerPage: React.FC = () => {
                                     type="button"
                                     title="Delete"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                      />
                                     </svg>
                                   </button>
                                 </div>
@@ -1524,7 +1699,7 @@ const SchedulerPage: React.FC = () => {
                               activeFilter: activeChildPartTableFilter,
                             };
 
-                            return viewMode === "cards" ? (
+                            return viewMode === "cards" || isMobile ? (
                               <ChildPartCardView {...commonProps} />
                             ) : (
                               <ChildPartTable {...commonProps} />
@@ -1535,27 +1710,37 @@ const SchedulerPage: React.FC = () => {
                         {totalPages > 1 && (
                           <div className="flex justify-center items-center gap-2 mt-4">
                             <button
-                              onClick={() => setChildPartCarouselPage(i => Math.max(0, i - 1))}
+                              onClick={() =>
+                                setChildPartCarouselPage((i) =>
+                                  Math.max(0, i - 1),
+                                )
+                              }
                               disabled={page === 0}
                               className={`px-3 py-1 rounded-lg font-bold flex flex-col items-center text-xs transition-all duration-200 ${
                                 page === 0
-                                  ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                                  : 'bg-slate-700 text-white hover:bg-slate-600'
+                                  ? "bg-slate-800 text-slate-400 cursor-not-allowed"
+                                  : "bg-slate-700 text-white hover:bg-slate-600"
                               }`}
                             >
                               <span className="text-base">&#8592;</span>
                               <span>Sebelumnya</span>
                             </button>
                             <div className="text-center font-bold text-base w-12">
-                              <span className="text-white">{page + 1}</span> <span className="text-slate-400">/</span> <span className="text-white">{totalPages}</span>
+                              <span className="text-white">{page + 1}</span>{" "}
+                              <span className="text-slate-400">/</span>{" "}
+                              <span className="text-white">{totalPages}</span>
                             </div>
                             <button
-                              onClick={() => setChildPartCarouselPage(i => Math.min(totalPages - 1, i + 1))}
+                              onClick={() =>
+                                setChildPartCarouselPage((i) =>
+                                  Math.min(totalPages - 1, i + 1),
+                                )
+                              }
                               disabled={page === totalPages - 1}
                               className={`px-3 py-1 rounded-lg font-bold flex flex-col items-center text-xs transition-all duration-200 ${
                                 page === totalPages - 1
-                                  ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                                  : 'bg-blue-700 text-white hover:bg-blue-800'
+                                  ? "bg-slate-800 text-slate-400 cursor-not-allowed"
+                                  : "bg-blue-700 text-white hover:bg-blue-800"
                               }`}
                             >
                               <span>Selanjutnya</span>
@@ -1571,12 +1756,27 @@ const SchedulerPage: React.FC = () => {
                 <div className="flex flex-col items-center justify-center py-16 px-4">
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto mb-4 bg-slate-800 rounded-full flex items-center justify-center">
-                      <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      <svg
+                        className="w-8 h-8 text-slate-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                        />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-semibold text-slate-300 mb-2">Data Child Part Belum Ditambahkan</h3>
-                    <p className="text-slate-400 mb-6">Belum ada material child part yang ditambahkan ke dalam jadwal produksi ini.</p>
+                    <h3 className="text-xl font-semibold text-slate-300 mb-2">
+                      Data Child Part Belum Ditambahkan
+                    </h3>
+                    <p className="text-slate-400 mb-6">
+                      Belum ada material child part yang ditambahkan ke dalam
+                      jadwal produksi ini.
+                    </p>
                     <button
                       onClick={() => setShowChildPartModal(true)}
                       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
@@ -1599,7 +1799,11 @@ const SchedulerPage: React.FC = () => {
                 isOpen={true}
                 onClose={() => setEditChildPartIdx(null)}
                 onGenerate={(data) => {
-                  setChildParts((prev) => prev.map((c, i) => i === editChildPartIdx ? { ...c, ...data } : c));
+                  setChildParts((prev) =>
+                    prev.map((c, i) =>
+                      i === editChildPartIdx ? { ...c, ...data } : c,
+                    ),
+                  );
                   setEditChildPartIdx(null);
                 }}
                 // Prefill data
