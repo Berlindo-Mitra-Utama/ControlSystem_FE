@@ -466,7 +466,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 }
 
                 return (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                     {group.rows.map((row, rowIdx) => {
                       // --- Custom Output Calculation with Manpower ---
                       // Default: 3 manpower = 14 pcs/jam (14/3 = 4.666 pcs per manpower)
@@ -599,7 +599,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                               <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
                                 Input Parameter
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                                 <div className="bg-blue-900/80 rounded-2xl p-2 sm:p-3 border border-blue-400 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-blue-400/40 w-full">
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Calendar className="w-4 h-4 text-blue-300" />
@@ -1010,7 +1010,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                               <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
                                 Output Parameter
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                                 {/* Akumulasi Delivery hanya tampil di shift yang sesuai */}
                                 {row.shift === "1" && (
                                   <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
