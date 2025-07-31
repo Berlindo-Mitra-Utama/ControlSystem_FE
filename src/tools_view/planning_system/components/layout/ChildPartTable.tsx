@@ -18,12 +18,13 @@ interface ChildPartTableProps {
   days: number;
   schedule: ScheduleItem[];
   onDelete?: () => void;
+  onEdit?: () => void;
   inMaterial?: (number|null)[][];
   onInMaterialChange?: (val: (number|null)[][]) => void;
   aktualInMaterial?: (number|null)[][];
   onAktualInMaterialChange?: (val: (number|null)[][]) => void;
   renderHeaderAction?: React.ReactNode;
-  activeFilter?: string;
+  activeFilter?: string[];
 }
 
 // Helper untuk nama hari Indonesia
@@ -258,18 +259,13 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       {/* Header Info (freeze, di luar overflow-x-auto) */}
       <div className="p-4 pb-2 bg-slate-900 rounded-t-xl flex flex-col gap-4 border border-b-0 border-slate-700 relative">
         {/* Main Header Content */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3 flex-1">
-            <div className="flex items-center gap-3">
-              <span className="text-white font-bold text-lg">
-                {props.partName}
-              </span>
-              {props.renderHeaderAction && (
-                <div className="flex gap-2 items-center">
-                  {props.renderHeaderAction}
-                </div>
-              )}
-            </div>
+        <div className="flex flex-wrap items-center gap-3 flex-1">
+          <div className="flex items-center gap-3">
+            <span className="text-white font-bold text-lg">
+              {props.partName}
+            </span>
+          </div>
+          <div className="flex flex-row flex-wrap gap-3 items-center">
             <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 font-semibold text-sm">
               <User className="w-4 h-4 text-emerald-400 mr-1" />
               {props.customerName}
@@ -279,8 +275,6 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               Stock Awal Tersedia:
               <span className="ml-1 font-bold">{props.initialStock === null ? '-' : props.initialStock.toLocaleString()}</span>
             </span>
-          </div>
-          <div className="flex flex-col gap-2">
             <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-900 border border-green-700 rounded-lg text-green-200 font-semibold text-sm">
               <Layers className="w-4 h-4 text-green-400 mr-1" />
               Total Rencana In Material:
@@ -293,6 +287,28 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             </span>
           </div>
         </div>
+        
+        {/* Action Buttons - Moved to top right */}
+        {props.renderHeaderAction && (
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-200"
+              onClick={props.onEdit}
+              type="button"
+              title="Edit"
+            >
+              Edit
+            </button>
+            <button
+              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-200"
+              onClick={handleDeleteClick}
+              type="button"
+              title="Delete"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
       {/* Table scrollable */}
       <div className="overflow-x-auto bg-slate-900 rounded-b-xl border border-t-0 border-slate-700">
@@ -343,7 +359,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             </thead>
             <tbody>
               {/* Render baris sesuai filter */}
-              {(props.activeFilter === "all" || !props.activeFilter) && (
+              {(!props.activeFilter || props.activeFilter.length === 0) && (
                 <>
                   {/* In Material */}
                   <tr>
@@ -393,21 +409,21 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   <tr>
                     <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
                     {Array.from({ length: props.days }, (_, dayIdx) => [
-                      <td key={`rencana-1-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2]}</td>,
-                      <td key={`rencana-2-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2 + 1]}</td>,
+                      <td key={`rencana-1-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
+                      <td key={`rencana-2-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
                     ])}
                   </tr>
                   {/* Aktual Stock */}
                   <tr>
                     <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
                     {Array.from({ length: props.days }, (_, dayIdx) => [
-                      <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2]}</td>,
-                      <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2 + 1]}</td>,
+                      <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
+                      <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
                     ])}
                   </tr>
                 </>
               )}
-              {props.activeFilter === "rencanaInMaterial" && (
+                              {props.activeFilter && props.activeFilter.includes("rencanaInMaterial") && (
                 <tr>
                   <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA IN MATERIAL</td>
                   {inMaterial.map((val, dayIdx) => [
@@ -430,7 +446,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   ])}
                 </tr>
               )}
-              {props.activeFilter === "aktualInMaterial" && (
+                              {props.activeFilter && props.activeFilter.includes("aktualInMaterial") && (
                 <tr>
                   <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL IN MATERIAL</td>
                   {aktualInMaterial.map((val, dayIdx) => [
@@ -453,21 +469,21 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   ])}
                 </tr>
               )}
-              {props.activeFilter === "rencanaStock" && (
+                              {props.activeFilter && props.activeFilter.includes("rencanaStock") && (
                 <tr>
                   <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
                   {Array.from({ length: props.days }, (_, dayIdx) => [
-                    <td key={`rencana-1-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2]}</td>,
-                    <td key={`rencana-2-${dayIdx}`} className="p-2 text-green-300 font-mono">{rencanaStock[dayIdx * 2 + 1]}</td>,
+                    <td key={`rencana-1-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
+                    <td key={`rencana-2-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
                   ])}
                 </tr>
               )}
-              {props.activeFilter === "aktualStock" && (
+                              {props.activeFilter && props.activeFilter.includes("aktualStock") && (
                 <tr>
                   <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
                   {Array.from({ length: props.days }, (_, dayIdx) => [
-                    <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2]}</td>,
-                    <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-yellow-300 font-mono">{aktualStock[dayIdx * 2 + 1]}</td>,
+                    <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
+                    <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
                   ])}
                 </tr>
               )}

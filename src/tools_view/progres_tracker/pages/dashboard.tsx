@@ -59,379 +59,7 @@ interface Part {
 }
 
 // Sample Data
-const initialParts: Part[] = [
-  {
-    id: "1",
-    partName: "Engine Block",
-    partNumber: "ENG-001",
-    customer: "Toyota Motor",
-    progress: [
-      {
-        id: "machining",
-        name: "Machining",
-        processes: [
-          {
-            id: "rough-machining",
-            name: "Rough Machining",
-            completed: true,
-            notes:
-              "Completed ahead of schedule. All dimensions within tolerance.",
-            children: [
-              {
-                id: "setup",
-                name: "Setup Mesin",
-                completed: true,
-                notes: "Machine calibrated successfully",
-              },
-              {
-                id: "cutting",
-                name: "Proses Cutting",
-                completed: true,
-                notes: "Used new cutting tools, excellent surface finish",
-              },
-              {
-                id: "inspection-1",
-                name: "Inspeksi Dimensi",
-                completed: true,
-                notes: "All measurements verified and documented",
-              },
-            ],
-          },
-          {
-            id: "finish-machining",
-            name: "Finish Machining",
-            completed: false,
-            notes:
-              "Waiting for specialized tooling delivery. Expected completion: 2 days.",
-            children: [
-              {
-                id: "fine-cutting",
-                name: "Fine Cutting",
-                completed: true,
-                notes: "Precision cutting completed with 0.01mm tolerance",
-              },
-              {
-                id: "surface-finish",
-                name: "Surface Finishing",
-                completed: false,
-                notes: "Scheduled for tomorrow morning shift",
-              },
-              {
-                id: "final-inspection",
-                name: "Final Inspection",
-                completed: false,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "assembly",
-        name: "Assembly",
-        processes: [
-          {
-            id: "pre-assembly",
-            name: "Pre Assembly",
-            completed: false,
-            notes: "Parts cleaning in progress. Assembly area prepared.",
-            children: [
-              {
-                id: "parts-preparation",
-                name: "Persiapan Parts",
-                completed: true,
-                notes: "All components sorted and labeled",
-              },
-              {
-                id: "cleaning",
-                name: "Cleaning",
-                completed: false,
-                notes: "Using ultrasonic cleaning process",
-              },
-            ],
-          },
-          {
-            id: "main-assembly",
-            name: "Main Assembly",
-            completed: false,
-            children: [
-              {
-                id: "component-install",
-                name: "Install Komponen",
-                completed: false,
-              },
-              { id: "torque-check", name: "Torque Check", completed: false },
-              { id: "function-test", name: "Function Test", completed: false },
-            ],
-          },
-        ],
-      },
-      {
-        id: "quality-control",
-        name: "Quality Control",
-        processes: [
-          {
-            id: "dimensional-check",
-            name: "Dimensional Check",
-            completed: false,
-            children: [
-              { id: "measurement", name: "Pengukuran", completed: false },
-              { id: "documentation", name: "Dokumentasi", completed: false },
-            ],
-          },
-          {
-            id: "final-qa",
-            name: "Final QA",
-            completed: false,
-            notes: "QA checklist prepared. Waiting for assembly completion.",
-            children: [
-              {
-                id: "visual-inspection",
-                name: "Visual Inspection",
-                completed: false,
-              },
-              {
-                id: "performance-test",
-                name: "Performance Test",
-                completed: false,
-              },
-              {
-                id: "packaging",
-                name: "Packaging",
-                completed: false,
-                notes: "Custom packaging design approved",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "2",
-    partName: "Transmission Gear",
-    partNumber: "TRN-002",
-    customer: "Honda Motors",
-    progress: [
-      {
-        id: "forging",
-        name: "Forging",
-        processes: [
-          {
-            id: "heating",
-            name: "Heating Process",
-            completed: true,
-            notes:
-              "Optimal temperature achieved. Material properties verified.",
-            children: [
-              {
-                id: "furnace-setup",
-                name: "Setup Furnace",
-                completed: true,
-                notes: "Temperature calibration completed",
-              },
-              {
-                id: "temperature-control",
-                name: "Temperature Control",
-                completed: true,
-                notes: "Maintained at 1200°C for 45 minutes",
-              },
-              {
-                id: "heating-time",
-                name: "Heating Time",
-                completed: true,
-                notes: "Heating cycle completed successfully",
-              },
-            ],
-          },
-          {
-            id: "forming",
-            name: "Forming Process",
-            completed: true,
-            notes: "Excellent forming results. No defects detected.",
-            children: [
-              {
-                id: "die-setup",
-                name: "Die Setup",
-                completed: true,
-                notes: "New die installed and tested",
-              },
-              {
-                id: "press-operation",
-                name: "Press Operation",
-                completed: true,
-                notes: "Applied 500 tons pressure as specified",
-              },
-              {
-                id: "cooling",
-                name: "Cooling",
-                completed: true,
-                notes: "Controlled cooling rate maintained",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "heat-treatment",
-        name: "Heat Treatment",
-        processes: [
-          {
-            id: "hardening",
-            name: "Hardening",
-            completed: true,
-            notes: "Hardness test results: 58-62 HRC. Within specification.",
-            children: [
-              {
-                id: "quenching",
-                name: "Quenching",
-                completed: true,
-                notes: "Oil quenching at 850°C",
-              },
-              {
-                id: "tempering",
-                name: "Tempering",
-                completed: true,
-                notes: "Tempered at 200°C for 2 hours",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "finishing",
-        name: "Finishing",
-        processes: [
-          {
-            id: "grinding",
-            name: "Grinding",
-            completed: false,
-            notes: "Precision grinding scheduled for next shift.",
-            children: [
-              {
-                id: "rough-grinding",
-                name: "Rough Grinding",
-                completed: true,
-                notes: "Surface roughness achieved: Ra 1.6",
-              },
-              {
-                id: "fine-grinding",
-                name: "Fine Grinding",
-                completed: false,
-                notes: "Waiting for fine grinding wheel replacement",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "3",
-    partName: "Brake Disc",
-    partNumber: "BRK-003",
-    customer: "Nissan Motors",
-    progress: [
-      {
-        id: "casting",
-        name: "Casting",
-        processes: [
-          {
-            id: "mold-preparation",
-            name: "Mold Preparation",
-            completed: true,
-            notes: "Mold inspection passed. Ready for casting.",
-            children: [
-              {
-                id: "mold-setup",
-                name: "Mold Setup",
-                completed: true,
-                notes: "Mold assembled and secured",
-              },
-              {
-                id: "mold-inspection",
-                name: "Mold Inspection",
-                completed: true,
-                notes: "No defects found in mold cavity",
-              },
-            ],
-          },
-          {
-            id: "pouring",
-            name: "Pouring",
-            completed: true,
-            notes: "Casting completed successfully. No porosity detected.",
-            children: [
-              {
-                id: "metal-heating",
-                name: "Metal Heating",
-                completed: true,
-                notes: "Iron heated to 1500°C",
-              },
-              {
-                id: "pouring-process",
-                name: "Pouring Process",
-                completed: true,
-                notes: "Smooth pouring, no splashing",
-              },
-              {
-                id: "cooling",
-                name: "Cooling",
-                completed: true,
-                notes: "Cooling time: 4 hours as specified",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "machining",
-        name: "Machining",
-        processes: [
-          {
-            id: "turning",
-            name: "Turning",
-            completed: true,
-            notes: "Turning operation completed with excellent surface finish.",
-            children: [
-              {
-                id: "rough-turning",
-                name: "Rough Turning",
-                completed: true,
-                notes: "Material removal completed",
-              },
-              {
-                id: "finish-turning",
-                name: "Finish Turning",
-                completed: true,
-                notes: "Final dimensions achieved",
-              },
-            ],
-          },
-          {
-            id: "drilling",
-            name: "Drilling",
-            completed: false,
-            notes: "Drilling holes for mounting bolts. 3 of 5 holes completed.",
-            children: [
-              {
-                id: "center-drilling",
-                name: "Center Drilling",
-                completed: true,
-                notes: "Center holes marked and drilled",
-              },
-              {
-                id: "hole-drilling",
-                name: "Hole Drilling",
-                completed: false,
-                notes: "Using 12mm carbide drill bits",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-];
+const initialParts: Part[] = [];
 
 // Utility Functions
 const calculateProcessProgress = (process: Process): number => {
@@ -732,31 +360,78 @@ export default function Dashboard() {
     processProgress: number;
   } | null>(null);
 
-  // Load data from localStorage on mount
+  // Load data from localStorage on mount and listen for changes
   useEffect(() => {
-    const savedParts = localStorage.getItem("parts-data");
-    if (savedParts) {
-      setParts(JSON.parse(savedParts));
+    const loadPartsData = () => {
+      const savedParts = localStorage.getItem("parts-data")
+      if (savedParts) {
+        setParts(JSON.parse(savedParts))
+      }
+    }
+    
+    // Load initial data
+    loadPartsData()
+    
+    // Listen for changes from manage_progres.tsx
+    const handleStorageChange = (e) => {
+      if (!e || e.key === "parts-data") {
+        loadPartsData()
+      }
+    }
+    
+    // Add event listener for custom event
+    window.addEventListener("parts-updated", handleStorageChange)
+    
+    // Also listen for storage events (for cross-tab synchronization)
+    window.addEventListener("storage", handleStorageChange)
+    
+    return () => {
+      window.removeEventListener("parts-updated", handleStorageChange)
+      window.removeEventListener("storage", handleStorageChange)
     }
   }, []);
+  
+  // Toggle process completion
+  const toggleProcess = (partId: string, categoryId: string, processId: string, childId?: string) => {
+    setParts((prevParts) => {
+      const updatedParts = prevParts.map((part) => {
+        if (part.id !== partId) return part
 
-  // Listen for storage changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedParts = localStorage.getItem("parts-data");
-      if (savedParts) {
-        setParts(JSON.parse(savedParts));
-      }
-    };
+        return {
+          ...part,
+          progress: part.progress.map((category) => {
+            if (category.id !== categoryId) return category
 
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("parts-updated", handleStorageChange);
+            return {
+              ...category,
+              processes: category.processes.map((process) => {
+                if (process.id !== processId) return process
 
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("parts-updated", handleStorageChange);
-    };
-  }, []);
+                if (childId && process.children) {
+                  return {
+                    ...process,
+                    children: process.children.map((child) =>
+                      child.id === childId ? { ...child, completed: !child.completed } : child
+                    ),
+                  }
+                } else {
+                  return { ...process, completed: !process.completed }
+                }
+              }),
+            }
+          }),
+        }
+      })
+      
+      // Save to localStorage and notify other components
+      localStorage.setItem("parts-data", JSON.stringify(updatedParts))
+      window.dispatchEvent(new Event("parts-updated"))
+      
+      return updatedParts
+    })
+  }
+
+  // This useEffect has been replaced by the one above that loads data and listens for changes
 
   // Open process detail modal
   const openProcessDetail = (process: Process, categoryName: string) => {

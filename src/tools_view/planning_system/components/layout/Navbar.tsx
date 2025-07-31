@@ -117,8 +117,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 
   return (
     <Navbar
-      shouldHideOnScroll
-      className={`border-b ${uiColors.border.primary} ${uiColors.bg.primary} backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40`}
+      className="border-b border-gray-800/50 bg-gray-900 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40 shadow-lg"
       onMenuOpenChange={setIsMenuOpen}
     >
       <NavbarBrand>
@@ -189,9 +188,12 @@ const NavbarComponent: React.FC<NavbarProps> = ({
       <div className="flex items-center gap-2">
         {/* Theme Toggle Button */}
         <button
-          onClick={toggleTheme}
-          className={`p-2 rounded-lg transition-all duration-200 ${uiColors.bg.tertiary} hover:${uiColors.bg.secondary} ${uiColors.text.primary}`}
-          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          // onClick={toggleTheme}
+          // className={`p-2 rounded-lg transition-all duration-200 ${uiColors.bg.tertiary} hover:${uiColors.bg.secondary} ${uiColors.text.primary}`}
+          // aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="sm:hidden text-white p-2 hover:bg-gray-700 rounded-lg transition-colors bg-gray-800"
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
           {theme === "light" ? (
             <svg
@@ -262,20 +264,18 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         <div className="fixed inset-0 z-50 sm:hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setIsMenuOpen(false)}
           />
 
           {/* Menu Content */}
-          <div
-            className={`absolute top-0 right-0 w-64 h-full ${uiColors.bg.primary} border-l ${uiColors.border.primary} shadow-2xl transform transition-transform duration-300`}
-          >
-            <div className="p-4">
+          <div className="absolute top-0 right-0 w-64 h-full bg-gray-900/30 backdrop-blur-sm border-l border-gray-700 shadow-2xl">
+            <div className="p-4 bg-gray-900/30 backdrop-blur-sm h-full">
               {/* Close Button */}
               <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className={`${uiColors.text.tertiary} hover:${uiColors.text.primary} p-2 hover:${uiColors.bg.tertiary} rounded-lg transition-colors`}
+                  className="text-gray-400 hover:text-white p-2 hover:bg-gray-700 rounded-lg transition-colors bg-gray-800"
                 >
                   <svg
                     className="w-5 h-5"
