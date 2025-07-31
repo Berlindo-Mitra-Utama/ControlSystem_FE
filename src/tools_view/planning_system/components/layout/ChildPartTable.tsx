@@ -1,5 +1,7 @@
-import React, { useState, useCallback, memo, useEffect } from "react";
-import { Package, User, Layers, X } from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { User, Package, Layers, TrendingUp, TrendingDown } from "lucide-react";
+import { memo } from "react";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 interface ScheduleItem {
   id: string;
@@ -52,15 +54,17 @@ const InputCell = memo(function InputCell({ value, onChange, className }: { valu
 });
 
 const Modal: React.FC<{ open: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string; }> = ({ open, onClose, onConfirm, title, message }) => {
+  const { uiColors } = useTheme();
+  
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-      <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 max-w-sm w-full">
-        <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
-        <p className="text-gray-300 mb-6">{message}</p>
+      <div className={`${uiColors.bg.modal} rounded-2xl p-8 ${uiColors.border.primary} max-w-sm w-full`}>
+        <h2 className={`text-xl font-bold ${uiColors.text.primary} mb-2`}>{title}</h2>
+        <p className={`${uiColors.text.secondary} mb-6`}>{message}</p>
         <div className="flex gap-4 justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600">Batal</button>
-          <button onClick={onConfirm} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Hapus</button>
+          <button onClick={onClose} className={`px-4 py-2 rounded ${uiColors.button.secondary.bg} ${uiColors.button.secondary.hover} ${uiColors.button.secondary.text} ${uiColors.button.secondary.border}`}>Batal</button>
+          <button onClick={onConfirm} className={`px-4 py-2 rounded ${uiColors.button.danger.bg} ${uiColors.button.danger.hover} ${uiColors.button.danger.text} ${uiColors.button.danger.border}`}>Hapus</button>
         </div>
       </div>
     </div>
@@ -68,6 +72,10 @@ const Modal: React.FC<{ open: boolean; onClose: () => void; onConfirm: () => voi
 };
 
 const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
+  const { uiColors } = useTheme();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
   // In Material per shift per hari: [ [shift1, shift2], ... ]
   const [inMaterialState, setInMaterialState] = useState<(number|null)[][]>(
     props.inMaterial ?? Array.from({ length: props.days }, () => [null, null])
@@ -220,10 +228,6 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     return DAY_NAMES[(offset + day) % 7];
   };
 
-  // Add state for modal and loading
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   // Wrap delete
   const handleDeleteClick = () => setShowDeleteModal(true);
   const handleDeleteConfirm = () => {
@@ -257,16 +261,16 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   return (
     <div className="mt-6">
       {/* Header Info (freeze, di luar overflow-x-auto) */}
-      <div className="p-4 pb-2 bg-slate-900 rounded-t-xl flex flex-col gap-4 border border-b-0 border-slate-700 relative">
+      <div className={`p-4 pb-2 ${uiColors.bg.tertiary} rounded-t-xl flex flex-col gap-4 ${uiColors.border.primary} border-b-0 relative`}>
         {/* Main Header Content */}
         <div className="flex flex-wrap items-center gap-3 flex-1">
           <div className="flex items-center gap-3">
-            <span className="text-white font-bold text-lg">
+            <span className={`${uiColors.text.primary} font-bold text-lg`}>
               {props.partName}
             </span>
           </div>
           <div className="flex flex-row flex-wrap gap-3 items-center">
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 font-semibold text-sm">
+            <span className={`inline-flex items-center gap-1 px-3 py-1 ${uiColors.bg.secondary} ${uiColors.border.secondary} rounded-lg ${uiColors.text.secondary} font-semibold text-sm`}>
               <User className="w-4 h-4 text-emerald-400 mr-1" />
               {props.customerName}
             </span>
@@ -292,7 +296,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
         {props.renderHeaderAction && (
           <div className="absolute top-4 right-4 flex gap-2">
             <button
-              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-200"
+              className={`px-3 py-1 ${uiColors.button.primary.bg} ${uiColors.button.primary.hover} ${uiColors.button.primary.text} rounded-lg text-sm font-medium transition-all duration-200`}
               onClick={props.onEdit}
               type="button"
               title="Edit"
@@ -300,7 +304,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               Edit
             </button>
             <button
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-200"
+              className={`px-3 py-1 ${uiColors.button.danger.bg} ${uiColors.button.danger.hover} ${uiColors.button.danger.text} rounded-lg text-sm font-medium transition-all duration-200`}
               onClick={handleDeleteClick}
               type="button"
               title="Delete"
@@ -310,14 +314,16 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
           </div>
         )}
       </div>
-      {/* Table scrollable */}
-      <div className="overflow-x-auto bg-slate-900 rounded-b-xl border border-t-0 border-slate-700">
+
+      {/* Table Container */}
+      <div className={`overflow-x-auto ${uiColors.bg.tertiary} rounded-b-xl ${uiColors.border.primary} border-t-0`}>
         <div className="p-4 pt-2">
           <table className="min-w-max w-full text-sm text-center">
+            {/* Header Row */}
             <thead>
-              <tr className="bg-slate-800 text-slate-300">
+              <tr className={`${uiColors.bg.secondary} ${uiColors.text.secondary}`}>
                 <th
-                  className="p-2 font-semibold align-bottom sticky left-0 z-30 bg-slate-800 border-r border-slate-700"
+                  className={`p-2 font-semibold align-bottom sticky left-0 z-30 ${uiColors.bg.secondary} ${uiColors.border.secondary} border-r`}
                   rowSpan={2}
                   style={{ minWidth: 140 }}
                 >
@@ -327,7 +333,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                 {Array.from({ length: props.days }, (_, i) => (
                   <th
                     key={i}
-                    className="p-2 font-semibold align-bottom sticky top-0 z-20 bg-slate-800"
+                    className={`p-2 font-semibold align-bottom sticky top-0 z-20 ${uiColors.bg.secondary}`}
                     colSpan={2}
                     style={{ minWidth: 110 }}
                   >
@@ -338,18 +344,18 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   </th>
                 ))}
               </tr>
-              <tr className="bg-slate-800 text-slate-400">
+              <tr className={`${uiColors.bg.secondary} ${uiColors.text.tertiary}`}>
                 {Array.from({ length: props.days }, (_, i) => [
                   <th
                     key={`shift1-${i}`}
-                    className="p-1 font-semibold sticky top-10 z-10 bg-slate-800"
+                    className={`p-1 font-semibold sticky top-10 z-10 ${uiColors.bg.secondary}`}
                     style={{ minWidth: 80 }}
                   >
                     <span className="bg-blue-700 text-white px-2 py-1 rounded">SHIFT 1</span>
                   </th>,
                   <th
                     key={`shift2-${i}`}
-                    className="p-1 font-semibold sticky top-10 z-10 bg-slate-800"
+                    className={`p-1 font-semibold sticky top-10 z-10 ${uiColors.bg.secondary}`}
                     style={{ minWidth: 80 }}
                   >
                     <span className="bg-purple-700 text-white px-2 py-1 rounded">SHIFT 2</span>
@@ -363,14 +369,16 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                 <>
                   {/* In Material */}
                   <tr>
-                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA IN MATERIAL</td>
+                    <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                      RENCANA IN MATERIAL
+                    </td>
                     {inMaterial.map((val, dayIdx) => [
                       <td key={`inmat-1-${dayIdx}`} className="p-2">
                         <InputCell
                           key={`rencana-table-shift1-day${dayIdx}`}
                           value={val[0]}
                           onChange={v => handleInMaterialChange(dayIdx, 0, v)}
-                          className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                         />
                       </td>,
                       <td key={`inmat-2-${dayIdx}`} className="p-2">
@@ -378,21 +386,23 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                           key={`rencana-table-shift2-day${dayIdx}`}
                           value={val[1]}
                           onChange={v => handleInMaterialChange(dayIdx, 1, v)}
-                          className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                         />
                       </td>,
                     ])}
                   </tr>
                   {/* Aktual In Material */}
                   <tr>
-                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL IN MATERIAL</td>
+                    <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                      AKTUAL IN MATERIAL
+                    </td>
                     {aktualInMaterial.map((val, dayIdx) => [
                       <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
                         <InputCell
                           key={`aktual-table-shift1-day${dayIdx}`}
                           value={val[0]}
                           onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
-                          className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                         />
                       </td>,
                       <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
@@ -400,39 +410,53 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                           key={`aktual-table-shift2-day${dayIdx}`}
                           value={val[1]}
                           onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
-                          className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                         />
                       </td>,
                     ])}
                   </tr>
                   {/* Rencana Stock */}
                   <tr>
-                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
+                    <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                      RENCANA STOCK (PCS)
+                    </td>
                     {Array.from({ length: props.days }, (_, dayIdx) => [
-                      <td key={`rencana-1-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
-                      <td key={`rencana-2-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
+                      <td key={`rencana-1-${dayIdx}`} className={`p-2 font-mono ${rencanaStock[dayIdx * 2] < 0 ? 'text-red-600 font-bold' : rencanaStock[dayIdx * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                        {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
+                      </td>,
+                      <td key={`rencana-2-${dayIdx}`} className={`p-2 font-mono ${rencanaStock[dayIdx * 2 + 1] < 0 ? 'text-red-600 font-bold' : rencanaStock[dayIdx * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                        {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                      </td>,
                     ])}
                   </tr>
                   {/* Aktual Stock */}
                   <tr>
-                    <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
+                    <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                      AKTUAL STOCK (PCS)
+                    </td>
                     {Array.from({ length: props.days }, (_, dayIdx) => [
-                      <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
-                      <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
+                      <td key={`aktualstock-1-${dayIdx}`} className={`p-2 font-mono ${aktualStock[dayIdx * 2] < 0 ? 'text-red-600 font-bold' : aktualStock[dayIdx * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                        {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
+                      </td>,
+                      <td key={`aktualstock-2-${dayIdx}`} className={`p-2 font-mono ${aktualStock[dayIdx * 2 + 1] < 0 ? 'text-red-600 font-bold' : aktualStock[dayIdx * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                        {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                      </td>,
                     ])}
                   </tr>
                 </>
               )}
-                              {props.activeFilter && props.activeFilter.includes("rencanaInMaterial") && (
+              {props.activeFilter && props.activeFilter.includes("rencanaInMaterial") && (
                 <tr>
-                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA IN MATERIAL</td>
+                  <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                    RENCANA IN MATERIAL
+                  </td>
                   {inMaterial.map((val, dayIdx) => [
                     <td key={`inmat-1-${dayIdx}`} className="p-2">
                       <InputCell
                         key={`rencana-filtered-shift1-day${dayIdx}`}
                         value={val[0]}
                         onChange={v => handleInMaterialChange(dayIdx, 0, v)}
-                        className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       />
                     </td>,
                     <td key={`inmat-2-${dayIdx}`} className="p-2">
@@ -440,22 +464,24 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                         key={`rencana-filtered-shift2-day${dayIdx}`}
                         value={val[1]}
                         onChange={v => handleInMaterialChange(dayIdx, 1, v)}
-                        className="w-16 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       />
                     </td>,
                   ])}
                 </tr>
               )}
-                              {props.activeFilter && props.activeFilter.includes("aktualInMaterial") && (
+              {props.activeFilter && props.activeFilter.includes("aktualInMaterial") && (
                 <tr>
-                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL IN MATERIAL</td>
+                  <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                    AKTUAL IN MATERIAL
+                  </td>
                   {aktualInMaterial.map((val, dayIdx) => [
                     <td key={`aktualinmat-1-${dayIdx}`} className="p-2">
                       <InputCell
                         key={`aktual-filtered-shift1-day${dayIdx}`}
                         value={val[0]}
                         onChange={v => handleAktualInMaterialChange(dayIdx, 0, v)}
-                        className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                       />
                     </td>,
                     <td key={`aktualinmat-2-${dayIdx}`} className="p-2">
@@ -463,27 +489,39 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                         key={`aktual-filtered-shift2-day${dayIdx}`}
                         value={val[1]}
                         onChange={v => handleAktualInMaterialChange(dayIdx, 1, v)}
-                        className="w-16 px-2 py-1 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className={`w-16 px-2 py-1 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                       />
                     </td>,
                   ])}
                 </tr>
               )}
-                              {props.activeFilter && props.activeFilter.includes("rencanaStock") && (
+              {props.activeFilter && props.activeFilter.includes("rencanaStock") && (
                 <tr>
-                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>RENCANA STOCK (PCS)</td>
+                  <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                    RENCANA STOCK (PCS)
+                  </td>
                   {Array.from({ length: props.days }, (_, dayIdx) => [
-                    <td key={`rencana-1-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
-                    <td key={`rencana-2-${dayIdx}`} className="p-2 text-white font-mono">{rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
+                    <td key={`rencana-1-${dayIdx}`} className={`p-2 font-mono ${rencanaStock[dayIdx * 2] < 0 ? 'text-red-600' : rencanaStock[dayIdx * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                      {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
+                    </td>,
+                    <td key={`rencana-2-${dayIdx}`} className={`p-2 font-mono ${rencanaStock[dayIdx * 2 + 1] < 0 ? 'text-red-600' : rencanaStock[dayIdx * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                      {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                    </td>,
                   ])}
                 </tr>
               )}
-                              {props.activeFilter && props.activeFilter.includes("aktualStock") && (
+              {props.activeFilter && props.activeFilter.includes("aktualStock") && (
                 <tr>
-                  <td className="p-2 bg-slate-800 text-slate-200 font-semibold sticky left-0 z-20 border-r border-slate-700" style={{ background: '#1e293b', minWidth: 140 }}>AKTUAL STOCK (PCS)</td>
+                  <td className={`p-2 ${uiColors.bg.secondary} ${uiColors.text.primary} font-semibold sticky left-0 z-20 ${uiColors.border.secondary} border-r`} style={{ minWidth: 140 }}>
+                    AKTUAL STOCK (PCS)
+                  </td>
                   {Array.from({ length: props.days }, (_, dayIdx) => [
-                    <td key={`aktualstock-1-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2]?.toFixed(0) || "0"}</td>,
-                    <td key={`aktualstock-2-${dayIdx}`} className="p-2 text-white font-mono">{aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}</td>,
+                    <td key={`aktualstock-1-${dayIdx}`} className={`p-2 font-mono ${aktualStock[dayIdx * 2] < 0 ? 'text-red-600' : aktualStock[dayIdx * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                      {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
+                    </td>,
+                    <td key={`aktualstock-2-${dayIdx}`} className={`p-2 font-mono ${aktualStock[dayIdx * 2 + 1] < 0 ? 'text-red-600' : aktualStock[dayIdx * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
+                      {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                    </td>,
                   ])}
                 </tr>
               )}
@@ -491,12 +529,22 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Konfirmasi Hapus"
+        message="Apakah Anda yakin ingin menghapus part ini?"
+      />
+
+      {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-40">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
-      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={handleDeleteConfirm} title="Konfirmasi Hapus" message="Apakah Anda yakin ingin menghapus data ini?" />
     </div>
   );
 };

@@ -1812,7 +1812,7 @@ const SchedulerPage: React.FC = () => {
                       );
                     return (
                       <>
-                        <div className="grid grid-cols-1 gap-8">
+                        <div className={`grid gap-8 ${viewMode === "cards" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
                           {pageItems.map((cp, idx) => {
                             const realIdx = childParts.findIndex(
                               (c) => c === cp,
