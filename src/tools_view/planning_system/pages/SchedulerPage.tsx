@@ -189,7 +189,7 @@ const SchedulerPage: React.FC = () => {
   const CHILD_PARTS_PER_PAGE = 2;
   const [editChildPartIdx, setEditChildPartIdx] = useState<number | null>(null);
   const [activeChildPartTableFilter, setActiveChildPartTableFilter] =
-    useState<string>("all");
+    useState<string[]>([]);
   // Tambahkan state untuk mobile detection:
   const [isMobile, setIsMobile] = useState(false);
   // Add state for delete confirmation modal (after other state declarations)
@@ -1356,7 +1356,7 @@ const SchedulerPage: React.FC = () => {
                           d="M4 6h16M4 12h16M4 18h16"
                         />
                       </svg>
-                      Nama Part
+                      Nama Part {childPartFilter !== "all" && childPartFilter.length > 0 && `(${childPartFilter.length})`}
                       <svg
                         className={`w-4 h-4 transition-transform ${showPartFilterDropdown ? "rotate-180" : ""}`}
                         fill="none"
@@ -1390,7 +1390,7 @@ const SchedulerPage: React.FC = () => {
                             />
                           </svg>
                           <span className="text-white font-bold text-base">
-                            Filter Nama Part
+                            Filter Nama Part {childPartFilter !== "all" && childPartFilter.length > 0 && `(${childPartFilter.length})`}
                           </span>
                         </div>
 
@@ -1423,7 +1423,12 @@ const SchedulerPage: React.FC = () => {
                             <button
                               key={partName}
                               onClick={() => {
-                                setChildPartFilter([partName]);
+                                const currentFilters = childPartFilter === "all" ? [] : [...childPartFilter];
+                                if (currentFilters.includes(partName)) {
+                                  setChildPartFilter(currentFilters.filter(f => f !== partName));
+                                } else {
+                                  setChildPartFilter([...currentFilters, partName]);
+                                }
                                 setShowPartFilterDropdown(false);
                               }}
                               className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${childPartFilter !== "all" && childPartFilter.includes(partName) ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
@@ -1465,7 +1470,7 @@ const SchedulerPage: React.FC = () => {
                       onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                     >
                       <BarChart2 className="w-5 h-5" />
-                      Filter Data
+                      Filter Data {activeChildPartTableFilter.length > 0 && `(${activeChildPartTableFilter.length})`}
                       <svg
                         className={`w-4 h-4 transition-transform ${showFilterDropdown ? "rotate-180" : ""}`}
                         fill="none"
@@ -1500,7 +1505,7 @@ const SchedulerPage: React.FC = () => {
                               />
                             </svg>
                             <span className="text-white font-bold text-base">
-                              Filter Data
+                              Filter Data {activeChildPartTableFilter.length > 0 && `(${activeChildPartTableFilter.length})`}
                             </span>
                           </div>
 
@@ -1508,46 +1513,66 @@ const SchedulerPage: React.FC = () => {
                           <div className="space-y-2 mb-4">
                             <button
                               onClick={() =>
-                                setActiveChildPartTableFilter("all")
+                                setActiveChildPartTableFilter([])
                               }
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "all" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.length === 0 ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <BarChart2 className="w-4 h-4" /> Semua Data
                             </button>
                             <button
-                              onClick={() =>
-                                setActiveChildPartTableFilter(
-                                  "rencanaInMaterial",
-                                )
-                              }
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "rencanaInMaterial" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              onClick={() => {
+                                const currentFilters = [...activeChildPartTableFilter];
+                                const filterName = "rencanaInMaterial";
+                                if (currentFilters.includes(filterName)) {
+                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                } else {
+                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
+                                }
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("rencanaInMaterial") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <Package className="w-4 h-4" /> Rencana In
                               Material
                             </button>
                             <button
-                              onClick={() =>
-                                setActiveChildPartTableFilter(
-                                  "aktualInMaterial",
-                                )
-                              }
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "aktualInMaterial" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              onClick={() => {
+                                const currentFilters = [...activeChildPartTableFilter];
+                                const filterName = "aktualInMaterial";
+                                if (currentFilters.includes(filterName)) {
+                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                } else {
+                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
+                                }
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("aktualInMaterial") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <Layers className="w-4 h-4" /> Aktual In Material
                             </button>
                             <button
-                              onClick={() =>
-                                setActiveChildPartTableFilter("rencanaStock")
-                              }
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "rencanaStock" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              onClick={() => {
+                                const currentFilters = [...activeChildPartTableFilter];
+                                const filterName = "rencanaStock";
+                                if (currentFilters.includes(filterName)) {
+                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                } else {
+                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
+                                }
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("rencanaStock") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <Target className="w-4 h-4" /> Rencana Stock (PCS)
                             </button>
                             <button
-                              onClick={() =>
-                                setActiveChildPartTableFilter("aktualStock")
-                              }
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter === "aktualStock" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              onClick={() => {
+                                const currentFilters = [...activeChildPartTableFilter];
+                                const filterName = "aktualStock";
+                                if (currentFilters.includes(filterName)) {
+                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                } else {
+                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
+                                }
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("aktualStock") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <Factory className="w-4 h-4" /> Aktual Stock (PCS)
                             </button>
