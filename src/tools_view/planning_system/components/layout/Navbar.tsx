@@ -1,6 +1,7 @@
 // components/Navbar.tsx
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTheme } from "../../../contexts/ThemeContext";
 import {
   Navbar,
   NavbarBrand,
@@ -81,6 +82,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { theme, toggleTheme, uiColors } = useTheme();
   const currentPath = location.pathname;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -116,15 +118,19 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   return (
     <Navbar
       shouldHideOnScroll
-      className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40"
+      className={`border-b ${uiColors.border.primary} ${uiColors.bg.primary} backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40`}
       onMenuOpenChange={setIsMenuOpen}
     >
       <NavbarBrand>
         {renderLogo()}
-        <p className="font-bold text-white text-lg sm:text-xl ml-2 hidden sm:block">
+        <p
+          className={`font-bold ${uiColors.text.primary} text-lg sm:text-xl ml-2 hidden sm:block`}
+        >
           {title}
         </p>
-        <p className="font-bold text-white text-sm ml-2 sm:hidden">
+        <p
+          className={`font-bold ${uiColors.text.primary} text-sm ml-2 sm:hidden`}
+        >
           {title.split(" ")[0]}
         </p>
       </NavbarBrand>
@@ -139,7 +145,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   isActive(item.path)
                     ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                    : `${uiColors.text.tertiary} hover:${uiColors.text.primary} hover:${uiColors.bg.tertiary}`
                 }`}
               >
                 {item.label}
@@ -156,10 +162,10 @@ const NavbarComponent: React.FC<NavbarProps> = ({
             <>
               <NavbarItem className="hidden lg:flex">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-white">
+                  <p className={`text-sm font-medium ${uiColors.text.primary}`}>
                     {user.nama || user.username}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className={`text-xs ${uiColors.text.tertiary}`}>
                     NIP: {user.nip || user.username}
                   </p>
                 </div>
@@ -179,37 +185,77 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         </NavbarContent>
       )}
 
-      {/* Mobile Menu Toggle - Hamburger Icon */}
-      {(finalMenuItems.length > 0 || (showUserInfo && showLogout)) && (
+      {/* Theme Toggle & Mobile Menu */}
+      <div className="flex items-center gap-2">
+        {/* Theme Toggle Button */}
         <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="sm:hidden text-white p-2 hover:bg-gray-700 rounded-lg transition-colors"
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          onClick={toggleTheme}
+          className={`p-2 rounded-lg transition-all duration-200 ${uiColors.bg.tertiary} hover:${uiColors.bg.secondary} ${uiColors.text.primary}`}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {isMenuOpen ? (
+          {theme === "light" ? (
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
               />
-            ) : (
+            </svg>
+          ) : (
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
               />
-            )}
-          </svg>
+            </svg>
+          )}
         </button>
-      )}
+
+        {/* Mobile Menu Toggle - Hamburger Icon */}
+        {(finalMenuItems.length > 0 || (showUserInfo && showLogout)) && (
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className={`sm:hidden p-2 rounded-lg transition-colors ${uiColors.text.primary} hover:${uiColors.bg.tertiary}`}
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
+        )}
+      </div>
 
       {/* Mobile Menu Popup */}
       {isMenuOpen && (
@@ -221,13 +267,15 @@ const NavbarComponent: React.FC<NavbarProps> = ({
           />
 
           {/* Menu Content */}
-          <div className="absolute top-0 right-0 w-64 h-full bg-gray-900 border-l border-gray-800 shadow-2xl transform transition-transform duration-300">
+          <div
+            className={`absolute top-0 right-0 w-64 h-full ${uiColors.bg.primary} border-l ${uiColors.border.primary} shadow-2xl transform transition-transform duration-300`}
+          >
             <div className="p-4">
               {/* Close Button */}
               <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-gray-400 hover:text-white p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                  className={`${uiColors.text.tertiary} hover:${uiColors.text.primary} p-2 hover:${uiColors.bg.tertiary} rounded-lg transition-colors`}
                 >
                   <svg
                     className="w-5 h-5"
@@ -255,7 +303,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                       className={`block px-4 py-3 text-sm font-medium transition-all duration-200 rounded-lg ${
                         isActive(item.path)
                           ? "bg-blue-600 text-white"
-                          : "text-gray-400 hover:text-white hover:bg-gray-700"
+                          : `${uiColors.text.tertiary} hover:${uiColors.text.primary} hover:${uiColors.bg.tertiary}`
                       }`}
                       onClick={() => setIsMenuOpen(false)}
                     >
@@ -267,12 +315,16 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 
               {/* User Info & Logout */}
               {showUserInfo && showLogout && isLoggedIn && user && (
-                <div className="mt-6 pt-6 border-t border-gray-700">
+                <div
+                  className={`mt-6 pt-6 border-t ${uiColors.border.secondary}`}
+                >
                   <div className="px-4 py-2 mb-4">
-                    <p className="text-sm font-medium text-white">
+                    <p
+                      className={`text-sm font-medium ${uiColors.text.primary}`}
+                    >
                       {user.nama || user.username}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className={`text-xs ${uiColors.text.tertiary}`}>
                       NIP: {user.nip || user.username}
                     </p>
                   </div>

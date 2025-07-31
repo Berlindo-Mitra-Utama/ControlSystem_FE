@@ -1,4 +1,5 @@
 import React from "react";
+import { useTheme } from "../../../contexts/ThemeContext";
 import {
   BarChart,
   Bar,
@@ -44,6 +45,7 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
   schedules,
   onViewAllCharts,
 }) => {
+  const { uiColors, theme } = useTheme();
   // Mengolah data untuk chart
   const chartData = React.useMemo(() => {
     // Buat template data untuk semua bulan
@@ -114,9 +116,9 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
   }, [schedules]);
 
   return (
-    <div className="w-full h-96 bg-gray-900 rounded-xl p-4">
+    <div className={`w-full h-96 ${uiColors.bg.secondary} rounded-xl p-4`}>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className={`text-xl font-semibold ${uiColors.text.primary}`}>
           Akumulasi Delivery per Bulan
         </h3>
         {onViewAllCharts && (
@@ -133,17 +135,23 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
           data={chartData}
           margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis dataKey="month" stroke="#9ca3af" />
-          <YAxis stroke="#9ca3af" />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={theme === "light" ? "#e5e7eb" : "#374151"}
+          />
+          <XAxis
+            dataKey="month"
+            stroke={theme === "light" ? "#6b7280" : "#9ca3af"}
+          />
+          <YAxis stroke={theme === "light" ? "#6b7280" : "#9ca3af"} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "1px solid #374151",
+              backgroundColor: theme === "light" ? "#ffffff" : "#1f2937",
+              border: `1px solid ${theme === "light" ? "#d1d5db" : "#374151"}`,
               borderRadius: "0.5rem",
-              color: "#f9fafb",
+              color: theme === "light" ? "#111827" : "#f9fafb",
             }}
-            labelStyle={{ color: "#f9fafb" }}
+            labelStyle={{ color: theme === "light" ? "#111827" : "#f9fafb" }}
           />
           <Legend />
           <Bar

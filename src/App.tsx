@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./main_view/contexts/AuthContext";
 import { ScheduleProvider } from "./tools_view/planning_system/contexts/ScheduleContext";
+import PlanningSystemLayout from "./tools_view/planning_system/layouts/PlanningSystemLayout";
 
 // Layouts
 import DashboardLayout from "./tools_view/planning_system/layouts/DashboardLayout";
@@ -40,7 +41,9 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardLayout />
+                    <PlanningSystemLayout>
+                      <DashboardLayout />
+                    </PlanningSystemLayout>
                   </ProtectedRoute>
                 }
               >

@@ -1,26 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
+import { useTheme } from "../../../contexts/ThemeContext";
 import {
-  getDaysInMonth,
   getDayName,
-  isWeekend,
   formatValidDate,
-  MONTHS,
   getMaxDaysInMonth,
   parseScheduleName,
 } from "../../utils/scheduleDateUtils";
 import {
   calculateOutputFields,
   checkValidation,
-  calculateOutputPerHour,
   formatJamProduksi,
   calculateAkumulasiDelivery,
   calculateAkumulasiHasilProduksi,
   calculateStockCustom,
 } from "../../utils/scheduleCalcUtils";
 import StatusBadge from "../ui/StatusBadge";
-import DataCard from "../ui/DataCard";
-import EditableField from "../ui/EditableField";
+
 import {
   Calendar,
   Clock,
@@ -28,10 +24,8 @@ import {
   Truck,
   Timer,
   Factory,
-  Calculator,
   TrendingUp,
   AlertTriangle,
-  CheckCircle,
   XCircle,
   Loader2,
   Activity,
@@ -72,6 +66,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   handleAddManpower,
   handleRemoveManpower,
 }) => {
+  const { uiColors } = useTheme();
   // State untuk loading popup
   const [isLoading, setIsLoading] = useState(false);
   // State untuk mengelola fokus input
@@ -244,7 +239,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
       <div className="space-y-6 sm:space-y-8">
         {/* HEADER SUMMARY TOTAL */}
         <div className="w-full mb-4">
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-slate-800/70 rounded-xl p-4 border border-slate-700/50 shadow">
+          <div
+            className={`flex flex-wrap gap-4 items-center justify-between ${uiColors.bg.secondary} rounded-xl p-4 border border-slate-600 shadow`}
+          >
             <div className="flex flex-wrap gap-4 items-center">
               {/* Card summary untuk setiap total utama */}
               <SummaryCard
@@ -295,7 +292,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
               />
             </div>
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-semibold shadow transition"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition"
               onClick={() => setShowManpowerModal(true)}
               title="Tambah Manpower"
             >
@@ -325,16 +322,18 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
         {showManpowerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div
-              className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl relative"
+              className={`${uiColors.bg.tertiary} rounded-xl p-6 w-full max-w-md border border-slate-600 shadow-2xl relative`}
               style={modalMinWidth ? { minWidth: modalMinWidth } : {}}
             >
               <button
-                className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                className={`absolute top-2 right-2 ${uiColors.text.tertiary} hover:${uiColors.text.primary}`}
                 onClick={() => setShowManpowerModal(false)}
               >
                 <XCircle className="w-6 h-6" />
               </button>
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <h3
+                className={`text-lg font-bold ${uiColors.text.primary} mb-4 flex items-center gap-2`}
+              >
                 <Activity className="w-5 h-5 text-green-400" />
                 Daftar Manpower
               </h3>
@@ -343,7 +342,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                   type="text"
                   value={newManpower}
                   onChange={(e) => setNewManpower(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none"
+                  className={`flex-1 px-3 py-2 rounded-lg ${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.text.primary} focus:outline-none`}
                   placeholder="Nama manpower baru"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAddManpower();
@@ -361,16 +360,16 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 ref={manpowerListRef}
               >
                 {manpowerList.length === 0 && (
-                  <li className="text-slate-400 text-sm">
+                  <li className={`${uiColors.text.tertiary} text-sm`}>
                     Belum ada manpower.
                   </li>
                 )}
                 {manpowerList.map((mp) => (
                   <li
                     key={mp.id}
-                    className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"
+                    className={`flex items-center justify-between ${uiColors.bg.secondary} rounded-lg px-3 py-2`}
                   >
-                    <span className="text-white font-medium">
+                    <span className={`${uiColors.text.primary} font-medium`}>
                       {mp.id}. {mp.name}
                     </span>
                     <button
@@ -395,7 +394,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
           return (
             <div key={group.day} className="space-y-4 sm:space-y-6">
               {/* Enhanced Day Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pb-4 border-b border-slate-700/50">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pb-4 border-b border-slate-600">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg">
                     {group.day}
@@ -404,19 +403,23 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                     {(() => {
                       const dateInfo = formatValidDate(
                         group.day,
-                        scheduleName || "Februari 2025",
+                        scheduleName || "Invalid Date",
                       );
                       return (
                         <>
                           <h3
                             className={`text-xl sm:text-2xl font-bold transition-colors ${
-                              dateInfo.isValid ? "text-white" : "text-amber-400"
+                              dateInfo.isValid
+                                ? uiColors.text.primary
+                                : "text-amber-400"
                             }`}
                           >
                             {dateInfo.formattedDate}
                           </h3>
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                            <p className="text-slate-400 text-sm sm:text-base">
+                            <p
+                              className={`${uiColors.text.tertiary} text-sm sm:text-base`}
+                            >
                               {dateInfo.dayName} • {group.rows.length} shift
                               produksi
                             </p>
@@ -437,8 +440,12 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 </div>
 
                 {/* Navigation Info */}
-                <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <span className="px-2 sm:px-3 py-1 bg-slate-800/50 rounded-full border border-slate-700 text-xs sm:text-sm">
+                <div
+                  className={`flex items-center gap-2 text-sm ${uiColors.text.tertiary}`}
+                >
+                  <span
+                    className={`px-2 sm:px-3 py-1 ${uiColors.bg.tertiary} rounded-full border border-slate-600 text-xs sm:text-sm`}
+                  >
                     Hari {currentDayIdx + 1} dari {totalValidDays}
                   </span>
                 </div>
@@ -457,7 +464,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                         <h3 className="text-lg sm:text-xl font-semibold text-red-400 mb-2">
                           Hari Libur
                         </h3>
-                        <p className="text-slate-400 text-sm sm:text-base">
+                        <p
+                          className={`${uiColors.text.tertiary} text-sm sm:text-base`}
+                        >
                           Tidak ada produksi pada hari ini
                         </p>
                       </div>
@@ -566,20 +575,24 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                       return (
                         <div
                           key={row.id}
-                          className={`bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 transition-all duration-300 hover:shadow-2xl hover:border-slate-600/50`}
+                          className={`${uiColors.bg.secondary} rounded-2xl border-2 border-slate-600 transition-all duration-300 hover:shadow-2xl hover:border-slate-500`}
                         >
                           {/* Card Header */}
-                          <div className="p-4 sm:p-6 border-b border-slate-700/50">
+                          <div className="p-4 sm:p-6 border-b border-slate-600">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm sm:text-base">
                                   {row.shift}
                                 </div>
                                 <div>
-                                  <h4 className="text-lg sm:text-xl font-bold text-white">
+                                  <h4
+                                    className={`text-lg sm:text-xl font-bold ${uiColors.text.primary}`}
+                                  >
                                     Shift {row.shift}
                                   </h4>
-                                  <p className="text-slate-400 text-xs sm:text-sm">
+                                  <p
+                                    className={`${uiColors.text.secondary} text-xs sm:text-sm`}
+                                  >
                                     {row.shift === "1"
                                       ? "07:30-16:30"
                                       : "19:30-04:30"}
@@ -596,7 +609,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                             {/* Tampilkan nilai input meski tidak sedang edit */}
                             <div className="space-y-2 mt-2">
-                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
+                              <div
+                                className={`text-blue-600 font-bold text-xs mb-1 pl-1`}
+                              >
                                 Input Parameter
                               </div>
                               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
@@ -837,10 +852,16 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                     {focusedInputs[
                                       `${row.id}-manpowerDropdown`
                                     ] && (
-                                      <div className="absolute z-20 left-0 right-0 bg-slate-900 border border-blue-400 rounded-lg mt-1 shadow-xl">
+                                      <div
+                                        className={`absolute z-20 left-0 right-0 ${uiColors.bg.primary} border border-blue-400 rounded-lg mt-1 shadow-xl`}
+                                      >
                                         {/* Header */}
-                                        <div className="bg-slate-800 px-3 py-2 border-b border-blue-400">
-                                          <h4 className="text-white font-semibold text-sm">
+                                        <div
+                                          className={`${uiColors.bg.tertiary} px-3 py-2 border-b border-blue-400`}
+                                        >
+                                          <h4
+                                            className={`${uiColors.text.primary} font-semibold text-sm`}
+                                          >
                                             Pilih Manpower
                                           </h4>
                                         </div>
@@ -849,7 +870,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                         <div className="p-2">
                                           {manpowerList.length === 0 ? (
                                             <div className="text-center py-4">
-                                              <div className="text-slate-400 text-sm">
+                                              <div
+                                                className={`${uiColors.text.tertiary} text-sm`}
+                                              >
                                                 Belum ada manpower
                                               </div>
                                             </div>
@@ -858,7 +881,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                               {manpowerList.map((mp) => (
                                                 <label
                                                   key={mp.id}
-                                                  className="flex items-center px-2 py-2 hover:bg-blue-800/50 cursor-pointer rounded transition-colors duration-200"
+                                                  className={`flex items-center px-2 py-2 hover:bg-blue-100 cursor-pointer rounded transition-colors duration-200`}
                                                 >
                                                   <input
                                                     type="checkbox"
@@ -915,9 +938,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                                         }),
                                                       );
                                                     }}
-                                                    className="mr-2 w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+                                                    className={`mr-2 w-4 h-4 text-blue-600 ${uiColors.bg.tertiary} ${uiColors.border.primary} rounded focus:ring-blue-500 focus:ring-2`}
                                                   />
-                                                  <span className="text-blue-100 text-sm">
+                                                  <span className="text-blue-800 text-sm">
                                                     {mp.id}. {mp.name}
                                                   </span>
                                                 </label>
@@ -927,9 +950,13 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                         </div>
 
                                         {/* Footer dengan Button */}
-                                        <div className="bg-slate-800 px-3 py-2 border-t border-blue-400">
+                                        <div
+                                          className={`${uiColors.bg.tertiary} px-3 py-2 border-t border-blue-400`}
+                                        >
                                           <div className="flex items-center justify-between mb-2">
-                                            <div className="text-slate-400 text-xs">
+                                            <div
+                                              className={`${uiColors.text.tertiary} text-xs`}
+                                            >
                                               {
                                                 (
                                                   tempManpowerSelection[
@@ -940,7 +967,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                               }{" "}
                                               terpilih
                                             </div>
-                                            <div className="text-slate-400 text-xs">
+                                            <div
+                                              className={`${uiColors.text.tertiary} text-xs`}
+                                            >
                                               Max: 6
                                             </div>
                                           </div>
@@ -960,7 +989,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                                   }),
                                                 );
                                               }}
-                                              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1 px-3 rounded text-xs font-medium transition-colors"
+                                              className={`flex-1 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} text-red-500 py-1 px-3 rounded text-xs font-medium transition-colors`}
                                             >
                                               Batal
                                             </button>
@@ -998,7 +1027,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   {/* Error jika lebih dari 6 */}
                                   {row.manpowerIds &&
                                     row.manpowerIds.length > 6 && (
-                                      <div className="text-red-400 text-xs mt-1">
+                                      <div className="text-red-500 text-xs mt-1">
                                         Maksimal 6 manpower per shift.
                                       </div>
                                     )}
@@ -1007,7 +1036,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                             </div>
                             {/* Output Section: Custom Output sesuai rumus user */}
                             <div className="space-y-2 mt-2">
-                              <div className="text-blue-300 font-bold text-xs mb-1 pl-1">
+                              <div
+                                className={`text-blue-600 font-bold text-xs mb-1 pl-1`}
+                              >
                                 Output Parameter
                               </div>
                               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
@@ -1142,8 +1173,8 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 disabled={isPrevDisabled}
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border font-bold text-base flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${
                   isPrevDisabled
-                    ? "bg-slate-800/50 text-slate-500 border-slate-700 cursor-not-allowed"
-                    : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-slate-600"
+                    ? `${uiColors.bg.tertiary}/50 ${uiColors.text.muted} border-slate-600 cursor-not-allowed`
+                    : `${uiColors.bg.tertiary} ${uiColors.text.tertiary} border-slate-600 hover:${uiColors.bg.secondary} hover:${uiColors.text.primary} hover:border-slate-500`
                 }`}
                 title="Sebelumnya"
               >
@@ -1157,8 +1188,8 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 disabled={isNextDisabled}
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border font-bold text-base flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${
                   isNextDisabled
-                    ? "bg-slate-800/50 text-slate-500 border-slate-700 cursor-not-allowed"
-                    : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-slate-600"
+                    ? `${uiColors.bg.tertiary}/50 ${uiColors.text.muted} border-slate-600 cursor-not-allowed`
+                    : `${uiColors.bg.tertiary} ${uiColors.text.tertiary} border-slate-600 hover:${uiColors.bg.secondary} hover:${uiColors.text.primary} hover:border-slate-500`
                 }`}
                 title="Berikutnya"
               >
@@ -1192,7 +1223,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                   className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border font-semibold text-xs sm:text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${
                     isActive
                       ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-600 shadow-lg scale-110"
-                      : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-slate-600"
+                      : `${uiColors.bg.tertiary} ${uiColors.text.tertiary} border-slate-600 hover:${uiColors.bg.secondary} hover:${uiColors.text.primary} hover:border-slate-500`
                   }`}
                   title={`Hari ke-${idx + 1}`}
                 >
@@ -1205,7 +1236,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
               return (
                 <span
                   key={key}
-                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-slate-500 font-bold text-xs sm:text-sm"
+                  className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center ${uiColors.text.muted} font-bold text-xs sm:text-sm`}
                 >
                   ...
                 </span>
@@ -1219,10 +1250,14 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
       {/* Loading Popup */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700 shadow-2xl mx-4">
+          <div
+            className={`${uiColors.bg.tertiary} rounded-xl p-4 sm:p-6 border border-slate-600 shadow-2xl mx-4`}
+          >
             <div className="flex items-center gap-3">
               <Loader2 className="animate-spin h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
-              <span className="text-white font-medium text-sm sm:text-base">
+              <span
+                className={`${uiColors.text.primary} font-medium text-sm sm:text-base`}
+              >
                 Memuat data...
               </span>
             </div>
@@ -1242,11 +1277,18 @@ function SummaryCard({
   label: string;
   value: string | number;
 }) {
+  const { uiColors } = useTheme();
   return (
-    <div className="flex flex-col items-center bg-slate-900 rounded-lg px-4 py-2 min-w-[90px] border border-slate-700 shadow">
+    <div
+      className={`flex flex-col items-center ${uiColors.bg.tertiary} rounded-lg px-4 py-2 min-w-[90px] border border-slate-600 shadow`}
+    >
       <div>{icon}</div>
-      <div className="text-xs text-slate-400 font-semibold mt-1">{label}</div>
-      <div className="text-lg font-bold text-white mt-1">{value}</div>
+      <div className={`text-xs ${uiColors.text.tertiary} font-semibold mt-1`}>
+        {label}
+      </div>
+      <div className={`text-lg font-bold ${uiColors.text.primary} mt-1`}>
+        {value}
+      </div>
     </div>
   );
 }

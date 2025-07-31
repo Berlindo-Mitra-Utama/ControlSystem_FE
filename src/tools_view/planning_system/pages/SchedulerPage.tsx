@@ -11,6 +11,7 @@ import ChildPart from "../components/layout/ChildPart";
 import ChildPartTable from "../components/layout/ChildPartTable";
 import ChildPartCardView from "../components/layout/ChildPartCardView";
 import ViewModeToggle from "../components/layout/ViewModeToggle";
+import { useTheme } from "../../contexts/ThemeContext";
 import { X } from "lucide-react";
 import {
   generateScheduleFromForm,
@@ -123,6 +124,7 @@ interface SchedulerPageProps {
 const SchedulerPage: React.FC = () => {
   const { savedSchedules, setSavedSchedules, loadedSchedule } = useSchedule();
   const navigate = useNavigate();
+  const { uiColors } = useTheme();
   const {
     notification,
     hideNotification,
@@ -194,7 +196,9 @@ const SchedulerPage: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   // Add state for delete confirmation modal (after other state declarations)
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-  const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
+  const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
+    null,
+  );
 
   // Tambahkan useEffect untuk detect mobile:
   useEffect(() => {
@@ -694,11 +698,14 @@ const SchedulerPage: React.FC = () => {
     customerName: string;
     stock: number;
   }) => {
-    setChildParts((prev) => [...prev, { 
-      ...data, 
-      inMaterial: Array.from({ length: 30 }, () => [null, null]), // Initialize with proper array structure
-      aktualInMaterial: Array.from({ length: 30 }, () => [null, null]) // Initialize with proper array structure
-    }]);
+    setChildParts((prev) => [
+      ...prev,
+      {
+        ...data,
+        inMaterial: Array.from({ length: 30 }, () => [null, null]), // Initialize with proper array structure
+        aktualInMaterial: Array.from({ length: 30 }, () => [null, null]), // Initialize with proper array structure
+      },
+    ]);
     // : Lakukan aksi generate tabel child part di sini
     // Misal: tampilkan tabel child part, atau update state lain
     // Untuk demo, bisa console.log(data)
@@ -926,12 +933,18 @@ const SchedulerPage: React.FC = () => {
 
         {/* If no schedule, show blank state */}
         {schedule.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[500px] sm:min-h-[600px] bg-gray-900 border border-gray-800 rounded-3xl p-8 sm:p-16 mx-auto max-w-4xl">
+          <div
+            className={`flex flex-col items-center justify-center min-h-[500px] sm:min-h-[600px] ${uiColors.bg.secondary} ${uiColors.border.primary} rounded-3xl p-8 sm:p-16 mx-auto max-w-4xl`}
+          >
             <div className="text-center">
-              <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">
+              <h2
+                className={`text-2xl sm:text-4xl font-bold ${uiColors.text.primary} mb-4`}
+              >
                 Jadwal Produksi belum dibuat
               </h2>
-              <p className="text-lg sm:text-xl text-gray-400 mb-6 sm:mb-8">
+              <p
+                className={`text-lg sm:text-xl ${uiColors.text.tertiary} mb-6 sm:mb-8`}
+              >
                 Lakukan penjadwalan sekarang
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -950,13 +963,19 @@ const SchedulerPage: React.FC = () => {
         ) : (
           <div id="schedule-table-section">
             {/* Dashboard Produksi Header dengan gradasi full */}
-            <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-4 sm:px-8 py-4 sm:py-6 rounded-t-3xl">
+            <div
+              className={`${uiColors.bg.tertiary} px-4 sm:px-8 py-4 sm:py-6 rounded-t-3xl ${uiColors.border.primary}`}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white">
+                  <h2
+                    className={`text-xl sm:text-2xl font-bold ${uiColors.text.primary}`}
+                  >
                     🏭 Dashboard Produksi
                   </h2>
-                  <p className="text-gray-400 mt-1 text-sm sm:text-base">
+                  <p
+                    className={`${uiColors.text.tertiary} mt-1 text-sm sm:text-base`}
+                  >
                     Monitoring dan perencanaan produksi harian
                   </p>
                 </div>
@@ -973,7 +992,7 @@ const SchedulerPage: React.FC = () => {
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg
-                        className="w-4 h-4 text-slate-400"
+                        className={`w-4 h-4 ${uiColors.text.tertiary}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -991,12 +1010,12 @@ const SchedulerPage: React.FC = () => {
                       value={searchDate}
                       onChange={(e) => setSearchDate(e.target.value)}
                       placeholder="Cari tanggal..."
-                      className="w-full sm:w-48 pl-10 pr-4 py-2 bg-slate-800/80 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className={`w-full sm:w-48 pl-10 pr-4 py-2 ${uiColors.bg.primary} ${uiColors.border.secondary} rounded-lg ${uiColors.text.primary} placeholder-${uiColors.text.tertiary} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                     />
                     {searchDate && (
                       <button
                         onClick={() => setSearchDate("")}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-red-400"
+                        className={`absolute inset-y-0 right-0 pr-3 flex items-center ${uiColors.text.tertiary} hover:text-red-400`}
                       >
                         <svg
                           className="w-4 h-4"
@@ -1306,7 +1325,9 @@ const SchedulerPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-b-3xl">
+            <div
+              className={`${uiColors.bg.secondary} ${uiColors.border.primary} rounded-b-3xl`}
+            >
               <ScheduleTable
                 schedule={schedule}
                 editingRow={editingRow}
@@ -1879,17 +1900,21 @@ const SchedulerPage: React.FC = () => {
         {showDeleteConfirmModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
             <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 max-w-sm w-full">
-              <h2 className="text-xl font-bold text-white mb-2">Konfirmasi Hapus</h2>
-              <p className="text-gray-300 mb-6">Apakah Anda yakin ingin menghapus part ini?</p>
+              <h2 className="text-xl font-bold text-white mb-2">
+                Konfirmasi Hapus
+              </h2>
+              <p className="text-gray-300 mb-6">
+                Apakah Anda yakin ingin menghapus part ini?
+              </p>
               <div className="flex gap-4 justify-end">
-                <button 
-                  onClick={handleCancelDelete} 
+                <button
+                  onClick={handleCancelDelete}
                   className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600"
                 >
                   Batal
                 </button>
-                <button 
-                  onClick={handleConfirmDelete} 
+                <button
+                  onClick={handleConfirmDelete}
                   className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
                 >
                   Hapus

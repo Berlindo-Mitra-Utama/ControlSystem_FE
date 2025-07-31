@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
 import { getCategoryColor } from "../../../const/colors";
+import { useTheme } from "../../../contexts/ThemeContext";
 import {
   formatValidDate,
   parseScheduleName,
@@ -76,6 +77,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   handleRemoveManpower,
   onDataChange,
 }) => {
+  const { uiColors } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [focusedInputs, setFocusedInputs] = useState<{
     [key: string]: boolean;
@@ -320,11 +322,15 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Filter Menu - Enhanced + Manpower Button */}
-      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+      <div
+        className={`${uiColors.bg.secondary}/50 rounded-xl p-6 ${uiColors.border.primary}`}
+      >
         {/* Info Stock Awal & Add Manpower */}
         <div className="flex flex-wrap gap-4 items-center mb-6 justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-slate-700 text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-slate-600">
+            <div
+              className={`${uiColors.bg.tertiary} ${uiColors.text.primary} rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow ${uiColors.border.primary}`}
+            >
               <Package className="w-5 h-5 text-blue-400" />
               Stock Awal: <span className="ml-1">{initialStock}</span>
             </div>
@@ -340,9 +346,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           </button>
         </div>
         {/* Divider */}
-        <div className="border-b border-slate-600 mb-4" />
+        <div className={`border-b ${uiColors.border.secondary} mb-4`} />
         {/* Judul Filter Data */}
-        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-3">
+        <h3
+          className={`${uiColors.text.primary} font-bold text-lg mb-4 flex items-center gap-3`}
+        >
           <Filter className="w-6 h-6 text-blue-400" />
           Filter Data
         </h3>
@@ -360,7 +368,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 } transition-all flex items-center gap-2 ${
                   activeFilter === option.value
                     ? "bg-blue-600 text-white shadow-xl scale-105"
-                    : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white hover:scale-102"
+                    : `${uiColors.bg.tertiary} ${uiColors.text.tertiary} hover:${uiColors.bg.secondary} hover:${uiColors.text.primary} hover:scale-102`
                 }`}
               >
                 <IconComponent
@@ -374,21 +382,25 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       </div>
 
       {/* Table - Enhanced */}
-      <div className="relative bg-slate-800/50 rounded-xl overflow-hidden border border-slate-700/50">
+      <div
+        className={`relative ${uiColors.bg.secondary}/50 rounded-xl overflow-hidden ${uiColors.border.primary}`}
+      >
         {/* MODAL MANPOWER */}
         {showManpowerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div
               ref={manpowerModalRef}
-              className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl relative"
+              className={`${uiColors.bg.tertiary} rounded-xl p-6 w-full max-w-md ${uiColors.border.primary} shadow-2xl relative`}
             >
               <button
-                className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                className={`absolute top-2 right-2 ${uiColors.text.tertiary} hover:${uiColors.text.primary}`}
                 onClick={() => setShowManpowerModal(false)}
               >
                 <XCircle className="w-6 h-6" />
               </button>
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <h3
+                className={`text-lg font-bold ${uiColors.text.primary} mb-4 flex items-center gap-2`}
+              >
                 <Activity className="w-5 h-5 text-green-400" />
                 Daftar Manpower
               </h3>
@@ -397,7 +409,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                   type="text"
                   value={newManpower}
                   onChange={(e) => setNewManpower(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none"
+                  className={`flex-1 px-3 py-2 rounded-lg ${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.text.primary} focus:outline-none`}
                   placeholder="Nama manpower baru"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAddManpower();
@@ -412,16 +424,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               </div>
               <ul className="space-y-2 max-h-48 overflow-y-auto">
                 {manpowerList.length === 0 && (
-                  <li className="text-slate-400 text-sm">
+                  <li className={`${uiColors.text.tertiary} text-sm`}>
                     Belum ada manpower.
                   </li>
                 )}
                 {manpowerList.map((mp, idx) => (
                   <li
                     key={mp.id}
-                    className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"
+                    className={`flex items-center justify-between ${uiColors.bg.secondary} rounded-lg px-3 py-2`}
                   >
-                    <span className="text-white font-medium">
+                    <span className={`${uiColors.text.primary} font-medium`}>
                       {mp.id}. {mp.name}
                     </span>
                     <button
@@ -457,10 +469,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
         {/* Container with horizontal scroll */}
         <div className="flex">
           {/* Frozen Left Column - DESCRIPTION */}
-          <div className="flex-shrink-0 bg-slate-700 border-r border-slate-600 w-48">
+          <div
+            className={`flex-shrink-0 ${uiColors.bg.tertiary} ${uiColors.border.secondary} w-48`}
+          >
             {/* Header */}
-            <div className="h-24 flex items-center justify-center bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600">
-              <div className="text-white font-bold text-lg text-center px-4">
+            <div
+              className={`h-24 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.border.secondary}`}
+            >
+              <div
+                className={`${uiColors.text.primary} font-bold text-lg text-center px-4`}
+              >
                 DESCRIPTION
               </div>
             </div>
@@ -470,7 +488,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               {filteredRows.map((row, index) => (
                 <div
                   key={row.key}
-                  className="h-16 flex items-center justify-center px-4 bg-slate-700 border-b border-slate-600 text-white font-semibold text-sm text-center leading-tight"
+                  className={`h-16 flex items-center justify-center px-4 ${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.text.primary} font-semibold text-sm text-center leading-tight`}
                 >
                   <div className="whitespace-pre-line">{row.label}</div>
                 </div>
@@ -479,10 +497,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           </div>
 
           {/* TOTAL Column - Enhanced */}
-          <div className="flex-shrink-0 bg-slate-600 border-r border-slate-500 w-40">
+          <div
+            className={`flex-shrink-0 ${uiColors.bg.tertiary} ${uiColors.border.secondary} w-40`}
+          >
             {/* Header */}
-            <div className="h-24 flex items-center justify-center bg-gradient-to-r from-slate-700 to-slate-600 border-b border-slate-500">
-              <div className="text-white font-bold text-lg text-center px-4">
+            <div
+              className={`h-24 flex items-center justify-center ${uiColors.bg.secondary} ${uiColors.border.secondary}`}
+            >
+              <div
+                className={`${uiColors.text.primary} font-bold text-lg text-center px-4`}
+              >
                 TOTAL
               </div>
             </div>
@@ -567,7 +591,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 return (
                   <div
                     key={row.key}
-                    className={`h-16 flex items-center justify-center ${bgColor} border-b border-slate-500 ${textColor} font-mono text-sm font-bold`}
+                    className={`h-16 flex items-center justify-center ${bgColor} ${textColor} font-mono text-sm font-bold`}
                   >
                     {totalValue}
                   </div>
@@ -582,12 +606,14 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               {filteredValidGroupedRows.map((group) => (
                 <div
                   key={group.day}
-                  className="flex-shrink-0 w-40 border-r border-slate-600"
+                  className={`flex-shrink-0 w-40 ${uiColors.border.secondary}`}
                 >
                   {/* Date Header */}
-                  <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600">
+                  <div
+                    className={`h-24 ${uiColors.bg.tertiary} ${uiColors.border.secondary}`}
+                  >
                     <div className="text-center p-3">
-                      <div className="text-white font-bold">
+                      <div className={`${uiColors.text.primary} font-bold`}>
                         {(() => {
                           const dateInfo = formatValidDate(
                             group.day,
@@ -668,8 +694,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift1Value = shift1?.delivery || 0;
                           shift2Value = shift2?.delivery || 0;
                           const deliveryColor = getCategoryColor("delivery");
-                          bgColor = deliveryColor.bg.replace("/50", "/30");
-                          textColor = deliveryColor.text.replace("200", "300");
+                          bgColor = deliveryColor.bg;
+                          textColor = deliveryColor.text;
                           isEditable = true;
                           shift1Field = "delivery";
                           shift2Field = "delivery";
@@ -694,10 +720,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift2Value = formatNumber(akumulasiDelivery.shift2);
                           const akumulasiDeliveryColor =
                             getCategoryColor("delivery");
-                          bgColor = akumulasiDeliveryColor.bg.replace(
-                            "/50",
-                            "/20",
-                          );
+                          bgColor = akumulasiDeliveryColor.bg;
                           textColor = akumulasiDeliveryColor.text;
                           break;
 
@@ -726,22 +749,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift1Value = planningProduksiJamShift1;
                           shift2Value = planningProduksiJamShift2;
                           const planningJamColor = getCategoryColor("planning");
-                          bgColor = planningJamColor.bg.replace("/50", "/30");
-                          textColor = planningJamColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = planningJamColor.bg;
+                          textColor = planningJamColor.text;
                           break;
 
                         case "planning-pcs":
                           shift1Value = shift1?.planningPcs || 0;
                           shift2Value = shift2?.planningPcs || 0;
                           const planningPcsColor = getCategoryColor("planning");
-                          bgColor = planningPcsColor.bg.replace("/50", "/30");
-                          textColor = planningPcsColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = planningPcsColor.bg;
+                          textColor = planningPcsColor.text;
                           isEditable = true;
                           shift1Field = "planningPcs";
                           shift2Field = "planningPcs";
@@ -772,22 +789,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift1Value = overtimeJamShift1;
                           shift2Value = overtimeJamShift2;
                           const overtimeJamColor = getCategoryColor("overtime");
-                          bgColor = overtimeJamColor.bg.replace("/50", "/30");
-                          textColor = overtimeJamColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = overtimeJamColor.bg;
+                          textColor = overtimeJamColor.text;
                           break;
 
                         case "overtime-pcs":
                           shift1Value = shift1?.overtimePcs || 0;
                           shift2Value = shift2?.overtimePcs || 0;
                           const overtimePcsColor = getCategoryColor("overtime");
-                          bgColor = overtimePcsColor.bg.replace("/50", "/30");
-                          textColor = overtimePcsColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = overtimePcsColor.bg;
+                          textColor = overtimePcsColor.text;
                           isEditable = true;
                           shift1Field = "overtimePcs";
                           shift2Field = "overtimePcs";
@@ -818,11 +829,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift1Value = jamProduksiShift1;
                           shift2Value = jamProduksiShift2;
                           const jamProduksiColor = getCategoryColor("stock");
-                          bgColor = jamProduksiColor.bg.replace("/50", "/30");
-                          textColor = jamProduksiColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = jamProduksiColor.bg;
+                          textColor = jamProduksiColor.text;
                           break;
 
                         case "hasil-produksi":
@@ -830,11 +838,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift2Value = shift2?.pcs || 0;
                           const hasilProduksiColor =
                             getCategoryColor("hasilProduksi");
-                          bgColor = hasilProduksiColor.bg.replace("/50", "/30");
-                          textColor = hasilProduksiColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = hasilProduksiColor.bg;
+                          textColor = hasilProduksiColor.text;
                           isEditable = true;
                           shift1Field = "pcs";
                           shift2Field = "pcs";
@@ -862,10 +867,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift2Value = formatNumber(akumulasiHasil.shift2);
                           const akumulasiHasilColor =
                             getCategoryColor("hasilProduksi");
-                          bgColor = akumulasiHasilColor.bg.replace(
-                            "/50",
-                            "/20",
-                          );
+                          bgColor = akumulasiHasilColor.bg;
                           textColor = akumulasiHasilColor.text;
                           break;
 
@@ -877,8 +879,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             shift2?.jamProduksiAktual || 0,
                           );
                           const jamAktualColor = getCategoryColor("jamAktual");
-                          bgColor = jamAktualColor.bg.replace("/50", "/30");
-                          textColor = jamAktualColor.text.replace("200", "300");
+                          bgColor = jamAktualColor.bg;
+                          textColor = jamAktualColor.text;
                           isEditable = true;
                           shift1Field = "jamProduksiAktual";
                           shift2Field = "jamProduksiAktual";
@@ -915,11 +917,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           }
 
                           const actualStockColor = getCategoryColor("stock");
-                          bgColor = actualStockColor.bg.replace("/50", "/30");
-                          textColor = actualStockColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = actualStockColor.bg;
+                          textColor = actualStockColor.text;
                           break;
 
                         case "rencana-stock":
@@ -955,18 +954,15 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           }
 
                           const rencanaStockColor = getCategoryColor("stock");
-                          bgColor = rencanaStockColor.bg.replace("/50", "/30");
-                          textColor = rencanaStockColor.text.replace(
-                            "200",
-                            "300",
-                          );
+                          bgColor = rencanaStockColor.bg;
+                          textColor = rencanaStockColor.text;
                           break;
                       }
 
                       return (
                         <div
                           key={row.key}
-                          className="h-16 grid grid-cols-2 gap-1 border-b border-slate-600"
+                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary}`}
                         >
                           <div
                             className={`${bgColor} text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
@@ -999,10 +995,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 {focusedInputs[
                                   `${shift1.id}-manpowerDropdown`
                                 ] && (
-                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown">
+                                  <div
+                                    className={`absolute z-20 min-w-max max-w-xs ${uiColors.bg.tertiary} border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown`}
+                                  >
                                     {/* Header */}
-                                    <div className="bg-slate-800 px-3 py-2 border-b border-blue-400">
-                                      <h4 className="text-white font-semibold text-sm">
+                                    <div
+                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
+                                    >
+                                      <h4
+                                        className={`${uiColors.text.primary} font-semibold text-sm`}
+                                      >
                                         Pilih Manpower
                                       </h4>
                                     </div>
@@ -1011,7 +1013,9 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     <div className="p-2">
                                       {manpowerList.length === 0 ? (
                                         <div className="text-center py-4">
-                                          <div className="text-slate-400 text-sm">
+                                          <div
+                                            className={`${uiColors.text.tertiary} text-sm`}
+                                          >
                                             Belum ada manpower
                                           </div>
                                         </div>
@@ -1093,9 +1097,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     </div>
 
                                     {/* Footer dengan Button */}
-                                    <div className="bg-slate-800 px-3 py-2 border-t border-blue-400">
+                                    <div
+                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
+                                    >
                                       <div className="flex items-center justify-between mb-2">
-                                        <div className="text-slate-400 text-xs">
+                                        <div
+                                          className={`${uiColors.text.tertiary} text-xs`}
+                                        >
                                           {
                                             (
                                               tempManpowerSelection[
@@ -1199,7 +1207,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     [`${shift1.id}-${shift1Field}`]: false,
                                   }));
                                 }}
-                                className="w-full bg-transparent border-none text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1 text-white font-mono text-sm font-semibold"
+                                className={`w-full bg-transparent border-none text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1 ${uiColors.text.primary} font-mono text-sm font-semibold`}
                                 placeholder=""
                                 min="0"
                                 step={
@@ -1245,10 +1253,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 {focusedInputs[
                                   `${shift2.id}-manpowerDropdown`
                                 ] && (
-                                  <div className="absolute z-20 min-w-max max-w-xs bg-slate-900 border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown">
+                                  <div
+                                    className={`absolute z-20 min-w-max max-w-xs ${uiColors.bg.tertiary} border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown`}
+                                  >
                                     {/* Header */}
-                                    <div className="bg-slate-800 px-3 py-2 border-b border-blue-400">
-                                      <h4 className="text-white font-semibold text-sm">
+                                    <div
+                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
+                                    >
+                                      <h4
+                                        className={`${uiColors.text.primary} font-semibold text-sm`}
+                                      >
                                         Pilih Manpower
                                       </h4>
                                     </div>
@@ -1257,7 +1271,9 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     <div className="p-2">
                                       {manpowerList.length === 0 ? (
                                         <div className="text-center py-4">
-                                          <div className="text-slate-400 text-sm">
+                                          <div
+                                            className={`${uiColors.text.tertiary} text-sm`}
+                                          >
                                             Belum ada manpower
                                           </div>
                                         </div>
@@ -1339,9 +1355,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     </div>
 
                                     {/* Footer dengan Button */}
-                                    <div className="bg-slate-800 px-3 py-2 border-t border-blue-400">
+                                    <div
+                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
+                                    >
                                       <div className="flex items-center justify-between mb-2">
-                                        <div className="text-slate-400 text-xs">
+                                        <div
+                                          className={`${uiColors.text.tertiary} text-xs`}
+                                        >
                                           {
                                             (
                                               tempManpowerSelection[
@@ -1446,7 +1466,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     [`${shift2.id}-${shift2Field}`]: false,
                                   }));
                                 }}
-                                className="w-full bg-transparent border-none text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1 text-white font-mono text-sm font-semibold"
+                                className={`w-full bg-transparent border-none text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1 ${uiColors.text.primary} font-mono text-sm font-semibold`}
                                 placeholder=""
                                 min="0"
                                 step={
