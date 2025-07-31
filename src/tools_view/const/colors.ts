@@ -1,6 +1,8 @@
-// Color configuration untuk seluruh tools view
+// Color configuration untuk seluruh tools view dengan support light/dark mode
+export type Theme = "light" | "dark";
+
 export const Colors = {
-  // Status Colors
+  // Status Colors - sama untuk light dan dark
   status: {
     normal: {
       bg: "bg-emerald-500/20",
@@ -22,7 +24,7 @@ export const Colors = {
     },
   },
 
-  // Part Colors - untuk different parts/items
+  // Part Colors - sama untuk light dan dark
   parts: {
     muffler: {
       name: "29N Muffler",
@@ -50,119 +52,191 @@ export const Colors = {
     },
   },
 
-  // Category Colors - untuk different data categories
+  // Category Colors - sama untuk light dan dark
   categories: {
     delivery: {
-      bg: "bg-blue-800/50",
-      text: "text-blue-200",
+      bg: "bg-blue-600/30",
+      text: "text-blue-800",
       border: "border-blue-600",
       hover: "hover:bg-blue-700/50",
     },
     planning: {
-      bg: "bg-yellow-800/50",
-      text: "text-yellow-200",
+      bg: "bg-yellow-600/30",
+      text: "text-yellow-800",
       border: "border-yellow-600",
       hover: "hover:bg-yellow-700/50",
     },
     overtime: {
-      bg: "bg-orange-800/50",
-      text: "text-orange-200",
+      bg: "bg-orange-600/30",
+      text: "text-orange-800",
       border: "border-orange-600",
       hover: "hover:bg-orange-700/50",
     },
     stock: {
-      bg: "bg-indigo-800/50",
-      text: "text-indigo-200",
+      bg: "bg-indigo-600/30",
+      text: "text-indigo-800",
       border: "border-indigo-600",
       hover: "hover:bg-indigo-700/50",
     },
     hasilProduksi: {
-      bg: "bg-purple-800/50",
-      text: "text-purple-200",
+      bg: "bg-purple-600/30",
+      text: "text-purple-800",
       border: "border-purple-600",
       hover: "hover:bg-purple-700/50",
     },
     jamAktual: {
-      bg: "bg-green-800/50",
-      text: "text-green-200",
+      bg: "bg-green-600/30",
+      text: "text-green-800",
       border: "border-green-600",
       hover: "hover:bg-green-700/50",
     },
   },
 
-  // UI Colors - untuk background, borders, text
+  // UI Colors - berbeda untuk light dan dark mode
   ui: {
-    // Background colors
-    bg: {
-      primary: "bg-gray-900",
-      secondary: "bg-gray-800",
-      tertiary: "bg-gray-700",
-      card: "bg-gray-800/50",
-      modal: "bg-gray-900/95",
-      overlay: "bg-black/50",
-    },
-
-    // Border colors
-    border: {
-      primary: "border-gray-800",
-      secondary: "border-gray-700",
-      tertiary: "border-gray-600",
-      accent: "border-blue-500",
-      success: "border-green-500",
-      warning: "border-yellow-500",
-      error: "border-red-500",
-    },
-
-    // Text colors
-    text: {
-      primary: "text-white",
-      secondary: "text-gray-300",
-      tertiary: "text-gray-400",
-      muted: "text-gray-500",
-      accent: "text-blue-400",
-      success: "text-green-400",
-      warning: "text-yellow-400",
-      error: "text-red-400",
-    },
-
-    // Button colors
-    button: {
-      primary: {
-        bg: "bg-blue-600",
-        hover: "hover:bg-blue-700",
-        text: "text-white",
-        border: "border-blue-600",
+    light: {
+      // Background colors
+      bg: {
+        primary: "bg-white",
+        secondary: "bg-gray-50",
+        tertiary: "bg-gray-100",
+        card: "bg-white",
+        modal: "bg-white/95",
+        overlay: "bg-black/20",
       },
-      secondary: {
-        bg: "bg-gray-700",
-        hover: "hover:bg-gray-600",
-        text: "text-gray-300",
-        border: "border-gray-600",
+
+      // Border colors
+      border: {
+        primary: "border-gray-200",
+        secondary: "border-gray-300",
+        tertiary: "border-gray-400",
+        accent: "border-blue-500",
+        success: "border-green-500",
+        warning: "border-yellow-500",
+        error: "border-red-500",
       },
-      success: {
-        bg: "bg-green-600",
-        hover: "hover:bg-green-700",
-        text: "text-white",
-        border: "border-green-600",
+
+      // Text colors
+      text: {
+        primary: "text-gray-900",
+        secondary: "text-gray-700",
+        tertiary: "text-gray-600",
+        muted: "text-gray-500",
+        accent: "text-blue-600",
+        success: "text-green-600",
+        warning: "text-yellow-600",
+        error: "text-red-600",
       },
-      danger: {
-        bg: "bg-red-600",
-        hover: "hover:bg-red-700",
-        text: "text-white",
-        border: "border-red-600",
+
+      // Button colors
+      button: {
+        primary: {
+          bg: "bg-blue-600",
+          hover: "hover:bg-blue-700",
+          text: "text-white",
+          border: "border-blue-600",
+        },
+        secondary: {
+          bg: "bg-gray-200",
+          hover: "hover:bg-gray-300",
+          text: "text-gray-700",
+          border: "border-gray-300",
+        },
+        success: {
+          bg: "bg-green-600",
+          hover: "hover:bg-green-700",
+          text: "text-white",
+          border: "border-green-600",
+        },
+        danger: {
+          bg: "bg-red-600",
+          hover: "hover:bg-red-700",
+          text: "text-white",
+          border: "border-red-600",
+        },
+      },
+
+      // Gradient colors
+      gradient: {
+        primary: "from-blue-600 to-indigo-600",
+        secondary: "from-green-600 to-emerald-600",
+        accent: "from-purple-600 to-pink-600",
+        dark: "from-gray-100 to-gray-200",
       },
     },
+    dark: {
+      // Background colors
+      bg: {
+        primary: "bg-gray-900",
+        secondary: "bg-gray-800",
+        tertiary: "bg-gray-700",
+        card: "bg-gray-800/50",
+        modal: "bg-gray-900/95",
+        overlay: "bg-black/50",
+      },
 
-    // Gradient colors
-    gradient: {
-      primary: "from-blue-600 to-indigo-600",
-      secondary: "from-green-600 to-emerald-600",
-      accent: "from-purple-600 to-pink-600",
-      dark: "from-gray-800 to-gray-900",
+      // Border colors
+      border: {
+        primary: "border-gray-800",
+        secondary: "border-gray-700",
+        tertiary: "border-gray-600",
+        accent: "border-blue-500",
+        success: "border-green-500",
+        warning: "border-yellow-500",
+        error: "border-red-500",
+      },
+
+      // Text colors
+      text: {
+        primary: "text-white",
+        secondary: "text-gray-300",
+        tertiary: "text-gray-400",
+        muted: "text-gray-500",
+        accent: "text-blue-400",
+        success: "text-green-400",
+        warning: "text-yellow-400",
+        error: "text-red-400",
+      },
+
+      // Button colors
+      button: {
+        primary: {
+          bg: "bg-blue-600",
+          hover: "hover:bg-blue-700",
+          text: "text-white",
+          border: "border-blue-600",
+        },
+        secondary: {
+          bg: "bg-gray-700",
+          hover: "hover:bg-gray-600",
+          text: "text-gray-300",
+          border: "border-gray-600",
+        },
+        success: {
+          bg: "bg-green-600",
+          hover: "hover:bg-green-700",
+          text: "text-white",
+          border: "border-green-600",
+        },
+        danger: {
+          bg: "bg-red-600",
+          hover: "hover:bg-red-700",
+          text: "text-white",
+          border: "border-red-600",
+        },
+      },
+
+      // Gradient colors
+      gradient: {
+        primary: "from-blue-600 to-indigo-600",
+        secondary: "from-green-600 to-emerald-600",
+        accent: "from-purple-600 to-pink-600",
+        dark: "from-gray-800 to-gray-900",
+      },
     },
   },
 
-  // Progress colors - untuk progress indicators
+  // Progress colors - sama untuk light dan dark
   progress: {
     low: {
       color: "from-gray-500 to-gray-600",
@@ -215,6 +289,11 @@ export const getPartColor = (partName: string) => {
   if (partNameLower.includes("transmission")) return Colors.parts.transmission;
   if (partNameLower.includes("brake")) return Colors.parts.brakeDisc;
   return Colors.parts.muffler; // default
+};
+
+// Helper functions untuk mendapatkan UI colors berdasarkan tema
+export const getUIColors = (theme: Theme) => {
+  return Colors.ui[theme];
 };
 
 export default Colors;

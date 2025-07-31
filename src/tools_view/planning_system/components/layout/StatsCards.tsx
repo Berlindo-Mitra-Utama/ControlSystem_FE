@@ -1,4 +1,5 @@
 import React from "react";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 interface StatsCardsProps {
   stats: {
@@ -10,16 +11,21 @@ interface StatsCardsProps {
 }
 
 const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
+  const { uiColors } = useTheme();
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      <div
+        className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-2xl p-6`}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-400">Total Production</p>
-            <p className="text-2xl font-bold text-white">
+            <p className={`text-sm font-medium ${uiColors.text.tertiary}`}>
+              Total Production
+            </p>
+            <p className={`text-2xl font-bold ${uiColors.text.primary}`}>
               {stats.totalProduction.toLocaleString()}
             </p>
-            <p className="text-xs text-gray-500">PCS Actual</p>
+            <p className={`text-xs ${uiColors.text.muted}`}>PCS Actual</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
             <svg
@@ -39,14 +45,18 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      <div
+        className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-2xl p-6`}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-400">Planned Production</p>
-            <p className="text-2xl font-bold text-white">
+            <p className={`text-sm font-medium ${uiColors.text.tertiary}`}>
+              Planned Production
+            </p>
+            <p className={`text-2xl font-bold ${uiColors.text.primary}`}>
               {stats.totalPlanned.toLocaleString()}
             </p>
-            <p className="text-xs text-gray-500">PCS Planned</p>
+            <p className={`text-xs ${uiColors.text.muted}`}>PCS Planned</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
             <svg
@@ -66,12 +76,18 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      <div
+        className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-2xl p-6`}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-400">Production Days</p>
-            <p className="text-2xl font-bold text-white">{stats.totalDays}</p>
-            <p className="text-xs text-gray-500">Days Required</p>
+            <p className={`text-sm font-medium ${uiColors.text.tertiary}`}>
+              Production Days
+            </p>
+            <p className={`text-2xl font-bold ${uiColors.text.primary}`}>
+              {stats.totalDays}
+            </p>
+            <p className={`text-xs ${uiColors.text.muted}`}>Days Required</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
             <svg
@@ -91,12 +107,18 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      <div
+        className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-2xl p-6`}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-400">Disruptions</p>
-            <p className="text-2xl font-bold text-white">{stats.disruptedItems}</p>
-            <p className="text-xs text-gray-500">Items Affected</p>
+            <p className={`text-sm font-medium ${uiColors.text.tertiary}`}>
+              Disruptions
+            </p>
+            <p className={`text-2xl font-bold ${uiColors.text.primary}`}>
+              {stats.disruptedItems}
+            </p>
+            <p className={`text-xs ${uiColors.text.muted}`}>Items Affected</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
             <svg

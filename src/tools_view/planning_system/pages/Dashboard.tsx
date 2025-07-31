@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSchedule } from "../contexts/ScheduleContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import StatsCards from "../components/layout/StatsCards";
 import ProductionChart from "../components/layout/ProductionChart";
 
@@ -23,6 +24,7 @@ const partOptions = ["29N Muffler", "Transmission Case B2", "Brake Disc C3"];
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { savedSchedules } = useSchedule();
+  const { uiColors } = useTheme();
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     savedSchedules.length > 0
       ? savedSchedules[savedSchedules.length - 1].id
@@ -80,9 +82,11 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="scheduler-bg w-full min-h-screen">
+    <div className={`w-full min-h-screen ${uiColors.bg.primary}`}>
       <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-blue-400 mb-4 sm:mb-8">
+        <h1
+          className={`text-2xl sm:text-3xl font-bold ${uiColors.text.accent} mb-4 sm:mb-8`}
+        >
           Dashboard
         </h1>
         <StatsCards stats={stats} />
@@ -90,13 +94,15 @@ const Dashboard: React.FC = () => {
         {savedSchedules.length > 0 ? (
           <div className="mt-12 sm:mt-20">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2 className="text-2xl sm:text-3xl font-semibold text-blue-400">
+              <h2
+                className={`text-2xl sm:text-3xl font-semibold ${uiColors.text.accent}`}
+              >
                 Production Chart
               </h2>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                 <label
                   htmlFor="partSelect"
-                  className="text-white text-sm sm:text-base"
+                  className={`${uiColors.text.primary} text-sm sm:text-base`}
                 >
                   Pilih Part:
                 </label>
@@ -104,7 +110,7 @@ const Dashboard: React.FC = () => {
                   id="partSelect"
                   value={selectedPart}
                   onChange={handlePartChange}
-                  className="bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base w-full sm:w-auto"
+                  className={`${uiColors.bg.secondary} ${uiColors.text.primary} border ${uiColors.border.secondary} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base w-full sm:w-auto`}
                 >
                   {partOptions.map((part) => (
                     <option key={part} value={part}>
@@ -120,8 +126,10 @@ const Dashboard: React.FC = () => {
             />
           </div>
         ) : (
-          <div className="mt-8 bg-gray-900 rounded-xl p-8 text-center">
-            <p className="text-gray-400">
+          <div
+            className={`mt-8 ${uiColors.bg.secondary} rounded-xl p-8 text-center`}
+          >
+            <p className={uiColors.text.tertiary}>
               Belum ada jadwal produksi yang dibuat
             </p>
           </div>
