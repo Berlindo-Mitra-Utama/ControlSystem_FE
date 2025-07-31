@@ -94,17 +94,176 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
       {
         id: "design",
         name: "Design",
-        processes: [],
+        processes: [
+          {
+            id: generateId(),
+            name: "Nama Part/No Part/Cust.",
+            completed: false,
+            children: []
+          },
+          {
+            id: generateId(),
+            name: "Drawing Part",
+            completed: false,
+            children: [
+              {
+                id: generateId(),
+                name: "Comp/Assy",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Child Part",
+                completed: false
+              }
+            ]
+          },
+          {
+            id: generateId(),
+            name: "Surat Perintah Kerja (SPK)",
+            completed: false,
+            children: []
+          },
+          {
+            id: generateId(),
+            name: "Master Schedule",
+            completed: false,
+            children: []
+          },
+          {
+            id: generateId(),
+            name: "PPAP",
+            completed: false,
+            children: [
+              {
+                id: generateId(),
+                name: "Design Record",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Engineering Change Document",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Engineering Approval",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Process Flow Diagram",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "FMEA",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Control Plan",
+                completed: false,
+                children: [
+                  {
+                    id: generateId(),
+                    name: "QCPC",
+                    completed: false
+                  },
+                  {
+                    id: generateId(),
+                    name: "Part Inspection Standard",
+                    completed: false
+                  },
+                  {
+                    id: generateId(),
+                    name: "Check Sheet",
+                    completed: false
+                  }
+                ]
+              },
+              {
+                id: generateId(),
+                name: "Measurement System Analysis (MSA)",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Dimensional Result",
+                completed: false,
+                children: [
+                  {
+                    id: generateId(),
+                    name: "Check Sheet",
+                    completed: false
+                  }
+                ]
+              },
+              {
+                id: generateId(),
+                name: "Material & Performance Test Result",
+                completed: false,
+                children: [
+                  {
+                    id: generateId(),
+                    name: "Mill Sheet",
+                    completed: false
+                  },
+                  {
+                    id: generateId(),
+                    name: "Test Lain",
+                    completed: false
+                  }
+                ]
+              },
+              {
+                id: generateId(),
+                name: "Sample Production Part",
+                completed: false
+              }
+            ]
+          }
+        ],
       },
       {
         id: "manufacturing",
         name: "Manufacturing",
-        processes: [],
+        processes: [
+          {
+            id: generateId(),
+            name: "Tooling",
+            completed: false,
+            children: [
+              {
+                id: generateId(),
+                name: "Master Schedule Tooling",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Trial Tooling Report (TPTR)",
+                completed: false
+              },
+              {
+                id: generateId(),
+                name: "Design Tooling",
+                completed: false
+              }
+            ]
+          }
+        ],
       },
       {
         id: "quality",
         name: "Quality Control",
-        processes: [],
+        processes: [
+          {
+            id: generateId(),
+            name: "Approval (Customer)",
+            completed: false,
+            children: []
+          }
+        ],
       },
     ],
   }
