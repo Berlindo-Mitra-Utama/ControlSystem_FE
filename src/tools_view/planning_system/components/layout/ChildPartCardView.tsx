@@ -1,5 +1,7 @@
-import React, { useState, useCallback, memo, useEffect } from "react";
-import { Package, User, Layers, X, TrendingUp, TrendingDown, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { ChevronLeft, ChevronRight, Calendar, User, Package, Layers, TrendingUp, TrendingDown } from "lucide-react";
+import { memo } from "react";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 interface ScheduleItem {
   id: string;
@@ -54,15 +56,17 @@ const InputCell = memo(function InputCell({ value, onChange, className }: { valu
 });
 
 const Modal: React.FC<{ open: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string; }> = ({ open, onClose, onConfirm, title, message }) => {
+  const { uiColors } = useTheme();
+  
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-      <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 max-w-sm w-full">
-        <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
-        <p className="text-gray-300 mb-6">{message}</p>
+      <div className={`${uiColors.bg.modal} rounded-2xl p-8 ${uiColors.border.primary} max-w-sm w-full`}>
+        <h2 className={`text-xl font-bold ${uiColors.text.primary} mb-2`}>{title}</h2>
+        <p className={`${uiColors.text.secondary} mb-6`}>{message}</p>
         <div className="flex gap-4 justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600">Batal</button>
-          <button onClick={onConfirm} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Hapus</button>
+          <button onClick={onClose} className={`px-4 py-2 rounded ${uiColors.button.secondary.bg} ${uiColors.button.secondary.hover} ${uiColors.button.secondary.text} ${uiColors.button.secondary.border}`}>Batal</button>
+          <button onClick={onConfirm} className={`px-4 py-2 rounded ${uiColors.button.danger.bg} ${uiColors.button.danger.hover} ${uiColors.button.danger.text} ${uiColors.button.danger.border}`}>Hapus</button>
         </div>
       </div>
     </div>
@@ -70,12 +74,7 @@ const Modal: React.FC<{ open: boolean; onClose: () => void; onConfirm: () => voi
 };
 
 const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
-  // In Material per shift per hari: [ [shift1, shift2], ... ]
-  const [inMaterialState, setInMaterialState] = useState<(number|null)[][]>(
-    props.inMaterial ?? Array.from({ length: props.days }, () => [null, null])
-  );
-  const [currentDay, setCurrentDay] = useState(0);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const { uiColors } = useTheme();
   
   // Set default date to 1st of current month if no date is selected
   const getDefaultDate = () => {
@@ -86,39 +85,76 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(
     props.selectedDate || getDefaultDate()
   );
+  const [currentDay, setCurrentDay] = useState(0);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
+  
+  // Track days that have user input to prevent resetting
+  const [daysWithUserInput, setDaysWithUserInput] = useState<Set<number>>(new Set());
+  
+  // In Material per shift per hari: [ [shift1, shift2], ... ]
+  const [inMaterialState, setInMaterialState] = useState<(number|null)[][]>(
+    props.inMaterial ?? Array.from({ length: props.days }, () => [null, null])
+  );
   
   // Sinkronisasi jika inMaterialProp berubah (misal, load dari localStorage)
-  React.useEffect(() => {
-    if (props.inMaterial) setInMaterialState(props.inMaterial);
+  useEffect(() => {
+    if (props.inMaterial) {
+      setInMaterialState(props.inMaterial);
+      // Mark days that have data as having user input
+      const daysWithData = new Set<number>();
+      props.inMaterial.forEach((dayData, dayIdx) => {
+        if (dayData && (dayData[0] !== null || dayData[1] !== null)) {
+          daysWithData.add(dayIdx);
+        }
+      });
+      setDaysWithUserInput(daysWithData);
+    }
   }, [props.inMaterial]);
+
+  // Sinkronisasi aktualInMaterial dari props
+  useEffect(() => {
+    if (props.aktualInMaterial) {
+      // Mark days that have aktual data as having user input
+      const daysWithAktualData = new Set<number>();
+      props.aktualInMaterial.forEach((dayData, dayIdx) => {
+        if (dayData && (dayData[0] !== null || dayData[1] !== null)) {
+          daysWithAktualData.add(dayIdx);
+        }
+      });
+      setDaysWithUserInput(prev => new Set([...prev, ...daysWithAktualData]));
+    }
+  }, [props.aktualInMaterial]);
   
   // Ensure inMaterialState is properly initialized for all days
   const inMaterial = React.useMemo(() => {
-    const base = props.inMaterial ?? inMaterialState;
-    // Ensure array has correct length and all days are initialized
+    // Create a new array with proper structure for all days
     const result = Array.from({ length: props.days }, (_, dayIdx) => {
-      if (base[dayIdx] && Array.isArray(base[dayIdx])) {
-        return [base[dayIdx][0] ?? null, base[dayIdx][1] ?? null];
+      // Use existing data if available, otherwise create new array
+      const existingData = inMaterialState[dayIdx];
+      if (existingData) {
+        return [...existingData]; // Copy to avoid mutation
       }
-      return [null, null];
+      return [null, null]; // Default for new days
     });
     return result;
-  }, [props.inMaterial, inMaterialState, props.days]);
+  }, [inMaterialState, props.days]);
 
-  // State aktualInMaterial benar-benar independen - now using props
-  // const [aktualInMaterialState, setAktualInMaterialState] = useState<(number|null)[][]>(
-  //   Array.from({ length: props.days }, () => [null, null])
-  // );
-  
   // Ensure aktualInMaterial is properly initialized for all days
   const aktualInMaterial = React.useMemo(() => {
-    const base = props.aktualInMaterial ?? Array.from({ length: props.days }, () => [null, null]);
-    // Ensure array has correct length and all days are initialized
+    const propsAktualInMaterial = props.aktualInMaterial ?? Array.from({ length: props.days }, () => [null, null]);
+    
+    // Create a new array with proper structure for all days
     const result = Array.from({ length: props.days }, (_, dayIdx) => {
-      if (base[dayIdx] && Array.isArray(base[dayIdx])) {
-        return [base[dayIdx][0] ?? null, base[dayIdx][1] ?? null];
+      // Use existing data if available, otherwise create new array
+      const existingData = propsAktualInMaterial[dayIdx];
+      if (existingData) {
+        return [...existingData]; // Copy to avoid mutation
       }
-      return [null, null];
+      return [null, null]; // Default for new days
     });
     return result;
   }, [props.aktualInMaterial, props.days]);
@@ -177,22 +213,56 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
   // Hitung total aktual in material sebulan
   const totalAktualInMaterial = aktualInMaterial.reduce((sum, arr) => sum + (arr[0] ?? 0) + (arr[1] ?? 0), 0);
 
-  // Handler input granular
+  // Handler input granular - store data in the correct array for each day and shift
   const handleInMaterialChange = useCallback((dayIdx: number, shiftIdx: number, value: number | null) => {
+    // Update local state
     setInMaterialState(prev => {
-      if (prev[dayIdx][shiftIdx] === value) return prev;
-      const next = prev.map((arr, i) => i === dayIdx ? [...arr] : arr);
+      const next = [...prev];
+      // Ensure the day array exists
+      if (!next[dayIdx]) {
+        next[dayIdx] = [null, null];
+      }
+      // Update the specific shift value
       next[dayIdx][shiftIdx] = value;
-      if (props.onInMaterialChange) props.onInMaterialChange(next);
       return next;
     });
-  }, [props.onInMaterialChange]);
+    
+    // Immediately save to parent component with the updated array
+    if (props.onInMaterialChange) {
+      const updatedInMaterial = [...inMaterialState];
+      if (!updatedInMaterial[dayIdx]) {
+        updatedInMaterial[dayIdx] = [null, null];
+      }
+      updatedInMaterial[dayIdx][shiftIdx] = value;
+      props.onInMaterialChange(updatedInMaterial);
+    }
+    
+    // Mark this day as having user input
+    if (value !== null) {
+      setDaysWithUserInput(prev => new Set([...prev, dayIdx]));
+    }
+  }, [props.onInMaterialChange, inMaterialState]);
+  
   const handleAktualInMaterialChange = useCallback((dayIdx: number, shiftIdx: number, value: number | null) => {
     if (props.onAktualInMaterialChange) {
       const currentAktualInMaterial = props.aktualInMaterial ?? Array.from({ length: props.days }, () => [null, null]);
-      const updated = currentAktualInMaterial.map((arr, i) => i === dayIdx ? [...arr] : arr);
+      const updated = [...currentAktualInMaterial];
+      
+      // Ensure the day array exists
+      if (!updated[dayIdx]) {
+        updated[dayIdx] = [null, null];
+      }
+      
+      // Update the specific shift value
       updated[dayIdx][shiftIdx] = value;
+      
+      // Immediately save to parent component
       props.onAktualInMaterialChange(updated);
+    }
+    
+    // Mark this day as having user input
+    if (value !== null) {
+      setDaysWithUserInput(prev => new Set([...prev, dayIdx]));
     }
   }, [props.onAktualInMaterialChange, props.aktualInMaterial, props.days]);
 
@@ -353,13 +423,13 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
             <button
               onClick={goToPrevDay}
               disabled={selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
+              className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             
             <div className="text-center">
-              <div className="text-lg font-medium text-gray-300">
+              <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
                 {selectedDate ? formatSelectedDate(selectedDate) : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString('id-ID', { month: 'long' })} ${new Date().getFullYear()}`}
               </div>
             </div>
@@ -367,7 +437,7 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
             <button
               onClick={goToNextDay}
               disabled={selectedDate ? selectedDate.getDate() >= 31 : displayDay === props.days - 1}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
+              className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -375,28 +445,28 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
           {/* In Material */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
               <Layers className="w-5 h-5 text-blue-400" />
               Rencana In Material
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
                   <InputCell
                     key={`rencana-shift1-day${displayDay}`}
                     value={inMaterial[displayDay][0]}
                     onChange={v => handleInMaterialChange(displayDay, 0, v)}
-                    className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
                   <InputCell
                     key={`rencana-shift2-day${displayDay}`}
                     value={inMaterial[displayDay][1]}
                     onChange={v => handleInMaterialChange(displayDay, 1, v)}
-                    className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
                   />
                 </div>
               </div>
@@ -405,28 +475,28 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
           {/* Aktual In Material */}
           <div className="space-y-4 mt-6">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
               <Layers className="w-5 h-5 text-green-400" />
               Aktual In Material
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
                   <InputCell
                     key={`aktual-shift1-day${displayDay}`}
                     value={aktualInMaterial[displayDay][0]}
                     onChange={v => handleAktualInMaterialChange(displayDay, 0, v)}
-                    className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
                   <InputCell
                     key={`aktual-shift2-day${displayDay}`}
                     value={aktualInMaterial[displayDay][1]}
                     onChange={v => handleAktualInMaterialChange(displayDay, 1, v)}
-                    className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
                   />
                 </div>
               </div>
@@ -435,21 +505,21 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
           {/* Rencana Stock */}
           <div className="space-y-4 mt-6">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
               <TrendingUp className="w-5 h-5 text-green-400" />
               Rencana Stock (PCS)
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2] < 0 ? 'text-red-600 font-bold' : rencanaStock[displayDay * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2 + 1] < 0 ? 'text-red-600 font-bold' : rencanaStock[displayDay * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                   </div>
                 </div>
@@ -459,21 +529,21 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
           {/* Aktual Stock */}
           <div className="space-y-4 mt-6">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
               <TrendingDown className="w-5 h-5 text-red-400" />
               Aktual Stock (PCS)
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2] < 0 ? 'text-red-600 font-bold' : aktualStock[displayDay * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2 + 1] < 0 ? 'text-red-600 font-bold' : aktualStock[displayDay * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                   </div>
                 </div>
@@ -492,13 +562,13 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
           <button
             onClick={goToPrevDay}
             disabled={selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0}
-            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
+            className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           
           <div className="text-center">
-            <div className="text-lg font-medium text-gray-300">
+            <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
               {selectedDate ? formatSelectedDate(selectedDate) : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString('id-ID', { month: 'long' })} ${new Date().getFullYear()}`}
             </div>
           </div>
@@ -506,7 +576,7 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
           <button
             onClick={goToNextDay}
             disabled={selectedDate ? selectedDate.getDate() >= 31 : displayDay === props.days - 1}
-            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
+            className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -515,28 +585,28 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
         {/* Render konten sesuai filter yang dipilih */}
         {props.activeFilter.includes("rencanaInMaterial") && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
               <Layers className="w-5 h-5 text-blue-400" />
               Rencana In Material
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
                   <InputCell
                     key={`rencana-shift1-day${displayDay}`}
                     value={inMaterial[displayDay][0]}
                     onChange={v => handleInMaterialChange(displayDay, 0, v)}
-                    className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
                   <InputCell
                     key={`rencana-shift2-day${displayDay}`}
                     value={inMaterial[displayDay][1]}
                     onChange={v => handleInMaterialChange(displayDay, 1, v)}
-                    className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
                   />
                 </div>
               </div>
@@ -546,28 +616,28 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
         {props.activeFilter.includes("aktualInMaterial") && (
           <div className="space-y-4 mt-6">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
               <Layers className="w-5 h-5 text-green-400" />
               Aktual In Material
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
                   <InputCell
                     key={`aktual-shift1-day${displayDay}`}
                     value={aktualInMaterial[displayDay][0]}
                     onChange={v => handleAktualInMaterialChange(displayDay, 0, v)}
-                    className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
                   <InputCell
                     key={`aktual-shift2-day${displayDay}`}
                     value={aktualInMaterial[displayDay][1]}
                     onChange={v => handleAktualInMaterialChange(displayDay, 1, v)}
-                    className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
                   />
                 </div>
               </div>
@@ -577,21 +647,21 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
         {props.activeFilter.includes("rencanaStock") && (
           <div className="space-y-4 mt-6">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-400" />
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
+              <TrendingUp className="w-5 h-5 text-blue-400" />
               Rencana Stock (PCS)
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2] < 0 ? 'text-red-600 font-bold' : rencanaStock[displayDay * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2 + 1] < 0 ? 'text-red-600 font-bold' : rencanaStock[displayDay * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                   </div>
                 </div>
@@ -602,21 +672,21 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
         {props.activeFilter.includes("aktualStock") && (
           <div className="space-y-4 mt-6">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}>
               <TrendingDown className="w-5 h-5 text-red-400" />
               Aktual Stock (PCS)
             </h3>
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 1</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2] < 0 ? 'text-red-600 font-bold' : aktualStock[displayDay * 2] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                  <label className={`block text-xs ${uiColors.text.tertiary} mb-2`}>Shift 2</label>
+                  <div className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2 + 1] < 0 ? 'text-red-600 font-bold' : aktualStock[displayDay * 2 + 1] > 0 ? 'text-green-400 font-bold' : uiColors.text.primary}`}>
                     {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                   </div>
                 </div>
@@ -628,50 +698,40 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
     );
   };
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   const handleDeleteClick = () => setShowDeleteModal(true);
   const handleDeleteConfirm = () => {
     setShowDeleteModal(false);
     if (props.onDelete) props.onDelete();
   };
 
-  // Input reset effect
+  // Input reset effect - only initialize arrays if they don't exist
   useEffect(() => {
     const displayDay = getCurrentDisplayDay();
     
-    // Ensure inMaterialState is properly initialized for the current day
-    setInMaterialState(prev => {
-      const next = [...prev];
-      // If the current day doesn't exist in the array, initialize it
-      if (!next[displayDay]) {
-        next[displayDay] = [null, null];
-      }
-      return next;
-    });
+    // Only initialize arrays if they don't exist, don't reset existing data
+    if (props.onInMaterialChange && !inMaterialState[displayDay]) {
+      const newInMaterial = [...inMaterialState];
+      newInMaterial[displayDay] = [null, null];
+      props.onInMaterialChange(newInMaterial);
+    }
     
-    // Ensure aktualInMaterial is properly initialized for the current day
-    if (props.onAktualInMaterialChange && props.aktualInMaterial) {
-      const currentAktualInMaterial = [...props.aktualInMaterial];
-      // If the current day doesn't exist in the array, initialize it
-      if (!currentAktualInMaterial[displayDay]) {
-        currentAktualInMaterial[displayDay] = [null, null];
-        props.onAktualInMaterialChange(currentAktualInMaterial);
-      }
+    if (props.onAktualInMaterialChange && aktualInMaterial && !aktualInMaterial[displayDay]) {
+      const newAktualInMaterial = [...aktualInMaterial];
+      newAktualInMaterial[displayDay] = [null, null];
+      props.onAktualInMaterialChange(newAktualInMaterial);
     }
   }, [selectedDate, currentDay]); // Depend on the actual values that change when navigating
 
   return (
     <div className="mt-6">
       {/* Header Info */}
-      <div className="p-4 pb-2 bg-slate-900 rounded-t-xl border border-b-0 border-slate-700 relative">
+      <div className={`p-4 pb-2 ${uiColors.bg.tertiary} rounded-t-xl flex flex-col gap-4 ${uiColors.border.primary} border-b-0 relative`}>
         {/* Main Header Content */}
         <div className="flex flex-col gap-4">
           {/* Top Row: Title and Action Buttons */}
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <span className="text-white font-bold text-lg">
+              <span className={`${uiColors.text.primary} font-bold text-lg`}>
                 {props.partName}
               </span>
             </div>
@@ -696,7 +756,7 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
           {/* Customer Info - Sticky position */}
           <div className="flex-shrink-0">
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 font-semibold text-sm">
+            <span className={`inline-flex items-center gap-1 px-3 py-1 ${uiColors.bg.secondary} ${uiColors.border.secondary} rounded-lg ${uiColors.text.secondary} font-semibold text-sm`}>
               <User className="w-4 h-4 text-emerald-400 mr-1" />
               {props.customerName}
             </span>
@@ -724,7 +784,7 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
       </div>
       
       {/* Card Content */}
-      <div className="bg-slate-900 rounded-b-xl border border-t-0 border-slate-700">
+      <div className={`${uiColors.bg.tertiary} rounded-b-xl ${uiColors.border.primary} border-t-0`}>
         <div className="p-4 pt-2">
           {renderFilteredContent()}
         </div>
@@ -732,57 +792,62 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
       {/* Calendar Modal */}
       {showCalendar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-80 max-h-96 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className={`${uiColors.bg.modal} rounded-2xl p-6 ${uiColors.border.primary} max-w-md w-full mx-4`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Pilih Tanggal Produksi</h3>
+              <h3 className={`text-lg font-bold ${uiColors.text.primary}`}>Pilih Tanggal</h3>
               <button
                 onClick={() => setShowCalendar(false)}
-                className="text-slate-400 hover:text-white"
+                className={`${uiColors.text.tertiary} hover:${uiColors.text.primary} text-xl font-bold`}
               >
-                <X className="w-5 h-5" />
+                ×
               </button>
             </div>
             
             <div className="grid grid-cols-7 gap-1 mb-4">
-              {['M', 'S', 'S', 'R', 'K', 'J', 'S'].map((day, idx) => (
-                <div key={idx} className="text-center text-xs text-slate-400 font-medium p-2">
+              {['M', 'S', 'S', 'R', 'K', 'J', 'S'].map((day, index) => (
+                <div key={index} className={`text-center ${uiColors.text.tertiary} text-sm font-medium p-2`}>
                   {day}
                 </div>
               ))}
             </div>
             
             <div className="grid grid-cols-7 gap-1">
-              {generateCalendarDays().map((date, idx) => (
+              {Array.from({ length: 31 }, (_, i) => (
                 <button
-                  key={idx}
-                  onClick={() => date && handleDateSelect(date)}
-                  disabled={!date}
-                  className={`p-2 text-sm rounded transition-all ${
-                    !date 
-                      ? 'invisible' 
-                      : selectedDate && selectedDate.toDateString() === date.toDateString()
-                        ? 'bg-blue-500 text-white'
-                        : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                  key={i}
+                  onClick={() => {
+                    const newDate = new Date();
+                    newDate.setDate(i + 1);
+                    setSelectedDate(newDate);
+                    setShowCalendar(false);
+                  }}
+                  className={`p-2 text-sm rounded hover:bg-blue-100 transition-colors ${
+                    selectedDate && selectedDate.getDate() === i + 1
+                      ? 'bg-blue-600 text-white'
+                      : `${uiColors.text.primary} hover:${uiColors.text.primary}`
                   }`}
                 >
-                  {date ? date.getDate() : ''}
+                  {i + 1}
                 </button>
               ))}
             </div>
             
             <div className="flex gap-2 mt-4">
               <button
-                onClick={handleSaveDate}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all"
-              >
-                Simpan
-              </button>
-              <button
                 onClick={() => setShowCalendar(false)}
-                className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg font-medium hover:bg-slate-700 transition-all"
+                className={`flex-1 px-4 py-2 ${uiColors.button.secondary.bg} ${uiColors.button.secondary.hover} ${uiColors.button.secondary.text} ${uiColors.button.secondary.border} rounded-lg font-semibold transition`}
               >
                 Batal
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedDate(null);
+                  setShowCalendar(false);
+                }}
+                className={`flex-1 px-4 py-2 ${uiColors.button.primary.bg} ${uiColors.button.primary.hover} ${uiColors.button.primary.text} rounded-lg font-semibold transition`}
+              >
+                Reset
               </button>
             </div>
           </div>
@@ -793,9 +858,15 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
-      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={handleDeleteConfirm} title="Konfirmasi Hapus" message="Apakah Anda yakin ingin menghapus data ini?" />
+      <Modal 
+        open={showDeleteModal} 
+        onClose={() => setShowDeleteModal(false)} 
+        onConfirm={handleDeleteConfirm} 
+        title="Konfirmasi Hapus" 
+        message="Apakah Anda yakin ingin menghapus part ini?" 
+      />
     </div>
   );
 };
 
-export default memo(ChildPartCardView); 
+export default memo(ChildPartCardView);
