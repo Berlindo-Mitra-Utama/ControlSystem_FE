@@ -363,9 +363,56 @@ export default function Dashboard() {
   // Load data from localStorage on mount and listen for changes
   useEffect(() => {
     const loadPartsData = () => {
-      const savedParts = localStorage.getItem("parts-data")
-      if (savedParts) {
-        setParts(JSON.parse(savedParts))
+      try {
+        // Coba ambil data dari localStorage
+        let savedParts;
+        try {
+          savedParts = localStorage.getItem("parts-data")
+        } catch (localStorageError) {
+          console.error("Dashboard: Error mengakses localStorage:", localStorageError)
+          savedParts = null;
+        }
+        
+        if (savedParts && savedParts !== "undefined" && savedParts !== "null") {
+          try {
+            const parsedData = JSON.parse(savedParts)
+            setParts(parsedData)
+            console.log("Dashboard: Data berhasil dimuat dari localStorage")
+            return
+          } catch (parseError) {
+            console.error("Dashboard: Error parsing data dari localStorage:", parseError)
+            // Jika parsing localStorage gagal, coba ambil dari sessionStorage
+          }
+        }
+        
+        // Jika data dari localStorage tidak valid atau parsing gagal, coba ambil dari sessionStorage
+        let backupData;
+        try {
+          backupData = sessionStorage.getItem("parts-data-backup")
+        } catch (sessionStorageError) {
+          console.error("Dashboard: Error mengakses sessionStorage:", sessionStorageError)
+          backupData = null;
+        }
+        
+        if (backupData && backupData !== "undefined" && backupData !== "null") {
+          try {
+            const parsedBackupData = JSON.parse(backupData)
+            setParts(parsedBackupData)
+            console.log("Dashboard: Data berhasil dimuat dari sessionStorage (backup)")
+            
+            // Simpan kembali ke localStorage untuk memperbaiki data yang rusak
+            try {
+              localStorage.setItem("parts-data", backupData)
+            } catch (saveError) {
+              console.error("Dashboard: Error menyimpan data ke localStorage:", saveError)
+            }
+          } catch (parseBackupError) {
+            console.error("Dashboard: Error parsing data dari sessionStorage:", parseBackupError)
+            // Jika parsing sessionStorage juga gagal, gunakan data default
+          }
+        }
+      } catch (error) {
+        console.error("Dashboard: Error memuat data dari storage:", error)
       }
     }
     
@@ -373,9 +420,19 @@ export default function Dashboard() {
     loadPartsData()
     
     // Listen for changes from manage_progres.tsx
-    const handleStorageChange = (e) => {
-      if (!e || e.key === "parts-data") {
+    const handleStorageChange = (e: StorageEvent | Event | null) => {
+      if (!e || (e as StorageEvent).key === "parts-data" || (e as StorageEvent).key === "parts-data-backup") {
         loadPartsData()
+      }
+      
+      // Jika perubahan dari localStorage, pastikan juga tersimpan di sessionStorage
+      if (e && (e as StorageEvent).key === "parts-data" && (e as StorageEvent).newValue) {
+        try {
+          sessionStorage.setItem("parts-data-backup", (e as StorageEvent).newValue)
+          console.log("Dashboard: Data dari localStorage disinkronkan ke sessionStorage")
+        } catch (sessionStorageError) {
+          console.error("Dashboard: Error menyimpan ke sessionStorage saat sinkronisasi:", sessionStorageError)
+        }
       }
     }
     
@@ -423,9 +480,71 @@ export default function Dashboard() {
         }
       })
       
-      // Save to localStorage and notify other components
-      localStorage.setItem("parts-data", JSON.stringify(updatedParts))
-      window.dispatchEvent(new Event("parts-updated"))
+      try {
+        // Konversi data ke string JSON
+        const partsDataString = JSON.stringify(updatedParts)
+        
+        // Save to localStorage with separate try-catch
+        try {
+          localStorage.setItem("parts-data", partsDataString)
+          console.log("Dashboard: Data berhasil disimpan ke localStorage")
+        } catch (localStorageError) {
+          console.error("Dashboard: Error menyimpan ke localStorage:", localStorageError)
+        }
+        
+        // Simpan juga ke sessionStorage sebagai backup with separate try-catch
+        try {
+          sessionStorage.setItem("parts-data-backup", partsDataString)
+          console.log("Dashboard: Data berhasil disimpan ke sessionStorage sebagai backup")
+        } catch (sessionStorageError) {
+          console.error("Dashboard: Error menyimpan ke sessionStorage:", sessionStorageError)
+        }
+        
+        // Verifikasi data tersimpan di localStorage
+        let savedData;
+        try {
+          savedData = localStorage.getItem("parts-data")
+        } catch (getError) {
+          console.error("Dashboard: Error mengakses localStorage untuk verifikasi:", getError)
+          savedData = null;
+        }
+        
+        if (!savedData || savedData === "undefined" || savedData === "null") {
+          console.error("Dashboard: Data tidak tersimpan dengan benar di localStorage setelah toggle complete")
+          // Coba simpan ulang
+          try {
+            localStorage.setItem("parts-data", partsDataString)
+          } catch (retryError) {
+            console.error("Dashboard: Gagal menyimpan ulang ke localStorage:", retryError)
+          }
+        }
+        
+        // Verifikasi data tersimpan di sessionStorage
+        let backupData;
+        try {
+          backupData = sessionStorage.getItem("parts-data-backup")
+        } catch (getError) {
+          console.error("Dashboard: Error mengakses sessionStorage untuk verifikasi:", getError)
+          backupData = null;
+        }
+        
+        if (!backupData || backupData === "undefined" || backupData === "null") {
+          console.error("Dashboard: Data tidak tersimpan dengan benar di sessionStorage setelah toggle complete")
+          // Coba simpan ulang
+          try {
+            sessionStorage.setItem("parts-data-backup", partsDataString)
+          } catch (retryError) {
+            console.error("Dashboard: Gagal menyimpan ulang ke sessionStorage:", retryError)
+          }
+        }
+        
+        // Notify other components
+        window.dispatchEvent(new Event("parts-updated"))
+        
+        console.log("Dashboard: Status complete berhasil diubah dan disimpan")
+      } catch (error) {
+        console.error("Dashboard: Error saat menyimpan perubahan status complete:", error)
+      }
       
       return updatedParts
     })

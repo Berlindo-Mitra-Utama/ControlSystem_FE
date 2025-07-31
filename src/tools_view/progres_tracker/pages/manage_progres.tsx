@@ -557,55 +557,134 @@ export default function ManageProgres() {
 
   // Load data from localStorage on mount
   useEffect(() => {
-    const savedParts = localStorage.getItem("parts-data")
-    if (savedParts) {
-      setParts(JSON.parse(savedParts))
-    } else {
-      // If no data exists, create a sample part to get started
-      const samplePart: Part = {
-        id: generateId(),
-        partName: "Sample Part",
-        partNumber: "SP-001",
-        customer: "Demo Customer",
-        progress: [
-          {
-            id: "design",
-            name: "Design",
-            processes: [],
-          },
-          {
-            id: "manufacturing",
-            name: "Manufacturing",
-            processes: [],
-          },
-          {
-            id: "quality",
-            name: "Quality Control",
-            processes: [],
-          },
-        ],
+    try {
+      // Coba ambil data dari localStorage
+      const savedParts = localStorage.getItem("parts-data")
+      let dataLoaded = false
+      
+      if (savedParts && savedParts !== "undefined" && savedParts !== "null") {
+        try {
+          const parsedParts = JSON.parse(savedParts)
+          setParts(parsedParts)
+          console.log("Data berhasil dimuat dari localStorage:", parsedParts)
+          dataLoaded = true
+          
+          // Simpan juga ke sessionStorage sebagai backup
+          sessionStorage.setItem("parts-data-backup", savedParts)
+        } catch (parseError) {
+          console.error("Error parsing data dari localStorage:", parseError)
+          // Jika parsing localStorage gagal, coba ambil dari sessionStorage
+        }
       }
-      setParts([samplePart])
-      // Save to localStorage
-      localStorage.setItem("parts-data", JSON.stringify([samplePart]))
-      // Notify other components
-      window.dispatchEvent(new Event("parts-updated"))
+      
+      // Jika data dari localStorage tidak valid atau parsing gagal, coba ambil dari sessionStorage
+      if (!dataLoaded) {
+        const backupData = sessionStorage.getItem("parts-data-backup")
+        
+        if (backupData && backupData !== "undefined" && backupData !== "null") {
+          try {
+            const parsedBackupData = JSON.parse(backupData)
+            setParts(parsedBackupData)
+            console.log("Data berhasil dimuat dari sessionStorage (backup)")
+            dataLoaded = true
+            
+            // Simpan kembali ke localStorage untuk memperbaiki data yang rusak
+            localStorage.setItem("parts-data", backupData)
+            
+            // Notify other components
+            window.dispatchEvent(new Event("parts-updated"))
+          } catch (parseBackupError) {
+            console.error("Error parsing data dari sessionStorage:", parseBackupError)
+            // Jika parsing sessionStorage juga gagal, inisialisasi dengan array kosong
+          }
+        }
+      }
+      
+      // Jika tidak ada data valid di localStorage maupun sessionStorage, inisialisasi dengan array kosong
+      if (!dataLoaded) {
+        console.log("Tidak ada data valid di localStorage atau sessionStorage, inisialisasi dengan array kosong")
+        setParts([])
+        
+        // Simpan array kosong ke kedua storage
+        const emptyArray = JSON.stringify([])
+        localStorage.setItem("parts-data", emptyArray)
+        sessionStorage.setItem("parts-data-backup", emptyArray)
+        
+        // Notify other components
+        window.dispatchEvent(new Event("parts-updated"))
+      }
+    } catch (error) {
+      console.error("Error memuat data dari storage:", error)
+      // Jika terjadi error, inisialisasi dengan array kosong
+      setParts([])
+      const emptyArray = JSON.stringify([])
+      localStorage.setItem("parts-data", emptyArray)
+      sessionStorage.setItem("parts-data-backup", emptyArray)
     }
   }, [])
 
   // Auto-save data to localStorage whenever parts change
   useEffect(() => {
-    if (parts.length > 0) {
-      localStorage.setItem("parts-data", JSON.stringify(parts))
+    // Hanya simpan data jika parts bukan array kosong
+    if (parts.length === 0) return;
+    
+    // Simpan data ke localStorage dan sessionStorage
+    try {
+      const partsData = JSON.stringify(parts)
+      
+      // Simpan ke localStorage dengan try-catch terpisah
+      try {
+        localStorage.setItem("parts-data", partsData)
+        console.log("Data berhasil disimpan ke localStorage")
+      } catch (localStorageError) {
+        console.error("Error menyimpan ke localStorage:", localStorageError)
+      }
+      
+      // Simpan juga ke sessionStorage dengan try-catch terpisah
+      try {
+        sessionStorage.setItem("parts-data-backup", partsData)
+        console.log("Data berhasil disimpan ke sessionStorage sebagai backup")
+      } catch (sessionStorageError) {
+        console.error("Error menyimpan ke sessionStorage:", sessionStorageError)
+      }
+      
       // Dispatch custom event to notify other tabs/components
       window.dispatchEvent(new Event("parts-updated"))
+      
+      // Verifikasi data tersimpan dengan benar di localStorage
+      const savedData = localStorage.getItem("parts-data")
+      if (!savedData || savedData === "undefined" || savedData === "null") {
+        console.error("Data tidak tersimpan dengan benar di localStorage")
+        // Coba simpan ulang ke localStorage
+        try {
+          localStorage.setItem("parts-data", partsData)
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang ke localStorage:", retryError)
+        }
+      }
+      
+      // Verifikasi data tersimpan dengan benar di sessionStorage
+      const backupData = sessionStorage.getItem("parts-data-backup")
+      if (!backupData || backupData === "undefined" || backupData === "null") {
+        console.error("Data backup tidak tersimpan dengan benar di sessionStorage")
+        // Coba simpan ulang ke sessionStorage
+        try {
+          sessionStorage.setItem("parts-data-backup", partsData)
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang ke sessionStorage:", retryError)
+        }
+      }
+      
+      console.log("Data berhasil disimpan ke localStorage dan sessionStorage sebagai backup")
+    } catch (error) {
+      console.error("Error menyimpan data ke storage:", error)
     }
   }, [parts])
 
   // Toggle process completion
   const toggleProcess = (partId: string, progressId: string, processId: string, childId?: string) => {
-    setParts((prevParts) =>
-      prevParts.map((part) => {
+    setParts((prevParts) => {
+      const updatedParts = prevParts.map((part) => {
         if (part.id !== partId) return part
 
         return {
@@ -632,8 +711,44 @@ export default function ManageProgres() {
             }
           }),
         }
-      }),
-    )
+      })
+      
+      try {
+        // Konversi data ke string JSON
+        const partsDataString = JSON.stringify(updatedParts)
+        
+        // Simpan langsung ke localStorage untuk memastikan data tersimpan
+        localStorage.setItem("parts-data", partsDataString)
+        
+        // Simpan juga ke sessionStorage sebagai backup
+        sessionStorage.setItem("parts-data-backup", partsDataString)
+        
+        // Verifikasi data tersimpan di localStorage
+        const savedData = localStorage.getItem("parts-data")
+        if (!savedData || savedData === "undefined" || savedData === "null") {
+          console.error("Data tidak tersimpan dengan benar di localStorage setelah toggle complete")
+          // Coba simpan ulang
+          localStorage.setItem("parts-data", partsDataString)
+        }
+        
+        // Verifikasi data tersimpan di sessionStorage
+        const backupData = sessionStorage.getItem("parts-data-backup")
+        if (!backupData || backupData === "undefined" || backupData === "null") {
+          console.error("Data tidak tersimpan dengan benar di sessionStorage setelah toggle complete")
+          // Coba simpan ulang
+          sessionStorage.setItem("parts-data-backup", partsDataString)
+        }
+        
+        // Notify other components
+        window.dispatchEvent(new Event("parts-updated"))
+        
+        console.log("Status complete berhasil diubah dan disimpan")
+      } catch (error) {
+        console.error("Error saat menyimpan perubahan status complete:", error)
+      }
+      
+      return updatedParts
+    })
   }
 
   // Handle process form save
@@ -642,18 +757,90 @@ export default function ManageProgres() {
 
     if (!partId || !categoryId) return
 
-    if (isSubProcess && processId) {
-      if (type === "add") {
-        setParts(addSubProcess(parts, partId, categoryId, processId, processData))
-      } else if (type === "edit" && subProcessId) {
-        setParts(editSubProcess(parts, partId, categoryId, processId, subProcessId, processData))
+    try {
+      let updatedParts: Part[] = [];
+      
+      if (isSubProcess && processId) {
+        if (type === "add") {
+          updatedParts = addSubProcess(parts, partId, categoryId, processId, processData);
+          setParts(updatedParts);
+        } else if (type === "edit" && subProcessId) {
+          updatedParts = editSubProcess(parts, partId, categoryId, processId, subProcessId, processData);
+          setParts(updatedParts);
+        }
+      } else {
+        if (type === "add") {
+          updatedParts = addProcess(parts, partId, categoryId, processData);
+          setParts(updatedParts);
+        } else if (type === "edit" && processId) {
+          updatedParts = editProcess(parts, partId, categoryId, processId, processData);
+          setParts(updatedParts);
+        }
       }
-    } else {
-      if (type === "add") {
-        setParts(addProcess(parts, partId, categoryId, processData))
-      } else if (type === "edit" && processId) {
-        setParts(editProcess(parts, partId, categoryId, processId, processData))
+      
+      // Konversi data ke string JSON
+      const partsDataString = JSON.stringify(updatedParts);
+      
+      // Simpan langsung ke localStorage untuk memastikan data tersimpan
+      try {
+        localStorage.setItem("parts-data", partsDataString);
+        console.log("Data process berhasil disimpan ke localStorage");
+      } catch (localStorageError) {
+        console.error("Error menyimpan process ke localStorage:", localStorageError);
       }
+      
+      // Simpan juga ke sessionStorage sebagai backup
+      try {
+        sessionStorage.setItem("parts-data-backup", partsDataString);
+        console.log("Data process berhasil disimpan ke sessionStorage sebagai backup");
+      } catch (sessionStorageError) {
+        console.error("Error menyimpan process ke sessionStorage:", sessionStorageError);
+      }
+      
+      // Verifikasi data tersimpan di localStorage
+      let savedData;
+      try {
+        savedData = localStorage.getItem("parts-data");
+      } catch (getError) {
+        console.error("Error mengakses localStorage untuk verifikasi:", getError);
+        savedData = null;
+      }
+      
+      if (!savedData || savedData === "undefined" || savedData === "null") {
+        console.error("Data process tidak tersimpan dengan benar di localStorage setelah save");
+        // Coba simpan ulang
+        try {
+          localStorage.setItem("parts-data", partsDataString);
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang process ke localStorage:", retryError);
+        }
+      }
+      
+      // Verifikasi data tersimpan di sessionStorage
+      let backupData;
+      try {
+        backupData = sessionStorage.getItem("parts-data-backup");
+      } catch (getError) {
+        console.error("Error mengakses sessionStorage untuk verifikasi:", getError);
+        backupData = null;
+      }
+      
+      if (!backupData || backupData === "undefined" || backupData === "null") {
+        console.error("Data process tidak tersimpan dengan benar di sessionStorage setelah save");
+        // Coba simpan ulang
+        try {
+          sessionStorage.setItem("parts-data-backup", partsDataString);
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang process ke sessionStorage:", retryError);
+        }
+      }
+      
+      // Notify other components
+      window.dispatchEvent(new Event("parts-updated"));
+      
+      console.log("Data process berhasil disimpan:", updatedParts);
+    } catch (error) {
+      console.error("Error saat menyimpan process:", error);
     }
   }
 
@@ -661,10 +848,80 @@ export default function ManageProgres() {
   const handlePartSave = (partData: { partName: string; partNumber: string; customer: string }) => {
     const { partId, type } = partModal
 
-    if (type === "add") {
-      setParts(addPart(parts, partData))
-    } else if (type === "edit" && partId) {
-      setParts(editPart(parts, partId, partData))
+    try {
+      let updatedParts: Part[] = [];
+      
+      if (type === "add") {
+        updatedParts = addPart(parts, partData);
+        setParts(updatedParts);
+      } else if (type === "edit" && partId) {
+        updatedParts = editPart(parts, partId, partData);
+        setParts(updatedParts);
+      }
+      
+      // Konversi data ke string JSON
+      const partsDataString = JSON.stringify(updatedParts);
+      
+      // Simpan langsung ke localStorage untuk memastikan data tersimpan
+      try {
+        localStorage.setItem("parts-data", partsDataString);
+        console.log("Data part berhasil disimpan ke localStorage");
+      } catch (localStorageError) {
+        console.error("Error menyimpan part ke localStorage:", localStorageError);
+      }
+      
+      // Simpan juga ke sessionStorage sebagai backup
+      try {
+        sessionStorage.setItem("parts-data-backup", partsDataString);
+        console.log("Data part berhasil disimpan ke sessionStorage sebagai backup");
+      } catch (sessionStorageError) {
+        console.error("Error menyimpan part ke sessionStorage:", sessionStorageError);
+      }
+      
+      // Verifikasi data tersimpan di localStorage
+      let savedData;
+      try {
+        savedData = localStorage.getItem("parts-data");
+      } catch (getError) {
+        console.error("Error mengakses localStorage untuk verifikasi:", getError);
+        savedData = null;
+      }
+      
+      if (!savedData || savedData === "undefined" || savedData === "null") {
+        console.error("Data part tidak tersimpan dengan benar di localStorage setelah save");
+        // Coba simpan ulang
+        try {
+          localStorage.setItem("parts-data", partsDataString);
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang part ke localStorage:", retryError);
+        }
+      }
+      
+      // Verifikasi data tersimpan di sessionStorage
+      let backupData;
+      try {
+        backupData = sessionStorage.getItem("parts-data-backup");
+      } catch (getError) {
+        console.error("Error mengakses sessionStorage untuk verifikasi:", getError);
+        backupData = null;
+      }
+      
+      if (!backupData || backupData === "undefined" || backupData === "null") {
+        console.error("Data part tidak tersimpan dengan benar di sessionStorage setelah save");
+        // Coba simpan ulang
+        try {
+          sessionStorage.setItem("parts-data-backup", partsDataString);
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang part ke sessionStorage:", retryError);
+        }
+      }
+      
+      // Notify other components
+      window.dispatchEvent(new Event("parts-updated"));
+      
+      console.log("Data part berhasil disimpan:", updatedParts);
+    } catch (error) {
+      console.error("Error saat menyimpan part:", error);
     }
   }
 
@@ -672,12 +929,81 @@ export default function ManageProgres() {
   const handleDelete = () => {
     const { partId, categoryId, processId, subProcessId, type } = deleteDialog
 
-    if (type === "part" && partId) {
-      setParts(deletePart(parts, partId))
-    } else if (type === "subprocess" && partId && categoryId && processId && subProcessId) {
-      setParts(deleteSubProcess(parts, partId, categoryId, processId, subProcessId))
-    } else if (type === "process" && partId && categoryId && processId) {
-      setParts(deleteProcess(parts, partId, categoryId, processId))
+    try {
+      let updatedParts: Part[] = [];
+      
+      if (type === "part" && partId) {
+        updatedParts = deletePart(parts, partId);
+        setParts(updatedParts);
+      } else if (type === "subprocess" && partId && categoryId && processId && subProcessId) {
+        updatedParts = deleteSubProcess(parts, partId, categoryId, processId, subProcessId);
+        setParts(updatedParts);
+      } else if (type === "process" && partId && categoryId && processId) {
+        updatedParts = deleteProcess(parts, partId, categoryId, processId);
+        setParts(updatedParts);
+      }
+
+      // Konversi data ke string JSON
+      const partsDataString = JSON.stringify(updatedParts);
+      
+      // Simpan langsung ke localStorage untuk memastikan data tersimpan
+      try {
+        localStorage.setItem("parts-data", partsDataString);
+        console.log("Data setelah delete berhasil disimpan ke localStorage");
+      } catch (localStorageError) {
+        console.error("Error menyimpan data setelah delete ke localStorage:", localStorageError);
+      }
+      
+      // Simpan juga ke sessionStorage sebagai backup
+      try {
+        sessionStorage.setItem("parts-data-backup", partsDataString);
+        console.log("Data setelah delete berhasil disimpan ke sessionStorage sebagai backup");
+      } catch (sessionStorageError) {
+        console.error("Error menyimpan data setelah delete ke sessionStorage:", sessionStorageError);
+      }
+      
+      // Verifikasi data tersimpan di localStorage
+      let savedData;
+      try {
+        savedData = localStorage.getItem("parts-data");
+      } catch (getError) {
+        console.error("Error mengakses localStorage untuk verifikasi setelah delete:", getError);
+        savedData = null;
+      }
+      
+      if (!savedData || savedData === "undefined" || savedData === "null") {
+        console.error("Data tidak tersimpan dengan benar di localStorage setelah delete");
+        // Coba simpan ulang
+        try {
+          localStorage.setItem("parts-data", partsDataString);
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang data ke localStorage setelah delete:", retryError);
+        }
+      }
+      
+      // Verifikasi data tersimpan di sessionStorage
+      let backupData;
+      try {
+        backupData = sessionStorage.getItem("parts-data-backup");
+      } catch (getError) {
+        console.error("Error mengakses sessionStorage untuk verifikasi setelah delete:", getError);
+        backupData = null;
+      }
+      
+      if (!backupData || backupData === "undefined" || backupData === "null") {
+        console.error("Data tidak tersimpan dengan benar di sessionStorage setelah delete");
+        // Coba simpan ulang
+        try {
+          sessionStorage.setItem("parts-data-backup", partsDataString);
+        } catch (retryError) {
+          console.error("Gagal menyimpan ulang data ke sessionStorage setelah delete:", retryError);
+        }
+      }
+      
+      // Notify other components
+      window.dispatchEvent(new Event("parts-updated"));
+    } catch (error) {
+      console.error("Error saat menghapus data:", error);
     }
 
     // Close the dialog but preserve the type
