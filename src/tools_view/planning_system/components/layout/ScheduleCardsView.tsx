@@ -66,7 +66,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   handleAddManpower,
   handleRemoveManpower,
 }) => {
-  const { uiColors } = useTheme();
+  const { uiColors, theme } = useTheme();
   // State untuk loading popup
   const [isLoading, setIsLoading] = useState(false);
   // State untuk mengelola fokus input
@@ -1045,95 +1045,159 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                                 {/* Akumulasi Delivery hanya tampil di shift yang sesuai */}
                                 {row.shift === "1" && (
-                                  <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                  <div
+                                    className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                  >
                                     <div className="flex items-center gap-1 mb-0.5 w-full">
-                                      <Truck className="w-4 h-4 text-slate-300" />
-                                      <span className="font-semibold text-xs text-slate-300/90">
+                                      <Truck
+                                        className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                      />
+                                      <span
+                                        className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                      >
                                         Akumulasi Delivery Shift 1
                                       </span>
                                     </div>
-                                    <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                    <span
+                                      className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                    >
                                       {akumulasiDeliveryShift1}
                                     </span>
                                   </div>
                                 )}
                                 {row.shift === "2" && (
-                                  <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                  <div
+                                    className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                  >
                                     <div className="flex items-center gap-1 mb-0.5 w-full">
-                                      <Truck className="w-4 h-4 text-slate-300" />
-                                      <span className="font-semibold text-xs text-slate-300/90">
+                                      <Truck
+                                        className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                      />
+                                      <span
+                                        className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                      >
                                         Akumulasi Delivery Shift 2
                                       </span>
                                     </div>
-                                    <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                    <span
+                                      className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                    >
                                       {akumulasiDeliveryShift2}
                                     </span>
                                   </div>
                                 )}
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                <div
+                                  className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                >
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <Clock className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
+                                    <Clock
+                                      className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                    >
                                       Planning Produksi (jam)
                                     </span>
                                   </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                  <span
+                                    className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                  >
                                     {planningJam}
                                   </span>
                                 </div>
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                <div
+                                  className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                >
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <Timer className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
+                                    <Timer
+                                      className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                    >
                                       Overtime (jam)
                                     </span>
                                   </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                  <span
+                                    className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                  >
                                     {overtimeJam}
                                   </span>
                                 </div>
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                <div
+                                  className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                >
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <Clock className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
+                                    <Clock
+                                      className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                    >
                                       Jam Produksi (Cycle Time)
                                     </span>
                                   </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                  <span
+                                    className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                  >
                                     {jamProduksi}
                                   </span>
                                 </div>
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                <div
+                                  className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                >
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <Factory className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
+                                    <Factory
+                                      className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                    >
                                       Akumulasi Hasil Produksi Aktual
                                     </span>
                                   </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                  <span
+                                    className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                  >
                                     {akumulasiHasilProduksi}
                                   </span>
                                 </div>
 
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                <div
+                                  className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                >
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <Package className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
+                                    <Package
+                                      className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                    >
                                       Actual Stock
                                     </span>
                                   </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                  <span
+                                    className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                  >
                                     {actualStockCustom}
                                   </span>
                                 </div>
-                                <div className="bg-slate-800/90 rounded-2xl p-2 sm:p-3 border border-slate-600 flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg shadow-slate-600/40 w-full">
+                                <div
+                                  className={`${theme === "light" ? "bg-white border-gray-300" : "bg-slate-800/90 border-slate-600"} rounded-2xl p-2 sm:p-3 border flex flex-col items-center min-w-[100px] sm:min-w-[110px] shadow-lg ${theme === "light" ? "shadow-gray-300/40" : "shadow-slate-600/40"} w-full`}
+                                >
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
-                                    <TrendingUp className="w-4 h-4 text-slate-300" />
-                                    <span className="font-semibold text-xs text-slate-300/90">
+                                    <TrendingUp
+                                      className={`w-4 h-4 ${theme === "light" ? "text-gray-600" : "text-slate-300"}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-xs ${theme === "light" ? "text-gray-700" : "text-slate-300/90"}`}
+                                    >
                                       Rencana Stock
                                     </span>
                                   </div>
-                                  <span className="font-bold text-slate-200 text-base sm:text-lg mt-0.5">
+                                  <span
+                                    className={`font-bold text-base sm:text-lg mt-0.5 ${theme === "light" ? "text-gray-900" : "text-slate-200"}`}
+                                  >
                                     {rencanaStockCustom}
                                   </span>
                                 </div>
