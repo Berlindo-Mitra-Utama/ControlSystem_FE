@@ -18,6 +18,7 @@ interface ChildPartCardViewProps {
   days: number;
   schedule: ScheduleItem[];
   onDelete?: () => void;
+  onEdit?: () => void;
   inMaterial?: (number|null)[][];
   onInMaterialChange?: (val: (number|null)[][]) => void;
   aktualInMaterial?: (number|null)[][];

@@ -195,6 +195,10 @@ const SchedulerPage: React.FC = () => {
   // Add state for delete confirmation modal (after other state declarations)
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
+  
+  // Temporary filter states for selection before applying
+  const [tempChildPartFilter, setTempChildPartFilter] = useState<"all" | string[]>("all");
+  const [tempActiveChildPartTableFilter, setTempActiveChildPartTableFilter] = useState<string[]>([]);
 
   // Tambahkan useEffect untuk detect mobile:
   useEffect(() => {
@@ -237,6 +241,21 @@ const SchedulerPage: React.FC = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showPartFilterDropdown]);
+
+  // Close data filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showFilterDropdown && !target.closest(".data-filter-dropdown")) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFilterDropdown]);
 
   // Generate schedule name from selected month/year
   const getCurrentScheduleName = () => {
@@ -725,6 +744,37 @@ const SchedulerPage: React.FC = () => {
   const handleCancelDelete = () => {
     setShowDeleteConfirmModal(false);
     setDeleteTargetIndex(null);
+  };
+
+  // Filter application functions
+  const applyPartFilter = () => {
+    setChildPartFilter(tempChildPartFilter);
+    setShowPartFilterDropdown(false);
+  };
+
+  const applyDataFilter = () => {
+    setActiveChildPartTableFilter(tempActiveChildPartTableFilter);
+    setShowFilterDropdown(false);
+  };
+
+  const handleOpenPartFilter = () => {
+    setTempChildPartFilter(childPartFilter);
+    setShowPartFilterDropdown(!showPartFilterDropdown);
+  };
+
+  const handleOpenDataFilter = () => {
+    setTempActiveChildPartTableFilter(activeChildPartTableFilter);
+    setShowFilterDropdown(!showFilterDropdown);
+  };
+
+  const cancelPartFilter = () => {
+    setTempChildPartFilter(childPartFilter);
+    setShowPartFilterDropdown(false);
+  };
+
+  const cancelDataFilter = () => {
+    setTempActiveChildPartTableFilter(activeChildPartTableFilter);
+    setShowFilterDropdown(false);
   };
 
   // Tentukan jumlah hari dari schedule
@@ -1324,114 +1374,80 @@ const SchedulerPage: React.FC = () => {
               {/* Search, Add Button, and Filter Controls */}
               <div className="flex flex-col gap-4 p-4">
                 {/* Search and Add Button Row */}
-                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4 justify-between w-full">
+                  {/* Button Tambahkan Material di atas untuk mobile, kanan untuk desktop */}
                   <button
                     onClick={() => setShowChildPartModal(true)}
-                    className="w-full sm:w-auto h-12 px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg text-base"
+                    className="w-full sm:w-auto h-12 px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg text-base order-1 sm:order-3"
                   >
                     Tambahkan Material
                   </button>
-                </div>
-
-                {/* Consolidated Filter Button */}
-                <div className="flex items-center gap-4">
-                  {/* Part Name Filter Dropdown */}
-                  <div className="relative">
-                    <button
-                      className="px-6 py-2 rounded-xl font-semibold border border-blue-400 text-blue-400 flex items-center gap-2 hover:bg-blue-900 transition"
-                      onClick={() =>
-                        setShowPartFilterDropdown(!showPartFilterDropdown)
-                      }
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
+                  
+                  {/* Filter Buttons */}
+                  <div className="flex flex-row items-center gap-4 w-full sm:w-auto order-2 sm:order-1">
+                    {/* Part Name Filter Dropdown */}
+                    <div className="relative flex-1 sm:flex-none">
+                      <button
+                        className="w-full px-6 py-2 rounded-xl font-semibold border border-blue-400 text-blue-400 flex items-center gap-2 hover:bg-blue-900 transition"
+                        onClick={handleOpenPartFilter}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M4 6h16M4 12h16M4 18h16"
-                        />
-                      </svg>
-                      Nama Part {childPartFilter !== "all" && childPartFilter.length > 0 && `(${childPartFilter.length})`}
-                      <svg
-                        className={`w-4 h-4 transition-transform ${showPartFilterDropdown ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4 6h16M4 12h16M4 18h16"
+                          />
+                        </svg>
+                        Nama Part {childPartFilter !== "all" && childPartFilter.length > 0 && `(${childPartFilter.length})`}
+                        <svg
+                          className={`w-4 h-4 transition-transform ${showPartFilterDropdown ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
 
-                    {/* Part Name Filter Options */}
-                    {showPartFilterDropdown && (
-                      <div className="absolute z-50 mt-2 w-64 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-4 animate-fadeInUp part-filter-dropdown">
-                        <div className="mb-3 border-b border-slate-600 pb-2 flex items-center gap-2">
-                          <svg
-                            className="w-5 h-5 text-blue-400"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                            />
-                          </svg>
-                          <span className="text-white font-bold text-base">
-                            Filter Nama Part {childPartFilter !== "all" && childPartFilter.length > 0 && `(${childPartFilter.length})`}
-                          </span>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          <button
-                            onClick={() => {
-                              setChildPartFilter("all");
-                              setShowPartFilterDropdown(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${childPartFilter === "all" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-                          >
+                      {/* Part Name Filter Options */}
+                      {showPartFilterDropdown && (
+                        <div className="absolute z-50 mt-2 w-64 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-4 animate-fadeInUp part-filter-dropdown">
+                          <div className="mb-3 border-b border-slate-600 pb-2 flex items-center gap-2">
                             <svg
-                              className="w-4 h-4"
+                              className="w-5 h-5 text-blue-400"
                               fill="none"
                               stroke="currentColor"
+                              strokeWidth="2"
                               viewBox="0 0 24 24"
                             >
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                               />
                             </svg>
-                            Semua Part
-                          </button>
-                          {Array.from(
-                            new Set(childParts.map((cp) => cp.partName)),
-                          ).map((partName) => (
+                            <span className="text-white font-bold text-base">
+                              Filter Nama Part {tempChildPartFilter !== "all" && tempChildPartFilter.length > 0 && `(${tempChildPartFilter.length})`}
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 mb-4">
                             <button
-                              key={partName}
                               onClick={() => {
-                                const currentFilters = childPartFilter === "all" ? [] : [...childPartFilter];
-                                if (currentFilters.includes(partName)) {
-                                  setChildPartFilter(currentFilters.filter(f => f !== partName));
-                                } else {
-                                  setChildPartFilter([...currentFilters, partName]);
-                                }
-                                setShowPartFilterDropdown(false);
+                                setTempChildPartFilter("all");
                               }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${childPartFilter !== "all" && childPartFilter.includes(partName) ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempChildPartFilter === "all" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                             >
                               <svg
                                 className="w-4 h-4"
@@ -1443,152 +1459,199 @@ const SchedulerPage: React.FC = () => {
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth={2}
-                                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                                 />
                               </svg>
-                              {partName}
+                              Semua Part
                             </button>
-                          ))}
-                        </div>
-
-                        <div className="border-t border-slate-600 pt-3">
-                          <button
-                            onClick={() => setShowPartFilterDropdown(false)}
-                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-                          >
-                            Tutup
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Data Filter Dropdown Button */}
-                  <div className="relative">
-                    <button
-                      className="px-6 py-2 rounded-xl font-semibold bg-slate-700 text-slate-200 flex items-center gap-2 hover:bg-slate-600 transition-all"
-                      onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                    >
-                      <BarChart2 className="w-5 h-5" />
-                      Filter Data {activeChildPartTableFilter.length > 0 && `(${activeChildPartTableFilter.length})`}
-                      <svg
-                        className={`w-4 h-4 transition-transform ${showFilterDropdown ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
-
-                    {/* Filter Options Dropdown */}
-                    {showFilterDropdown && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                        <div className="w-80 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 animate-fadeInUp">
-                          <div className="mb-4 border-b border-slate-600 pb-3 flex items-center gap-2">
-                            <svg
-                              className="w-5 h-5 text-blue-400"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z"
-                              />
-                            </svg>
-                            <span className="text-white font-bold text-base">
-                              Filter Data {activeChildPartTableFilter.length > 0 && `(${activeChildPartTableFilter.length})`}
-                            </span>
-                          </div>
-
-                          {/* Data Type Filters */}
-                          <div className="space-y-2 mb-4">
-                            <button
-                              onClick={() =>
-                                setActiveChildPartTableFilter([])
-                              }
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.length === 0 ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-                            >
-                              <BarChart2 className="w-4 h-4" /> Semua Data
-                            </button>
-                            <button
-                              onClick={() => {
-                                const currentFilters = [...activeChildPartTableFilter];
-                                const filterName = "rencanaInMaterial";
-                                if (currentFilters.includes(filterName)) {
-                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
-                                } else {
-                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
-                                }
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("rencanaInMaterial") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-                            >
-                              <Package className="w-4 h-4" /> Rencana In
-                              Material
-                            </button>
-                            <button
-                              onClick={() => {
-                                const currentFilters = [...activeChildPartTableFilter];
-                                const filterName = "aktualInMaterial";
-                                if (currentFilters.includes(filterName)) {
-                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
-                                } else {
-                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
-                                }
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("aktualInMaterial") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-                            >
-                              <Layers className="w-4 h-4" /> Aktual In Material
-                            </button>
-                            <button
-                              onClick={() => {
-                                const currentFilters = [...activeChildPartTableFilter];
-                                const filterName = "rencanaStock";
-                                if (currentFilters.includes(filterName)) {
-                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
-                                } else {
-                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
-                                }
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("rencanaStock") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-                            >
-                              <Target className="w-4 h-4" /> Rencana Stock (PCS)
-                            </button>
-                            <button
-                              onClick={() => {
-                                const currentFilters = [...activeChildPartTableFilter];
-                                const filterName = "aktualStock";
-                                if (currentFilters.includes(filterName)) {
-                                  setActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
-                                } else {
-                                  setActiveChildPartTableFilter([...currentFilters, filterName]);
-                                }
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${activeChildPartTableFilter.includes("aktualStock") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-                            >
-                              <Factory className="w-4 h-4" /> Aktual Stock (PCS)
-                            </button>
+                            {Array.from(
+                              new Set(childParts.map((cp) => cp.partName)),
+                            ).map((partName) => (
+                              <button
+                                key={partName}
+                                onClick={() => {
+                                  const currentFilters = tempChildPartFilter === "all" ? [] : [...tempChildPartFilter];
+                                  if (currentFilters.includes(partName)) {
+                                    setTempChildPartFilter(currentFilters.filter(f => f !== partName));
+                                  } else {
+                                    setTempChildPartFilter([...currentFilters, partName]);
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempChildPartFilter !== "all" && tempChildPartFilter.includes(partName) ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                  />
+                                </svg>
+                                {partName}
+                              </button>
+                            ))}
                           </div>
 
                           <div className="border-t border-slate-600 pt-3">
-                            <button
-                              onClick={() => setShowFilterDropdown(false)}
-                              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-                            >
-                              Tutup
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={cancelPartFilter}
+                                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition"
+                              >
+                                Batal
+                              </button>
+                              <button
+                                onClick={applyPartFilter}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                              >
+                                Simpan
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    {/* Data Filter Dropdown Button */}
+                    <div className="relative flex-1 sm:flex-none">
+                      <button
+                        className="w-full px-6 py-2 rounded-xl font-semibold bg-slate-700 text-slate-200 flex items-center gap-2 hover:bg-slate-600 transition-all"
+                        onClick={handleOpenDataFilter}
+                      >
+                        <BarChart2 className="w-5 h-5" />
+                        Filter Data {activeChildPartTableFilter.length > 0 && `(${activeChildPartTableFilter.length})`}
+                        <svg
+                          className={`w-4 h-4 transition-transform ${showFilterDropdown ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
+
+                      {/* Filter Options Dropdown */}
+                      {showFilterDropdown && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 data-filter-dropdown">
+                          <div className="w-80 bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 animate-fadeInUp">
+                            <div className="mb-4 border-b border-slate-600 pb-3 flex items-center gap-2">
+                              <svg
+                                className="w-5 h-5 text-blue-400"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z"
+                                />
+                              </svg>
+                              <span className="text-white font-bold text-base">
+                                Filter Data {tempActiveChildPartTableFilter.length > 0 && `(${tempActiveChildPartTableFilter.length})`}
+                              </span>
+                            </div>
+
+                            {/* Data Type Filters */}
+                            <div className="space-y-2 mb-4">
+                              <button
+                                onClick={() =>
+                                  setTempActiveChildPartTableFilter([])
+                                }
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempActiveChildPartTableFilter.length === 0 ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              >
+                                <BarChart2 className="w-4 h-4" /> Semua Data
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const currentFilters = [...tempActiveChildPartTableFilter];
+                                  const filterName = "rencanaInMaterial";
+                                  if (currentFilters.includes(filterName)) {
+                                    setTempActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                  } else {
+                                    setTempActiveChildPartTableFilter([...currentFilters, filterName]);
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempActiveChildPartTableFilter.includes("rencanaInMaterial") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              >
+                                <Package className="w-4 h-4" /> Rencana In
+                                Material
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const currentFilters = [...tempActiveChildPartTableFilter];
+                                  const filterName = "aktualInMaterial";
+                                  if (currentFilters.includes(filterName)) {
+                                    setTempActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                  } else {
+                                    setTempActiveChildPartTableFilter([...currentFilters, filterName]);
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempActiveChildPartTableFilter.includes("aktualInMaterial") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              >
+                                <Layers className="w-4 h-4" /> Aktual In Material
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const currentFilters = [...tempActiveChildPartTableFilter];
+                                  const filterName = "rencanaStock";
+                                  if (currentFilters.includes(filterName)) {
+                                    setTempActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                  } else {
+                                    setTempActiveChildPartTableFilter([...currentFilters, filterName]);
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempActiveChildPartTableFilter.includes("rencanaStock") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              >
+                                <Target className="w-4 h-4" /> Rencana Stock (PCS)
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const currentFilters = [...tempActiveChildPartTableFilter];
+                                  const filterName = "aktualStock";
+                                  if (currentFilters.includes(filterName)) {
+                                    setTempActiveChildPartTableFilter(currentFilters.filter(f => f !== filterName));
+                                  } else {
+                                    setTempActiveChildPartTableFilter([...currentFilters, filterName]);
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempActiveChildPartTableFilter.includes("aktualStock") ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                              >
+                                <Factory className="w-4 h-4" /> Aktual Stock (PCS)
+                              </button>
+                            </div>
+
+                            <div className="border-t border-slate-600 pt-3">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={cancelDataFilter}
+                                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  onClick={applyDataFilter}
+                                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                                >
+                                  Simpan
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1626,7 +1689,7 @@ const SchedulerPage: React.FC = () => {
                     const pageItems = filtered.slice(startIdx, endIdx);
                     if (filtered.length === 0)
                       return (
-                        <div className="grid grid-cols-1 gap-8">
+                      <div className="grid grid-cols-1 gap-8">
                           {viewMode === "cards" ? (
                             <ChildPartCardView
                               partName={"-"}
@@ -1643,26 +1706,26 @@ const SchedulerPage: React.FC = () => {
                               activeFilter={activeChildPartTableFilter}
                             />
                           ) : (
-                            <ChildPartTable
-                              partName={"-"}
-                              customerName={"-"}
-                              initialStock={null}
-                              days={days}
-                              schedule={[]}
+                        <ChildPartTable
+                          partName={"-"}
+                          customerName={"-"}
+                          initialStock={null}
+                          days={days}
+                          schedule={[]}
                               inMaterial={Array.from({ length: days }, () => [
                                 null,
                                 null,
                               ])}
-                              onInMaterialChange={() => {}}
-                              onDelete={undefined}
-                              activeFilter={activeChildPartTableFilter}
-                            />
+                          onInMaterialChange={() => {}}
+                          onDelete={undefined}
+                          activeFilter={activeChildPartTableFilter}
+                        />
                           )}
                           <div className="text-center text-slate-400 py-8 -mt-12">
                             Tidak ada Child Part ditemukan.
                           </div>
-                        </div>
-                      );
+                      </div>
+                    );
                     return (
                       <>
                         <div className="grid grid-cols-1 gap-8">
@@ -1678,8 +1741,8 @@ const SchedulerPage: React.FC = () => {
                               days: days,
                               schedule: schedule,
                               onDelete: () => {
-                                handleDeleteChildPart(realIdx);
-                                setChildPartCarouselPage(0);
+                                  handleDeleteChildPart(realIdx);
+                                  setChildPartCarouselPage(0);
                               },
                               inMaterial: cp.inMaterial,
                               onInMaterialChange: (val: any) => {
@@ -1703,10 +1766,10 @@ const SchedulerPage: React.FC = () => {
                               },
                               renderHeaderAction: (
                                 <div className="flex gap-2 items-center">
-                                  <button
+                                    <button
                                     className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
-                                    onClick={() => setEditChildPartIdx(realIdx)}
-                                    type="button"
+                                      onClick={() => setEditChildPartIdx(realIdx)}
+                                      type="button"
                                     title="Edit"
                                   >
                                     <svg
@@ -1722,14 +1785,14 @@ const SchedulerPage: React.FC = () => {
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                                       />
                                     </svg>
-                                  </button>
-                                  <button
+                                    </button>
+                                    <button
                                     className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-red-400 transition-all"
-                                    onClick={() => {
-                                      handleDeleteChildPart(realIdx);
-                                      setChildPartCarouselPage(0);
-                                    }}
-                                    type="button"
+                                      onClick={() => {
+                                        handleDeleteChildPart(realIdx);
+                                        setChildPartCarouselPage(0);
+                                      }}
+                                      type="button"
                                     title="Delete"
                                   >
                                     <svg
@@ -1745,8 +1808,8 @@ const SchedulerPage: React.FC = () => {
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                       />
                                     </svg>
-                                  </button>
-                                </div>
+                                    </button>
+                                  </div>
                               ),
                               activeFilter: activeChildPartTableFilter,
                             };
