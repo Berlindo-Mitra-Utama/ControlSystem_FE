@@ -240,9 +240,9 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
         {/* HEADER SUMMARY TOTAL */}
         <div className="w-full mb-4">
           <div
-            className={`flex flex-wrap gap-4 items-center justify-between ${uiColors.bg.secondary} rounded-xl p-4 border border-slate-600 shadow`}
+            className={`flex flex-col sm:flex-row gap-4 items-center justify-between ${uiColors.bg.secondary} rounded-xl p-4 border border-slate-600 shadow`}
           >
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 sm:gap-4 items-center w-full sm:w-auto mb-4 sm:mb-0">
               {/* Card summary untuk setiap total utama */}
               <SummaryCard
                 icon={<Package className="w-5 h-5 text-blue-400" />}
@@ -292,12 +292,13 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
               />
             </div>
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition text-sm sm:text-base w-full sm:w-auto justify-center"
               onClick={() => setShowManpowerModal(true)}
               title="Tambah Manpower"
             >
-              <Plus className="w-5 h-5" />
-              Add Manpower
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Add Manpower</span>
+              <span className="sm:hidden">Add Manpower</span>
             </button>
           </div>
         </div>
@@ -1280,13 +1281,17 @@ function SummaryCard({
   const { uiColors } = useTheme();
   return (
     <div
-      className={`flex flex-col items-center ${uiColors.bg.tertiary} rounded-lg px-4 py-2 min-w-[90px] border border-slate-600 shadow`}
+      className={`flex flex-col items-center ${uiColors.bg.tertiary} rounded-lg px-1 sm:px-4 py-2 min-w-[70px] sm:min-w-[90px] border border-slate-600 shadow`}
     >
-      <div>{icon}</div>
-      <div className={`text-xs ${uiColors.text.tertiary} font-semibold mt-1`}>
+      <div className="w-3 h-3 sm:w-5 sm:h-5">{icon}</div>
+      <div
+        className={`text-[10px] sm:text-xs ${uiColors.text.tertiary} font-semibold mt-1 text-center leading-tight`}
+      >
         {label}
       </div>
-      <div className={`text-lg font-bold ${uiColors.text.primary} mt-1`}>
+      <div
+        className={`text-xs sm:text-lg font-bold ${uiColors.text.primary} mt-1`}
+      >
         {value}
       </div>
     </div>
