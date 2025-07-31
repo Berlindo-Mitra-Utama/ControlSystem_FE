@@ -23,7 +23,7 @@ interface ChildPartCardViewProps {
   aktualInMaterial?: (number|null)[][];
   onAktualInMaterialChange?: (val: (number|null)[][]) => void;
   renderHeaderAction?: React.ReactNode;
-  activeFilter?: string;
+  activeFilter?: string[];
   onDateSelect?: (date: Date | null) => void;
   selectedDate?: Date | null;
 }
@@ -343,7 +343,8 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
   const renderFilteredContent = () => {
     const displayDay = getCurrentDisplayDay();
     
-    if (props.activeFilter === "all" || !props.activeFilter) {
+    // Jika tidak ada filter aktif, tampilkan semua konten
+    if (!props.activeFilter || props.activeFilter.length === 0) {
       return (
         <>
           {/* Carousel Navigation */}
@@ -441,14 +442,14 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                  <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-green-300 text-center text-base font-mono">
-                    {rencanaStock[displayDay * 2]}
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                  <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-green-300 text-center text-base font-mono">
-                    {rencanaStock[displayDay * 2 + 1]}
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                   </div>
                 </div>
               </div>
@@ -458,21 +459,21 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
           {/* Aktual Stock */}
           <div className="space-y-4 mt-6">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <TrendingDown className="w-5 h-5 text-yellow-400" />
+              <TrendingDown className="w-5 h-5 text-red-400" />
               Aktual Stock (PCS)
             </h3>
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                  <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-yellow-300 text-center text-base font-mono">
-                    {aktualStock[displayDay * 2]}
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                  <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-yellow-300 text-center text-base font-mono">
-                    {aktualStock[displayDay * 2 + 1]}
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                   </div>
                 </div>
               </div>
@@ -482,224 +483,148 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
       );
     }
 
-    // Filter specific views - update all filtered views with the same navigation pattern
-    if (props.activeFilter === "rencanaInMaterial") {
-      return (
-        <div className="space-y-4">
-          {/* Carousel Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={goToPrevDay}
-              disabled={selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center">
-              <div className="text-lg font-medium text-gray-300">
-                {selectedDate ? formatSelectedDate(selectedDate) : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString('id-ID', { month: 'long' })} ${new Date().getFullYear()}`}
-              </div>
-            </div>
-            
-            <button
-              onClick={goToNextDay}
-              disabled={selectedDate ? selectedDate.getDate() >= 31 : displayDay === props.days - 1}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Layers className="w-5 h-5 text-blue-400" />
-            Rencana In Material
-          </h3>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                <InputCell
-                  value={inMaterial[displayDay][0]}
-                  onChange={v => handleInMaterialChange(displayDay, 0, v)}
-                  className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                <InputCell
-                  value={inMaterial[displayDay][1]}
-                  onChange={v => handleInMaterialChange(displayDay, 1, v)}
-                  className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-                />
-              </div>
+    // Jika ada filter aktif, tampilkan konten sesuai filter yang dipilih
+    return (
+      <>
+        {/* Carousel Navigation */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={goToPrevDay}
+            disabled={selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0}
+            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="text-center">
+            <div className="text-lg font-medium text-gray-300">
+              {selectedDate ? formatSelectedDate(selectedDate) : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString('id-ID', { month: 'long' })} ${new Date().getFullYear()}`}
             </div>
           </div>
+          
+          <button
+            onClick={goToNextDay}
+            disabled={selectedDate ? selectedDate.getDate() >= 31 : displayDay === props.days - 1}
+            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
-      );
-    }
 
-    if (props.activeFilter === "aktualInMaterial") {
-      return (
-        <div className="space-y-4">
-          {/* Carousel Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={goToPrevDay}
-              disabled={selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center">
-              <div className="text-lg font-medium text-gray-300">
-                {selectedDate ? formatSelectedDate(selectedDate) : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString('id-ID', { month: 'long' })} ${new Date().getFullYear()}`}
-              </div>
-            </div>
-            
-            <button
-              onClick={goToNextDay}
-              disabled={selectedDate ? selectedDate.getDate() >= 31 : displayDay === props.days - 1}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Layers className="w-5 h-5 text-green-400" />
-            Aktual In Material
-          </h3>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                <InputCell
-                  value={aktualInMaterial[displayDay][0]}
-                  onChange={v => handleAktualInMaterialChange(displayDay, 0, v)}
-                  className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                <InputCell
-                  value={aktualInMaterial[displayDay][1]}
-                  onChange={v => handleAktualInMaterialChange(displayDay, 1, v)}
-                  className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (props.activeFilter === "rencanaStock") {
-      return (
-        <div className="space-y-4">
-          {/* Carousel Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={goToPrevDay}
-              disabled={selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center">
-              <div className="text-lg font-medium text-gray-300">
-                {selectedDate ? formatSelectedDate(selectedDate) : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString('id-ID', { month: 'long' })} ${new Date().getFullYear()}`}
-              </div>
-            </div>
-            
-            <button
-              onClick={goToNextDay}
-              disabled={selectedDate ? selectedDate.getDate() >= 31 : displayDay === props.days - 1}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-400" />
-            Rencana Stock (PCS)
-          </h3>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-green-300 text-center text-base font-mono">
-                  {rencanaStock[displayDay * 2]}
+        {/* Render konten sesuai filter yang dipilih */}
+        {props.activeFilter.includes("rencanaInMaterial") && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-400" />
+              Rencana In Material
+            </h3>
+            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <InputCell
+                    key={`rencana-shift1-day${displayDay}`}
+                    value={inMaterial[displayDay][0]}
+                    onChange={v => handleInMaterialChange(displayDay, 0, v)}
+                    className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                  />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-green-300 text-center text-base font-mono">
-                  {rencanaStock[displayDay * 2 + 1]}
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <InputCell
+                    key={`rencana-shift2-day${displayDay}`}
+                    value={inMaterial[displayDay][1]}
+                    onChange={v => handleInMaterialChange(displayDay, 1, v)}
+                    className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                  />
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      );
-    }
+        )}
 
-    if (props.activeFilter === "aktualStock") {
-      return (
-        <div className="space-y-4">
-          {/* Carousel Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={goToPrevDay}
-              disabled={selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center">
-              <div className="text-lg font-medium text-gray-300">
-                {selectedDate ? formatSelectedDate(selectedDate) : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString('id-ID', { month: 'long' })} ${new Date().getFullYear()}`}
-              </div>
-            </div>
-            
-            <button
-              onClick={goToNextDay}
-              disabled={selectedDate ? selectedDate.getDate() >= 31 : displayDay === props.days - 1}
-              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg transition-all disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <TrendingDown className="w-5 h-5 text-yellow-400" />
-            Aktual Stock (PCS)
-          </h3>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
-                <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-yellow-300 text-center text-base font-mono">
-                  {aktualStock[displayDay * 2]}
+        {props.activeFilter.includes("aktualInMaterial") && (
+          <div className="space-y-4 mt-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-green-400" />
+              Aktual In Material
+            </h3>
+            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <InputCell
+                    key={`aktual-shift1-day${displayDay}`}
+                    value={aktualInMaterial[displayDay][0]}
+                    onChange={v => handleAktualInMaterialChange(displayDay, 0, v)}
+                    className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                  />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
-                <div className="px-4 py-3 rounded bg-slate-700 border border-slate-600 text-yellow-300 text-center text-base font-mono">
-                  {aktualStock[displayDay * 2 + 1]}
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <InputCell
+                    key={`aktual-shift2-day${displayDay}`}
+                    value={aktualInMaterial[displayDay][1]}
+                    onChange={v => handleAktualInMaterialChange(displayDay, 1, v)}
+                    className="w-full px-4 py-3 rounded bg-green-700 border border-green-600 text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                  />
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      );
-    }
+        )}
 
-    return null;
+        {props.activeFilter.includes("rencanaStock") && (
+          <div className="space-y-4 mt-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-400" />
+              Rencana Stock (PCS)
+            </h3>
+            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {props.activeFilter.includes("aktualStock") && (
+          <div className="space-y-4 mt-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <TrendingDown className="w-5 h-5 text-red-400" />
+              Aktual Stock (PCS)
+            </h3>
+            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 1</label>
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Shift 2</label>
+                  <div className="w-full px-4 py-3 rounded bg-slate-700 border border-slate-600 text-white text-center text-base">
+                    {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);

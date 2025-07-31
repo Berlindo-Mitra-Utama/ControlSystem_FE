@@ -115,8 +115,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 
   return (
     <Navbar
-      shouldHideOnScroll
-      className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40"
+      className="border-b border-gray-800/50 bg-gray-900 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40 shadow-lg"
       onMenuOpenChange={setIsMenuOpen}
     >
       <NavbarBrand>
@@ -183,7 +182,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
       {(finalMenuItems.length > 0 || (showUserInfo && showLogout)) && (
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="sm:hidden text-white p-2 hover:bg-gray-700 rounded-lg transition-colors"
+          className="sm:hidden text-white p-2 hover:bg-gray-700 rounded-lg transition-colors bg-gray-800"
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
           <svg
@@ -216,18 +215,18 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         <div className="fixed inset-0 z-50 sm:hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setIsMenuOpen(false)}
           />
 
           {/* Menu Content */}
-          <div className="absolute top-0 right-0 w-64 h-full bg-gray-900 border-l border-gray-800 shadow-2xl transform transition-transform duration-300">
-            <div className="p-4">
+          <div className="absolute top-0 right-0 w-64 h-full bg-gray-900/30 backdrop-blur-sm border-l border-gray-700 shadow-2xl">
+            <div className="p-4 bg-gray-900/30 backdrop-blur-sm h-full">
               {/* Close Button */}
               <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-gray-400 hover:text-white p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                  className="text-gray-400 hover:text-white p-2 hover:bg-gray-700 rounded-lg transition-colors bg-gray-800"
                 >
                   <svg
                     className="w-5 h-5"
