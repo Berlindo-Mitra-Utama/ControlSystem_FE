@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/alert-dialog"
-import { Save, RotateCcw, Plus, Edit, Trash2, MoreVertical, AlertTriangle, X } from "lucide-react"
+import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save } from "lucide-react"
 import { Link } from "react-router-dom"
 // Types and Interfaces
 interface Process {
@@ -519,7 +519,6 @@ function PartFormModal({
 // Main Manage Progress Component
 export default function ManageProgres() {
   const [parts, setParts] = useState<Part[]>(initialParts)
-  const [hasChanges, setHasChanges] = useState(false)
   const [partModal, setPartModal] = useState<{
     isOpen: boolean
     type: "add" | "edit"
@@ -594,20 +593,14 @@ export default function ManageProgres() {
     }
   }, [])
 
-  // Save data to localStorage
-  const saveData = () => {
-    localStorage.setItem("parts-data", JSON.stringify(parts))
-    setHasChanges(false)
-    // Dispatch custom event to notify other tabs/components
-    window.dispatchEvent(new Event("parts-updated"))
-  }
-
-  // Reset data to initial state
-  const resetData = () => {
-    setParts(initialParts)
-    localStorage.removeItem("parts-data")
-    setHasChanges(true)
-  }
+  // Auto-save data to localStorage whenever parts change
+  useEffect(() => {
+    if (parts.length > 0) {
+      localStorage.setItem("parts-data", JSON.stringify(parts))
+      // Dispatch custom event to notify other tabs/components
+      window.dispatchEvent(new Event("parts-updated"))
+    }
+  }, [parts])
 
   // Toggle process completion
   const toggleProcess = (partId: string, progressId: string, processId: string, childId?: string) => {
@@ -641,7 +634,6 @@ export default function ManageProgres() {
         }
       }),
     )
-    setHasChanges(true)
   }
 
   // Handle process form save
@@ -663,8 +655,6 @@ export default function ManageProgres() {
         setParts(editProcess(parts, partId, categoryId, processId, processData))
       }
     }
-
-    setHasChanges(true)
   }
 
   // Handle part form save
@@ -676,8 +666,6 @@ export default function ManageProgres() {
     } else if (type === "edit" && partId) {
       setParts(editPart(parts, partId, partData))
     }
-
-    setHasChanges(true)
   }
 
   // Handle delete confirmation
@@ -732,31 +720,10 @@ export default function ManageProgres() {
               <Plus className="w-4 h-4 mr-2" />
               Add Part
             </Button>
-            <Button
-              onClick={resetData}
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset All
-            </Button>
-            <Button
-              onClick={saveData}
-              disabled={!hasChanges}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
-            </Button>
           </div>
         </div>
 
-        {/* Changes Indicator */}
-        {hasChanges && (
-          <div className="mb-6 p-4 bg-yellow-900 border border-yellow-700 rounded-lg">
-            <p className="text-yellow-200">You have unsaved changes. Click "Save Changes" to persist your updates.</p>
-          </div>
-        )}
+
 
         {/* Parts List */}
         <div className="space-y-8">
