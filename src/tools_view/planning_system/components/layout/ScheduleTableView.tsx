@@ -331,12 +331,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             <div
               className={`${uiColors.bg.tertiary} ${uiColors.text.primary} rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow ${uiColors.border.primary}`}
             >
-              <Package className="w-5 h-5 text-blue-400" />
+              <Package className="w-5 h-5 text-slate-600" />
               Stock Awal: <span className="ml-1">{initialStock}</span>
             </div>
           </div>
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-semibold bg-blue-700 hover:bg-blue-800 text-white shadow border border-blue-600 transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow border border-slate-600 transition"
             onClick={() => setShowManpowerModal(true)}
             type="button"
             title="Tambah Manpower"
@@ -351,7 +351,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
         <h3
           className={`${uiColors.text.primary} font-bold text-lg mb-4 flex items-center gap-3`}
         >
-          <Filter className="w-6 h-6 text-blue-400" />
+          <Filter className="w-6 h-6 text-slate-600" />
           Filter Data
         </h3>
         <div className="flex flex-wrap gap-3 items-center">
@@ -367,7 +367,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     : "px-6 py-3 rounded-xl text-base font-semibold"
                 } transition-all flex items-center gap-2 ${
                   activeFilter === option.value
-                    ? "bg-blue-600 text-white shadow-xl scale-105"
+                    ? "bg-slate-700 text-white shadow-xl scale-105"
                     : `${uiColors.bg.tertiary} ${uiColors.text.tertiary} hover:${uiColors.bg.secondary} hover:${uiColors.text.primary} hover:scale-102`
                 }`}
               >
@@ -513,10 +513,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
             {/* Total Rows */}
             <div className="space-y-0">
-              {filteredRows.map((row) => {
+              {filteredRows.map((row, index) => {
                 let totalValue = "-";
                 let bgColor = "bg-slate-600";
                 let textColor = "text-slate-400";
+
+                // Tentukan warna berdasarkan grup 3 baris untuk kolom TOTAL
+                const totalRowIndex = filteredRows.findIndex(
+                  (r) => r.key === row.key,
+                );
+                const totalRowGroup = Math.floor(totalRowIndex / 3);
 
                 switch (row.key) {
                   case "manpower":
@@ -534,57 +540,68 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       0,
                     );
                     totalValue = totalManpower.toString();
-                    bgColor = "bg-slate-800/50";
-                    textColor = "text-slate-200";
+                    bgColor = "bg-slate-700";
+                    textColor = "text-white";
                     break;
                   case "delivery":
                     totalValue = formatNumber(totals.delivery);
-                    const deliveryColor = getCategoryColor("delivery");
-                    bgColor = deliveryColor.bg;
-                    textColor = deliveryColor.text;
+                    bgColor = "bg-blue-200";
+                    textColor = "text-blue-900";
+                    break;
+                  case "akumulasi-delivery":
+                    totalValue = "-";
+                    bgColor = "bg-slate-700";
+                    textColor = "text-white";
                     break;
                   case "planning-jam":
                     totalValue = totalPlanningJam;
-                    const planningColor = getCategoryColor("planning");
-                    bgColor = planningColor.bg;
-                    textColor = planningColor.text;
+                    bgColor = "bg-amber-200";
+                    textColor = "text-amber-900";
                     break;
                   case "planning-pcs":
                     totalValue = formatNumber(totals.planningPcs);
-                    const planningPcsColor = getCategoryColor("planning");
-                    bgColor = planningPcsColor.bg;
-                    textColor = planningPcsColor.text;
+                    bgColor = "bg-amber-200";
+                    textColor = "text-amber-900";
                     break;
                   case "overtime-jam":
                     totalValue = totalOvertimeJam;
-                    const overtimeColor = getCategoryColor("overtime");
-                    bgColor = overtimeColor.bg;
-                    textColor = overtimeColor.text;
+                    bgColor = "bg-rose-200";
+                    textColor = "text-rose-900";
                     break;
                   case "overtime-pcs":
                     totalValue = formatNumber(totals.overtimePcs);
-                    const overtimePcsColor = getCategoryColor("overtime");
-                    bgColor = overtimePcsColor.bg;
-                    textColor = overtimePcsColor.text;
+                    bgColor = "bg-rose-200";
+                    textColor = "text-rose-900";
                     break;
                   case "jam-produksi":
                     totalValue = "-";
-                    const stockColor = getCategoryColor("stock");
-                    bgColor = stockColor.bg;
-                    textColor = stockColor.text;
+                    bgColor = "bg-violet-200";
+                    textColor = "text-violet-900";
                     break;
                   case "hasil-produksi":
                     totalValue = formatNumber(totals.hasilProduksi);
-                    const hasilProduksiColor =
-                      getCategoryColor("hasilProduksi");
-                    bgColor = hasilProduksiColor.bg;
-                    textColor = hasilProduksiColor.text;
+                    bgColor = "bg-emerald-200";
+                    textColor = "text-emerald-900";
+                    break;
+                  case "akumulasi-hasil":
+                    totalValue = "-";
+                    bgColor = "bg-violet-200";
+                    textColor = "text-violet-900";
                     break;
                   case "jam-aktual":
                     totalValue = "-";
-                    const jamAktualColor = getCategoryColor("jamAktual");
-                    bgColor = jamAktualColor.bg;
-                    textColor = jamAktualColor.text;
+                    bgColor = "bg-violet-200";
+                    textColor = "text-violet-900";
+                    break;
+                  case "actual-stock":
+                    totalValue = "-";
+                    bgColor = "bg-sky-200";
+                    textColor = "text-sky-900";
+                    break;
+                  case "rencana-stock":
+                    totalValue = "-";
+                    bgColor = "bg-slate-700";
+                    textColor = "text-white";
                     break;
                 }
 
@@ -631,10 +648,10 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       </div>
                       {/* Shift Headers */}
                       <div className="grid grid-cols-2 gap-1 mt-2">
-                        <div className="bg-blue-600/20 text-blue-300 text-sm py-1 rounded">
+                        <div className="bg-blue-500/20 text-blue-700 text-sm py-1 rounded font-semibold">
                           SHIFT 1
                         </div>
-                        <div className="bg-purple-600/20 text-purple-300 text-sm py-1 rounded">
+                        <div className="bg-purple-500/20 text-purple-700 text-sm py-1 rounded font-semibold">
                           SHIFT 2
                         </div>
                       </div>
@@ -643,17 +660,71 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                   {/* Data Rows */}
                   <div className="space-y-0">
-                    {filteredRows.map((row) => {
+                    {filteredRows.map((row, rowIndex) => {
                       const shift1 = group.rows.find((r) => r.shift === "1");
                       const shift2 = group.rows.find((r) => r.shift === "2");
                       const groupIndex = validGroupedRows.findIndex(
                         (g) => g.day === group.day,
                       );
 
+                      // Skema warna yang lebih harmonis dan konsisten
+                      let rowBgColor = "";
+                      let textColor = "text-gray-800";
+
+                      // Tentukan warna berdasarkan grup 3 baris (tidak selang-seling)
+                      const currentRowIndex = filteredRows.findIndex(
+                        (r) => r.key === row.key,
+                      );
+                      const rowGroup = Math.floor(currentRowIndex / 3);
+
+                      switch (rowGroup) {
+                        case 0:
+                          // Grup 1: Manpower, Delivery, Akumulasi Delivery
+                          rowBgColor = "bg-slate-700";
+                          textColor = "text-white";
+                          break;
+                        case 1:
+                          // Grup 2: Planning PCS, Planning Jam, Overtime PCS
+                          rowBgColor = "bg-amber-100";
+                          textColor = "text-amber-900";
+                          break;
+                        case 2:
+                          // Grup 3: Overtime Jam, Jam Produksi, Hasil Produksi
+                          rowBgColor = "bg-rose-100";
+                          textColor = "text-rose-900";
+                          break;
+                        case 3:
+                          // Grup 4: Akumulasi Hasil, Jam Aktual, Actual Stock
+                          rowBgColor = "bg-violet-100";
+                          textColor = "text-violet-900";
+                          break;
+                        case 4:
+                          // Grup 5: Rencana Stock
+                          rowBgColor = "bg-slate-700";
+                          textColor = "text-white";
+                          break;
+                        default:
+                          rowBgColor = "bg-gray-100";
+                          textColor = "text-gray-800";
+                      }
+
+                      // Override untuk baris khusus agar sesuai dengan gambar
+                      if (row.key === "delivery") {
+                        rowBgColor = "bg-blue-100";
+                        textColor = "text-blue-900";
+                      } else if (row.key === "hasil-produksi") {
+                        rowBgColor = "bg-emerald-100";
+                        textColor = "text-emerald-900";
+                      } else if (row.key === "jam-produksi") {
+                        rowBgColor = "bg-violet-100";
+                        textColor = "text-violet-900";
+                      } else if (row.key === "actual-stock") {
+                        rowBgColor = "bg-sky-100";
+                        textColor = "text-sky-900";
+                      }
+
                       let shift1Value: string | number = "-";
                       let shift2Value: string | number = "-";
-                      let bgColor = "bg-slate-800";
-                      let textColor = "text-white";
                       let isEditable = false;
                       let shift1Field = "";
                       let shift2Field = "";
@@ -684,8 +755,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                   .filter(Boolean)
                                   .join(", ")
                               : "Pilih";
-                          bgColor = "bg-slate-800";
-                          textColor = "text-slate-200";
                           isEditable = true;
                           shift1Field = "manpower";
                           shift2Field = "manpower";
@@ -693,9 +762,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                         case "delivery":
                           shift1Value = shift1?.delivery || 0;
                           shift2Value = shift2?.delivery || 0;
-                          const deliveryColor = getCategoryColor("delivery");
-                          bgColor = deliveryColor.bg;
-                          textColor = deliveryColor.text;
                           isEditable = true;
                           shift1Field = "delivery";
                           shift2Field = "delivery";
@@ -718,10 +784,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = formatNumber(akumulasiDelivery.shift1);
                           shift2Value = formatNumber(akumulasiDelivery.shift2);
-                          const akumulasiDeliveryColor =
-                            getCategoryColor("delivery");
-                          bgColor = akumulasiDeliveryColor.bg;
-                          textColor = akumulasiDeliveryColor.text;
                           break;
 
                         case "planning-jam":
@@ -748,17 +810,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = planningProduksiJamShift1;
                           shift2Value = planningProduksiJamShift2;
-                          const planningJamColor = getCategoryColor("planning");
-                          bgColor = planningJamColor.bg;
-                          textColor = planningJamColor.text;
                           break;
 
                         case "planning-pcs":
                           shift1Value = shift1?.planningPcs || 0;
                           shift2Value = shift2?.planningPcs || 0;
-                          const planningPcsColor = getCategoryColor("planning");
-                          bgColor = planningPcsColor.bg;
-                          textColor = planningPcsColor.text;
                           isEditable = true;
                           shift1Field = "planningPcs";
                           shift2Field = "planningPcs";
@@ -788,17 +844,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = overtimeJamShift1;
                           shift2Value = overtimeJamShift2;
-                          const overtimeJamColor = getCategoryColor("overtime");
-                          bgColor = overtimeJamColor.bg;
-                          textColor = overtimeJamColor.text;
                           break;
 
                         case "overtime-pcs":
                           shift1Value = shift1?.overtimePcs || 0;
                           shift2Value = shift2?.overtimePcs || 0;
-                          const overtimePcsColor = getCategoryColor("overtime");
-                          bgColor = overtimePcsColor.bg;
-                          textColor = overtimePcsColor.text;
                           isEditable = true;
                           shift1Field = "overtimePcs";
                           shift2Field = "overtimePcs";
@@ -828,18 +878,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = jamProduksiShift1;
                           shift2Value = jamProduksiShift2;
-                          const jamProduksiColor = getCategoryColor("stock");
-                          bgColor = jamProduksiColor.bg;
-                          textColor = jamProduksiColor.text;
                           break;
 
                         case "hasil-produksi":
                           shift1Value = shift1?.pcs || 0;
                           shift2Value = shift2?.pcs || 0;
-                          const hasilProduksiColor =
-                            getCategoryColor("hasilProduksi");
-                          bgColor = hasilProduksiColor.bg;
-                          textColor = hasilProduksiColor.text;
                           isEditable = true;
                           shift1Field = "pcs";
                           shift2Field = "pcs";
@@ -865,10 +908,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                           shift1Value = formatNumber(akumulasiHasil.shift1);
                           shift2Value = formatNumber(akumulasiHasil.shift2);
-                          const akumulasiHasilColor =
-                            getCategoryColor("hasilProduksi");
-                          bgColor = akumulasiHasilColor.bg;
-                          textColor = akumulasiHasilColor.text;
                           break;
 
                         case "jam-aktual":
@@ -878,9 +917,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           shift2Value = formatNumberWithDecimal(
                             shift2?.jamProduksiAktual || 0,
                           );
-                          const jamAktualColor = getCategoryColor("jamAktual");
-                          bgColor = jamAktualColor.bg;
-                          textColor = jamAktualColor.text;
                           isEditable = true;
                           shift1Field = "jamProduksiAktual";
                           shift2Field = "jamProduksiAktual";
@@ -916,9 +952,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             );
                           }
 
-                          const actualStockColor = getCategoryColor("stock");
-                          bgColor = actualStockColor.bg;
-                          textColor = actualStockColor.text;
                           break;
 
                         case "rencana-stock":
@@ -953,25 +986,22 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             );
                           }
 
-                          const rencanaStockColor = getCategoryColor("stock");
-                          bgColor = rencanaStockColor.bg;
-                          textColor = rencanaStockColor.text;
                           break;
                       }
 
                       return (
                         <div
                           key={row.key}
-                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary}`}
+                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary} ${rowBgColor}`}
                         >
                           <div
-                            className={`${bgColor} text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
+                            className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift1 ? (
                               <div className="relative w-full manpower-dropdown">
                                 <button
                                   type="button"
-                                  className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-blue-400 manpower-dropdown"
+                                  className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-slate-400 manpower-dropdown"
                                   onClick={() => {
                                     if (manpowerList.length === 0) {
                                       setManpowerError(
@@ -996,7 +1026,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                   `${shift1.id}-manpowerDropdown`
                                 ] && (
                                   <div
-                                    className={`absolute z-20 min-w-max max-w-xs ${uiColors.bg.tertiary} border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown`}
+                                    className={`absolute z-20 min-w-max max-w-xs ${uiColors.bg.tertiary} border border-slate-400 rounded-lg mt-1 shadow-xl manpower-dropdown`}
                                   >
                                     {/* Header */}
                                     <div
@@ -1223,7 +1253,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             )}
                           </div>
                           <div
-                            className={`${bgColor} text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
+                            className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift2 ? (
                               <div className="relative w-full manpower-dropdown">
