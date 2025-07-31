@@ -271,36 +271,36 @@ const EnhancedCoilCalculator: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-2 sm:p-4 md:p-8">
       <div className="container mx-auto max-w-6xl">
         {/* Calculator Body */}
-        <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
           {/* Calculator Display */}
-          <div className="bg-gray-800/50 border-b border-gray-700 px-6 py-4">
+          <div className="bg-gray-800/50 border-b border-gray-700 px-3 sm:px-6 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-400 text-sm font-medium">CALC</span>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-green-400 text-xs sm:text-sm font-medium">CALC</span>
               </div>
-              <div className="text-gray-400 text-sm">Real-time Calculation</div>
+              <div className="text-gray-400 text-xs sm:text-sm">Real-time Calculation</div>
             </div>
           </div>
 
           {/* Calculator Content */}
           <div className="flex flex-col lg:flex-row">
             {/* Input Panel */}
-            <div className="flex-1 p-6 border-r border-gray-800">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Settings className="w-5 h-5 text-blue-400" />
+            <div className="flex-1 p-3 sm:p-6 border-r border-gray-800">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-lg">
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                 </div>
-                <h2 className="text-lg font-bold text-white">
+                <h2 className="text-base sm:text-lg font-bold text-white">
                   Parameter Input
                 </h2>
               </div>
 
               {/* Material Selection Dropdown */}
-              <div className="mb-4">
+              <div className="mb-3 sm:mb-4">
                 <label className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
                   <Package className="w-3 h-3" />
                   Pilih Material
@@ -318,7 +318,7 @@ const EnhancedCoilCalculator: React.FC = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {inputFields.map((field, index) => {
                   const IconComponent = field.icon;
                   return (
@@ -357,10 +357,10 @@ const EnhancedCoilCalculator: React.FC = () => {
                 })}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-gray-800">
+              <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-800">
                 <button
                   onClick={handleClear}
-                  className="w-full bg-gradient-to-r from-red-900/40 to-red-800/40 hover:from-red-800/60 hover:to-red-700/60 border border-red-800/50 hover:border-red-700 rounded-lg px-4 py-2 text-red-300 hover:text-red-200 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium backdrop-blur-sm"
+                  className="w-full bg-gradient-to-r from-red-900/40 to-red-800/40 hover:from-red-800/60 hover:to-red-700/60 border border-red-800/50 hover:border-red-700 rounded-lg px-3 sm:px-4 py-2 text-red-300 hover:text-red-200 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium backdrop-blur-sm"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear All
@@ -369,17 +369,17 @@ const EnhancedCoilCalculator: React.FC = () => {
             </div>
 
             {/* Results Panel */}
-            <div className="flex-1 p-6 bg-gradient-to-b from-green-950/10 to-gray-900/80">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-green-400" />
+            <div className="flex-1 p-3 sm:p-6 bg-gradient-to-b from-green-950/10 to-gray-900/80">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                <div className="p-1.5 sm:p-2 bg-green-500/10 rounded-lg">
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                 </div>
-                <h2 className="text-lg font-bold text-white">
+                <h2 className="text-base sm:text-lg font-bold text-white">
                   Hasil Perhitungan
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {productionFields.map((field, index) => {
                   const IconComponent = field.icon;
                   return (
