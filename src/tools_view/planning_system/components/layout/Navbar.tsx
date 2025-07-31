@@ -117,7 +117,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 
   return (
     <Navbar
-      className="border-b border-gray-800/50 bg-gray-900 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40 shadow-lg"
+      className={`border-b ${uiColors.border.primary} ${uiColors.bg.primary} px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40 shadow-lg`}
       onMenuOpenChange={setIsMenuOpen}
     >
       <NavbarBrand>
@@ -144,7 +144,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   isActive(item.path)
                     ? "bg-blue-600 text-white"
-                    : `${uiColors.text.tertiary} hover:${uiColors.text.primary} hover:${uiColors.bg.tertiary}`
+                    : `${uiColors.text.tertiary} hover:${uiColors.text.primary} hover:${uiColors.bg.secondary}`
                 }`}
               >
                 {item.label}
@@ -188,12 +188,9 @@ const NavbarComponent: React.FC<NavbarProps> = ({
       <div className="flex items-center gap-2">
         {/* Theme Toggle Button */}
         <button
-          // onClick={toggleTheme}
-          // className={`p-2 rounded-lg transition-all duration-200 ${uiColors.bg.tertiary} hover:${uiColors.bg.secondary} ${uiColors.text.primary}`}
-          // aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="sm:hidden text-white p-2 hover:bg-gray-700 rounded-lg transition-colors bg-gray-800"
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          onClick={toggleTheme}
+          className={`p-2 rounded-lg transition-all duration-200 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} ${uiColors.text.primary}`}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
         >
           {theme === "light" ? (
             <svg
@@ -230,7 +227,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         {(finalMenuItems.length > 0 || (showUserInfo && showLogout)) && (
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`sm:hidden p-2 rounded-lg transition-colors ${uiColors.text.primary} hover:${uiColors.bg.tertiary}`}
+            className={`sm:hidden p-2 rounded-lg transition-colors ${uiColors.text.primary} hover:${uiColors.bg.tertiary} ${uiColors.bg.secondary}`}
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           >
             <svg
@@ -269,13 +266,60 @@ const NavbarComponent: React.FC<NavbarProps> = ({
           />
 
           {/* Menu Content */}
-          <div className="absolute top-0 right-0 w-64 h-full bg-gray-900/30 backdrop-blur-sm border-l border-gray-700 shadow-2xl">
-            <div className="p-4 bg-gray-900/30 backdrop-blur-sm h-full">
-              {/* Close Button */}
-              <div className="flex justify-end mb-4">
+          <div
+            className={`absolute top-0 right-0 w-64 h-full ${uiColors.bg.tertiary} backdrop-blur-sm border-l border-slate-600 shadow-2xl`}
+          >
+            <div
+              className={`p-4 ${uiColors.bg.tertiary} backdrop-blur-sm h-full`}
+            >
+              {/* Close Button & Theme Toggle */}
+              <div className="flex justify-between items-center mb-4">
+                {/* Theme Toggle Button */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleTheme}
+                    className={`p-2 rounded-lg transition-all duration-200 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} ${uiColors.text.primary}`}
+                    aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+                  >
+                    {theme === "light" ? (
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  <span className={`text-xs ${uiColors.text.tertiary}`}>
+                    {theme === "light" ? "Dark" : "Light"}
+                  </span>
+                </div>
+
+                {/* Close Button */}
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-gray-400 hover:text-white p-2 hover:bg-gray-700 rounded-lg transition-colors bg-gray-800"
+                  className={`${uiColors.text.tertiary} hover:${uiColors.text.primary} p-2 hover:${uiColors.bg.secondary} rounded-lg transition-colors ${uiColors.bg.tertiary}`}
                 >
                   <svg
                     className="w-5 h-5"
@@ -303,7 +347,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                       className={`block px-4 py-3 text-sm font-medium transition-all duration-200 rounded-lg ${
                         isActive(item.path)
                           ? "bg-blue-600 text-white"
-                          : `${uiColors.text.tertiary} hover:${uiColors.text.primary} hover:${uiColors.bg.tertiary}`
+                          : `${uiColors.text.tertiary} hover:${uiColors.text.primary} hover:${uiColors.bg.secondary}`
                       }`}
                       onClick={() => setIsMenuOpen(false)}
                     >
@@ -316,7 +360,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
               {/* User Info & Logout */}
               {showUserInfo && showLogout && isLoggedIn && user && (
                 <div
-                  className={`mt-6 pt-6 border-t ${uiColors.border.secondary}`}
+                  className={`mt-6 pt-6 border-t ${uiColors.border.primary}`}
                 >
                   <div className="px-4 py-2 mb-4">
                     <p
