@@ -266,61 +266,87 @@ const SavedSchedulesPage: React.FC = () => {
       ) : (
         // Schedule list view for selected part dengan tombol kembali di atas
         <>
-          {/* Header dengan tombol kembali */}
+          {/* Header dengan tombol kembali - Layout Baru */}
           <div
-            className={`flex items-center justify-between mb-8 p-4 ${colors.headerBg} rounded-xl border ${colors.headerBorder}`}
+            className={`mb-8 p-4 ${colors.headerBg} rounded-xl border ${colors.headerBorder}`}
           >
-            <div className="flex items-center gap-4">
+            {/* Top row - Back button and part info */}
+            <div className="flex items-start gap-3 sm:gap-4 mb-4">
+              {/* Back button - Icon only on mobile */}
               <button
                 onClick={() => setSelectedPart(null)}
-                className={`flex items-center gap-2 px-4 py-2 ${colors.backButtonBg} ${colors.backButtonHover} ${colors.backButtonText} rounded-lg transition-all duration-200 hover:scale-105 group`}
+                className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2 ${colors.backButtonBg} ${colors.backButtonHover} ${colors.backButtonText} rounded-lg transition-all duration-200 hover:scale-105 group flex-shrink-0`}
               >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                Kembali
+                <span className="hidden sm:inline">Kembali</span>
               </button>
-              <div className={`h-8 w-px ${colors.dividerColor}`}></div>
-              <div>
-                <h2
-                  className={`text-2xl font-bold ${colors.titleText} flex items-center gap-3`}
+
+              {/* Part info - Icon and text side by side */}
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div
+                  className={`${(() => {
+                    const selectedPartData = parts.find(
+                      (p) => p.name === selectedPart,
+                    );
+                    return selectedPartData?.bgColor || "";
+                  })()} p-2 rounded-lg flex-shrink-0`}
                 >
                   {(() => {
                     const selectedPartData = parts.find(
                       (p) => p.name === selectedPart,
                     );
-                    return (
-                      <>
-                        {selectedPartData && (
-                          <div
-                            className={`${selectedPartData.bgColor} p-2 rounded-lg`}
-                          >
-                            {selectedPartData.icon === Package && (
-                              <Package className="w-6 h-6 text-white" />
-                            )}
-                            {selectedPartData.icon === Cog && (
-                              <Cog className="w-6 h-6 text-white" />
-                            )}
-                            {selectedPartData.icon === Wrench && (
-                              <Wrench className="w-6 h-6 text-white" />
-                            )}
-                          </div>
-                        )}
-                        {selectedPart}
-                      </>
-                    );
+                    if (selectedPartData?.icon === Package) {
+                      return (
+                        <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      );
+                    }
+                    if (selectedPartData?.icon === Cog) {
+                      return (
+                        <Cog className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      );
+                    }
+                    if (selectedPartData?.icon === Wrench) {
+                      return (
+                        <Wrench className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      );
+                    }
+                    return null;
                   })()}
-                </h2>
-                <p className={colors.bodyText}>
-                  {parts.find((p) => p.name === selectedPart)?.customer}
-                </p>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h2
+                    className={`text-lg sm:text-xl lg:text-2xl font-bold ${colors.titleText} truncate`}
+                  >
+                    {selectedPart}
+                  </h2>
+                </div>
               </div>
             </div>
 
-            <div className="text-right">
-              <div className={`text-sm ${colors.bodyText}`}>
-                Total Schedules
+            {/* Bottom row - Customer info and total schedules */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              {/* Customer info */}
+              <div className="flex-1">
+                <p className={`${colors.bodyText} text-sm sm:text-base`}>
+                  {parts.find((p) => p.name === selectedPart)?.customer}
+                </p>
               </div>
-              <div className={`text-2xl font-bold ${colors.titleText}`}>
-                {getSchedulesByPart(selectedPart).length}
+
+              {/* Total schedules with border */}
+              <div
+                className={`px-4 py-2 border ${colors.cardBorder} rounded-lg bg-opacity-50 ${colors.cardBg} flex-shrink-0`}
+              >
+                <div
+                  className={`text-xs sm:text-sm ${colors.bodyText} text-center`}
+                >
+                  Total Schedules
+                </div>
+                <div
+                  className={`text-lg sm:text-xl font-bold ${colors.titleText} text-center`}
+                >
+                  {getSchedulesByPart(selectedPart).length}
+                </div>
               </div>
             </div>
           </div>
@@ -346,7 +372,7 @@ const SavedSchedulesPage: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {getSchedulesByPart(selectedPart).map((schedule) => (
                 <div
                   key={schedule.id}
@@ -383,31 +409,36 @@ const SavedSchedulesPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Action buttons */}
-                    <div className="flex gap-2">
+                    {/* Action buttons - Responsive */}
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <button
                         onClick={() => handleLoadSchedule(schedule)}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 group/btn"
+                        className="flex-1 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-1 sm:gap-2 group/btn"
                       >
-                        <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                        Tampilkan
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" />
+                        <span className="hidden sm:inline">Tampilkan</span>
+                        <span className="sm:hidden">Lihat</span>
                       </button>
-                      <button
-                        onClick={() => handleDownloadExcel(schedule)}
-                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg text-sm transition-all duration-200 hover:scale-105 group/btn"
-                        title="Download Excel"
-                      >
-                        <Download className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeleteSchedule(schedule.id, schedule.name)
-                        }
-                        className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg text-sm transition-all duration-200 hover:scale-105 group/btn"
-                        title="Hapus Schedule"
-                      >
-                        <Trash2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleDownloadExcel(schedule)}
+                          className="flex-1 px-3 sm:px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg text-xs sm:text-sm transition-all duration-200 hover:scale-105 group/btn"
+                          title="Download Excel"
+                        >
+                          <Download className="w-3 h-3 sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" />
+                          <span className="hidden sm:inline">Download</span>
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeleteSchedule(schedule.id, schedule.name)
+                          }
+                          className="flex-1 px-3 sm:px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg text-xs sm:text-sm transition-all duration-200 hover:scale-105 group/btn"
+                          title="Hapus Schedule"
+                        >
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" />
+                          <span className="hidden sm:inline">Hapus</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

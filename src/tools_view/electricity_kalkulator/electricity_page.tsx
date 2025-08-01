@@ -10,25 +10,21 @@ export default function Component() {
   const [power, setPower] = useState<string>("");
   const [hours, setHours] = useState<string>("");
   const [minutes, setMinutes] = useState<string>("");
-  const [seconds, setSeconds] = useState<string>("");
+  const [electricityRate, setElectricityRate] = useState<string>("1444");
   const [cost, setCost] = useState<number>(0);
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
-
-  // Tarif listrik PLN (contoh: Rp 1.444 per kWh untuk golongan R1/900VA)
-  const electricityRate = 1444;
 
   const calculateCost = () => {
     const powerWatts = Number.parseFloat(power) || 0;
     const totalHours =
-      (Number.parseFloat(hours) || 0) +
-      (Number.parseFloat(minutes) || 0) / 60 +
-      (Number.parseFloat(seconds) || 0) / 3600;
+      (Number.parseFloat(hours) || 0) + (Number.parseFloat(minutes) || 0) / 60;
+    const rate = Number.parseFloat(electricityRate) || 0;
 
-    if (powerWatts > 0 && totalHours > 0) {
+    if (powerWatts > 0 && totalHours > 0 && rate > 0) {
       // Konversi ke kWh
       const energyKwh = (powerWatts * totalHours) / 1000;
       // Hitung biaya
-      const totalCost = energyKwh * electricityRate;
+      const totalCost = energyKwh * rate;
       setCost(totalCost);
       setIsCalculated(true);
     } else {
@@ -41,7 +37,7 @@ export default function Component() {
     setPower("");
     setHours("");
     setMinutes("");
-    setSeconds("");
+    setElectricityRate("1444");
     setCost(0);
     setIsCalculated(false);
   };
@@ -56,10 +52,10 @@ export default function Component() {
   };
 
   useEffect(() => {
-    if (power || hours || minutes || seconds) {
+    if (power || hours || minutes || electricityRate) {
       calculateCost();
     }
-  }, [power, hours, minutes, seconds]);
+  }, [power, hours, minutes, electricityRate]);
 
   return (
     <div className="min-h-screen bg-slate-900 p-4 flex items-center justify-center">
@@ -103,13 +99,37 @@ export default function Component() {
             </div>
           </div>
 
+          {/* Input Tarif */}
+          <div className="space-y-2">
+            <label
+              htmlFor="electricityRate"
+              className="text-sm font-medium text-slate-300 flex items-center gap-2"
+            >
+              <Calculator className="w-4 h-4" />
+              Tarif Listrik
+            </label>
+            <div className="relative">
+              <input
+                id="electricityRate"
+                type="number"
+                placeholder="Masukkan tarif"
+                value={electricityRate}
+                onChange={(e) => setElectricityRate(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-green-400 font-medium">
+                Rp/kWh
+              </span>
+            </div>
+          </div>
+
           {/* Input Waktu */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Waktu Pemakaian
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label htmlFor="hours" className="text-xs text-slate-400">
                   Jam
@@ -136,19 +156,6 @@ export default function Component() {
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
-              <div className="space-y-1">
-                <label htmlFor="seconds" className="text-xs text-slate-400">
-                  Detik
-                </label>
-                <input
-                  id="seconds"
-                  type="number"
-                  placeholder="0"
-                  value={seconds}
-                  onChange={(e) => setSeconds(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-              </div>
             </div>
           </div>
 
@@ -169,7 +176,8 @@ export default function Component() {
                 </span>
               </div>
               <div className="mt-2 text-xs text-slate-500">
-                Tarif: {formatCurrency(electricityRate)}/kWh
+                Tarif: {formatCurrency(Number.parseFloat(electricityRate) || 0)}
+                /kWh
               </div>
             </div>
 
@@ -183,10 +191,11 @@ export default function Component() {
                       {(
                         ((Number.parseFloat(power) || 0) *
                           ((Number.parseFloat(hours) || 0) +
-                            (Number.parseFloat(minutes) || 0) / 60 +
-                            (Number.parseFloat(seconds) || 0) / 3600)) /
+                            (Number.parseFloat(minutes) || 0) / 60)) /
                         1000
-                      ).toFixed(3)}{" "}
+                      )
+                        .toFixed(3)
+                        .replace(".", ",")}{" "}
                       kWh
                     </span>
                   </div>
@@ -195,9 +204,10 @@ export default function Component() {
                     <span className="font-medium">
                       {(
                         (Number.parseFloat(hours) || 0) +
-                        (Number.parseFloat(minutes) || 0) / 60 +
-                        (Number.parseFloat(seconds) || 0) / 3600
-                      ).toFixed(2)}{" "}
+                        (Number.parseFloat(minutes) || 0) / 60
+                      )
+                        .toFixed(2)
+                        .replace(".", ",")}{" "}
                       jam
                     </span>
                   </div>
