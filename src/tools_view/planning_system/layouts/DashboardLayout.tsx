@@ -22,7 +22,7 @@ const DashboardLayout: React.FC = () => {
         showUserInfo={true}
         showLogout={true}
       />
-      <div className={`p-6 lg:p-8 ${uiColors.bg.primary}`}>
+      <div className="p-6 lg:p-8 bg-transparent">
         <div className="mx-auto max-w-7xl space-y-8">
           <Outlet />
         </div>

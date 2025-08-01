@@ -95,7 +95,10 @@ export default function LandingPage() {
           </div>
 
           {/* Section Tim Developer GIRAF */}
-          <div className="bg-gray-900/80 rounded-2xl p-8 max-w-3xl mx-auto text-center shadow-lg border border-gray-800 mb-10">
+          <div
+            id="giraf-team"
+            className="bg-gray-900/80 rounded-2xl p-8 max-w-3xl mx-auto text-center shadow-lg border border-gray-800 mb-10 scroll-mt-20 hover:shadow-2xl hover:border-cyan-400/30 transition-all duration-500"
+          >
             <div className="flex flex-col items-center justify-center mb-6">
               <img
                 src={logoGiraf}

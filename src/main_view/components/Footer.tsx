@@ -1,4 +1,6 @@
 import React from "react";
+import logoBerlindo from "../../img/logo_berlindo.png";
+import logoGiraf from "../../img/logo_giraf.png";
 
 const Footer: React.FC = () => {
   return (
@@ -10,16 +12,16 @@ const Footer: React.FC = () => {
           <div className="w-full flex md:hidden items-center justify-center pt-6">
             <div className="relative flex items-center justify-center h-[140px] z-10 gap-4">
               <img
-                src=".../../src/img/logo_berlindo.png"
+                src={logoBerlindo}
                 alt="Berlindo company logo with stylized shadow effect, set against a neutral background, conveying a professional and modern tone"
                 className="h-32 w-56 object-contain drop-shadow-xl relative"
-                style={{ left: '-16px' }}
+                style={{ left: "-16px" }}
               />
               <img
-                src=".../../src/img/logo_giraf.png"
+                src={logoGiraf}
                 alt="Giraf Tech Solution logo"
                 className="h-24 w-24 object-contain drop-shadow-xl relative"
-                style={{ left: '0px' }}
+                style={{ left: "0px" }}
               />
             </div>
           </div>
@@ -28,32 +30,31 @@ const Footer: React.FC = () => {
             <div className="text-blue-200 text-lg font-semibold mb-1">
               &copy; {new Date().getFullYear()} Berlindo Internal System
             </div>
-            <div className="text-blue-400 text-sm">
-              All rights reserved.
-            </div>
+            <div className="text-blue-400 text-sm">All rights reserved.</div>
           </div>
           {/* Desktop: Logo Berlindo dan Giraf di kanan, bersebelahan */}
           <div className="relative hidden md:flex items-center justify-end h-full w-[440px] md:w-[600px] order-1 md:order-2">
             {/* Blue grid SVG background */}
             <svg
-              viewBox="0 0 480 90" width="100%" height="100%"
+              viewBox="0 0 480 90"
+              width="100%"
+              height="100%"
               className="absolute left-0 top-0 h-full w-full z-0"
               preserveAspectRatio="none"
-            >
-            </svg>
+            ></svg>
             {/* Logo Berlindo dan Giraf */}
             <div className="relative flex items-center justify-center h-[140px] w-[340px] z-10 gap-4">
               <img
-                src=".../../src/img/logo_berlindo.png"
+                src={logoBerlindo}
                 alt="Berlindo company logo with stylized shadow effect, set against a neutral background, conveying a professional and modern tone"
                 className="h-32 w-56 object-contain drop-shadow-xl relative"
-                style={{ left: '-32px' }}
+                style={{ left: "-32px" }}
               />
               <img
-                src=".../../src/img/logo_giraf.png"
+                src={logoGiraf}
                 alt="Giraf Tech Solution logo"
                 className="h-24 w-32 object-contain drop-shadow-xl relative"
-                style={{ left: '-12px' }}
+                style={{ left: "-12px" }}
               />
             </div>
           </div>

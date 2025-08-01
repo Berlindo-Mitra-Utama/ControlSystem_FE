@@ -7,6 +7,7 @@ import PlanningSystemLayout from "./tools_view/planning_system/layouts/PlanningS
 // Layouts
 import DashboardLayout from "./tools_view/planning_system/layouts/DashboardLayout";
 import HitungCoilLayout from "./tools_view/hitung_koil/layouts/HitungCoilLayout";
+import ElectricityLayout from "./tools_view/electricity_kalkulator/layouts/ElectricityLayout";
 
 // Pages
 import Dashboard from "./tools_view/planning_system/pages/Dashboard";
@@ -19,6 +20,7 @@ import ToolsDashboard from "./main_view/pages/ToolsDashboard";
 import LoginPage from "./main_view/pages/LoginPage";
 import UserManagementPage from "./admin_view/user_management/pages/userManagementPage";
 import ProtectedRoute from "./tools_view/planning_system/components/ProtectedRoute";
+import ElectricityPage from "./tools_view/electricity_kalkulator/electricity_page";
 
 // Progress Tracker
 import DashboardProgres from "./tools_view/progres_tracker/pages/dashboard";
@@ -28,7 +30,7 @@ function App() {
   return (
     <AuthProvider>
       <ScheduleProvider>
-        <div className="min-h-screen flex flex-col bg-[#101624]">
+        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
           <div className="flex-1">
             <Routes>
               {/* Public Routes */}
@@ -74,6 +76,11 @@ function App() {
               {/* Public Tools - Hitung Coil */}
               <Route path="/hitungcoil" element={<HitungCoilLayout />}>
                 <Route index element={<HitungCoil />} />
+              </Route>
+
+              {/* Public Tools - Electricity Calculator */}
+              <Route path="/electricity" element={<ElectricityLayout />}>
+                <Route index element={<ElectricityPage />} />
               </Route>
 
               {/* Admin Routes */}

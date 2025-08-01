@@ -12,6 +12,8 @@ import {
   Ruler,
   Package,
 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { handleGirafTeamClick } from "../../electricity_kalkulator/utils/scrollUtils";
 
 interface CoilFormData {
   materialType: string; // Material type selection
@@ -35,6 +37,7 @@ interface CoilCalculationResult {
 }
 
 const EnhancedCoilCalculator: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<CoilFormData>({
     materialType: "",
     speckMaterial: "",
@@ -280,9 +283,13 @@ const EnhancedCoilCalculator: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-400 text-xs sm:text-sm font-medium">CALC</span>
+                <span className="text-green-400 text-xs sm:text-sm font-medium">
+                  CALC
+                </span>
               </div>
-              <div className="text-gray-400 text-xs sm:text-sm">Real-time Calculation</div>
+              <div className="text-gray-400 text-xs sm:text-sm">
+                Real-time Calculation
+              </div>
             </div>
           </div>
 
@@ -434,6 +441,20 @@ const EnhancedCoilCalculator: React.FC = () => {
                 })}
               </div>
             </div>
+          </div>
+        </div>
+        {/* Footer - Creator */}
+        <div className="border-t border-gray-800 px-6 py-4">
+          <div className="text-center">
+            <p className="text-xs text-gray-500">
+              Dibuat oleh{" "}
+              <button
+                onClick={() => handleGirafTeamClick(navigate)}
+                className="text-cyan-400 font-semibold hover:underline cursor-pointer transition-colors hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 rounded"
+              >
+                Giraf Tech Solution
+              </button>
+            </p>
           </div>
         </div>
       </div>
