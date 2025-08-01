@@ -12,11 +12,20 @@ import {
   calculateScheduleTotals,
   formatJamProduksi,
   formatNumber,
-  formatNumberWithDecimal,
   calculateAkumulasiDelivery,
   calculateAkumulasiHasilProduksi,
   calculateStockCustom,
 } from "../../utils/scheduleCalcUtils";
+import {
+  ALL_ROWS,
+  FILTER_OPTIONS,
+  getFilteredRows,
+  getRowColorConfig,
+  getTotalColorConfig,
+} from "../../utils/scheduleColorUtils";
+import { getRowDataConfig } from "../../utils/scheduleDataUtils";
+import ManpowerDropdown from "./ManpowerDropdown";
+import EditableCell from "./EditableCell";
 import {
   Clock,
   Package,
@@ -77,7 +86,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   handleRemoveManpower,
   onDataChange,
 }) => {
-  const { uiColors } = useTheme();
+  const { uiColors, theme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [focusedInputs, setFocusedInputs] = useState<{
     [key: string]: boolean;
@@ -179,9 +188,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const totals = calculateScheduleTotals(flatRows);
 
   // Calculate total jam produksi (cycle time) with manpower consideration
-  // Default: 3 manpower = 14 pcs/jam (14/3 = 4.666 pcs per manpower)
-  const defaultManpowerCount = 3;
-  const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
   const outputPerHour = calculateOutputPerHour(timePerPcs, []);
   const totalJamProduksi = formatJamProduksi(
     totals.hasilProduksi,
@@ -196,95 +202,51 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     (group) => getDayName(group.day, month, year) !== "Minggu",
   );
 
-  // Define all rows with their categories and formatted labels
-  const allRows = [
-    {
-      key: "manpower",
-      label: "MANPOWER",
-      category: "stock",
-      icon: Activity,
-    },
-    {
-      key: "delivery",
-      label: "DELIVERY PLAN (PCS)",
-      category: "delivery",
-      icon: Truck,
-    },
-    {
-      key: "akumulasi-delivery",
-      label: "AKUMULASI\nDELIVERY (PCS)",
-      category: "delivery",
-      icon: TrendingUp,
-    },
-    {
-      key: "planning-pcs",
-      label: "PLANNING PRODUKSI (PCS)",
-      category: "planning",
-      icon: Target,
-    },
-    {
-      key: "planning-jam",
-      label: "PLANNING PRODUKSI (JAM)",
-      category: "planning",
-      icon: Clock,
-    },
-    {
-      key: "overtime-pcs",
-      label: "OVERTIME (PCS)",
-      category: "overtime",
-      icon: Zap,
-    },
-    {
-      key: "overtime-jam",
-      label: "OVERTIME (JAM)",
-      category: "overtime",
-      icon: Timer,
-    },
-    {
-      key: "jam-produksi",
-      label: "JAM PRODUKSI\n(CYCLETIME)",
-      category: "stock",
-      icon: Gauge,
-    },
-    {
-      key: "hasil-produksi",
-      label: "HASIL PRODUKSI\nAKTUAL (PCS)",
-      category: "hasil-produksi",
-      icon: Factory,
-    },
-    {
-      key: "akumulasi-hasil",
-      label: "AKUMULASI HASIL\nPRODUKSI AKTUAL (PCS)",
-      category: "hasil-produksi",
-      icon: TrendingUp,
-    },
-    {
-      key: "jam-aktual",
-      label: "JAM PRODUKSI\nAKTUAL",
-      category: "stock",
-      icon: Activity,
-    },
-    {
-      key: "actual-stock",
-      label: "ACTUAL STOCK\n(PCS)",
-      category: "stock",
-      icon: Package,
-    },
-    {
-      key: "rencana-stock",
-      label: "RENCANA STOCK\n(PCS)",
-      category: "stock",
-      icon: Layers,
-    },
-  ];
+  // Gunakan ALL_ROWS dari utils
+  const allRows = ALL_ROWS.map((row) => ({
+    ...row,
+    icon: getIconForRow(row.key),
+  }));
+
+  // Helper function untuk mendapatkan icon berdasarkan key
+  function getIconForRow(key: string) {
+    switch (key) {
+      case "manpower":
+        return Activity;
+      case "delivery":
+        return Truck;
+      case "akumulasi-delivery":
+        return TrendingUp;
+      case "planning-pcs":
+        return Target;
+      case "planning-jam":
+        return Clock;
+      case "overtime-pcs":
+        return Zap;
+      case "overtime-jam":
+        return Timer;
+      case "jam-produksi":
+        return Gauge;
+      case "hasil-produksi":
+        return Factory;
+      case "akumulasi-hasil":
+        return TrendingUp;
+      case "jam-aktual":
+        return Activity;
+      case "actual-stock":
+        return Package;
+      case "rencana-stock":
+        return Layers;
+      default:
+        return Activity;
+    }
+  }
 
   // Filter rows based on active filter
-  const getFilteredRows = () => {
-    if (activeFilter === "all") return allRows;
-    return allRows.filter((row) => row.category === activeFilter);
-  };
-
-  const filteredRows = getFilteredRows();
+  const filteredRows = getFilteredRows(activeFilter).map((row) => ({
+    ...row,
+    icon: getIconForRow(row.key),
+  }));
 
   // Function to handle input changes
   const handleInputChange = (rowId: string, field: string, value: string) => {
@@ -310,14 +272,29 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     }
   };
 
-  // Filter menu options
-  const filterOptions = [
-    { value: "all", label: "Semua Data", icon: BarChart3 },
-    { value: "delivery", label: "Delivery", icon: Truck },
-    { value: "planning", label: "Planning", icon: Target },
-    { value: "overtime", label: "Overtime", icon: Timer },
-    { value: "hasil-produksi", label: "Hasil Produksi", icon: Factory },
-  ];
+  // Filter menu options dengan icon
+  const filterOptions = FILTER_OPTIONS.map((option) => ({
+    ...option,
+    icon: getIconForFilter(option.value),
+  }));
+
+  // Helper function untuk mendapatkan icon filter
+  function getIconForFilter(value: string) {
+    switch (value) {
+      case "all":
+        return BarChart3;
+      case "delivery":
+        return Truck;
+      case "planning":
+        return Target;
+      case "overtime":
+        return Timer;
+      case "hasil-produksi":
+        return Factory;
+      default:
+        return BarChart3;
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -515,14 +492,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             <div className="space-y-0">
               {filteredRows.map((row, index) => {
                 let totalValue = "-";
-                let bgColor = "bg-slate-600";
-                let textColor = "text-slate-400";
-
-                // Tentukan warna berdasarkan grup 3 baris untuk kolom TOTAL
-                const totalRowIndex = filteredRows.findIndex(
-                  (r) => r.key === row.key,
+                // Gunakan utils untuk mendapatkan warna total dengan dark theme support
+                const { bgColor, textColor } = getTotalColorConfig(
+                  row.key,
+                  theme === "dark",
                 );
-                const totalRowGroup = Math.floor(totalRowIndex / 3);
 
                 switch (row.key) {
                   case "manpower":
@@ -540,68 +514,42 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       0,
                     );
                     totalValue = totalManpower.toString();
-                    bgColor = "bg-slate-700";
-                    textColor = "text-white";
                     break;
                   case "delivery":
                     totalValue = formatNumber(totals.delivery);
-                    bgColor = "bg-blue-200";
-                    textColor = "text-blue-900";
                     break;
                   case "akumulasi-delivery":
                     totalValue = "-";
-                    bgColor = "bg-slate-700";
-                    textColor = "text-white";
                     break;
                   case "planning-jam":
                     totalValue = totalPlanningJam;
-                    bgColor = "bg-amber-200";
-                    textColor = "text-amber-900";
                     break;
                   case "planning-pcs":
                     totalValue = formatNumber(totals.planningPcs);
-                    bgColor = "bg-amber-200";
-                    textColor = "text-amber-900";
                     break;
                   case "overtime-jam":
                     totalValue = totalOvertimeJam;
-                    bgColor = "bg-rose-200";
-                    textColor = "text-rose-900";
                     break;
                   case "overtime-pcs":
                     totalValue = formatNumber(totals.overtimePcs);
-                    bgColor = "bg-rose-200";
-                    textColor = "text-rose-900";
                     break;
                   case "jam-produksi":
                     totalValue = "-";
-                    bgColor = "bg-violet-200";
-                    textColor = "text-violet-900";
                     break;
                   case "hasil-produksi":
                     totalValue = formatNumber(totals.hasilProduksi);
-                    bgColor = "bg-emerald-200";
-                    textColor = "text-emerald-900";
                     break;
                   case "akumulasi-hasil":
                     totalValue = "-";
-                    bgColor = "bg-violet-200";
-                    textColor = "text-violet-900";
                     break;
                   case "jam-aktual":
                     totalValue = "-";
-                    bgColor = "bg-violet-200";
-                    textColor = "text-violet-900";
                     break;
                   case "actual-stock":
                     totalValue = "-";
-                    bgColor = "bg-sky-200";
-                    textColor = "text-sky-900";
                     break;
                   case "rencana-stock":
                     totalValue = "-";
-                    bgColor = "bg-slate-700";
-                    textColor = "text-white";
                     break;
                 }
 
@@ -667,327 +615,30 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                         (g) => g.day === group.day,
                       );
 
-                      // Skema warna yang lebih harmonis dan konsisten
-                      let rowBgColor = "";
-                      let textColor = "text-gray-800";
-
-                      // Tentukan warna berdasarkan grup 3 baris (tidak selang-seling)
-                      const currentRowIndex = filteredRows.findIndex(
-                        (r) => r.key === row.key,
+                      // Gunakan utils untuk mendapatkan warna baris dengan dark theme support
+                      const { rowBgColor, textColor } = getRowColorConfig(
+                        row.key,
+                        theme === "dark",
                       );
-                      const rowGroup = Math.floor(currentRowIndex / 3);
 
-                      switch (rowGroup) {
-                        case 0:
-                          // Grup 1: Manpower, Delivery, Akumulasi Delivery
-                          rowBgColor = "bg-slate-700";
-                          textColor = "text-white";
-                          break;
-                        case 1:
-                          // Grup 2: Planning PCS, Planning Jam, Overtime PCS
-                          rowBgColor = "bg-amber-100";
-                          textColor = "text-amber-900";
-                          break;
-                        case 2:
-                          // Grup 3: Overtime Jam, Jam Produksi, Hasil Produksi
-                          rowBgColor = "bg-rose-100";
-                          textColor = "text-rose-900";
-                          break;
-                        case 3:
-                          // Grup 4: Akumulasi Hasil, Jam Aktual, Actual Stock
-                          rowBgColor = "bg-violet-100";
-                          textColor = "text-violet-900";
-                          break;
-                        case 4:
-                          // Grup 5: Rencana Stock
-                          rowBgColor = "bg-slate-700";
-                          textColor = "text-white";
-                          break;
-                        default:
-                          rowBgColor = "bg-gray-100";
-                          textColor = "text-gray-800";
-                      }
-
-                      // Override untuk baris khusus agar sesuai dengan gambar
-                      if (row.key === "delivery") {
-                        rowBgColor = "bg-blue-100";
-                        textColor = "text-blue-900";
-                      } else if (row.key === "hasil-produksi") {
-                        rowBgColor = "bg-emerald-100";
-                        textColor = "text-emerald-900";
-                      } else if (row.key === "jam-produksi") {
-                        rowBgColor = "bg-violet-100";
-                        textColor = "text-violet-900";
-                      } else if (row.key === "actual-stock") {
-                        rowBgColor = "bg-sky-100";
-                        textColor = "text-sky-900";
-                      }
-
-                      let shift1Value: string | number = "-";
-                      let shift2Value: string | number = "-";
-                      let isEditable = false;
-                      let shift1Field = "";
-                      let shift2Field = "";
-
-                      switch (row.key) {
-                        case "manpower":
-                          shift1Value =
-                            shift1?.manpowerIds && shift1.manpowerIds.length > 0
-                              ? shift1.manpowerIds
-                                  .map((id) => {
-                                    const mp = manpowerList.find(
-                                      (mp) => mp.id === id,
-                                    );
-                                    return mp ? mp.name : null;
-                                  })
-                                  .filter(Boolean)
-                                  .join(", ")
-                              : "Pilih";
-                          shift2Value =
-                            shift2?.manpowerIds && shift2.manpowerIds.length > 0
-                              ? shift2.manpowerIds
-                                  .map((id) => {
-                                    const mp = manpowerList.find(
-                                      (mp) => mp.id === id,
-                                    );
-                                    return mp ? mp.name : null;
-                                  })
-                                  .filter(Boolean)
-                                  .join(", ")
-                              : "Pilih";
-                          isEditable = true;
-                          shift1Field = "manpower";
-                          shift2Field = "manpower";
-                          break;
-                        case "delivery":
-                          shift1Value = shift1?.delivery || 0;
-                          shift2Value = shift2?.delivery || 0;
-                          isEditable = true;
-                          shift1Field = "delivery";
-                          shift2Field = "delivery";
-                          break;
-
-                        case "akumulasi-delivery":
-                          // Calculate akumulasi delivery using utils
-                          const akumulasiDelivery = calculateAkumulasiDelivery(
-                            group.day,
-                            validGroupedRows,
-                            groupIndex,
-                          );
-
-                          if (shift1) {
-                            shift1.akumulasiDelivery = akumulasiDelivery.shift1;
-                          }
-                          if (shift2) {
-                            shift2.akumulasiDelivery = akumulasiDelivery.shift2;
-                          }
-
-                          shift1Value = formatNumber(akumulasiDelivery.shift1);
-                          shift2Value = formatNumber(akumulasiDelivery.shift2);
-                          break;
-
-                        case "planning-jam":
-                          // Calculate effective output per hour based on manpower
-                          const shift1ManpowerCount =
-                            shift1?.manpowerIds?.length || defaultManpowerCount;
-                          const shift2ManpowerCount =
-                            shift2?.manpowerIds?.length || defaultManpowerCount;
-
-                          const shift1OutputPerHour =
-                            shift1ManpowerCount * pcsPerManpower;
-                          const shift2OutputPerHour =
-                            shift2ManpowerCount * pcsPerManpower;
-
-                          const planningProduksiJamShift1 = formatJamProduksi(
-                            shift1?.planningPcs || 0,
-                            shift1OutputPerHour,
-                          );
-
-                          const planningProduksiJamShift2 = formatJamProduksi(
-                            shift2?.planningPcs || 0,
-                            shift2OutputPerHour,
-                          );
-
-                          shift1Value = planningProduksiJamShift1;
-                          shift2Value = planningProduksiJamShift2;
-                          break;
-
-                        case "planning-pcs":
-                          shift1Value = shift1?.planningPcs || 0;
-                          shift2Value = shift2?.planningPcs || 0;
-                          isEditable = true;
-                          shift1Field = "planningPcs";
-                          shift2Field = "planningPcs";
-                          break;
-
-                        case "overtime-jam":
-                          // Calculate effective output per hour based on manpower
-                          const overtimeShift1ManpowerCount =
-                            shift1?.manpowerIds?.length || defaultManpowerCount;
-                          const overtimeShift2ManpowerCount =
-                            shift2?.manpowerIds?.length || defaultManpowerCount;
-
-                          const overtimeShift1OutputPerHour =
-                            overtimeShift1ManpowerCount * pcsPerManpower;
-                          const overtimeShift2OutputPerHour =
-                            overtimeShift2ManpowerCount * pcsPerManpower;
-
-                          const overtimeJamShift1 = formatJamProduksi(
-                            shift1?.overtimePcs || 0,
-                            overtimeShift1OutputPerHour,
-                          );
-
-                          const overtimeJamShift2 = formatJamProduksi(
-                            shift2?.overtimePcs || 0,
-                            overtimeShift2OutputPerHour,
-                          );
-
-                          shift1Value = overtimeJamShift1;
-                          shift2Value = overtimeJamShift2;
-                          break;
-
-                        case "overtime-pcs":
-                          shift1Value = shift1?.overtimePcs || 0;
-                          shift2Value = shift2?.overtimePcs || 0;
-                          isEditable = true;
-                          shift1Field = "overtimePcs";
-                          shift2Field = "overtimePcs";
-                          break;
-
-                        case "jam-produksi":
-                          // Calculate effective output per hour based on manpower
-                          const jamProduksiShift1ManpowerCount =
-                            shift1?.manpowerIds?.length || defaultManpowerCount;
-                          const jamProduksiShift2ManpowerCount =
-                            shift2?.manpowerIds?.length || defaultManpowerCount;
-
-                          const jamProduksiShift1OutputPerHour =
-                            jamProduksiShift1ManpowerCount * pcsPerManpower;
-                          const jamProduksiShift2OutputPerHour =
-                            jamProduksiShift2ManpowerCount * pcsPerManpower;
-
-                          const jamProduksiShift1 = formatJamProduksi(
-                            shift1?.pcs || 0,
-                            jamProduksiShift1OutputPerHour,
-                          );
-
-                          const jamProduksiShift2 = formatJamProduksi(
-                            shift2?.pcs || 0,
-                            jamProduksiShift2OutputPerHour,
-                          );
-
-                          shift1Value = jamProduksiShift1;
-                          shift2Value = jamProduksiShift2;
-                          break;
-
-                        case "hasil-produksi":
-                          shift1Value = shift1?.pcs || 0;
-                          shift2Value = shift2?.pcs || 0;
-                          isEditable = true;
-                          shift1Field = "pcs";
-                          shift2Field = "pcs";
-                          break;
-
-                        case "akumulasi-hasil":
-                          // Calculate akumulasi hasil produksi aktual using utils
-                          const akumulasiHasil =
-                            calculateAkumulasiHasilProduksi(
-                              group.day,
-                              validGroupedRows,
-                              groupIndex,
-                            );
-
-                          if (shift1) {
-                            shift1.akumulasiHasilProduksi =
-                              akumulasiHasil.shift1;
-                          }
-                          if (shift2) {
-                            shift2.akumulasiHasilProduksi =
-                              akumulasiHasil.shift2;
-                          }
-
-                          shift1Value = formatNumber(akumulasiHasil.shift1);
-                          shift2Value = formatNumber(akumulasiHasil.shift2);
-                          break;
-
-                        case "jam-aktual":
-                          shift1Value = formatNumberWithDecimal(
-                            shift1?.jamProduksiAktual || 0,
-                          );
-                          shift2Value = formatNumberWithDecimal(
-                            shift2?.jamProduksiAktual || 0,
-                          );
-                          isEditable = true;
-                          shift1Field = "jamProduksiAktual";
-                          shift2Field = "jamProduksiAktual";
-                          break;
-
-                        case "actual-stock":
-                          // Calculate actual stock using utils
-                          if (shift1) {
-                            const stockCustom1 = calculateStockCustom(
-                              shift1,
-                              group,
-                              validGroupedRows,
-                              groupIndex,
-                              initialStock,
-                            );
-                            shift1.actualStockCustom = stockCustom1.actualStock;
-                            shift1Value = formatNumber(
-                              stockCustom1.actualStock,
-                            );
-                          }
-
-                          if (shift2) {
-                            const stockCustom2 = calculateStockCustom(
-                              shift2,
-                              group,
-                              validGroupedRows,
-                              groupIndex,
-                              initialStock,
-                            );
-                            shift2.actualStockCustom = stockCustom2.actualStock;
-                            shift2Value = formatNumber(
-                              stockCustom2.actualStock,
-                            );
-                          }
-
-                          break;
-
-                        case "rencana-stock":
-                          // Calculate rencana stock using utils
-                          if (shift1) {
-                            const stockCustom1 = calculateStockCustom(
-                              shift1,
-                              group,
-                              validGroupedRows,
-                              groupIndex,
-                              initialStock,
-                            );
-                            shift1.rencanaStockCustom =
-                              stockCustom1.rencanaStock;
-                            shift1Value = formatNumber(
-                              stockCustom1.rencanaStock,
-                            );
-                          }
-
-                          if (shift2) {
-                            const stockCustom2 = calculateStockCustom(
-                              shift2,
-                              group,
-                              validGroupedRows,
-                              groupIndex,
-                              initialStock,
-                            );
-                            shift2.rencanaStockCustom =
-                              stockCustom2.rencanaStock;
-                            shift2Value = formatNumber(
-                              stockCustom2.rencanaStock,
-                            );
-                          }
-
-                          break;
-                      }
+                      // Gunakan utils untuk mendapatkan konfigurasi data baris
+                      const {
+                        shift1Value,
+                        shift2Value,
+                        isEditable,
+                        shift1Field,
+                        shift2Field,
+                      } = getRowDataConfig(
+                        row.key,
+                        shift1,
+                        shift2,
+                        group,
+                        validGroupedRows,
+                        groupIndex,
+                        initialStock,
+                        manpowerList,
+                        flatRows,
+                      );
 
                       return (
                         <div
@@ -998,232 +649,29 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift1 ? (
-                              <div className="relative w-full manpower-dropdown">
-                                <button
-                                  type="button"
-                                  className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-slate-400 manpower-dropdown"
-                                  onClick={() => {
-                                    if (manpowerList.length === 0) {
-                                      setManpowerError(
-                                        "Silakan tambahkan manpower terlebih dahulu",
-                                      );
-                                      return;
-                                    }
-                                    setFocusedInputs((prev) => ({
-                                      ...prev,
-                                      [`${shift1.id}-manpowerDropdown`]:
-                                        !prev[`${shift1.id}-manpowerDropdown`],
-                                    }));
-                                  }}
-                                >
-                                  {shift1.manpowerIds &&
-                                  shift1.manpowerIds.length > 0
-                                    ? shift1.manpowerIds.length.toString()
-                                    : "3"}
-                                  <span className="ml-2">▼</span>
-                                </button>
-                                {focusedInputs[
-                                  `${shift1.id}-manpowerDropdown`
-                                ] && (
-                                  <div
-                                    className={`absolute z-20 min-w-max max-w-xs ${uiColors.bg.tertiary} border border-slate-400 rounded-lg mt-1 shadow-xl manpower-dropdown`}
-                                  >
-                                    {/* Header */}
-                                    <div
-                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
-                                    >
-                                      <h4
-                                        className={`${uiColors.text.primary} font-semibold text-sm`}
-                                      >
-                                        Pilih Manpower
-                                      </h4>
-                                    </div>
-
-                                    {/* Manpower List */}
-                                    <div className="p-2">
-                                      {manpowerList.length === 0 ? (
-                                        <div className="text-center py-4">
-                                          <div
-                                            className={`${uiColors.text.tertiary} text-sm`}
-                                          >
-                                            Belum ada manpower
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="space-y-1">
-                                          {manpowerList
-                                            .filter(
-                                              (mp) => mp && mp.id && mp.name,
-                                            )
-                                            .map((mp) => (
-                                              <label
-                                                key={mp.id}
-                                                className="flex items-center px-2 py-2 hover:bg-blue-800/50 cursor-pointer rounded transition-colors duration-200"
-                                              >
-                                                <input
-                                                  type="checkbox"
-                                                  checked={(
-                                                    tempManpowerSelection[
-                                                      shift1.id
-                                                    ] ||
-                                                    shift1.manpowerIds || [
-                                                      1, 2, 3,
-                                                    ]
-                                                  ).includes(mp.id)}
-                                                  disabled={
-                                                    (
-                                                      tempManpowerSelection[
-                                                        shift1.id
-                                                      ] ||
-                                                      shift1.manpowerIds || [
-                                                        1, 2, 3,
-                                                      ]
-                                                    ).length >= 6 &&
-                                                    !(
-                                                      tempManpowerSelection[
-                                                        shift1.id
-                                                      ] ||
-                                                      shift1.manpowerIds || [
-                                                        1, 2, 3,
-                                                      ]
-                                                    ).includes(mp.id)
-                                                  }
-                                                  onChange={(e) => {
-                                                    let newIds =
-                                                      tempManpowerSelection[
-                                                        shift1.id
-                                                      ] ||
-                                                        shift1.manpowerIds || [
-                                                          1, 2, 3,
-                                                        ];
-                                                    if (e.target.checked) {
-                                                      if (newIds.length < 6) {
-                                                        newIds = [
-                                                          ...newIds,
-                                                          mp.id,
-                                                        ];
-                                                      }
-                                                    } else {
-                                                      newIds = newIds.filter(
-                                                        (id) => id !== mp.id,
-                                                      );
-                                                    }
-                                                    setTempManpowerSelection(
-                                                      (prev) => ({
-                                                        ...prev,
-                                                        [shift1.id]: newIds,
-                                                      }),
-                                                    );
-                                                  }}
-                                                  className="mr-2 w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                                                />
-                                                <span className="text-blue-100 text-sm">
-                                                  {mp.id}. {mp.name}
-                                                </span>
-                                              </label>
-                                            ))}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Footer dengan Button */}
-                                    <div
-                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
-                                    >
-                                      <div className="flex items-center justify-between mb-2">
-                                        <div
-                                          className={`${uiColors.text.tertiary} text-xs`}
-                                        >
-                                          {
-                                            (
-                                              tempManpowerSelection[
-                                                shift1.id
-                                              ] ||
-                                              shift1.manpowerIds || [1, 2, 3]
-                                            ).length
-                                          }{" "}
-                                          terpilih
-                                        </div>
-                                        <div className="text-slate-400 text-xs">
-                                          Max: 6
-                                        </div>
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={() => {
-                                            setFocusedInputs((prev) => ({
-                                              ...prev,
-                                              [`${shift1.id}-manpowerDropdown`]:
-                                                false,
-                                            }));
-                                            // Reset temporary selection
-                                            setTempManpowerSelection(
-                                              (prev) => ({
-                                                ...prev,
-                                                [shift1.id]: undefined,
-                                              }),
-                                            );
-                                          }}
-                                          className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1 px-3 rounded text-xs font-medium transition-colors"
-                                        >
-                                          Batal
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            const selectedIds =
-                                              tempManpowerSelection[
-                                                shift1.id
-                                              ] ||
-                                                shift1.manpowerIds || [1, 2, 3];
-                                            shift1.manpowerIds = selectedIds;
-                                            if (setEditForm) {
-                                              setEditForm((prev) => ({
-                                                ...prev,
-                                                manpowerIds: selectedIds,
-                                              }));
-                                            }
-                                            if (onDataChange) {
-                                              onDataChange([...flatRows]);
-                                            }
-                                            setFocusedInputs((prev) => ({
-                                              ...prev,
-                                              [`${shift1.id}-manpowerDropdown`]:
-                                                false,
-                                            }));
-                                          }}
-                                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-xs font-semibold transition-colors"
-                                        >
-                                          OK
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                {shift1.manpowerIds &&
-                                  shift1.manpowerIds.length > 6 && (
-                                    <div className="text-red-400 text-xs mt-1">
-                                      Maksimal 6 manpower per shift.
-                                    </div>
-                                  )}
-                              </div>
-                            ) : isEditable && shift1Field ? (
-                              <input
-                                type="number"
-                                value={
-                                  focusedInputs[`${shift1.id}-${shift1Field}`]
-                                    ? (shift1 as any)[shift1Field] || ""
-                                    : shift1Field === "jamProduksiAktual"
-                                      ? formatNumberWithDecimal(
-                                          (shift1 as any)[shift1Field] || 0,
-                                        )
-                                      : (shift1 as any)[shift1Field] || 0
+                              <ManpowerDropdown
+                                shift={shift1}
+                                manpowerList={manpowerList}
+                                tempManpowerSelection={tempManpowerSelection}
+                                setTempManpowerSelection={
+                                  setTempManpowerSelection
                                 }
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    shift1.id,
-                                    shift1Field,
-                                    e.target.value,
-                                  )
+                                setFocusedInputs={setFocusedInputs}
+                                setEditForm={setEditForm}
+                                onDataChange={onDataChange}
+                                flatRows={flatRows}
+                                uiColors={uiColors}
+                                setManpowerError={setManpowerError}
+                              />
+                            ) : isEditable && shift1Field ? (
+                              <EditableCell
+                                value={(shift1 as any)[shift1Field] || 0}
+                                field={shift1Field}
+                                rowId={shift1.id}
+                                isFocused={
+                                  focusedInputs[
+                                    `${shift1.id}-${shift1Field}`
+                                  ] || false
                                 }
                                 onFocus={() => {
                                   setFocusedInputs((prev) => ({
@@ -1237,14 +685,14 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     [`${shift1.id}-${shift1Field}`]: false,
                                   }));
                                 }}
-                                className={`w-full bg-transparent border-none text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1 ${uiColors.text.primary} font-mono text-sm font-semibold`}
-                                placeholder=""
-                                min="0"
+                                onChange={handleInputChange}
+                                textColor={textColor}
                                 step={
                                   shift1Field === "jamProduksiAktual"
                                     ? "0.1"
                                     : "1"
                                 }
+                                min="0"
                               />
                             ) : typeof shift1Value === "number" ? (
                               formatNumber(shift1Value)
@@ -1256,233 +704,29 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift2 ? (
-                              <div className="relative w-full manpower-dropdown">
-                                <button
-                                  type="button"
-                                  className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-blue-400 manpower-dropdown"
-                                  onClick={() => {
-                                    if (manpowerList.length === 0) {
-                                      setManpowerError(
-                                        "Silakan tambahkan manpower terlebih dahulu",
-                                      );
-                                      return;
-                                    }
-                                    setFocusedInputs((prev) => ({
-                                      ...prev,
-                                      [`${shift2.id}-manpowerDropdown`]:
-                                        !prev[`${shift2.id}-manpowerDropdown`],
-                                    }));
-                                  }}
-                                >
-                                  {shift2.manpowerIds &&
-                                  shift2.manpowerIds.length > 0
-                                    ? shift2.manpowerIds.length.toString()
-                                    : "3"}
-                                  <span className="ml-2">▼</span>
-                                </button>
-                                {focusedInputs[
-                                  `${shift2.id}-manpowerDropdown`
-                                ] && (
-                                  <div
-                                    className={`absolute z-20 min-w-max max-w-xs ${uiColors.bg.tertiary} border border-blue-400 rounded-lg mt-1 shadow-xl manpower-dropdown`}
-                                  >
-                                    {/* Header */}
-                                    <div
-                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
-                                    >
-                                      <h4
-                                        className={`${uiColors.text.primary} font-semibold text-sm`}
-                                      >
-                                        Pilih Manpower
-                                      </h4>
-                                    </div>
-
-                                    {/* Manpower List */}
-                                    <div className="p-2">
-                                      {manpowerList.length === 0 ? (
-                                        <div className="text-center py-4">
-                                          <div
-                                            className={`${uiColors.text.tertiary} text-sm`}
-                                          >
-                                            Belum ada manpower
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="space-y-1">
-                                          {manpowerList
-                                            .filter(
-                                              (mp) => mp && mp.id && mp.name,
-                                            )
-                                            .map((mp) => (
-                                              <label
-                                                key={mp.id}
-                                                className="flex items-center px-2 py-2 hover:bg-blue-800/50 cursor-pointer rounded transition-colors duration-200"
-                                              >
-                                                <input
-                                                  type="checkbox"
-                                                  checked={(
-                                                    tempManpowerSelection[
-                                                      shift2.id
-                                                    ] ||
-                                                    shift2.manpowerIds || [
-                                                      1, 2, 3,
-                                                    ]
-                                                  ).includes(mp.id)}
-                                                  disabled={
-                                                    (
-                                                      tempManpowerSelection[
-                                                        shift2.id
-                                                      ] ||
-                                                      shift2.manpowerIds || [
-                                                        1, 2, 3,
-                                                      ]
-                                                    ).length >= 6 &&
-                                                    !(
-                                                      tempManpowerSelection[
-                                                        shift2.id
-                                                      ] ||
-                                                      shift2.manpowerIds || [
-                                                        1, 2, 3,
-                                                      ]
-                                                    ).includes(mp.id)
-                                                  }
-                                                  onChange={(e) => {
-                                                    let newIds =
-                                                      tempManpowerSelection[
-                                                        shift2.id
-                                                      ] ||
-                                                        shift2.manpowerIds || [
-                                                          1, 2, 3,
-                                                        ];
-                                                    if (e.target.checked) {
-                                                      if (newIds.length < 6) {
-                                                        newIds = [
-                                                          ...newIds,
-                                                          mp.id,
-                                                        ];
-                                                      }
-                                                    } else {
-                                                      newIds = newIds.filter(
-                                                        (id) => id !== mp.id,
-                                                      );
-                                                    }
-                                                    setTempManpowerSelection(
-                                                      (prev) => ({
-                                                        ...prev,
-                                                        [shift2.id]: newIds,
-                                                      }),
-                                                    );
-                                                  }}
-                                                  className="mr-2 w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                                                />
-                                                <span className="text-blue-100 text-sm">
-                                                  {mp.id}. {mp.name}
-                                                </span>
-                                              </label>
-                                            ))}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Footer dengan Button */}
-                                    <div
-                                      className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
-                                    >
-                                      <div className="flex items-center justify-between mb-2">
-                                        <div
-                                          className={`${uiColors.text.tertiary} text-xs`}
-                                        >
-                                          {
-                                            (
-                                              tempManpowerSelection[
-                                                shift2.id
-                                              ] ||
-                                              shift2.manpowerIds || [1, 2, 3]
-                                            ).length
-                                          }{" "}
-                                          terpilih
-                                        </div>
-                                        <div className="text-slate-400 text-xs">
-                                          Max: 6
-                                        </div>
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={() => {
-                                            setFocusedInputs((prev) => ({
-                                              ...prev,
-                                              [`${shift2.id}-manpowerDropdown`]:
-                                                false,
-                                            }));
-                                            // Reset temporary selection
-                                            setTempManpowerSelection(
-                                              (prev) => ({
-                                                ...prev,
-                                                [shift2.id]: undefined,
-                                              }),
-                                            );
-                                          }}
-                                          className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1 px-3 rounded text-xs font-medium transition-colors"
-                                        >
-                                          Batal
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            const selectedIds =
-                                              tempManpowerSelection[
-                                                shift2.id
-                                              ] ||
-                                                shift2.manpowerIds || [1, 2, 3];
-                                            shift2.manpowerIds = selectedIds;
-                                            if (setEditForm)
-                                              setEditForm((prev) => ({
-                                                ...prev,
-                                                manpowerIds: selectedIds,
-                                              }));
-
-                                            // Notify parent component about data change
-                                            if (onDataChange) {
-                                              onDataChange([...flatRows]);
-                                            }
-                                            setFocusedInputs((prev) => ({
-                                              ...prev,
-                                              [`${shift2.id}-manpowerDropdown`]:
-                                                false,
-                                            }));
-                                          }}
-                                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-xs font-semibold transition-colors"
-                                        >
-                                          OK
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                {shift2.manpowerIds &&
-                                  shift2.manpowerIds.length > 6 && (
-                                    <div className="text-red-400 text-xs mt-1">
-                                      Maksimal 6 manpower per shift.
-                                    </div>
-                                  )}
-                              </div>
-                            ) : isEditable && shift2Field ? (
-                              <input
-                                type="number"
-                                value={
-                                  focusedInputs[`${shift2.id}-${shift2Field}`]
-                                    ? (shift2 as any)[shift2Field] || ""
-                                    : shift2Field === "jamProduksiAktual"
-                                      ? formatNumberWithDecimal(
-                                          (shift2 as any)[shift2Field] || 0,
-                                        )
-                                      : (shift2 as any)[shift2Field] || 0
+                              <ManpowerDropdown
+                                shift={shift2}
+                                manpowerList={manpowerList}
+                                tempManpowerSelection={tempManpowerSelection}
+                                setTempManpowerSelection={
+                                  setTempManpowerSelection
                                 }
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    shift2.id,
-                                    shift2Field,
-                                    e.target.value,
-                                  )
+                                setFocusedInputs={setFocusedInputs}
+                                setEditForm={setEditForm}
+                                onDataChange={onDataChange}
+                                flatRows={flatRows}
+                                uiColors={uiColors}
+                                setManpowerError={setManpowerError}
+                              />
+                            ) : isEditable && shift2Field ? (
+                              <EditableCell
+                                value={(shift2 as any)[shift2Field] || 0}
+                                field={shift2Field}
+                                rowId={shift2.id}
+                                isFocused={
+                                  focusedInputs[
+                                    `${shift2.id}-${shift2Field}`
+                                  ] || false
                                 }
                                 onFocus={() => {
                                   setFocusedInputs((prev) => ({
@@ -1496,14 +740,14 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                     [`${shift2.id}-${shift2Field}`]: false,
                                   }));
                                 }}
-                                className={`w-full bg-transparent border-none text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1 ${uiColors.text.primary} font-mono text-sm font-semibold`}
-                                placeholder=""
-                                min="0"
+                                onChange={handleInputChange}
+                                textColor={textColor}
                                 step={
                                   shift2Field === "jamProduksiAktual"
                                     ? "0.1"
                                     : "1"
                                 }
+                                min="0"
                               />
                             ) : typeof shift2Value === "number" ? (
                               formatNumber(shift2Value)
