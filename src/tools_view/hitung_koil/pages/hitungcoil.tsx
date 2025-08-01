@@ -12,6 +12,7 @@ import {
   Ruler,
   Package,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface CoilFormData {
   materialType: string; // Material type selection
@@ -434,6 +435,14 @@ const EnhancedCoilCalculator: React.FC = () => {
                 })}
               </div>
             </div>
+          </div>
+        </div>
+        {/* Footer - Creator */}
+        <div className="border-t border-gray-800 px-6 py-4">
+          <div className="text-center">
+            <p className="text-xs text-gray-500">
+              Dibuat oleh <Link to="/#giraf-team" className="text-cyan-400 font-semibold hover:underline cursor-pointer">Giraf Tech Solution</Link>
+            </p>
           </div>
         </div>
       </div>

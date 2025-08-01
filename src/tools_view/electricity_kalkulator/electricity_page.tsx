@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Zap, Clock, Calculator } from "lucide-react"
+import { Link } from "react-router-dom"
 
 export default function Component() {
   const [power, setPower] = useState<string>("")
@@ -85,7 +86,7 @@ export default function Component() {
                 placeholder="Masukkan daya"
                 value={power}
                 onChange={(e) => setPower(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors"
               />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-green-400 font-medium">
                 Watt
@@ -110,7 +111,7 @@ export default function Component() {
                   placeholder="0"
                   value={hours}
                   onChange={(e) => setHours(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center"
                 />
               </div>
               <div className="space-y-1">
@@ -123,7 +124,7 @@ export default function Component() {
                   placeholder="0"
                   value={minutes}
                   onChange={(e) => setMinutes(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center"
                 />
               </div>
               <div className="space-y-1">
@@ -136,7 +137,7 @@ export default function Component() {
                   placeholder="0"
                   value={seconds}
                   onChange={(e) => setSeconds(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center"
                 />
               </div>
             </div>
@@ -197,6 +198,14 @@ export default function Component() {
               <Calculator className="w-4 h-4" />
               Reset Kalkulator
             </button>
+          </div>
+        </div>
+        {/* Footer - Creator */}
+        <div className="border-t border-slate-600 px-6 py-4">
+          <div className="text-center">
+            <p className="text-xs text-slate-500">
+              Dibuat oleh <Link to="/#giraf-team" className="text-cyan-400 font-semibold hover:underline cursor-pointer">Giraf Tech Solution</Link>
+            </p>
           </div>
         </div>
       </div>
