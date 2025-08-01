@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Zap, Clock, Calculator } from "lucide-react"
+import { Link } from "react-router-dom"
 
 export default function Component() {
   const [power, setPower] = useState<string>("")
@@ -197,6 +198,14 @@ export default function Component() {
               <Calculator className="w-4 h-4" />
               Reset Kalkulator
             </button>
+          </div>
+        </div>
+        {/* Footer - Creator */}
+        <div className="border-t border-slate-600 px-6 py-4">
+          <div className="text-center">
+            <p className="text-xs text-slate-500">
+              Dibuat oleh <Link to="/#giraf-team" className="text-cyan-400 font-semibold hover:underline cursor-pointer">Giraf Tech Solution</Link>
+            </p>
           </div>
         </div>
       </div>
