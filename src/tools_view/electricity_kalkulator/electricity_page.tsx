@@ -1,48 +1,50 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Zap, Clock, Calculator } from "lucide-react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { Zap, Clock, Calculator } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { handleGirafTeamClick } from "./utils/scrollUtils";
 
 export default function Component() {
-  const [power, setPower] = useState<string>("")
-  const [hours, setHours] = useState<string>("")
-  const [minutes, setMinutes] = useState<string>("")
-  const [seconds, setSeconds] = useState<string>("")
-  const [cost, setCost] = useState<number>(0)
-  const [isCalculated, setIsCalculated] = useState<boolean>(false)
+  const navigate = useNavigate();
+  const [power, setPower] = useState<string>("");
+  const [hours, setHours] = useState<string>("");
+  const [minutes, setMinutes] = useState<string>("");
+  const [seconds, setSeconds] = useState<string>("");
+  const [cost, setCost] = useState<number>(0);
+  const [isCalculated, setIsCalculated] = useState<boolean>(false);
 
   // Tarif listrik PLN (contoh: Rp 1.444 per kWh untuk golongan R1/900VA)
-  const electricityRate = 1444
+  const electricityRate = 1444;
 
   const calculateCost = () => {
-    const powerWatts = Number.parseFloat(power) || 0
+    const powerWatts = Number.parseFloat(power) || 0;
     const totalHours =
       (Number.parseFloat(hours) || 0) +
       (Number.parseFloat(minutes) || 0) / 60 +
-      (Number.parseFloat(seconds) || 0) / 3600
+      (Number.parseFloat(seconds) || 0) / 3600;
 
     if (powerWatts > 0 && totalHours > 0) {
       // Konversi ke kWh
-      const energyKwh = (powerWatts * totalHours) / 1000
+      const energyKwh = (powerWatts * totalHours) / 1000;
       // Hitung biaya
-      const totalCost = energyKwh * electricityRate
-      setCost(totalCost)
-      setIsCalculated(true)
+      const totalCost = energyKwh * electricityRate;
+      setCost(totalCost);
+      setIsCalculated(true);
     } else {
-      setCost(0)
-      setIsCalculated(false)
+      setCost(0);
+      setIsCalculated(false);
     }
-  }
+  };
 
   const resetCalculator = () => {
-    setPower("")
-    setHours("")
-    setMinutes("")
-    setSeconds("")
-    setCost(0)
-    setIsCalculated(false)
-  }
+    setPower("");
+    setHours("");
+    setMinutes("");
+    setSeconds("");
+    setCost(0);
+    setIsCalculated(false);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -50,14 +52,14 @@ export default function Component() {
       currency: "IDR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   useEffect(() => {
     if (power || hours || minutes || seconds) {
-      calculateCost()
+      calculateCost();
     }
-  }, [power, hours, minutes, seconds])
+  }, [power, hours, minutes, seconds]);
 
   return (
     <div className="min-h-screen bg-slate-900 p-4 flex items-center justify-center">
@@ -67,15 +69,22 @@ export default function Component() {
           <div className="mx-auto w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
             <Zap className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Kalkulator Biaya Listrik</h1>
-          <p className="text-slate-400">Hitung biaya pemakaian listrik berdasarkan daya dan waktu penggunaan</p>
+          <h1 className="text-2xl font-bold text-white">
+            Kalkulator Biaya Listrik
+          </h1>
+          <p className="text-slate-400">
+            Hitung biaya pemakaian listrik berdasarkan daya dan waktu penggunaan
+          </p>
         </div>
 
         {/* Content */}
         <div className="space-y-6 p-6">
           {/* Input Daya */}
           <div className="space-y-2">
-            <label htmlFor="power" className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <label
+              htmlFor="power"
+              className="text-sm font-medium text-slate-300 flex items-center gap-2"
+            >
               <Zap className="w-4 h-4" />
               Daya Listrik
             </label>
@@ -150,12 +159,18 @@ export default function Component() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-slate-700/50 to-slate-600/50 rounded-lg p-4 border border-slate-600">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-300 flex items-center gap-2">Biaya Listrik:</span>
-                <span className={`text-xl font-bold ${isCalculated ? "text-green-400" : "text-slate-500"}`}>
+                <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                  Biaya Listrik:
+                </span>
+                <span
+                  className={`text-xl font-bold ${isCalculated ? "text-green-400" : "text-slate-500"}`}
+                >
                   {isCalculated ? formatCurrency(cost) : "Rp 0"}
                 </span>
               </div>
-              <div className="mt-2 text-xs text-slate-500">Tarif: {formatCurrency(electricityRate)}/kWh</div>
+              <div className="mt-2 text-xs text-slate-500">
+                Tarif: {formatCurrency(electricityRate)}/kWh
+              </div>
             </div>
 
             {/* Informasi Tambahan */}
@@ -204,11 +219,17 @@ export default function Component() {
         <div className="border-t border-slate-600 px-6 py-4">
           <div className="text-center">
             <p className="text-xs text-slate-500">
-              Dibuat oleh <Link to="/#giraf-team" className="text-cyan-400 font-semibold hover:underline cursor-pointer">Giraf Tech Solution</Link>
+              Dibuat oleh{" "}
+              <button
+                onClick={() => handleGirafTeamClick(navigate)}
+                className="text-cyan-400 font-semibold hover:underline cursor-pointer transition-colors hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 rounded"
+              >
+                Giraf Tech Solution
+              </button>
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
