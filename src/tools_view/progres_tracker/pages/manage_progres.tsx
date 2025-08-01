@@ -21,15 +21,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/alert-dialog"
-import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save, Upload, FileText, Image, Download } from "lucide-react"
+import { Link, useParams } from "react-router-dom"
+import { Colors, getProgressColor, getUIColors } from "../../const/colors"
+
 // Types and Interfaces
+interface Evidence {
+  id: string
+  name: string
+  type: 'image' | 'file'
+  url: string
+  uploadedAt: string
+  size?: number
+}
+
 interface Process {
   id: string
   name: string
   completed: boolean
   notes?: string
   children?: Process[]
+  evidence?: Evidence[]
 }
 
 interface ProgressCategory {
@@ -99,7 +111,8 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
             id: generateId(),
             name: "Nama Part/No Part/Cust.",
             completed: false,
-            children: []
+            children: [],
+            evidence: []
           },
           {
             id: generateId(),
@@ -109,26 +122,31 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
               {
                 id: generateId(),
                 name: "Comp/Assy",
-                completed: false
+                completed: false,
+                evidence: []
               },
               {
                 id: generateId(),
                 name: "Child Part",
-                completed: false
+                completed: false,
+                evidence: []
               }
-            ]
+            ],
+            evidence: []
           },
           {
             id: generateId(),
             name: "Surat Perintah Kerja (SPK)",
             completed: false,
-            children: []
+            children: [],
+            evidence: []
           },
           {
             id: generateId(),
             name: "Master Schedule",
             completed: false,
-            children: []
+            children: [],
+            evidence: []
           },
           {
             id: generateId(),
@@ -138,27 +156,32 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
               {
                 id: generateId(),
                 name: "Design Record",
-                completed: false
+                completed: false,
+                evidence: []
               },
               {
                 id: generateId(),
                 name: "Engineering Change Document",
-                completed: false
+                completed: false,
+                evidence: []
               },
               {
                 id: generateId(),
                 name: "Engineering Approval",
-                completed: false
+                completed: false,
+                evidence: []
               },
               {
                 id: generateId(),
                 name: "Process Flow Diagram",
-                completed: false
+                completed: false,
+                evidence: []
               },
               {
                 id: generateId(),
                 name: "FMEA",
-                completed: false
+                completed: false,
+                evidence: []
               },
               {
                 id: generateId(),
@@ -168,24 +191,29 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
                   {
                     id: generateId(),
                     name: "QCPC",
-                    completed: false
+                    completed: false,
+                    evidence: []
                   },
                   {
                     id: generateId(),
                     name: "Part Inspection Standard",
-                    completed: false
+                    completed: false,
+                    evidence: []
                   },
                   {
                     id: generateId(),
                     name: "Check Sheet",
-                    completed: false
+                    completed: false,
+                    evidence: []
                   }
-                ]
+                ],
+                evidence: []
               },
               {
                 id: generateId(),
                 name: "Measurement System Analysis (MSA)",
-                completed: false
+                completed: false,
+                evidence: []
               },
               {
                 id: generateId(),
@@ -195,9 +223,11 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
                   {
                     id: generateId(),
                     name: "Check Sheet",
-                    completed: false
+                    completed: false,
+                    evidence: []
                   }
-                ]
+                ],
+                evidence: []
               },
               {
                 id: generateId(),
@@ -207,64 +237,73 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
                   {
                     id: generateId(),
                     name: "Mill Sheet",
-                    completed: false
+                    completed: false,
+                    evidence: []
                   },
                   {
                     id: generateId(),
                     name: "Test Lain",
-                    completed: false
+                    completed: false,
+                    evidence: []
                   }
-                ]
+                ],
+                evidence: []
               },
               {
                 id: generateId(),
                 name: "Sample Production Part",
-                completed: false
+                completed: false,
+                evidence: []
               }
             ]
           }
         ],
       },
-      {
-        id: "manufacturing",
-        name: "Manufacturing",
-        processes: [
-          {
-            id: generateId(),
-            name: "Tooling",
-            completed: false,
-            children: [
               {
-                id: generateId(),
-                name: "Master Schedule Tooling",
-                completed: false
-              },
+          id: "manufacturing",
+          name: "Manufacturing",
+          processes: [
+            {
+              id: generateId(),
+              name: "Tooling",
+              completed: false,
+              children: [
+                {
+                  id: generateId(),
+                  name: "Master Schedule Tooling",
+                  completed: false,
+                  evidence: []
+                },
+                {
+                  id: generateId(),
+                  name: "Trial Tooling Report (TPTR)",
+                  completed: false,
+                  evidence: []
+                },
+                {
+                  id: generateId(),
+                  name: "Design Tooling",
+                  completed: false,
+                  evidence: []
+                }
+              ],
+              evidence: []
+            }
+          ],
+        },
               {
-                id: generateId(),
-                name: "Trial Tooling Report (TPTR)",
-                completed: false
-              },
-              {
-                id: generateId(),
-                name: "Design Tooling",
-                completed: false
-              }
-            ]
-          }
-        ],
-      },
-      {
-        id: "quality",
-        name: "Quality Control",
-        processes: [
-          {
-            id: generateId(),
-            name: "Approval (Customer)",
-            completed: false,
-            children: []
-          }
-        ],
-      },
+          id: "quality",
+          name: "Quality Control",
+          processes: [
+            {
+              id: generateId(),
+              name: "Approval (Customer)",
+              completed: false,
+              children: [],
+              evidence: []
+            }
+          ],
+        },
     ],
   }
   return [...parts, newPart]
@@ -490,9 +529,9 @@ function ProcessFormModal({ isOpen, onClose, onSave, process, title, isSubProces
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="max-w-sm sm:max-w-md bg-gray-800 border-gray-700 text-white mx-4">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white">{title}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl font-bold text-white">{title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -537,11 +576,11 @@ function ProcessFormModal({ isOpen, onClose, onSave, process, title, isSubProces
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-6">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
           <Button
             onClick={handleClose}
             variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent w-full sm:w-auto"
           >
             <X className="w-4 h-4 mr-2" />
             Cancel
@@ -549,7 +588,7 @@ function ProcessFormModal({ isOpen, onClose, onSave, process, title, isSubProces
           <Button
             onClick={handleSave}
             disabled={!name.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
           >
             <Save className="w-4 h-4 mr-2" />
             Save
@@ -606,9 +645,9 @@ function PartFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm sm:max-w-md mx-4">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white">{title}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl font-bold text-white">{title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -652,11 +691,11 @@ function PartFormModal({
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-6">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
           <Button
             onClick={handleClose}
             variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent w-full sm:w-auto"
           >
             <X className="w-4 h-4 mr-2" />
             Cancel
@@ -664,7 +703,7 @@ function PartFormModal({
           <Button
             onClick={handleSave}
             disabled={!partName.trim() || !partNumber.trim() || !customer.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
           >
             <Save className="w-4 h-4 mr-2" />
             Save
@@ -675,9 +714,261 @@ function PartFormModal({
   )
 }
 
+interface EvidenceModalProps {
+  isOpen: boolean
+  onClose: () => void
+  evidence: Evidence[]
+  onEvidenceChange: (evidence: Evidence[]) => void
+  processName: string
+}
+
+function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, processName }: EvidenceModalProps) {
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadingFiles, setUploadingFiles] = useState<string[]>([])
+  const uiColors = getUIColors("dark")
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    setUploading(true)
+    setUploadProgress(0)
+    setUploadingFiles(Array.from(files).map(f => f.name))
+
+    try {
+      const newEvidence: Evidence[] = []
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const fileId = generateId()
+        
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            const newProgress = prev + (100 / files.length)
+            if (newProgress >= 100) {
+              clearInterval(progressInterval)
+              return 100
+            }
+            return newProgress
+          })
+        }, 100)
+        
+        // Create a blob URL for the file
+        const blobUrl = URL.createObjectURL(file)
+        console.log('Created blob URL:', blobUrl, 'for file:', file.name, 'type:', file.type)
+        
+        const evidenceItem: Evidence = {
+          id: fileId,
+          name: file.name,
+          type: file.type.startsWith('image/') ? 'image' : 'file',
+          url: blobUrl,
+          uploadedAt: new Date().toISOString(),
+          size: file.size
+        }
+        
+        newEvidence.push(evidenceItem)
+        
+        // Wait a bit to show progress
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+
+      onEvidenceChange([...evidence, ...newEvidence])
+    } catch (error) {
+      console.error('Error uploading files:', error)
+    } finally {
+      setUploading(false)
+      setUploadProgress(0)
+      setUploadingFiles([])
+    }
+  }
+
+  const handleDeleteEvidence = (evidenceId: string) => {
+    const evidenceToDelete = evidence.find(e => e.id === evidenceId)
+    if (evidenceToDelete) {
+      // Revoke the blob URL to free memory
+      URL.revokeObjectURL(evidenceToDelete.url)
+      console.log('Deleted evidence:', evidenceToDelete.name)
+    }
+    // Immediately remove from evidence list
+    const updatedEvidence = evidence.filter(e => e.id !== evidenceId)
+    onEvidenceChange(updatedEvidence)
+  }
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return 'Unknown size'
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className={`${uiColors.bg.modal} ${uiColors.border.primary} ${uiColors.text.primary} max-w-sm sm:max-w-md lg:max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl mx-4`}>
+        <DialogHeader>
+          <DialogTitle className={`text-lg sm:text-xl ${uiColors.text.primary}`}>Evidence for {processName}</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {/* Upload Section */}
+          <div className={`border ${uiColors.border.secondary} rounded-lg p-3 sm:p-4 ${uiColors.bg.secondary}`}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
+              <h3 className={`text-base sm:text-lg font-semibold ${uiColors.text.primary}`}>Upload Evidence</h3>
+              <div className="flex items-center space-x-2 w-full sm:w-auto">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="evidence-upload"
+                  disabled={uploading}
+                />
+                <label
+                  htmlFor="evidence-upload"
+                  className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg cursor-pointer transition-colors w-full sm:w-auto ${
+                    uploading
+                      ? `${uiColors.bg.tertiary} ${uiColors.text.tertiary} cursor-not-allowed`
+                      : `${uiColors.button.primary.bg} hover:${uiColors.button.primary.hover} ${uiColors.button.primary.text}`
+                  }`}
+                >
+                  <Upload className="w-4 h-4" />
+                  <span className="text-sm sm:text-base">{uploading ? 'Uploading...' : 'Upload Files'}</span>
+                </label>
+              </div>
+            </div>
+            
+            {/* Upload Progress Bar */}
+            {uploading && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs sm:text-sm ${uiColors.text.secondary}`}>
+                    Uploading {uploadingFiles.length} file(s)...
+                  </span>
+                  <span className={`text-xs sm:text-sm font-medium ${uiColors.text.accent}`}>
+                    {Math.round(uploadProgress)}%
+                  </span>
+                </div>
+                <div className={`w-full h-2 ${uiColors.bg.tertiary} rounded-full overflow-hidden`}>
+                  <div 
+                    className={`h-full ${uiColors.button.primary.bg} transition-all duration-300 ease-out`}
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                {uploadingFiles.length > 0 && (
+                  <div className="mt-2">
+                    <p className={`text-xs ${uiColors.text.tertiary} mb-1`}>Files being uploaded:</p>
+                    <div className="space-y-1">
+                      {uploadingFiles.map((fileName, index) => (
+                        <div key={index} className={`text-xs ${uiColors.text.secondary} flex items-center`}>
+                          <div className={`w-2 h-2 rounded-full mr-2 ${
+                            (index + 1) * (100 / uploadingFiles.length) <= uploadProgress 
+                              ? uiColors.button.success.bg 
+                              : uiColors.bg.tertiary
+                          }`} />
+                          <span className="truncate">{fileName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <p className={`text-xs sm:text-sm ${uiColors.text.tertiary}`}>
+              Supported formats: Images (JPG, PNG, GIF), Documents (PDF, DOC, DOCX, XLS, XLSX), Text files
+            </p>
+          </div>
+
+          {/* Evidence List */}
+          {evidence.length > 0 && (
+            <div className={`border ${uiColors.border.secondary} rounded-lg p-3 sm:p-4 ${uiColors.bg.secondary}`}>
+              <h3 className={`text-base sm:text-lg font-semibold ${uiColors.text.primary} mb-3 sm:mb-4`}>Uploaded Evidence ({evidence.length})</h3>
+              <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                {evidence.map((item) => (
+                  <div key={item.id} className={`${uiColors.bg.tertiary} rounded-lg p-3 border ${uiColors.border.secondary} shadow-sm`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                        {item.type === 'image' ? (
+                          <Image className={`w-6 h-6 sm:w-8 sm:h-8 ${uiColors.text.accent} flex-shrink-0`} />
+                        ) : (
+                          <FileText className={`w-6 h-6 sm:w-8 sm:h-8 ${uiColors.text.success} flex-shrink-0`} />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs sm:text-sm font-medium ${uiColors.text.primary} truncate`}>{item.name}</p>
+                          <p className={`text-xs ${uiColors.text.tertiary}`}>
+                            {formatFileSize(item.size)} • {new Date(item.uploadedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(item.url, '_blank')}
+                          className={`${uiColors.text.accent} hover:${uiColors.text.primary} p-1 sm:p-2`}
+                        >
+                          <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(event) => {
+                            // Add visual feedback
+                            const button = event.currentTarget as HTMLButtonElement
+                            button.classList.add('scale-95')
+                            setTimeout(() => {
+                              button.classList.remove('scale-95')
+                            }, 150)
+                            
+                            handleDeleteEvidence(item.id)
+                          }}
+                          className={`${uiColors.text.error} hover:${uiColors.text.primary} transition-transform duration-150 p-1 sm:p-2`}
+                        >
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Image Preview */}
+                    {item.type === 'image' && (
+                      <div className="mt-3">
+                        <img
+                          src={item.url}
+                          alt={item.name}
+                          className={`w-full h-24 sm:h-32 object-cover rounded border ${uiColors.border.secondary} transition-all duration-500 ease-in-out opacity-0`}
+                          onError={(e) => {
+                            console.error('Error loading image:', item.url)
+                            e.currentTarget.style.display = 'none'
+                          }}
+                          onLoad={(e) => {
+                            console.log('Image loaded successfully:', item.url)
+                            // Fade in the image when loaded
+                            e.currentTarget.classList.remove('opacity-0')
+                            e.currentTarget.classList.add('opacity-100')
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // Main Manage Progress Component
 export default function ManageProgres() {
+  const { partId } = useParams<{ partId: string }>()
   const [parts, setParts] = useState<Part[]>(initialParts)
+  const [selectedPart, setSelectedPart] = useState<Part | null>(null)
+  const [showDetailedProcesses, setShowDetailedProcesses] = useState(false)
+  const uiColors = getUIColors("dark")
   const [partModal, setPartModal] = useState<{
     isOpen: boolean
     type: "add" | "edit"
@@ -714,11 +1005,27 @@ export default function ManageProgres() {
     type: "process"
   })
 
+  const [evidenceModal, setEvidenceModal] = useState<{
+    isOpen: boolean
+    processId?: string
+    subProcessId?: string
+    processName: string
+    evidence: Evidence[]
+    onEvidenceChange: (evidence: Evidence[]) => void
+  }>({
+    isOpen: false,
+    processName: "",
+    evidence: [],
+    onEvidenceChange: () => {}
+  })
+
   // Load data from localStorage on mount
   useEffect(() => {
+    console.log("ManageProgress: Starting to load data from storage")
     try {
       // Coba ambil data dari localStorage
       const savedParts = localStorage.getItem("parts-data")
+      console.log("ManageProgress: Raw data from localStorage:", savedParts)
       let dataLoaded = false
       
       if (savedParts && savedParts !== "undefined" && savedParts !== "null") {
@@ -781,6 +1088,23 @@ export default function ManageProgres() {
       sessionStorage.setItem("parts-data-backup", emptyArray)
     }
   }, [])
+
+  // Find selected part based on partId from URL
+  useEffect(() => {
+    console.log("ManageProgress: partId from URL:", partId)
+    console.log("ManageProgress: parts loaded:", parts.length)
+    console.log("ManageProgress: parts data:", parts)
+    
+    if (partId && parts.length > 0) {
+      const foundPart = parts.find(part => part.id === partId)
+      console.log("ManageProgress: found part:", foundPart)
+      setSelectedPart(foundPart || null)
+    } else if (partId && parts.length === 0) {
+      console.log("ManageProgress: partId exists but no parts loaded")
+    } else if (!partId) {
+      console.log("ManageProgress: no partId in URL")
+    }
+  }, [partId, parts])
 
   // Auto-save data to localStorage whenever parts change
   useEffect(() => {
@@ -1086,39 +1410,46 @@ export default function ManageProgres() {
 
   // Handle delete confirmation
   const handleDelete = () => {
-    const { partId, categoryId, processId, subProcessId, type } = deleteDialog
+    const { type, partId, categoryId, processId, subProcessId } = deleteDialog
 
     try {
-      let updatedParts: Part[] = [];
-      
+      let updatedParts: Part[]
+      let partsDataString: string
+
       if (type === "part" && partId) {
-        updatedParts = deletePart(parts, partId);
-        setParts(updatedParts);
-      } else if (type === "subprocess" && partId && categoryId && processId && subProcessId) {
-        updatedParts = deleteSubProcess(parts, partId, categoryId, processId, subProcessId);
-        setParts(updatedParts);
+        updatedParts = deletePart(parts, partId)
+        partsDataString = JSON.stringify(updatedParts)
+        setParts(updatedParts)
+        setSelectedPart(null)
       } else if (type === "process" && partId && categoryId && processId) {
-        updatedParts = deleteProcess(parts, partId, categoryId, processId);
-        setParts(updatedParts);
+        updatedParts = deleteProcess(parts, partId, categoryId, processId)
+        partsDataString = JSON.stringify(updatedParts)
+        setParts(updatedParts)
+        setSelectedPart(updatedParts.find(p => p.id === partId) || null)
+      } else if (type === "subprocess" && partId && categoryId && processId && subProcessId) {
+        updatedParts = deleteSubProcess(parts, partId, categoryId, processId, subProcessId)
+        partsDataString = JSON.stringify(updatedParts)
+        setParts(updatedParts)
+        setSelectedPart(updatedParts.find(p => p.id === partId) || null)
+      } else {
+        console.error("Missing required parameters for deletion")
+        return
       }
 
-      // Konversi data ke string JSON
-      const partsDataString = JSON.stringify(updatedParts);
-      
-      // Simpan langsung ke localStorage untuk memastikan data tersimpan
+      // Simpan data ke localStorage dengan try-catch terpisah
       try {
-        localStorage.setItem("parts-data", partsDataString);
-        console.log("Data setelah delete berhasil disimpan ke localStorage");
+        localStorage.setItem("parts-data", partsDataString)
+        console.log("Data berhasil disimpan ke localStorage setelah delete")
       } catch (localStorageError) {
-        console.error("Error menyimpan data setelah delete ke localStorage:", localStorageError);
+        console.error("Error menyimpan ke localStorage setelah delete:", localStorageError)
       }
       
-      // Simpan juga ke sessionStorage sebagai backup
+      // Simpan juga ke sessionStorage dengan try-catch terpisah
       try {
-        sessionStorage.setItem("parts-data-backup", partsDataString);
-        console.log("Data setelah delete berhasil disimpan ke sessionStorage sebagai backup");
+        sessionStorage.setItem("parts-data-backup", partsDataString)
+        console.log("Data berhasil disimpan ke sessionStorage sebagai backup setelah delete")
       } catch (sessionStorageError) {
-        console.error("Error menyimpan data setelah delete ke sessionStorage:", sessionStorageError);
+        console.error("Error menyimpan ke sessionStorage setelah delete:", sessionStorageError)
       }
       
       // Verifikasi data tersimpan di localStorage
@@ -1131,7 +1462,7 @@ export default function ManageProgres() {
       }
       
       if (!savedData || savedData === "undefined" || savedData === "null") {
-        console.error("Data tidak tersimpan dengan benar di localStorage setelah delete");
+        console.error("Data tidak tersimpan dengan benar di localStorage setelah delete")
         // Coba simpan ulang
         try {
           localStorage.setItem("parts-data", partsDataString);
@@ -1150,7 +1481,7 @@ export default function ManageProgres() {
       }
       
       if (!backupData || backupData === "undefined" || backupData === "null") {
-        console.error("Data tidak tersimpan dengan benar di sessionStorage setelah delete");
+        console.error("Data tidak tersimpan dengan benar di sessionStorage setelah delete")
         // Coba simpan ulang
         try {
           sessionStorage.setItem("parts-data-backup", partsDataString);
@@ -1177,330 +1508,495 @@ export default function ManageProgres() {
     })
   }
 
-  return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+  const handleEvidenceUpdate = (partId: string, categoryId: string, processId: string, subProcessId: string | null, evidence: Evidence[]) => {
+    try {
+      let updatedParts: Part[]
+      
+      if (subProcessId) {
+        // Update sub-process evidence
+        updatedParts = parts.map(part => {
+          if (part.id === partId) {
+            return {
+              ...part,
+              progress: part.progress.map(category => {
+                if (category.id === categoryId) {
+                  return {
+                    ...category,
+                    processes: category.processes.map(process => {
+                      if (process.id === processId) {
+                        return {
+                          ...process,
+                          children: process.children?.map(child => {
+                            if (child.id === subProcessId) {
+                              return { ...child, evidence }
+                            }
+                            return child
+                          })
+                        }
+                      }
+                      return process
+                    })
+                  }
+                }
+                return category
+              })
+            }
+          }
+          return part
+        })
+      } else {
+        // Update process evidence
+        updatedParts = parts.map(part => {
+          if (part.id === partId) {
+            return {
+              ...part,
+              progress: part.progress.map(category => {
+                if (category.id === categoryId) {
+                  return {
+                    ...category,
+                    processes: category.processes.map(process => {
+                      if (process.id === processId) {
+                        return { ...process, evidence }
+                      }
+                      return process
+                    })
+                  }
+                }
+                return category
+              })
+            }
+          }
+          return part
+        })
+      }
+
+      const partsDataString = JSON.stringify(updatedParts)
+      setParts(updatedParts)
+      setSelectedPart(updatedParts.find(p => p.id === partId) || null)
+
+      // Save to localStorage and sessionStorage
+      try {
+        localStorage.setItem("parts-data", partsDataString)
+        sessionStorage.setItem("parts-data-backup", partsDataString)
+        console.log("Evidence updated and saved successfully")
+      } catch (error) {
+        console.error("Error saving evidence update:", error)
+      }
+
+      // Notify other components
+      window.dispatchEvent(new Event("parts-updated"))
+    } catch (error) {
+      console.error("Error updating evidence:", error)
+    }
+  }
+
+  return (  
+    <div className={`min-h-screen ${uiColors.bg.primary} ${uiColors.text.primary} p-3 sm:p-4 md:p-6`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <div className="flex items-center mb-2">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
               <Link to="/progress">
                 <Button
                   variant="outline"
-                  className="mr-4 border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+                  className={`mr-0 sm:mr-4 mb-3 sm:mb-0 w-full sm:w-auto ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} bg-transparent`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="m15 18-6-6 6-6"/></svg>
-                  Back to Dashboard
+                  <span className="hidden sm:inline">Back to Dashboard</span>
+                  <span className="sm:hidden">Back</span>
                 </Button>
               </Link>
-              <h1 className="text-4xl font-bold text-white">Manage Progress</h1>
+              <div className="flex-1 min-w-0">
+                <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary} break-words`}>Manage Progress</h1>
+                <p className={`${uiColors.text.tertiary} text-sm sm:text-base mt-1`}>Update process completion status for all parts</p>
+              </div>
             </div>
-            <p className="text-gray-400">Update process completion status for all parts</p>
-          </div>
-          <div className="flex space-x-4">
-            <Button
-              onClick={() => setPartModal({ isOpen: true, type: "add" })}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Part
-            </Button>
           </div>
         </div>
 
-
-
         {/* Parts List */}
-        <div className="space-y-8">
-          {parts.map((part) => {
-            const overallProgress = calculateOverallProgress(part)
-            return (
-              <Card key={part.id} className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-xl text-white mb-2">{part.partName}</CardTitle>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline" className="bg-gray-700 text-gray-300 border-gray-600">
-                          {part.partNumber}
-                        </Badge>
-                        <Badge variant="outline" className="bg-gray-700 text-gray-300 border-gray-600">
-                          {part.customer}
-                        </Badge>
-                      </div>
+        <div className="space-y-6 sm:space-y-8">
+          {selectedPart ? (
+            <Card key={selectedPart.id} className={`${uiColors.bg.card} ${uiColors.border.primary} shadow-lg`}>
+              <CardHeader className="pb-3 sm:pb-4">
+                <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className={`text-lg sm:text-xl md:text-2xl ${uiColors.text.primary} mb-2 sm:mb-3 break-words`}>{selectedPart.partName}</CardTitle>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className={`${uiColors.bg.secondary} ${uiColors.text.secondary} ${uiColors.border.secondary} text-xs sm:text-sm`}>
+                        {selectedPart.partNumber}
+                      </Badge>
+                      <Badge variant="outline" className={`${uiColors.bg.secondary} ${uiColors.text.secondary} ${uiColors.border.secondary} text-xs sm:text-sm`}>
+                        {selectedPart.customer}
+                      </Badge>
                     </div>
-                    <div className="flex items-start gap-4">
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-white">{overallProgress}%</div>
-                        <div className="text-sm text-gray-400">Overall Progress</div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
+                    <div className="text-center sm:text-right order-2 sm:order-1">
+                      <div className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary}`}>{calculateOverallProgress(selectedPart)}%</div>
+                      <div className={`text-xs sm:text-sm ${uiColors.text.tertiary}`}>Overall Progress</div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 order-1 sm:order-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setPartModal({
+                            isOpen: true,
+                            type: "edit",
+                            partId: selectedPart.id,
+                            part: selectedPart,
+                          })
+                        }
+                        className={`${uiColors.text.secondary} hover:${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-7 sm:h-8`}
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        <span className="hidden sm:inline">Edit Part</span>
+                        <span className="sm:hidden">Edit</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setDeleteDialog({
+                            isOpen: true,
+                            type: "part",
+                            partId: selectedPart.id,
+                            name: selectedPart.partName,
+                          })
+                        }
+                        className={`${uiColors.text.error} hover:${uiColors.bg.secondary} ${uiColors.border.error} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-7 sm:h-8`}
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        <span className="hidden sm:inline">Delete Part</span>
+                        <span className="sm:hidden">Delete</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Progress value={calculateOverallProgress(selectedPart)} className={`h-2 sm:h-3 ${uiColors.bg.secondary}`} />
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                {/* Overall Progress Summary with Toggle Button */}
+                <div className="mb-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
+                    <h3 className={`text-base sm:text-lg font-semibold ${uiColors.text.primary}`}>Process Summary</h3>
+                    <Button
+                      onClick={() => setShowDetailedProcesses(!showDetailedProcesses)}
+                      variant="outline"
+                      size="sm"
+                      className={`w-full sm:w-auto ${uiColors.button.primary.bg} hover:${uiColors.button.primary.hover} ${uiColors.button.primary.text} ${uiColors.button.primary.border}`}
+                    >
+                      <span className="hidden sm:inline">{showDetailedProcesses ? "Hide Detailed Processes" : "View All Processes"}</span>
+                      <span className="sm:hidden">{showDetailedProcesses ? "Hide Details" : "View Details"}</span>
+                      <svg
+                        className={`w-4 h-4 ml-2 transition-transform duration-200 ${showDetailedProcesses ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Category Cards with Process Dropdowns - Only shown when showDetailedProcesses is true */}
+                {showDetailedProcesses && (
+                  <div className="space-y-4 sm:space-y-6">
+                    {selectedPart.progress.map((progressCategory) => (
+                    <Card key={progressCategory.id} className={`${uiColors.bg.tertiary} ${uiColors.border.secondary} shadow-md`}>
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <CardTitle className={`text-base sm:text-lg ${uiColors.text.primary}`}>{progressCategory.name}</CardTitle>
                           <Button
-                            variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+                            onClick={() =>
+                              setProcessModal({
+                                isOpen: true,
+                                type: "add",
+                                isSubProcess: false,
+                                partId: selectedPart.id,
+                                categoryId: progressCategory.id,
+                              })
+                            }
+                            className={`w-full sm:w-auto ${uiColors.button.primary.bg} hover:${uiColors.button.primary.hover} ${uiColors.button.primary.text}`}
                           >
-                            <MoreVertical className="h-4 w-4" />
+                            <Plus className="w-4 h-4 mr-1" />
+                            <span className="hidden sm:inline">Add Process</span>
+                            <span className="sm:hidden">Add</span>
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              setPartModal({
-                                isOpen: true,
-                                type: "edit",
-                                partId: part.id,
-                                part,
-                              })
-                            }
-                            className="text-gray-300 hover:bg-gray-700"
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit Part
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              setDeleteDialog({
-                                isOpen: true,
-                                type: "part",
-                                partId: part.id,
-                                name: part.partName,
-                              })
-                            }
-                            className="text-red-400 hover:bg-red-900/20"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete Part
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <Progress value={overallProgress} className="h-3 bg-gray-700" />
-                  </div>
-                </CardHeader>
+                        </div>
+                      </CardHeader>
 
-                <CardContent>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {part.progress.map((progressCategory) => (
-                      <Card key={progressCategory.id} className="bg-gray-700 border-gray-600">
-                        <CardHeader className="pb-3">
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg text-white">{progressCategory.name}</CardTitle>
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                setProcessModal({
-                                  isOpen: true,
-                                  type: "add",
-                                  isSubProcess: false,
-                                  partId: part.id,
-                                  categoryId: progressCategory.id,
-                                })
-                              }
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Plus className="w-4 h-4 mr-1" />
-                              Add Process
-                            </Button>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent>
-                          <div className="space-y-4">
-                            {progressCategory.processes.map((process) => {
-                              const processProgress = calculateProcessProgress(process)
-                              return (
-                                <div key={process.id} className="bg-gray-600 rounded-lg p-4">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center space-x-2 flex-1">
-                                      <Checkbox
-                                        id={`${part.id}-${progressCategory.id}-${process.id}`}
-                                        checked={process.completed}
-                                        onCheckedChange={() => toggleProcess(part.id, progressCategory.id, process.id)}
-                                        className="border-gray-400"
-                                      />
-                                      <label
-                                        htmlFor={`${part.id}-${progressCategory.id}-${process.id}`}
-                                        className={`font-medium cursor-pointer flex-1 ${
-                                          process.completed ? "text-green-400 line-through" : "text-gray-200"
-                                        }`}
-                                      >
-                                        {process.name}
-                                      </label>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-xs ${
-                                          processProgress === 100
-                                            ? "bg-green-500 text-white border-green-500"
-                                            : processProgress > 0
-                                              ? "bg-blue-500 text-white border-blue-500"
-                                              : "bg-gray-500 text-gray-300 border-gray-500"
-                                        }`}
-                                      >
-                                        {processProgress}%
-                                      </Badge>
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0 text-gray-400 hover:text-white"
-                                          >
-                                            <MoreVertical className="h-4 w-4" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              setProcessModal({
-                                                isOpen: true,
-                                                type: "edit",
-                                                isSubProcess: false,
-                                                partId: part.id,
-                                                categoryId: progressCategory.id,
-                                                processId: process.id,
-                                                process,
-                                              })
-                                            }
-                                            className="text-gray-300 hover:bg-gray-700"
-                                          >
-                                            <Edit className="w-4 h-4 mr-2" />
-                                            Edit Process
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              setProcessModal({
-                                                isOpen: true,
-                                                type: "add",
-                                                isSubProcess: true,
-                                                partId: part.id,
-                                                categoryId: progressCategory.id,
-                                                processId: process.id,
-                                              })
-                                            }
-                                            className="text-gray-300 hover:bg-gray-700"
-                                          >
-                                            <Plus className="w-4 h-4 mr-2" />
-                                            Add Sub-Process
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              setDeleteDialog({
-                                                isOpen: true,
-                                                type: "process",
-                                                partId: part.id,
-                                                categoryId: progressCategory.id,
-                                                processId: process.id,
-                                                name: process.name,
-                                              })
-                                            }
-                                            className="text-red-400 hover:bg-red-900/20"
-                                          >
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Delete Process
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </div>
+                      <CardContent>
+                        <div className="space-y-3 sm:space-y-4">
+                          {progressCategory.processes.map((process) => {
+                            const processProgress = calculateProcessProgress(process)
+                            const progressColors = getProgressColor(processProgress)
+                            return (
+                              <div key={process.id} className={`${uiColors.bg.secondary} rounded-lg p-3 sm:p-4 w-full border ${uiColors.border.tertiary} shadow-sm`}>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                    <Checkbox
+                                      id={`${selectedPart.id}-${progressCategory.id}-${process.id}`}
+                                      checked={process.completed}
+                                      onCheckedChange={() => toggleProcess(selectedPart.id, progressCategory.id, process.id)}
+                                      className={uiColors.border.tertiary}
+                                    />
+                                    <label
+                                      htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}`}
+                                      className={`font-medium cursor-pointer flex-1 break-words ${
+                                        process.completed ? `${uiColors.text.success} line-through` : uiColors.text.primary
+                                      }`}
+                                    >
+                                      {process.name}
+                                    </label>
                                   </div>
-
-                                  {/* Progress bar for this process */}
-                                  <div className="mb-3">
-                                    <Progress value={processProgress} className="h-2 bg-gray-500" />
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${progressColors.color} ${progressColors.textColor} border-current`}
+                                    >
+                                      {processProgress}%
+                                    </Badge>
                                   </div>
+                                </div>
 
-                                  {/* Child Processes */}
-                                  {process.children && process.children.length > 0 && (
-                                    <div className="ml-4 space-y-2 border-l-2 border-gray-500 pl-4">
+                                {/* Navigation buttons above progress */}
+                                <div className="flex flex-wrap items-center gap-1 mb-3">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setProcessModal({
+                                        isOpen: true,
+                                        type: "edit",
+                                        isSubProcess: false,
+                                        partId: selectedPart.id,
+                                        categoryId: progressCategory.id,
+                                        processId: process.id,
+                                        process,
+                                      })
+                                    }
+                                    className={`${uiColors.text.secondary} hover:${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Edit</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setProcessModal({
+                                        isOpen: true,
+                                        type: "add",
+                                        isSubProcess: true,
+                                        partId: selectedPart.id,
+                                        categoryId: progressCategory.id,
+                                        processId: process.id,
+                                      })
+                                    }
+                                    className={`${uiColors.text.secondary} hover:${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
+                                  >
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Add Sub</span>
+                                    <span className="sm:hidden">Sub</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setEvidenceModal({
+                                        isOpen: true,
+                                        processId: process.id,
+                                        processName: process.name,
+                                        evidence: process.evidence || [],
+                                        onEvidenceChange: (evidence) =>
+                                          handleEvidenceUpdate(selectedPart.id, progressCategory.id, process.id, null, evidence)
+                                      })
+                                    }
+                                    className={`${uiColors.text.accent} hover:${uiColors.bg.tertiary} ${uiColors.border.accent} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
+                                  >
+                                    <Upload className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Evidence ({process.evidence?.length || 0})</span>
+                                    <span className="sm:hidden">({process.evidence?.length || 0})</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setDeleteDialog({
+                                        isOpen: true,
+                                        type: "process",
+                                        partId: selectedPart.id,
+                                        categoryId: progressCategory.id,
+                                        processId: process.id,
+                                        name: process.name,
+                                      })
+                                    }
+                                    className={`${uiColors.text.error} hover:${uiColors.bg.tertiary} ${uiColors.border.error} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
+                                  >
+                                    <Trash2 className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Delete</span>
+                                  </Button>
+                                </div>
+
+                                {/* Progress bar for this process */}
+                                <div className="mb-3">
+                                  <Progress value={processProgress} className={`h-2 ${uiColors.bg.secondary}`} />
+                                </div>
+
+                                {/* Child Processes - Now as Collapsible Section */}
+                                {process.children && process.children.length > 0 && (
+                                  <div className="mt-3">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Toggle sub-process visibility for this process
+                                        const processElement = document.getElementById(`subprocess-${process.id}`)
+                                        if (processElement) {
+                                          processElement.classList.toggle('hidden')
+                                        }
+                                        // Toggle chevron rotation
+                                        const chevron = document.getElementById(`chevron-${process.id}`)
+                                        if (chevron) {
+                                          chevron.classList.toggle('rotate-180')
+                                        }
+                                      }}
+                                      className={`w-full justify-between ${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary}`}
+                                    >
+                                      <span className="text-sm">Sub-Processes ({process.children.length})</span>
+                                      <svg
+                                        id={`chevron-${process.id}`}
+                                        className="w-4 h-4 transition-transform duration-200"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </Button>
+                                    <div id={`subprocess-${process.id}`} className="mt-2 space-y-2 hidden">
                                       {process.children.map((child) => (
-                                        <div key={child.id} className="flex items-center justify-between">
-                                          <div className="flex items-center space-x-2 flex-1">
+                                        <div key={child.id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 ${uiColors.bg.card} rounded border ${uiColors.border.tertiary} gap-2`}>
+                                          <div className="flex items-center space-x-2 flex-1 min-w-0">
                                             <Checkbox
-                                              id={`${part.id}-${progressCategory.id}-${process.id}-${child.id}`}
+                                              id={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
                                               checked={child.completed}
                                               onCheckedChange={() =>
-                                                toggleProcess(part.id, progressCategory.id, process.id, child.id)
+                                                toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id)
                                               }
-                                              className="border-gray-400"
+                                              className={uiColors.border.tertiary}
                                             />
                                             <label
-                                              htmlFor={`${part.id}-${progressCategory.id}-${process.id}-${child.id}`}
-                                              className={`text-sm cursor-pointer flex-1 ${
-                                                child.completed ? "text-green-400 line-through" : "text-gray-300"
+                                              htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
+                                              className={`text-sm cursor-pointer flex-1 break-words ${
+                                                child.completed ? `${uiColors.text.success} line-through` : uiColors.text.secondary
                                               }`}
                                             >
                                               {child.name}
                                             </label>
                                           </div>
-                                          <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                                              >
-                                                <MoreVertical className="h-3 w-3" />
-                                              </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                                              <DropdownMenuItem
-                                                onClick={() =>
-                                                  setProcessModal({
-                                                    isOpen: true,
-                                                    type: "edit",
-                                                    isSubProcess: true,
-                                                    partId: part.id,
-                                                    categoryId: progressCategory.id,
-                                                    processId: process.id,
-                                                    subProcessId: child.id,
-                                                    process: child,
-                                                  })
-                                                }
-                                                className="text-gray-300 hover:bg-gray-700"
-                                              >
-                                                <Edit className="w-3 h-3 mr-2" />
-                                                Edit
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem
-                                                onClick={() =>
-                                                  setDeleteDialog({
-                                                    isOpen: true,
-                                                    type: "subprocess",
-                                                    partId: part.id,
-                                                    categoryId: progressCategory.id,
-                                                    processId: process.id,
-                                                    subProcessId: child.id,
-                                                    name: child.name,
-                                                  })
-                                                }
-                                                className="text-red-400 hover:bg-red-900/20"
-                                              >
-                                                <Trash2 className="w-3 h-3 mr-2" />
-                                                Delete
-                                              </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                          </DropdownMenu>
+                                          <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                setProcessModal({
+                                                  isOpen: true,
+                                                  type: "edit",
+                                                  isSubProcess: true,
+                                                  partId: selectedPart.id,
+                                                  categoryId: progressCategory.id,
+                                                  processId: process.id,
+                                                  subProcessId: child.id,
+                                                  process: child,
+                                                })
+                                              }
+                                              className={`${uiColors.text.secondary} hover:${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
+                                            >
+                                              <Edit className="w-3 h-3 mr-1" />
+                                              <span className="hidden sm:inline">Edit</span>
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                setEvidenceModal({
+                                                  isOpen: true,
+                                                  processId: process.id,
+                                                  subProcessId: child.id,
+                                                  processName: child.name,
+                                                  evidence: child.evidence || [],
+                                                  onEvidenceChange: (evidence) =>
+                                                    handleEvidenceUpdate(selectedPart.id, progressCategory.id, process.id, child.id, evidence)
+                                                })
+                                              }
+                                              className={`${uiColors.text.accent} hover:${uiColors.bg.tertiary} ${uiColors.border.accent} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
+                                            >
+                                              <Upload className="w-3 h-3 mr-1" />
+                                              <span className="hidden sm:inline">Evidence ({child.evidence?.length || 0})</span>
+                                              <span className="sm:hidden">({child.evidence?.length || 0})</span>
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                setDeleteDialog({
+                                                  isOpen: true,
+                                                  type: "subprocess",
+                                                  partId: selectedPart.id,
+                                                  categoryId: progressCategory.id,
+                                                  processId: process.id,
+                                                  subProcessId: child.id,
+                                                  name: child.name,
+                                                })
+                                              }
+                                              className={`${uiColors.text.error} hover:${uiColors.bg.tertiary} ${uiColors.border.error} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
+                                            >
+                                              <Trash2 className="w-3 h-3 mr-1" />
+                                              <span className="hidden sm:inline">Delete</span>
+                                            </Button>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="text-center py-8 sm:py-12">
+              <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-2">Part Not Found</h3>
+              <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 px-4">The part you're looking for doesn't exist or has been removed.</p>
+              <Link to="/progress">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
+                  <span className="hidden sm:inline">Back to Dashboard</span>
+                  <span className="sm:hidden">Back to Dashboard</span>
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1527,6 +2023,15 @@ export default function ManageProgres() {
         isSubProcess={processModal.isSubProcess}
       />
 
+      {/* Evidence Modal */}
+      <EvidenceModal
+        isOpen={evidenceModal.isOpen}
+        onClose={() => setEvidenceModal({ ...evidenceModal, isOpen: false })}
+        evidence={evidenceModal.evidence}
+        onEvidenceChange={evidenceModal.onEvidenceChange}
+        processName={evidenceModal.processName}
+      />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={deleteDialog.isOpen}
@@ -1545,13 +2050,13 @@ export default function ManageProgres() {
           }
         }}
       >
-        <AlertDialogContent className="bg-gray-800 border-gray-700 text-white">
+        <AlertDialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm sm:max-w-md mx-4">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-400">
-              <AlertTriangle className="w-5 h-5" />
+            <AlertDialogTitle className="flex items-center gap-2 text-red-400 text-base sm:text-lg">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
               Confirm Deletion
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
+            <AlertDialogDescription className="text-gray-300 text-sm sm:text-base">
               Are you sure you want to delete the 
               {deleteDialog.type === "subprocess" ? "sub-process" : deleteDialog.type === "part" ? "part" : "process"} "
               {deleteDialog.name}"?
@@ -1560,14 +2065,14 @@ export default function ManageProgres() {
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

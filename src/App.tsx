@@ -63,15 +63,7 @@ function App() {
                 }
               />
               <Route
-                path="/progress/manage"
-                element={
-                  <ProtectedRoute>
-                    <ManageProgres />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/progress/manage"
+                path="/progress/manage_progres/:partId"
                 element={
                   <ProtectedRoute>
                     <ManageProgres />
