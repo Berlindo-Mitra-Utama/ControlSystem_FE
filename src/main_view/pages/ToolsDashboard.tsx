@@ -67,6 +67,9 @@ export default function ToolsDashboard() {
         case "usermanagement":
           navigate("/admin/user-management")
           break
+        case "calculator":
+          navigate("/electricity")
+          break
         default:
           alert(`Mengakses tool: ${toolId}`)
       }
@@ -78,8 +81,8 @@ export default function ToolsDashboard() {
     // Public Tools
     {
       id: "calculator",
-      title: "Kalkulator",
-      description: "Kalkulator untuk perhitungan cepat produksi",
+      title: "Kalkulator Listrik",
+      description: "Kalkulator untuk menghitung biaya pemakaian listrik",
       icon: Calculator,
       gradient: "from-green-400 to-emerald-500",
       hoverGradient: "from-green-500 to-emerald-600",
@@ -87,7 +90,7 @@ export default function ToolsDashboard() {
       badge: "Open",
       requiresLogin: false,
       badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
-      maintenance: true,
+      maintenance: false,
     },
     {
       id: "converter",
