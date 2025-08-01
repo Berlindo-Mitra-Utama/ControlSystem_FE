@@ -11,6 +11,12 @@ import {
 } from "recharts";
 
 import { useSchedule } from "../contexts/ScheduleContext";
+import { useTheme } from "../../contexts/ThemeContext";
+import {
+  getChartThemeColors,
+  getBarChartColors,
+} from "../utils/chartThemeUtils";
+import "../styles/dropdown.css";
 
 interface ScheduleItem {
   id: string;
@@ -50,6 +56,7 @@ const partOptions = ["29N Muffler", "Transmission Case B2", "Brake Disc C3"];
 
 const AllChartsPage: React.FC = () => {
   const { savedSchedules } = useSchedule();
+  const { theme } = useTheme();
   const [selectedPart, setSelectedPart] = useState<string>(
     partOptions.length > 0 ? partOptions[0] : "",
   );
@@ -65,6 +72,10 @@ const AllChartsPage: React.FC = () => {
   const handlePartChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedPart(e.target.value);
   };
+
+  // Mendapatkan warna berdasarkan theme
+  const colors = getChartThemeColors(theme);
+  const barColors = getBarChartColors(theme);
 
   // Fungsi untuk mengolah data chart
   const processChartData = (schedule: ScheduleItem[]) => {
@@ -118,29 +129,36 @@ const AllChartsPage: React.FC = () => {
   // Fungsi untuk membuat chart dengan data yang sudah diolah
   const renderChart = (name: string, chartData: any[], index: number) => {
     return (
-      <div key={index} className="bg-gray-900 rounded-xl p-4 h-80">
-        <h3 className="text-xl font-semibold text-white mb-2">{name}</h3>
+      <div
+        key={index}
+        className={`${colors.cardBg} rounded-xl p-3 sm:p-4 h-64 sm:h-80 shadow-lg border ${colors.borderColor}`}
+      >
+        <h3
+          className={`text-lg sm:text-xl font-semibold ${colors.titleText} mb-2`}
+        >
+          {name}
+        </h3>
         <ResponsiveContainer width="100%" height="85%">
           <BarChart
             data={chartData}
             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.gridColor} />
             <XAxis
               dataKey="day"
-              stroke="#9ca3af"
+              stroke={colors.axisColor}
               interval={2}
               tick={{ fontSize: 12 }}
             />
-            <YAxis stroke="#9ca3af" />
+            <YAxis stroke={colors.axisColor} />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1f2937",
-                border: "1px solid #374151",
+                backgroundColor: colors.tooltipBg,
+                border: `1px solid ${colors.tooltipBorder}`,
                 borderRadius: "0.5rem",
-                color: "#f9fafb",
+                color: colors.tooltipText,
               }}
-              labelStyle={{ color: "#f9fafb" }}
+              labelStyle={{ color: colors.labelTextColor }}
               formatter={(value, name, props) => [`${value} PCS`, name]}
               labelFormatter={(label) => {
                 const dataPoint = chartData.find((item) => item.day === label);
@@ -151,8 +169,8 @@ const AllChartsPage: React.FC = () => {
             <Bar
               dataKey="akumulasiDelivery"
               name="Akumulasi Delivery"
-              fill="#10b981"
-              radius={[4, 4, 0, 0]}
+              fill={barColors.barFill}
+              radius={barColors.barRadius}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -161,36 +179,57 @@ const AllChartsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-white">Semua Chart Produksi</h1>
-        <div className="flex items-center space-x-4">
-          <label htmlFor="partSelect" className="text-white">
+    <div className={`min-h-screen ${colors.pageBg} p-4 sm:p-8`}>
+      {/* Header Section */}
+      <div className="mb-6 sm:mb-8">
+        <h1
+          className={`text-2xl sm:text-3xl font-bold ${colors.titleText} mb-4 sm:mb-6`}
+        >
+          Semua Chart Produksi
+        </h1>
+
+        {/* Part Selection - Responsive Layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+          <label
+            htmlFor="partSelect"
+            className={`${colors.labelText} text-sm sm:text-base font-medium`}
+          >
             Pilih Part:
           </label>
-          <select
-            id="partSelect"
-            value={selectedPart}
-            onChange={handlePartChange}
-            className="bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {partOptions.map((part) => (
-              <option key={part} value={part}>
-                {part}
-              </option>
-            ))}
-          </select>
+          <div className="relative w-full sm:w-auto max-w-xs sm:max-w-none">
+            <select
+              id="partSelect"
+              value={selectedPart}
+              onChange={handlePartChange}
+              data-theme={theme}
+              className={`${colors.selectBg} ${colors.selectText} border ${colors.selectBorder} rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${colors.selectFocusRing} text-sm sm:text-base w-full sm:w-auto min-w-[200px] appearance-none pr-8 relative z-10`}
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: "right 0.5rem center",
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "1.5em 1.5em",
+              }}
+            >
+              {partOptions.map((part) => (
+                <option key={part} value={part}>
+                  {part}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {filteredSchedules.length === 0 ? (
-        <div className="bg-gray-900 rounded-xl p-8 text-center">
-          <p className="text-gray-400">
+        <div
+          className={`${colors.emptyStateBg} rounded-xl p-6 sm:p-8 text-center shadow-lg border ${colors.borderColor}`}
+        >
+          <p className={`${colors.emptyStateText} text-sm sm:text-base`}>
             Belum ada jadwal produksi untuk part ini
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {filteredSchedules.map((savedSchedule, index) => {
             const chartData = processChartData(savedSchedule.schedule);
             return renderChart(savedSchedule.name, chartData, index);
