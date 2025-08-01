@@ -30,7 +30,7 @@ function App() {
   return (
     <AuthProvider>
       <ScheduleProvider>
-        <div className="min-h-screen flex flex-col bg-[#101624]">
+        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
           <div className="flex-1">
             <Routes>
               {/* Public Routes */}
@@ -85,7 +85,7 @@ function App() {
               <Route path="/hitungcoil" element={<HitungCoilLayout />}>
                 <Route index element={<HitungCoil />} />
               </Route>
-              
+
               {/* Public Tools - Electricity Calculator */}
               <Route path="/electricity" element={<ElectricityLayout />}>
                 <Route index element={<ElectricityPage />} />

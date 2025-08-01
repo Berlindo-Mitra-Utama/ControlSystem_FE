@@ -3,6 +3,7 @@ import { useSchedule } from "../contexts/ScheduleContext";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Colors } from "../../const/colors";
+import { useTheme } from "../../contexts/ThemeContext";
 import {
   ArrowLeft,
   Calendar,
@@ -15,19 +16,55 @@ import {
   FileText,
   Clock,
   CheckCircle,
-  AlertCircle,
-  Factory,
-  Gauge,
-  Settings2,
-  Car,
-  Zap,
-  Shield,
 } from "lucide-react";
 
 const SavedSchedulesPage: React.FC = () => {
   const navigate = useNavigate();
   const { savedSchedules, loadSchedule, deleteSchedule } = useSchedule();
+  const { theme } = useTheme();
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
+
+  // Fungsi untuk mendapatkan warna berdasarkan theme
+  const getThemeColors = () => {
+    const isDark = theme === "dark";
+    return {
+      // Background colors
+      pageBg: isDark ? "bg-gray-900" : "bg-gray-50",
+      cardBg: isDark ? "bg-gray-800/50" : "bg-white",
+      headerBg: isDark ? "bg-gray-800/50" : "bg-white",
+      emptyStateBg: isDark ? "bg-gray-800/30" : "bg-gray-50",
+
+      // Text colors
+      titleText: isDark ? "text-white" : "text-gray-900",
+      subtitleText: isDark ? "text-gray-400" : "text-gray-600",
+      bodyText: isDark ? "text-gray-400" : "text-gray-700",
+      descriptionText: isDark ? "text-gray-500" : "text-gray-500",
+
+      // Border colors
+      borderColor: isDark ? "border-gray-800" : "border-gray-200",
+      cardBorder: isDark ? "border-gray-700" : "border-gray-200",
+      headerBorder: isDark ? "border-gray-700" : "border-gray-200",
+
+      // Button colors
+      backButtonBg: isDark ? "bg-gray-700" : "bg-gray-100",
+      backButtonHover: isDark ? "hover:bg-gray-600" : "hover:bg-gray-200",
+      backButtonText: isDark ? "text-white" : "text-gray-700",
+
+      // Divider colors
+      dividerColor: isDark ? "bg-gray-600" : "bg-gray-300",
+
+      // Hover effects
+      cardHover: isDark ? "hover:bg-gray-750" : "hover:bg-gray-50",
+      cardHoverBorder: isDark
+        ? "hover:border-blue-500/50"
+        : "hover:border-blue-300",
+
+      // Gradient effects
+      gradientOverlay: isDark
+        ? "from-blue-500/5 to-purple-500/5"
+        : "from-blue-500/10 to-purple-500/10",
+    };
+  };
 
   // Mock data parts dengan ikon yang lebih cantik
   const parts = [
@@ -159,208 +196,226 @@ const SavedSchedulesPage: React.FC = () => {
     }
   };
 
+  const colors = getThemeColors();
+
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Saved Schedules</h1>
-        <p className="text-gray-400 mb-8">
-          Manage your saved production schedules by part
-        </p>
+    <div
+      className={`${colors.pageBg} border ${colors.borderColor} rounded-3xl p-8 shadow-lg`}
+    >
+      <h1 className={`text-3xl font-bold ${colors.titleText} mb-2`}>
+        Saved Schedules
+      </h1>
+      <p className={`${colors.subtitleText} mb-8`}>
+        Manage your saved production schedules by part
+      </p>
 
-        {!selectedPart ? (
-          // Part selection view dengan desain yang lebih menarik
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {parts.map((part) => {
-              const partSchedules = getSchedulesByPart(part.name);
-              return (
+      {!selectedPart ? (
+        // Part selection view dengan desain yang lebih menarik
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {parts.map((part) => {
+            const partSchedules = getSchedulesByPart(part.name);
+            return (
+              <div
+                key={part.name}
+                onClick={() => setSelectedPart(part.name)}
+                className={`group relative ${colors.cardBg} border ${part.borderColor} rounded-2xl p-6 ${colors.cardHover} cursor-pointer transition-all duration-500 hover:scale-105 hover:shadow-2xl backdrop-blur-sm overflow-hidden`}
+              >
+                {/* Background gradient effect */}
                 <div
-                  key={part.name}
-                  onClick={() => setSelectedPart(part.name)}
-                  className={`group relative bg-gray-800/50 border ${part.borderColor} rounded-2xl p-6 hover:bg-gray-750 cursor-pointer transition-all duration-500 hover:scale-105 hover:shadow-2xl backdrop-blur-sm overflow-hidden`}
-                >
-                  {/* Background gradient effect */}
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${part.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
-                  ></div>
+                  className={`absolute inset-0 bg-gradient-to-br ${part.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
+                ></div>
 
-                  {/* Icon container */}
-                  <div
-                    className={`relative z-10 ${part.bgColor} w-16 h-16 rounded-xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300`}
+                {/* Icon container */}
+                <div
+                  className={`relative z-10 ${part.bgColor} w-16 h-16 rounded-xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300`}
+                >
+                  {part.icon === Package && (
+                    <Package className="w-8 h-8 text-white" />
+                  )}
+                  {part.icon === Cog && <Cog className="w-8 h-8 text-white" />}
+                  {part.icon === Wrench && (
+                    <Wrench className="w-8 h-8 text-white" />
+                  )}
+                </div>
+
+                <div className="relative z-10 text-center">
+                  <h3
+                    className={`text-xl font-bold ${colors.titleText} mb-2 group-hover:text-gray-100 transition-colors`}
                   >
-                    {part.icon === Package && (
-                      <Package className="w-8 h-8 text-white" />
-                    )}
-                    {part.icon === Cog && (
-                      <Cog className="w-8 h-8 text-white" />
-                    )}
-                    {part.icon === Wrench && (
-                      <Wrench className="w-8 h-8 text-white" />
-                    )}
-                  </div>
-
-                  <div className="relative z-10 text-center">
-                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-gray-100 transition-colors">
-                      {part.name}
-                    </h3>
-                    <p className="text-gray-400 text-sm mb-2">
-                      {part.customer}
-                    </p>
-                    <p className="text-gray-500 text-xs mb-4">
-                      {part.description}
-                    </p>
-                    <div
-                      className={`bg-gradient-to-r ${part.color} text-white px-4 py-2 rounded-full text-sm font-medium inline-block shadow-lg`}
-                    >
-                      {partSchedules.length} laporan tersimpan
-                    </div>
-                  </div>
-
-                  {/* Hover effect overlay */}
-                  <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-500/30 rounded-2xl transition-all duration-300"></div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          // Schedule list view for selected part dengan tombol kembali di atas
-          <div>
-            {/* Header dengan tombol kembali */}
-            <div className="flex items-center justify-between mb-8 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setSelectedPart(null)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all duration-200 hover:scale-105 group"
-                >
-                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                  Kembali
-                </button>
-                <div className="h-8 w-px bg-gray-600"></div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    {(() => {
-                      const selectedPartData = parts.find(
-                        (p) => p.name === selectedPart,
-                      );
-                      return (
-                        <>
-                          {selectedPartData && (
-                            <div
-                              className={`${selectedPartData.bgColor} p-2 rounded-lg`}
-                            >
-                              {selectedPartData.icon === Package && (
-                                <Package className="w-6 h-6 text-white" />
-                              )}
-                              {selectedPartData.icon === Cog && (
-                                <Cog className="w-6 h-6 text-white" />
-                              )}
-                              {selectedPartData.icon === Wrench && (
-                                <Wrench className="w-6 h-6 text-white" />
-                              )}
-                            </div>
-                          )}
-                          {selectedPart}
-                        </>
-                      );
-                    })()}
-                  </h2>
-                  <p className="text-gray-400">
-                    {parts.find((p) => p.name === selectedPart)?.customer}
+                    {part.name}
+                  </h3>
+                  <p className={`${colors.bodyText} text-sm mb-2`}>
+                    {part.customer}
                   </p>
+                  <p className={`${colors.descriptionText} text-xs mb-4`}>
+                    {part.description}
+                  </p>
+                  <div
+                    className={`bg-gradient-to-r ${part.color} text-white px-4 py-2 rounded-full text-sm font-medium inline-block shadow-lg`}
+                  >
+                    {partSchedules.length} laporan tersimpan
+                  </div>
                 </div>
-              </div>
 
-              <div className="text-right">
-                <div className="text-sm text-gray-400">Total Schedules</div>
-                <div className="text-2xl font-bold text-white">
-                  {getSchedulesByPart(selectedPart).length}
-                </div>
+                {/* Hover effect overlay */}
+                <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-500/30 rounded-2xl transition-all duration-300"></div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // Schedule list view for selected part dengan tombol kembali di atas
+        <>
+          {/* Header dengan tombol kembali */}
+          <div
+            className={`flex items-center justify-between mb-8 p-4 ${colors.headerBg} rounded-xl border ${colors.headerBorder}`}
+          >
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSelectedPart(null)}
+                className={`flex items-center gap-2 px-4 py-2 ${colors.backButtonBg} ${colors.backButtonHover} ${colors.backButtonText} rounded-lg transition-all duration-200 hover:scale-105 group`}
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                Kembali
+              </button>
+              <div className={`h-8 w-px ${colors.dividerColor}`}></div>
+              <div>
+                <h2
+                  className={`text-2xl font-bold ${colors.titleText} flex items-center gap-3`}
+                >
+                  {(() => {
+                    const selectedPartData = parts.find(
+                      (p) => p.name === selectedPart,
+                    );
+                    return (
+                      <>
+                        {selectedPartData && (
+                          <div
+                            className={`${selectedPartData.bgColor} p-2 rounded-lg`}
+                          >
+                            {selectedPartData.icon === Package && (
+                              <Package className="w-6 h-6 text-white" />
+                            )}
+                            {selectedPartData.icon === Cog && (
+                              <Cog className="w-6 h-6 text-white" />
+                            )}
+                            {selectedPartData.icon === Wrench && (
+                              <Wrench className="w-6 h-6 text-white" />
+                            )}
+                          </div>
+                        )}
+                        {selectedPart}
+                      </>
+                    );
+                  })()}
+                </h2>
+                <p className={colors.bodyText}>
+                  {parts.find((p) => p.name === selectedPart)?.customer}
+                </p>
               </div>
             </div>
 
-            {getSchedulesByPart(selectedPart).length === 0 ? (
-              <div className="text-center py-16 bg-gray-800/30 rounded-2xl border border-gray-700">
-                <div className="text-gray-500 text-8xl mb-6">📅</div>
-                <h3 className="text-2xl font-semibold text-gray-400 mb-3">
-                  Belum ada laporan tersimpan
-                </h3>
-                <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                  Buat schedule baru untuk part ini dan simpan untuk akses cepat
-                  di masa depan
-                </p>
-                <button
-                  onClick={() => navigate("/dashboard/scheduler")}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-200 hover:scale-105 shadow-lg flex items-center gap-2 mx-auto"
-                >
-                  <FileText className="w-5 h-5" />
-                  Buat Schedule Baru
-                </button>
+            <div className="text-right">
+              <div className={`text-sm ${colors.bodyText}`}>
+                Total Schedules
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {getSchedulesByPart(selectedPart).map((schedule) => (
-                  <div
-                    key={schedule.id}
-                    className="group bg-gray-800/50 border border-gray-700 rounded-xl p-6 hover:border-blue-500/50 hover:bg-gray-750 transition-all duration-300 hover:scale-105 backdrop-blur-sm relative overflow-hidden"
-                  >
-                    {/* Background gradient on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className={`text-2xl font-bold ${colors.titleText}`}>
+                {getSchedulesByPart(selectedPart).length}
+              </div>
+            </div>
+          </div>
 
-                    <div className="relative z-10">
-                      {/* Header dengan ikon dan nama */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-500/10 rounded-lg">
-                            <Calendar className="w-5 h-5 text-blue-400" />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-white group-hover:text-blue-100 transition-colors">
-                              {schedule.name}
-                            </h4>
-                            <p className="text-gray-400 text-xs flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              Dibuat: {formatDate(schedule.date)}
-                            </p>
-                          </div>
+          {getSchedulesByPart(selectedPart).length === 0 ? (
+            <div
+              className={`text-center py-16 ${colors.emptyStateBg} rounded-2xl border ${colors.cardBorder}`}
+            >
+              <div className="text-gray-500 text-8xl mb-6">📅</div>
+              <h3 className={`text-2xl font-semibold ${colors.bodyText} mb-3`}>
+                Belum ada laporan tersimpan
+              </h3>
+              <p className={`${colors.descriptionText} mb-6 max-w-md mx-auto`}>
+                Buat schedule baru untuk part ini dan simpan untuk akses cepat
+                di masa depan
+              </p>
+              <button
+                onClick={() => navigate("/dashboard/scheduler")}
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-200 hover:scale-105 shadow-lg flex items-center gap-2 mx-auto"
+              >
+                <FileText className="w-5 h-5" />
+                Buat Schedule Baru
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getSchedulesByPart(selectedPart).map((schedule) => (
+                <div
+                  key={schedule.id}
+                  className={`group ${colors.cardBg} border ${colors.cardBorder} rounded-xl p-6 ${colors.cardHoverBorder} ${colors.cardHover} transition-all duration-300 hover:scale-105 backdrop-blur-sm relative overflow-hidden`}
+                >
+                  {/* Background gradient on hover */}
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br ${colors.gradientOverlay} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                  ></div>
+
+                  <div className="relative z-10">
+                    {/* Header dengan ikon dan nama */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/10 rounded-lg">
+                          <Calendar className="w-5 h-5 text-blue-400" />
                         </div>
-                        <div className="p-1 bg-green-500/10 rounded-full">
-                          <CheckCircle className="w-4 h-4 text-green-400" />
+                        <div>
+                          <h4
+                            className={`font-semibold ${colors.titleText} group-hover:text-blue-100 transition-colors`}
+                          >
+                            {schedule.name}
+                          </h4>
+                          <p
+                            className={`${colors.bodyText} text-xs flex items-center gap-1`}
+                          >
+                            <Clock className="w-3 h-3" />
+                            Dibuat: {formatDate(schedule.date)}
+                          </p>
                         </div>
                       </div>
-
-                      {/* Action buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleLoadSchedule(schedule)}
-                          className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 group/btn"
-                        >
-                          <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                          Tampilkan
-                        </button>
-                        <button
-                          onClick={() => handleDownloadExcel(schedule)}
-                          className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg text-sm transition-all duration-200 hover:scale-105 group/btn"
-                          title="Download Excel"
-                        >
-                          <Download className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDeleteSchedule(schedule.id, schedule.name)
-                          }
-                          className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg text-sm transition-all duration-200 hover:scale-105 group/btn"
-                          title="Hapus Schedule"
-                        >
-                          <Trash2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                        </button>
+                      <div className="p-1 bg-green-500/10 rounded-full">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
                       </div>
                     </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleLoadSchedule(schedule)}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 group/btn"
+                      >
+                        <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                        Tampilkan
+                      </button>
+                      <button
+                        onClick={() => handleDownloadExcel(schedule)}
+                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg text-sm transition-all duration-200 hover:scale-105 group/btn"
+                        title="Download Excel"
+                      >
+                        <Download className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDeleteSchedule(schedule.id, schedule.name)
+                        }
+                        className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg text-sm transition-all duration-200 hover:scale-105 group/btn"
+                        title="Hapus Schedule"
+                      >
+                        <Trash2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
