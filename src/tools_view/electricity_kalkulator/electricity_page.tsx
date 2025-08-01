@@ -86,7 +86,7 @@ export default function Component() {
                 placeholder="Masukkan daya"
                 value={power}
                 onChange={(e) => setPower(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors"
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-green-400 font-medium">
                 Watt
@@ -111,7 +111,7 @@ export default function Component() {
                   placeholder="0"
                   value={hours}
                   onChange={(e) => setHours(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
               <div className="space-y-1">
@@ -124,7 +124,7 @@ export default function Component() {
                   placeholder="0"
                   value={minutes}
                   onChange={(e) => setMinutes(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
               <div className="space-y-1">
@@ -137,7 +137,7 @@ export default function Component() {
                   placeholder="0"
                   value={seconds}
                   onChange={(e) => setSeconds(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
             </div>
