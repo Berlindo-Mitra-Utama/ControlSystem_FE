@@ -266,30 +266,29 @@ const SavedSchedulesPage: React.FC = () => {
       ) : (
         // Schedule list view for selected part dengan tombol kembali di atas
         <>
-          {/* Header dengan tombol kembali - Layout Baru */}
+          {/* Header dengan tombol kembali - Layout Compact */}
           <div
             className={`mb-8 p-4 ${colors.headerBg} rounded-xl border ${colors.headerBorder}`}
           >
-            {/* Top row - Back button and part info */}
-            <div className="flex items-start gap-3 sm:gap-4 mb-4">
-              {/* Back button - Icon only on mobile */}
+            {/* Single row - Back button, part info, and total schedules */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Back button - Icon only */}
               <button
                 onClick={() => setSelectedPart(null)}
-                className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2 ${colors.backButtonBg} ${colors.backButtonHover} ${colors.backButtonText} rounded-lg transition-all duration-200 hover:scale-105 group flex-shrink-0`}
+                className={`flex items-center justify-center p-2 ${colors.backButtonBg} ${colors.backButtonHover} ${colors.backButtonText} rounded-lg transition-all duration-200 hover:scale-105 group flex-shrink-0`}
               >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                <span className="hidden sm:inline">Kembali</span>
               </button>
 
-              {/* Part info - Icon and text side by side */}
-              <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* Part info - Icon and text */}
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <div
                   className={`${(() => {
                     const selectedPartData = parts.find(
                       (p) => p.name === selectedPart,
                     );
                     return selectedPartData?.bgColor || "";
-                  })()} p-2 rounded-lg flex-shrink-0`}
+                  })()} p-1.5 sm:p-2 rounded-lg flex-shrink-0`}
                 >
                   {(() => {
                     const selectedPartData = parts.find(
@@ -297,17 +296,17 @@ const SavedSchedulesPage: React.FC = () => {
                     );
                     if (selectedPartData?.icon === Package) {
                       return (
-                        <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <Package className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       );
                     }
                     if (selectedPartData?.icon === Cog) {
                       return (
-                        <Cog className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <Cog className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       );
                     }
                     if (selectedPartData?.icon === Wrench) {
                       return (
-                        <Wrench className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <Wrench className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       );
                     }
                     return null;
@@ -316,34 +315,27 @@ const SavedSchedulesPage: React.FC = () => {
 
                 <div className="min-w-0 flex-1">
                   <h2
-                    className={`text-lg sm:text-xl lg:text-2xl font-bold ${colors.titleText} truncate`}
+                    className={`text-base sm:text-lg lg:text-xl xl:text-2xl font-bold ${colors.titleText} truncate`}
                   >
                     {selectedPart}
                   </h2>
+                  <p
+                    className={`${colors.bodyText} text-xs sm:text-sm lg:text-base truncate`}
+                  >
+                    {parts.find((p) => p.name === selectedPart)?.customer}
+                  </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Bottom row - Customer info and total schedules */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              {/* Customer info */}
-              <div className="flex-1">
-                <p className={`${colors.bodyText} text-sm sm:text-base`}>
-                  {parts.find((p) => p.name === selectedPart)?.customer}
-                </p>
               </div>
 
               {/* Total schedules with border */}
               <div
-                className={`px-4 py-2 border ${colors.cardBorder} rounded-lg bg-opacity-50 ${colors.cardBg} flex-shrink-0`}
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 border ${colors.cardBorder} rounded-lg bg-opacity-50 ${colors.cardBg} flex-shrink-0`}
               >
-                <div
-                  className={`text-xs sm:text-sm ${colors.bodyText} text-center`}
-                >
+                <div className={`text-xs ${colors.bodyText} text-center`}>
                   Total Schedules
                 </div>
                 <div
-                  className={`text-lg sm:text-xl font-bold ${colors.titleText} text-center`}
+                  className={`text-sm sm:text-lg lg:text-xl font-bold ${colors.titleText} text-center`}
                 >
                   {getSchedulesByPart(selectedPart).length}
                 </div>

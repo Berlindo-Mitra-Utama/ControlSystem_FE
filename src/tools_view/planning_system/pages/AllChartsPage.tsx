@@ -16,25 +16,9 @@ import {
   getChartThemeColors,
   getBarChartColors,
 } from "../utils/chartThemeUtils";
-import "../styles/dropdown.css";
 
-interface ScheduleItem {
-  id: string;
-  day: number;
-  shift: string;
-  type: string;
-  pcs: number;
-  time: string;
-  processes: string;
-  status: "Normal" | "Gangguan" | "Completed";
-  actualPcs?: number;
-  notes?: string;
-  delivery?: number;
-  planningPcs?: number;
-  overtimePcs?: number;
-  planningHour?: number;
-  overtimeHour?: number;
-}
+// Import type dari file yang sudah ada
+import { ScheduleItem } from "../types/scheduleTypes";
 
 interface SavedSchedule {
   id: string;
@@ -170,7 +154,7 @@ const AllChartsPage: React.FC = () => {
               dataKey="akumulasiDelivery"
               name="Akumulasi Delivery"
               fill={barColors.barFill}
-              radius={barColors.barRadius}
+              radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -201,14 +185,7 @@ const AllChartsPage: React.FC = () => {
               id="partSelect"
               value={selectedPart}
               onChange={handlePartChange}
-              data-theme={theme}
-              className={`${colors.selectBg} ${colors.selectText} border ${colors.selectBorder} rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${colors.selectFocusRing} text-sm sm:text-base w-full sm:w-auto min-w-[200px] appearance-none pr-8 relative z-10`}
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: "right 0.5rem center",
-                backgroundRepeat: "no-repeat",
-                backgroundSize: "1.5em 1.5em",
-              }}
+              className={`${colors.selectBg} ${colors.selectText} border ${colors.selectBorder} rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${colors.selectFocusRing} text-sm sm:text-base w-full sm:w-auto min-w-[200px] appearance-none pr-10 relative z-10`}
             >
               {partOptions.map((part) => (
                 <option key={part} value={part}>
@@ -216,6 +193,22 @@ const AllChartsPage: React.FC = () => {
                 </option>
               ))}
             </select>
+            {/* Custom Chevron Icon */}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg
+                className={`w-4 h-4 ${colors.axisColor}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
