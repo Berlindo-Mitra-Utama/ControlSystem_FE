@@ -201,6 +201,7 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
 export default function Dashboard() {
   const [parts, setParts] = useState<Part[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, handleLogout } = useAuth();
   const navigate = useNavigate();
 
@@ -569,6 +570,27 @@ export default function Dashboard() {
     };
   };
 
+  // Filter parts based on search query
+  const filteredParts = parts.filter(part => {
+    if (!part || !searchQuery) return true;
+    
+    try {
+      const query = searchQuery.toLowerCase();
+      return (
+        (part.partName && part.partName.toLowerCase().includes(query)) ||
+        (part.partNumber && part.partNumber.toLowerCase().includes(query)) ||
+        (part.customer && part.customer.toLowerCase().includes(query)) ||
+        (part.status && part.status.toLowerCase().includes(query))
+      );
+    } catch (error) {
+      console.error("Error filtering parts:", error);
+      return true; // Show all parts if there's an error
+    }
+  });
+
+  // Debug logging
+  console.log("Dashboard render - parts:", parts.length, "searchQuery:", searchQuery, "filteredParts:", filteredParts.length);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* Header/Navigation Bar */}
@@ -635,15 +657,73 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Engineering Project List</span>
               <span className="sm:hidden">Project List</span>
             </h1>
-            <Button 
-              onClick={() => setShowAddModal(true)}
-              className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add New Part</span>
-              <span className="sm:hidden">Add Part</span>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+              {/* Search Box */}
+              <div className="relative flex-1 sm:flex-none sm:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery || ''}
+                  onChange={(e) => {
+                    try {
+                      const value = e.target.value || '';
+                      setSearchQuery(value);
+                    } catch (error) {
+                      console.error("Error setting search query:", error);
+                      setSearchQuery('');
+                    }
+                  }}
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base transition-all duration-300 hover:border-gray-500"
+                  placeholder="Search parts, numbers, customers..."
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      try {
+                        setSearchQuery('');
+                      } catch (error) {
+                        console.error("Error clearing search query:", error);
+                        setSearchQuery('');
+                      }
+                    }}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 transition-colors duration-200"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              
+              {/* Add New Part Button */}
+              <Button 
+                onClick={() => setShowAddModal(true)}
+                className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Add New Part</span>
+                <span className="sm:hidden">Add Part</span>
+              </Button>
+            </div>
           </div>
+
+          {/* Search Results Info */}
+          {searchQuery && (
+            <div className="mb-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-300">
+                  Showing {filteredParts.length} of {parts.length} parts
+                </span>
+                <span className="text-gray-400">
+                  Search: "{searchQuery}"
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -683,83 +763,84 @@ export default function Dashboard() {
 
           {/* Parts Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {parts.map((part, index) => {
-              const overallProgress = calculateOverallProgress(part);
-              const statusInfo = getStatusInfo(overallProgress);
-              const StatusIcon = statusInfo.icon;
+            {filteredParts.map((part, index) => {
+              try {
+                const overallProgress = calculateOverallProgress(part);
+                const statusInfo = getStatusInfo(overallProgress);
+                const StatusIcon = statusInfo.icon;
 
-              return (
-                <Card
-                  key={part.id}
-                  className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-500 hover:shadow-2xl group animate-fade-in hover:bg-gray-750 hover:scale-[1.02] hover:border-blue-500/30 hover:shadow-blue-500/10 hover:shadow-purple-500/10 hover:shadow-cyan-500/10 hover:shadow-white/5 hover:shadow-yellow-500/10 hover:shadow-green-500/10 sm:hover:scale-[1.02]"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardHeader className="pb-3 sm:pb-4">
-                    <div className="flex items-start justify-between mb-3 sm:mb-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Package className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                return (
+                  <Card
+                    key={part.id}
+                    className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-500 hover:shadow-2xl group animate-fade-in hover:bg-gray-750 hover:scale-[1.02] hover:border-blue-500/30 hover:shadow-blue-500/10 hover:shadow-purple-500/10 hover:shadow-cyan-500/10 hover:shadow-white/5 hover:shadow-yellow-500/10 hover:shadow-green-500/10 sm:hover:scale-[1.02]"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <div className="flex items-start justify-between mb-3 sm:mb-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Package className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <CardTitle className="text-base sm:text-lg text-white font-bold line-clamp-1">
+                                {part.partName}
+                              </CardTitle>
+                              <p className="text-xs sm:text-sm text-gray-400 truncate">{part.partNumber}</p>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <CardTitle className="text-base sm:text-lg text-white font-bold line-clamp-1">
-                              {part.partName}
-                            </CardTitle>
-                            <p className="text-xs sm:text-sm text-gray-400 truncate">{part.partNumber}</p>
+                          <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
+                            <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-500 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs">
+                              {part.customer}
+                            </Badge>
+                            <Badge
+                              className={`bg-gradient-to-r ${statusInfo.color} text-white border-0 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs flex items-center gap-1`}
+                            >
+                              <StatusIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                              <span className="hidden sm:inline">{statusInfo.text}</span>
+                              <span className="sm:hidden">{statusInfo.text.length > 8 ? statusInfo.text.substring(0, 8) + '...' : statusInfo.text}</span>
+                            </Badge>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
-                          <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-500 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs">
-                            {part.customer}
-                          </Badge>
-                          <Badge
-                            className={`bg-gradient-to-r ${statusInfo.color} text-white border-0 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs flex items-center gap-1`}
-                          >
-                            <StatusIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                            <span className="hidden sm:inline">{statusInfo.text}</span>
-                            <span className="sm:hidden">{statusInfo.text.length > 8 ? statusInfo.text.substring(0, 8) + '...' : statusInfo.text}</span>
-                          </Badge>
+                        
+                        {/* Part Image */}
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {part.partImage ? (
+                            <img 
+                              src={part.partImage} 
+                              alt={part.partName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+                              }}
+                            />
+                          ) : null}
+                          <div className="w-full h-full flex items-center justify-center text-gray-400" style={{ display: part.partImage ? 'none' : 'flex' }}>
+                            <Image className="w-4 h-4 sm:w-6 sm:h-6" />
+                          </div>
                         </div>
                       </div>
-                      
-                      {/* Part Image */}
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {part.partImage ? (
-                          <img 
-                            src={part.partImage} 
-                            alt={part.partName}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
-                            }}
-                          />
-                        ) : null}
-                        <div className="w-full h-full flex items-center justify-center text-gray-400" style={{ display: part.partImage ? 'none' : 'flex' }}>
-                          <Image className="w-4 h-4 sm:w-6 sm:h-6" />
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
+                    </CardHeader>
 
-                  <CardContent className="space-y-4 sm:space-y-6">
-                    {/* Enhanced Progress Indicator */}
-                    <div className="relative group">
-                      {/* Progress Header */}
-                      <div className="flex justify-between items-center mb-3 sm:mb-4">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
-                            <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white group-hover:animate-pulse" />
+                    <CardContent className="space-y-4 sm:space-y-6">
+                      {/* Enhanced Progress Indicator */}
+                      <div className="relative group">
+                        {/* Progress Header */}
+                        <div className="flex justify-between items-center mb-3 sm:mb-4">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
+                              <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white group-hover:animate-pulse" />
+                            </div>
+                            <span className="text-xs sm:text-sm font-semibold text-gray-300 group-hover:text-white transition-colors duration-300 group-hover:font-bold">Progress</span>
                           </div>
-                          <span className="text-xs sm:text-sm font-semibold text-gray-300 group-hover:text-white transition-colors duration-300 group-hover:font-bold">Progress</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className="text-base sm:text-lg font-bold text-white group-hover:text-blue-300 transition-colors duration-300 group-hover:scale-110 transform">{overallProgress}%</span>
+                            <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${overallProgress === 100 ? 'bg-green-400' : overallProgress >= 75 ? 'bg-blue-400' : overallProgress >= 50 ? 'bg-yellow-400' : overallProgress >= 25 ? 'bg-purple-400' : 'bg-gray-400'} animate-pulse group-hover:scale-125 transition-transform duration-300 group-hover:animate-bounce`}></div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <span className="text-base sm:text-lg font-bold text-white group-hover:text-blue-300 transition-colors duration-300 group-hover:scale-110 transform">{overallProgress}%</span>
-                          <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${overallProgress === 100 ? 'bg-green-400' : overallProgress >= 75 ? 'bg-blue-400' : overallProgress >= 50 ? 'bg-yellow-400' : overallProgress >= 25 ? 'bg-purple-400' : 'bg-gray-400'} animate-pulse group-hover:scale-125 transition-transform duration-300 group-hover:animate-bounce`}></div>
-                        </div>
-                      </div>
 
-                                              {/* Enhanced Progress Bar */}
+                        {/* Enhanced Progress Bar */}
                         <div className="relative group/progress">
                           {/* Background Track */}
                           <div className={`h-2.5 sm:h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner transition-all duration-300 group-hover/progress:shadow-lg group-hover/progress:shadow-blue-500/20 group-hover/progress:shadow-purple-500/20 group-hover/progress:shadow-cyan-500/20 group-hover/progress:shadow-white/10 group-hover/progress:shadow-yellow-500/20 group-hover/progress:shadow-green-500/20 ${
@@ -880,25 +961,35 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               );
+              } catch (error) {
+                console.error("Error rendering part card:", error, part);
+                return null; // Skip rendering this card if there's an error
+              }
             })}
           </div>
 
           {/* Empty State */}
-          {parts.length === 0 && (
+          {filteredParts.length === 0 && (
             <div className="text-center py-8 sm:py-12">
               <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Package className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-2">No Parts Added Yet</h3>
-              <p className="text-sm sm:text-base text-gray-400 mb-6 px-4">Start by adding your first part to create a project to-do list.</p>
-              <Button 
-                onClick={() => setShowAddModal(true)}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 flex items-center justify-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Your First Part</span>
-                <span className="sm:hidden">Add First Part</span>
-              </Button>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-2">
+                {searchQuery ? 'No Parts Found' : 'No Parts Added Yet'}
+              </h3>
+              <p className="text-sm sm:text-base text-gray-400 mb-6 px-4">
+                {searchQuery ? `No parts match your search for "${searchQuery}". Try a different search term.` : 'Start by adding your first part to create a project to-do list.'}
+              </p>
+              {!searchQuery && (
+                <Button 
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Your First Part</span>
+                  <span className="sm:hidden">Add First Part</span>
+                </Button>
+              )}
             </div>
           )}
         </div>
