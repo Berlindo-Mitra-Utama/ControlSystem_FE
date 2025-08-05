@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Trash2,
   Activity,
@@ -19,8 +20,10 @@ import {
   Cpu,
   BarChart3,
 } from "lucide-react"
+import { handleGirafTeamClick } from "../electricity_kalkulator/utils/scrollUtils"
 
 export default function Component() {
+  const navigate = useNavigate()
   const [kgWire, setKgWire] = useState<string>("")
   const [volumeWelding, setVolumeWelding] = useState<string>("")
   const [lengthProduk, setLengthProduk] = useState<string>("")
@@ -327,7 +330,12 @@ export default function Component() {
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-full">
             <Cpu className="w-4 h-4 text-blue-400 animate-pulse" />
             <span className="text-slate-400 text-sm">Dibuat oleh</span>
-            <span className="text-blue-400 font-semibold">Giraf Tech Solution</span>
+            <button
+              onClick={() => handleGirafTeamClick(navigate)}
+              className="text-blue-400 font-semibold hover:underline cursor-pointer transition-colors hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400/50 rounded"
+            >
+              Giraf Tech Solution
+            </button>
             <Sparkles className="w-4 h-4 text-green-400" />
           </div>
         </div>
