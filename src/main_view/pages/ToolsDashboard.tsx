@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@heroui/react"
 import {
   Calendar,
@@ -21,9 +21,28 @@ import {
   Sparkles,
   Zap,
   Shield,
+  Flame,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
+
+// Import CSS untuk menyembunyikan scrollbar
+import "../styles/scrollbar-hide.css"
+
+// Style untuk menyembunyikan scrollbar sudah diimpor dari CSS
+
+// Style untuk tombol navigasi
+const navButtonStyles = {
+  transition: 'all 0.3s ease-in-out',
+  opacity: 0.5,
+  '&:hover': {
+    opacity: 1,
+    transform: 'scale(1.1)',
+    boxShadow: '0 10px 15px -3px rgba(147, 51, 234, 0.2), 0 4px 6px -4px rgba(147, 51, 234, 0.2)'
+  }
+}
 
 export default function ToolsDashboard() {
   const { isLoggedIn, user, handleLogout } = useAuth()
@@ -34,6 +53,166 @@ export default function ToolsDashboard() {
     toolDescription: "",
   })
   const navigate = useNavigate()
+  
+  // Refs untuk container scroll horizontal
+  const publicToolsRef = useRef<HTMLDivElement>(null)
+  const staffToolsRef = useRef<HTMLDivElement>(null)
+  const managementToolsRef = useRef<HTMLDivElement>(null)
+  
+  // Definisikan tipe untuk state scroll position
+  type ScrollPositionState = {
+    publicTools: number;
+    staffTools: number;
+    managementTools: number;
+  };
+  
+  // State untuk kontrol tombol scroll
+  const [scrollPosition, setScrollPosition] = useState<ScrollPositionState>({
+    publicTools: 0,
+    staffTools: 0,
+    managementTools: 0
+  })
+  
+  // State untuk melacak apakah sudah mencapai ujung kanan
+  const [isAtEndState, setIsAtEndState] = useState<{
+    publicTools: boolean;
+    staffTools: boolean;
+    managementTools: boolean;
+  }>({
+    publicTools: false,
+    staffTools: false,
+    managementTools: false
+  });
+  
+  // State untuk melacak apakah scroll tersedia
+  const [hasScrollAvailable, setHasScrollAvailable] = useState<{
+    publicTools: boolean;
+    staffTools: boolean;
+    managementTools: boolean;
+  }>({
+    publicTools: false,
+    staffTools: false,
+    managementTools: false
+  });
+  
+  // Effect untuk menambahkan event listener scroll dan mengecek ketersediaan scroll
+  useEffect(() => {
+    const handleScroll = (ref: React.RefObject<HTMLDivElement>, section: keyof ScrollPositionState) => {
+      if (ref.current) {
+        setScrollPosition(prev => ({
+          ...prev,
+          [section]: ref.current?.scrollLeft || 0
+        }));
+        
+        setIsAtEndState(prev => ({
+          ...prev,
+          [section]: isAtEnd(ref)
+        }));
+        
+        setHasScrollAvailable(prev => ({
+          ...prev,
+          [section]: checkScrollAvailable(ref)
+        }));
+      }
+    };
+    
+    // Fungsi untuk mengecek ketersediaan scroll pada semua container
+    const checkAllScrollAvailability = () => {
+      setHasScrollAvailable({
+        publicTools: checkScrollAvailable(publicToolsRef),
+        staffTools: checkScrollAvailable(staffToolsRef),
+        managementTools: checkScrollAvailable(managementToolsRef)
+      });
+    };
+    
+    // Buat fungsi handler terpisah untuk setiap scroll event
+    const handlePublicToolsScroll = () => handleScroll(publicToolsRef, 'publicTools');
+    const handleStaffToolsScroll = () => handleScroll(staffToolsRef, 'staffTools');
+    const handleManagementToolsScroll = () => handleScroll(managementToolsRef, 'managementTools');
+    
+    const publicToolsElement = publicToolsRef.current;
+    const staffToolsElement = staffToolsRef.current;
+    const managementToolsElement = managementToolsRef.current;
+    
+    // Tambahkan event listener untuk scroll
+    if (publicToolsElement) {
+      publicToolsElement.addEventListener('scroll', handlePublicToolsScroll);
+    }
+    
+    if (staffToolsElement) {
+      staffToolsElement.addEventListener('scroll', handleStaffToolsScroll);
+    }
+    
+    if (managementToolsElement) {
+      managementToolsElement.addEventListener('scroll', handleManagementToolsScroll);
+    }
+    
+    // Tambahkan event listener untuk resize window
+    window.addEventListener('resize', checkAllScrollAvailability);
+    
+    // Cek ketersediaan scroll saat komponen dimount
+    checkAllScrollAvailability();
+    
+    return () => {
+      // Hapus event listener saat komponen unmount
+      if (publicToolsElement) {
+        publicToolsElement.removeEventListener('scroll', handlePublicToolsScroll);
+      }
+      
+      if (staffToolsElement) {
+        staffToolsElement.removeEventListener('scroll', handleStaffToolsScroll);
+      }
+      
+      if (managementToolsElement) {
+        managementToolsElement.removeEventListener('scroll', handleManagementToolsScroll);
+      }
+      
+      window.removeEventListener('resize', checkAllScrollAvailability);
+    };
+  }, []);
+  
+  // Fungsi untuk scroll ke kiri
+  const scrollLeft = (ref: React.RefObject<HTMLDivElement>, section: 'publicTools' | 'staffTools' | 'managementTools') => {
+    if (ref.current) {
+      const scrollAmount = 300 // Jumlah pixel untuk scroll
+      ref.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
+      setScrollPosition(prev => ({
+        ...prev,
+        [section]: Math.max(0, prev[section] - scrollAmount)
+      }))
+    }
+  }
+  
+  // Fungsi untuk scroll ke kanan
+  const scrollRight = (ref: React.RefObject<HTMLDivElement>, section: 'publicTools' | 'staffTools' | 'managementTools') => {
+    if (ref.current) {
+      const scrollAmount = 300 // Jumlah pixel untuk scroll
+      ref.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+      setScrollPosition(prev => ({
+        ...prev,
+        [section]: prev[section] + scrollAmount
+      }))
+    }
+  }
+  
+  // Fungsi untuk mengecek apakah sudah mencapai ujung kanan
+  const isAtEnd = (ref: React.RefObject<HTMLDivElement>) => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+      // Toleransi 10px untuk mengatasi perbedaan perhitungan di beberapa browser
+      return scrollLeft + clientWidth >= scrollWidth - 10;
+    }
+    return false;
+  };
+  
+  // Fungsi untuk mengecek apakah scroll tersedia
+  const checkScrollAvailable = (ref: React.RefObject<HTMLDivElement>) => {
+    if (ref.current) {
+      const { scrollWidth, clientWidth } = ref.current;
+      return scrollWidth > clientWidth;
+    }
+    return false;
+  };
 
   const handleToolSelect = (
     toolId: string,
@@ -70,6 +249,9 @@ export default function ToolsDashboard() {
         case "calculator":
           navigate("/electricity")
           break
+        case "welding":
+          navigate("/welding")
+          break
         default:
           alert(`Mengakses tool: ${toolId}`)
       }
@@ -86,6 +268,19 @@ export default function ToolsDashboard() {
       icon: Calculator,
       gradient: "from-green-400 to-emerald-500",
       hoverGradient: "from-green-500 to-emerald-600",
+      category: "public",
+      badge: "Open",
+      requiresLogin: false,
+      badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
+      maintenance: false,
+    },
+    {
+      id: "welding",
+      title: "Welding Kalkulator",
+      description: "Kalkulator untuk menghitung parameter welding dengan presisi tinggi",
+      icon: Flame,
+      gradient: "from-green-500 to-emerald-600",
+      hoverGradient: "from-green-600 to-emerald-700",
       category: "public",
       badge: "Open",
       requiresLogin: false,
@@ -433,7 +628,7 @@ export default function ToolsDashboard() {
 
       <div className="container mx-auto px-6 py-8 space-y-12">
         {/* Open Tools */}
-        <section>
+        <section className="relative">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-md flex items-center justify-center">
               <Unlock className="w-4 h-4 text-white" />
@@ -443,13 +638,47 @@ export default function ToolsDashboard() {
               <p className="text-sm text-gray-400">Akses langsung tanpa login</p>
             </div>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {publicTools.map((tool) => renderToolCard(tool, true))}
+          
+          {/* Scroll Container */}
+          <div className="relative overflow-hidden">
+            {/* Tombol Scroll Kiri */}
+            {hasScrollAvailable.publicTools && scrollPosition.publicTools > 0 && (
+              <button 
+                onClick={() => scrollLeft(publicToolsRef, 'publicTools')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-r-lg p-2 shadow-lg backdrop-blur-sm border border-gray-700/50 transition-all duration-300 hover:scale-110 hover:shadow-purple-500/20 hover:shadow-xl"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+            
+            {/* Container Kartu dengan Scroll Horizontal */}
+            <div 
+              ref={publicToolsRef}
+              className="flex overflow-x-auto pb-4 gap-6 scroll-smooth transition-all duration-300 scrollbar-hide"
+            >
+              {publicTools.map((tool) => (
+                <div key={tool.id} className="flex-shrink-0 w-full sm:w-[350px]">
+                  {renderToolCard(tool, true)}
+                </div>
+              ))}
+            </div>
+            
+            {/* Tombol Scroll Kanan */}
+            {hasScrollAvailable.publicTools && !isAtEndState.publicTools && (
+              <button 
+                onClick={() => scrollRight(publicToolsRef, 'publicTools')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-l-lg p-2 shadow-lg backdrop-blur-sm border border-gray-700/50 transition-all duration-300 hover:scale-110 hover:shadow-purple-500/20 hover:shadow-xl"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
           </div>
         </section>
 
         {/* Staff Tools */}
-        <section>
+        <section className="relative">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-violet-600 rounded-md flex items-center justify-center">
               <Zap className="w-4 h-4 text-white" />
@@ -459,13 +688,47 @@ export default function ToolsDashboard() {
               <p className="text-sm text-gray-400">Khusus untuk staff produksi</p>
             </div>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {staffTools.map((tool) => renderToolCard(tool, true))}
+          
+          {/* Scroll Container */}
+          <div className="relative overflow-hidden">
+            {/* Tombol Scroll Kiri */}
+            {hasScrollAvailable.staffTools && scrollPosition.staffTools > 0 && (
+              <button 
+                onClick={() => scrollLeft(staffToolsRef, 'staffTools')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-r-lg p-2 shadow-lg backdrop-blur-sm border border-gray-700/50 transition-all duration-300 hover:scale-110 hover:shadow-purple-500/20 hover:shadow-xl"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+            
+            {/* Container Kartu dengan Scroll Horizontal */}
+            <div 
+              ref={staffToolsRef}
+              className="flex overflow-x-auto pb-4 gap-6 scroll-smooth transition-all duration-300 scrollbar-hide"
+            >
+              {staffTools.map((tool) => (
+                <div key={tool.id} className="flex-shrink-0 w-full sm:w-[350px]">
+                  {renderToolCard(tool, true)}
+                </div>
+              ))}
+            </div>
+            
+            {/* Tombol Scroll Kanan */}
+            {hasScrollAvailable.staffTools && !isAtEndState.staffTools && (
+              <button 
+                onClick={() => scrollRight(staffToolsRef, 'staffTools')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-l-lg p-2 shadow-lg backdrop-blur-sm border border-gray-700/50 transition-all duration-300 hover:scale-110 hover:shadow-purple-500/20 hover:shadow-xl"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
           </div>
         </section>
 
         {/* Management Tools */}
-        <section>
+        <section className="relative">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-pink-600 rounded-md flex items-center justify-center">
               <Shield className="w-4 h-4 text-white" />
@@ -475,8 +738,42 @@ export default function ToolsDashboard() {
               <p className="text-sm text-gray-400">Akses terbatas untuk manajemen</p>
             </div>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {managementTools.map((tool) => renderToolCard(tool, true))}
+          
+          {/* Scroll Container */}
+          <div className="relative overflow-hidden">
+            {/* Tombol Scroll Kiri */}
+            {hasScrollAvailable.managementTools && scrollPosition.managementTools > 0 && (
+              <button 
+                onClick={() => scrollLeft(managementToolsRef, 'managementTools')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-r-lg p-2 shadow-lg backdrop-blur-sm border border-gray-700/50 transition-all duration-300 hover:scale-110 hover:shadow-purple-500/20 hover:shadow-xl"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+            
+            {/* Container Kartu dengan Scroll Horizontal */}
+            <div 
+              ref={managementToolsRef}
+              className="flex overflow-x-auto pb-4 gap-6 scroll-smooth transition-all duration-300 scrollbar-hide"
+            >
+              {managementTools.map((tool) => (
+                <div key={tool.id} className="flex-shrink-0 w-full sm:w-[350px]">
+                  {renderToolCard(tool, true)}
+                </div>
+              ))}
+            </div>
+            
+            {/* Tombol Scroll Kanan */}
+            {hasScrollAvailable.managementTools && !isAtEndState.managementTools && (
+              <button 
+                onClick={() => scrollRight(managementToolsRef, 'managementTools')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-l-lg p-2 shadow-lg backdrop-blur-sm border border-gray-700/50 transition-all duration-300 hover:scale-110 hover:shadow-purple-500/20 hover:shadow-xl"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
           </div>
         </section>
       </div>
