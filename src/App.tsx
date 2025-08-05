@@ -8,6 +8,7 @@ import PlanningSystemLayout from "./tools_view/planning_system/layouts/PlanningS
 import DashboardLayout from "./tools_view/planning_system/layouts/DashboardLayout";
 import HitungCoilLayout from "./tools_view/hitung_koil/layouts/HitungCoilLayout";
 import ElectricityLayout from "./tools_view/electricity_kalkulator/layouts/ElectricityLayout";
+import WeldingLayout from "./tools_view/welding_kalkulator/layouts/WeldingLayout";
 
 // Pages
 import Dashboard from "./tools_view/planning_system/pages/Dashboard";
@@ -21,6 +22,7 @@ import LoginPage from "./main_view/pages/LoginPage";
 import UserManagementPage from "./admin_view/user_management/pages/userManagementPage";
 import ProtectedRoute from "./tools_view/planning_system/components/ProtectedRoute";
 import ElectricityPage from "./tools_view/electricity_kalkulator/electricity_page";
+import WeldingCalculator from "./tools_view/welding_kalkulator/welding_calculator";
 
 // Progress Tracker
 import DashboardProgres from "./tools_view/progres_tracker/pages/dashboard";
@@ -81,6 +83,11 @@ function App() {
               {/* Public Tools - Electricity Calculator */}
               <Route path="/electricity" element={<ElectricityLayout />}>
                 <Route index element={<ElectricityPage />} />
+              </Route>
+
+              {/* Public Tools - Welding Calculator */}
+              <Route path="/welding" element={<WeldingLayout />}>
+                <Route index element={<WeldingCalculator />} />
               </Route>
 
               {/* Admin Routes */}

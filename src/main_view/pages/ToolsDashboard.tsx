@@ -21,6 +21,7 @@ import {
   Sparkles,
   Zap,
   Shield,
+  Flame
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
@@ -70,6 +71,9 @@ export default function ToolsDashboard() {
         case "calculator":
           navigate("/electricity")
           break
+        case "welding":
+          navigate("/welding")
+          break
         default:
           alert(`Mengakses tool: ${toolId}`)
       }
@@ -86,6 +90,19 @@ export default function ToolsDashboard() {
       icon: Calculator,
       gradient: "from-green-400 to-emerald-500",
       hoverGradient: "from-green-500 to-emerald-600",
+      category: "public",
+      badge: "Open",
+      requiresLogin: false,
+      badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
+      maintenance: false,
+    },
+    {
+      id: "welding",
+      title: "Welding Kalkulator",
+      description: "Kalkulator untuk menghitung parameter welding dengan presisi tinggi",
+      icon: Flame,
+      gradient: "from-green-500 to-emerald-600",
+      hoverGradient: "from-green-600 to-emerald-700",
       category: "public",
       badge: "Open",
       requiresLogin: false,

@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-// const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
-const API_BASE_URL = "http://localhost:5555/api";
+ const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
+//const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({
@@ -65,6 +65,28 @@ export interface UserRequest {
 export interface UserCountResponse {
   adminCount: number;
   userCount: number;
+}
+
+// Interface untuk data perencanaan produksi
+export interface ProductPlanningData {
+  id?: number;
+  partName: string;
+  customerName: string;
+  productionMonth: number;
+  productionYear: number;
+  currentStock: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface untuk response perencanaan produksi
+export interface ProductPlanningResponse {
+  productPlannings: ProductPlanningData[];
+}
+
+// Interface untuk response detail perencanaan produksi
+export interface ProductPlanningDetailResponse {
+  productPlanning: ProductPlanningData;
 }
 
 // Service untuk autentikasi
@@ -204,6 +226,127 @@ export const AuthService = {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(
           error.response.data.message || "Gagal mendapatkan jumlah pengguna",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+};
+
+// Service untuk planning system
+export const PlanningSystemService = {
+  // Mendapatkan semua data perencanaan produksi
+  getAllProductPlanning: async (): Promise<ProductPlanningResponse> => {
+    try {
+      const response = await api.get("/planning-system");
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan data perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Mendapatkan data perencanaan produksi berdasarkan ID
+  getProductPlanningById: async (id: number): Promise<ProductPlanningDetailResponse> => {
+    try {
+      const response = await api.get(`/planning-system/${id}`);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan detail perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Mendapatkan data perencanaan produksi berdasarkan bulan dan tahun
+  getProductPlanningByMonthYear: async (month: number, year: number): Promise<ProductPlanningResponse> => {
+    try {
+      const response = await api.get(`/planning-system/by-month-year?month=${month}&year=${year}`);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan data perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Membuat data perencanaan produksi baru
+  createProductPlanning: async (data: ProductPlanningData): Promise<ProductPlanningDetailResponse> => {
+    try {
+      const response = await api.post("/planning-system", data);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal membuat data perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Memperbarui data perencanaan produksi berdasarkan ID
+  updateProductPlanning: async (id: number, data: Partial<ProductPlanningData>): Promise<ProductPlanningDetailResponse> => {
+    try {
+      const response = await api.put(`/planning-system/${id}`, data);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal memperbarui data perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Memperbarui data perencanaan produksi berdasarkan bulan dan tahun
+  updateProductPlanningByMonthYear: async (month: number, year: number, data: Partial<ProductPlanningData>): Promise<ProductPlanningResponse> => {
+    try {
+      const response = await api.put(`/planning-system/month/${month}/year/${year}`, data);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal memperbarui data perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Menghapus data perencanaan produksi berdasarkan ID
+  deleteProductPlanning: async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/planning-system/${id}`);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal menghapus data perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Menghapus data perencanaan produksi berdasarkan bulan dan tahun
+  deleteProductPlanningByMonthYear: async (month: number, year: number): Promise<void> => {
+    try {
+      await api.delete(`/planning-system/month/${month}/year/${year}`);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal menghapus data perencanaan produksi",
         );
       }
       throw new Error("Terjadi kesalahan saat menghubungi server");
