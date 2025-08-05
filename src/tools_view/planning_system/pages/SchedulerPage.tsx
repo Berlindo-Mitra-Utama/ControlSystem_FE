@@ -158,6 +158,7 @@ const SchedulerPage: React.FC = () => {
   const [showProductionForm, setShowProductionForm] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingRow, setEditingRow] = useState<string | null>(null);
+  const [manpowerList, setManpowerList] = useState<any[]>([]);
 
   const [editForm, setEditForm] = useState<Partial<ScheduleItem>>({});
 
@@ -301,6 +302,74 @@ const SchedulerPage: React.FC = () => {
     doUpdateCalculatedFields();
   }, [form.timePerPcs, form.planningHour, form.overtimeHour]);
 
+  // Load manpowerList saat komponen dimount
+  useEffect(() => {
+    const loadManpowerList = async () => {
+      try {
+        // Cek apakah user sudah login
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("User belum login, menggunakan data lokal");
+          setManpowerList([]);
+          return;
+        }
+
+        const { ProductionService } = await import(
+          "../../../services/API_Services"
+        );
+        const response = await ProductionService.getUserManpower();
+        setManpowerList(response.data || []);
+      } catch (error) {
+        console.error("Error loading manpower list:", error);
+        // Fallback ke array kosong jika backend tidak tersedia
+        setManpowerList([]);
+        // Tampilkan notifikasi hanya jika bukan error koneksi atau auth
+        if (
+          error.message &&
+          !error.message.includes("ERR_CONNECTION_REFUSED") &&
+          !error.message.includes("Token tidak ada")
+        ) {
+          showAlert("Gagal mengambil data manpower dari server", "Peringatan");
+        }
+      }
+    };
+
+    loadManpowerList();
+  }, []);
+
+  // Event listeners untuk komunikasi dengan ScheduleProduction
+  useEffect(() => {
+    const handleAddManpowerEvent = (event: CustomEvent) => {
+      const { name } = event.detail;
+      addManPower(name);
+    };
+
+    const handleRemoveManpowerEvent = (event: CustomEvent) => {
+      const { name } = event.detail;
+      removeManPower(name);
+    };
+
+    window.addEventListener(
+      "addManpower",
+      handleAddManpowerEvent as EventListener,
+    );
+    window.addEventListener(
+      "removeManpower",
+      handleRemoveManpowerEvent as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "addManpower",
+        handleAddManpowerEvent as EventListener,
+      );
+      window.removeEventListener(
+        "removeManpower",
+        handleRemoveManpowerEvent as EventListener,
+      );
+    };
+  }, []);
+
   useEffect(() => {
     if (
       form.isManualPlanningPcs &&
@@ -336,24 +405,136 @@ const SchedulerPage: React.FC = () => {
     handleFormChange(e, form, setForm);
   };
 
-  // Handler for manpowers (add/remove)
-  const addManPower = (name: string) => {
-    setForm((prev) => ({
-      ...prev,
-      manpowers: [...(prev.manpowers || []), name],
-    }));
+  // Handler untuk manpowers (add/remove)
+  const addManPower = async (name: string) => {
+    try {
+      // Cek apakah user sudah login
+      const token = localStorage.getItem("token");
+      if (!token) {
+        // Jika belum login, simpan hanya ke state lokal
+        setForm((prev) => ({
+          ...prev,
+          manpowers: [...(prev.manpowers || []), name],
+        }));
+        setManpowerList((prev) => [
+          ...prev,
+          { id: Date.now(), name, createdBy: 1 },
+        ]);
+        showSuccess(`${name} berhasil ditambahkan (lokal)!`);
+        return;
+      }
+
+      // Simpan ke backend menggunakan global manpower endpoint
+      const { ProductionService } = await import(
+        "../../../services/API_Services"
+      );
+      const response = await ProductionService.createManpower(name);
+
+      // Update state lokal
+      setForm((prev) => ({
+        ...prev,
+        manpowers: [...(prev.manpowers || []), name],
+      }));
+
+      // Refresh manpowerList dari backend
+      const manpowerResponse = await ProductionService.getUserManpower();
+      setManpowerList(manpowerResponse.data || []);
+
+      console.log("Manpower berhasil ditambahkan:", response);
+      showSuccess(`${name} berhasil ditambahkan!`);
+    } catch (error) {
+      console.error("Error adding manpower:", error);
+      // Fallback ke state lokal jika backend gagal
+      setForm((prev) => ({
+        ...prev,
+        manpowers: [...(prev.manpowers || []), name],
+      }));
+
+      // Tampilkan notifikasi yang berbeda berdasarkan jenis error
+      if (error.message && error.message.includes("ERR_CONNECTION_REFUSED")) {
+        showAlert("Server tidak tersedia, data disimpan lokal", "Peringatan");
+      } else if (error.message && error.message.includes("Token tidak ada")) {
+        showAlert(
+          "Silakan login terlebih dahulu, data disimpan lokal",
+          "Peringatan",
+        );
+      } else {
+        showAlert(
+          "Gagal menyimpan ke database, data disimpan lokal",
+          "Peringatan",
+        );
+      }
+    }
   };
-  const removeManPower = (name: string) => {
-    setForm((prev) => ({
-      ...prev,
-      manpowers: (prev.manpowers || []).filter((mp) => mp !== name),
-    }));
+  const removeManPower = async (name: string) => {
+    try {
+      // Cek apakah user sudah login
+      const token = localStorage.getItem("token");
+      if (!token) {
+        // Jika belum login, hapus hanya dari state lokal
+        setForm((prev) => ({
+          ...prev,
+          manpowers: (prev.manpowers || []).filter((mp) => mp !== name),
+        }));
+        setManpowerList((prev) => prev.filter((mp) => mp.name !== name));
+        showSuccess(`${name} berhasil dihapus (lokal)!`);
+        return;
+      }
+
+      // Cari ID manpower berdasarkan nama
+      const manpowerToDelete = manpowerList.find((mp) => mp.name === name);
+      if (!manpowerToDelete) {
+        throw new Error("Manpower tidak ditemukan");
+      }
+
+      // Hapus dari backend menggunakan global manpower endpoint
+      const { ProductionService } = await import(
+        "../../../services/API_Services"
+      );
+      await ProductionService.deleteManpower(manpowerToDelete.id);
+
+      // Update state lokal
+      setForm((prev) => ({
+        ...prev,
+        manpowers: (prev.manpowers || []).filter((mp) => mp !== name),
+      }));
+
+      // Refresh manpowerList dari backend
+      const manpowerResponse = await ProductionService.getUserManpower();
+      setManpowerList(manpowerResponse.data || []);
+
+      console.log("Manpower berhasil dihapus:", name);
+      showSuccess(`${name} berhasil dihapus!`);
+    } catch (error) {
+      console.error("Error removing manpower:", error);
+      // Fallback ke state lokal jika backend gagal
+      setForm((prev) => ({
+        ...prev,
+        manpowers: (prev.manpowers || []).filter((mp) => mp !== name),
+      }));
+
+      // Tampilkan notifikasi yang berbeda berdasarkan jenis error
+      if (error.message && error.message.includes("ERR_CONNECTION_REFUSED")) {
+        showAlert("Server tidak tersedia, data dihapus lokal", "Peringatan");
+      } else if (error.message && error.message.includes("Token tidak ada")) {
+        showAlert(
+          "Silakan login terlebih dahulu, data dihapus lokal",
+          "Peringatan",
+        );
+      } else {
+        showAlert(
+          "Gagal menghapus dari database, data dihapus lokal",
+          "Peringatan",
+        );
+      }
+    }
   };
 
   const generateSchedule = async () => {
     setIsGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
+    // Generate schedule hanya di frontend, tidak perlu backend
     const newSchedule = generateScheduleFromForm(form, schedule);
     setSchedule(newSchedule);
     setIsGenerating(false);
@@ -627,7 +808,10 @@ const SchedulerPage: React.FC = () => {
     saveSchedule();
   };
 
-  const saveSchedule = (monthOverride?: number, yearOverride?: number) => {
+  const saveSchedule = async (
+    monthOverride?: number,
+    yearOverride?: number,
+  ) => {
     if (!form.part) {
       showAlert("Silakan pilih part terlebih dahulu", "Peringatan");
       return;
@@ -641,44 +825,29 @@ const SchedulerPage: React.FC = () => {
 
     const scheduleName = `${MONTHS[currentMonth]} ${currentYear}`;
 
-    // Check if schedule already exists for this part and month/year
-    const existingSchedule = savedSchedules.find(
-      (s) => s.form.part === form.part && s.name === scheduleName,
-    );
+    try {
+      // Konversi data untuk backend
+      const scheduleDataForBackend = {
+        form,
+        schedule,
+        scheduleName,
+        selectedMonth: currentMonth,
+        selectedYear: currentYear,
+      };
 
-    if (existingSchedule) {
-      showConfirm(
-        `Laporan ${scheduleName} untuk part ${form.part} sudah ada. Apakah Anda ingin menimpanya?`,
-        () => {
-          // Update existing schedule instead of creating new one
-          const updatedSchedule: SavedSchedule = {
-            id: existingSchedule.id, // ✅ Gunakan ID yang sudah ada
-            name: scheduleName,
-            date: new Date().toLocaleDateString(),
-            form: { ...form },
-            schedule: [...schedule],
-            childParts: childParts,
-          };
-
-          // Replace the existing schedule with updated one
-          const updatedSchedules = savedSchedules.map((s) =>
-            s.id === existingSchedule.id ? updatedSchedule : s,
-          );
-
-          setSavedSchedules(updatedSchedules);
-          localStorage.setItem(
-            "savedSchedules",
-            JSON.stringify(updatedSchedules),
-          );
-          showSuccess("Schedule berhasil diperbarui!");
-        },
-        "Konfirmasi Timpa",
-        "Ya, Timpa",
-        "Batal",
+      // Simpan ke backend
+      const { ProductionService } = await import(
+        "../../../services/API_Services"
       );
-    } else {
-      const newSchedule: SavedSchedule = {
-        id: Date.now().toString(),
+      const backendData = ProductionService.convertScheduleDataForBackend(
+        scheduleDataForBackend,
+      );
+      const response =
+        await ProductionService.createProductionSchedule(backendData);
+
+      // Simpan juga ke localStorage untuk backup
+      const newSchedule = {
+        id: response.id || Date.now().toString(),
         name: scheduleName,
         date: new Date().toLocaleDateString(),
         form: { ...form },
@@ -689,7 +858,11 @@ const SchedulerPage: React.FC = () => {
       const updatedSchedules = [...savedSchedules, newSchedule];
       setSavedSchedules(updatedSchedules);
       localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
-      showSuccess("Schedule berhasil disimpan!");
+
+      showSuccess("Schedule berhasil disimpan ke database!");
+    } catch (error) {
+      console.error("Error saving schedule:", error);
+      showAlert("Gagal menyimpan schedule ke database", "Error");
     }
   };
 
@@ -792,6 +965,36 @@ const SchedulerPage: React.FC = () => {
   const days =
     schedule.length > 0 ? Math.max(...schedule.map((s) => s.day)) : 30;
 
+  // Fungsi untuk menyimpan data dari komponen ke backend
+  const saveProductionDataToBackend = async (
+    productionData: ScheduleItem[],
+  ) => {
+    try {
+      const { ProductionService } = await import(
+        "../../../services/API_Services"
+      );
+      const response =
+        await ProductionService.saveProductionDataFromComponents(
+          productionData,
+        );
+      console.log("Data produksi berhasil disimpan:", response);
+      return response;
+    } catch (error) {
+      console.error("Error saving production data:", error);
+      throw error;
+    }
+  };
+
+  // Handler untuk menyimpan perubahan dari komponen
+  const handleSaveProductionChanges = async (updatedRows: ScheduleItem[]) => {
+    try {
+      await saveProductionDataToBackend(updatedRows);
+      showSuccess("Perubahan berhasil disimpan ke database!");
+    } catch (error) {
+      showAlert("Gagal menyimpan perubahan ke database", "Error");
+    }
+  };
+
   return (
     <div className="w-full min-h-screen flex items-start justify-center pt-16 sm:pt-20">
       {/* SchedulerPage main content */}
@@ -821,18 +1024,13 @@ const SchedulerPage: React.FC = () => {
                 form={form}
                 scheduleName={getCurrentScheduleName()}
                 setScheduleName={() => {}}
-                handleSelectPart={handleSelectPart}
                 handleChange={handleChange}
-                mockData={mockData}
                 isGenerating={isGenerating}
                 generateSchedule={() => {
                   generateSchedule();
                   setShowProductionForm(false);
                 }}
                 saveSchedule={saveSchedule}
-                manpowers={form.manpowers}
-                addManPower={addManPower}
-                removeManPower={removeManPower}
                 selectedMonth={selectedMonth}
                 selectedYear={selectedYear}
                 setSelectedMonth={setSelectedMonth}
@@ -1395,6 +1593,8 @@ const SchedulerPage: React.FC = () => {
                 scheduleName={getCurrentScheduleName()}
                 viewMode={viewMode}
                 searchDate={searchDate}
+                onDataChange={handleSaveProductionChanges}
+                manpowerList={manpowerList}
               />
               {/* Search, Add Button, and Filter Controls */}
               <div className="flex flex-col gap-4 p-4">
@@ -1812,7 +2012,9 @@ const SchedulerPage: React.FC = () => {
                       );
                     return (
                       <>
-                        <div className={`grid gap-8 ${viewMode === "cards" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                        <div
+                          className={`grid gap-8 ${viewMode === "cards" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
+                        >
                           {pageItems.map((cp, idx) => {
                             const realIdx = childParts.findIndex(
                               (c) => c === cp,

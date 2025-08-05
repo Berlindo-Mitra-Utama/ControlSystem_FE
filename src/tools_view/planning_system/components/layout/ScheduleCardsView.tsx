@@ -67,6 +67,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   handleRemoveManpower,
 }) => {
   const { uiColors, theme } = useTheme();
+
   // State untuk loading popup
   const [isLoading, setIsLoading] = useState(false);
   // State untuk mengelola fokus input
@@ -234,6 +235,56 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
     [key: string]: number[];
   }>({});
 
+  // Enhanced manpower handlers (frontend only)
+  const handleAddManpowerEnhanced = async () => {
+    try {
+      if (!newManpower.trim()) {
+        setManpowerError("Nama manpower tidak boleh kosong");
+        return;
+      }
+
+      // Add to local state (existing function)
+      handleAddManpower();
+
+      setNewManpower("");
+      setShowManpowerModal(false);
+    } catch (error) {
+      console.error("Error adding manpower:", error);
+    }
+  };
+
+  const handleRemoveManpowerEnhanced = async (id: number) => {
+    try {
+      // Remove from local state (existing function)
+      handleRemoveManpower(id);
+    } catch (error) {
+      console.error("Error removing manpower:", error);
+    }
+  };
+
+  // Enhanced input change handler (frontend only)
+  const handleInputChangeWithBackend = async (
+    rowId: string,
+    field: string,
+    value: string,
+  ) => {
+    const numericValue = Number(value) || 0;
+
+    // Update the row data
+    const row = schedule.find((r) => r.id === rowId);
+    if (row) {
+      (row as any)[field] = numericValue;
+
+      // Update edit form if available
+      if (setEditForm) {
+        setEditForm((prev) => ({
+          ...prev,
+          [field]: numericValue,
+        }));
+      }
+    }
+  };
+
   return (
     <div className="w-full p-3 sm:p-6">
       <div className="space-y-6 sm:space-y-8">
@@ -291,15 +342,17 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 })()}
               />
             </div>
-            <button
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition text-sm sm:text-base w-full sm:w-auto justify-center"
-              onClick={() => setShowManpowerModal(true)}
-              title="Tambah Manpower"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Add Manpower</span>
-              <span className="sm:hidden">Add Manpower</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition text-sm sm:text-base justify-center"
+                onClick={() => setShowManpowerModal(true)}
+                title="Tambah Manpower"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Add Manpower</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            </div>
           </div>
         </div>
         {/* Ganti notifikasi error manpower dengan pop up modal kecil di tengah layar */}
@@ -346,12 +399,13 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                   className={`flex-1 px-3 py-2 rounded-lg ${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.text.primary} focus:outline-none`}
                   placeholder="Nama manpower baru"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddManpower();
+                    if (e.key === "Enter") handleAddManpowerEnhanced();
                   }}
                 />
                 <button
-                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center"
-                  onClick={handleAddManpower}
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center disabled:opacity-50"
+                  onClick={handleAddManpowerEnhanced}
+                  disabled={!newManpower.trim()}
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -374,8 +428,8 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                       {mp.id}. {mp.name}
                     </span>
                     <button
-                      onClick={() => handleRemoveManpower(mp.id)}
-                      className="text-red-400 hover:text-red-600"
+                      onClick={() => handleRemoveManpowerEnhanced(mp.id)}
+                      className="text-red-400 hover:text-red-600 disabled:opacity-50"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

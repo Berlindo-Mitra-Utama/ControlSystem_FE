@@ -10,25 +10,49 @@ import ScheduleCardsView from "./ScheduleCardsView";
 import ScheduleTableView from "./ScheduleTableView";
 
 // State and handlers for shared manpower
-const useSharedManpower = () => {
+const useSharedManpower = (propsManpowerList?: any[]) => {
   const [manpowerList, setManpowerList] = useState<
     { id: number; name: string }[]
-  >([]);
+  >(propsManpowerList || []);
   const [newManpower, setNewManpower] = useState("");
-  const reindexManpower = (list: { id: number; name: string }[]) =>
-    list.map((mp, idx) => ({ ...mp, id: idx + 1 }));
-  const handleAddManpower = () => {
+
+  // Update manpowerList when props change
+  useEffect(() => {
+    if (propsManpowerList) {
+      setManpowerList(propsManpowerList);
+    }
+  }, [propsManpowerList]);
+
+  const handleAddManpower = async () => {
     const name = newManpower.trim();
     if (name && !manpowerList.some((mp) => mp.name === name)) {
-      const newList = [...manpowerList, { id: manpowerList.length + 1, name }];
-      setManpowerList(reindexManpower(newList));
-      setNewManpower("");
+      try {
+        // Panggil fungsi dari SchedulerPage melalui event
+        const event = new CustomEvent("addManpower", { detail: { name } });
+        window.dispatchEvent(event);
+
+        setNewManpower("");
+      } catch (error) {
+        console.error("Error adding manpower:", error);
+      }
     }
   };
-  const handleRemoveManpower = (id: number) => {
-    const filtered = manpowerList.filter((mp) => mp.id !== id);
-    setManpowerList(reindexManpower(filtered));
+
+  const handleRemoveManpower = async (id: number) => {
+    const manpowerToRemove = manpowerList.find((mp) => mp.id === id);
+    if (manpowerToRemove) {
+      try {
+        // Panggil fungsi dari SchedulerPage melalui event
+        const event = new CustomEvent("removeManpower", {
+          detail: { name: manpowerToRemove.name },
+        });
+        window.dispatchEvent(event);
+      } catch (error) {
+        console.error("Error removing manpower:", error);
+      }
+    }
   };
+
   return {
     manpowerList,
     setManpowerList,
@@ -111,7 +135,7 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
     setNewManpower,
     handleAddManpower,
     handleRemoveManpower,
-  } = useSharedManpower();
+  } = useSharedManpower(props.manpowerList);
 
   return (
     <div className="w-full">

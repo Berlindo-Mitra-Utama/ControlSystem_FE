@@ -31,6 +31,8 @@ export interface ScheduleItem {
   rencanaStockCustom?: number;
   manpower?: number;
   manpowerIds?: number[];
+  // Backend integration
+  backendId?: number;
 }
 
 export interface ScheduleTableProps {
@@ -46,4 +48,6 @@ export interface ScheduleTableProps {
   scheduleName?: string;
   viewMode?: "cards" | "table";
   searchDate?: string;
+  onDataChange?: (updatedRows: ScheduleItem[]) => void;
+  manpowerList?: any[];
 }
