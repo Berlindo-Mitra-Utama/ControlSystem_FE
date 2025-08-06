@@ -50,4 +50,14 @@ export interface ScheduleTableProps {
   searchDate?: string;
   onDataChange?: (updatedRows: ScheduleItem[]) => void;
   manpowerList?: any[];
+  // Tambahkan props untuk informasi produk
+  productInfo?: {
+    partName?: string;
+    customer?: string;
+    lastSavedBy?: {
+      nama: string;
+      role: string;
+    };
+    lastSavedAt?: string;
+  };
 }

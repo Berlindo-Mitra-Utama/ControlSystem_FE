@@ -15,6 +15,15 @@ export interface SavedSchedule {
   form: any;
   schedule: ScheduleItem[];
   childParts?: ChildPartData[];
+  productInfo?: {
+    partName?: string;
+    customer?: string;
+    lastSavedBy?: {
+      nama: string;
+      role: string;
+    };
+    lastSavedAt?: string;
+  };
 }
 
 interface ScheduleContextType {
@@ -24,6 +33,12 @@ interface ScheduleContextType {
   setLoadedSchedule: React.Dispatch<React.SetStateAction<SavedSchedule | null>>;
   loadSchedule: (savedSchedule: SavedSchedule) => void;
   deleteSchedule: (id: string) => void;
+  checkExistingSchedule: (
+    partName: string,
+    month: number,
+    year: number,
+  ) => SavedSchedule | null;
+  updateSchedule: (id: string, updatedSchedule: SavedSchedule) => void;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(
@@ -67,6 +82,32 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
     localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
   };
 
+  // Fungsi untuk mengecek jadwal yang sudah ada berdasarkan part, bulan, dan tahun
+  const checkExistingSchedule = (
+    partName: string,
+    month: number,
+    year: number,
+  ): SavedSchedule | null => {
+    const existingSchedule = savedSchedules.find((schedule) => {
+      return (
+        (schedule.form.part === partName &&
+          schedule.name.includes(`${month + 1} ${year}`)) || // Format: "Januari 2024"
+        schedule.name.includes(`${year}-${String(month + 1).padStart(2, "0")}`) // Format: "2024-01"
+      );
+    });
+
+    return existingSchedule || null;
+  };
+
+  // Fungsi untuk mengupdate jadwal yang sudah ada
+  const updateSchedule = (id: string, updatedSchedule: SavedSchedule) => {
+    const updatedSchedules = savedSchedules.map((schedule) =>
+      schedule.id === id ? updatedSchedule : schedule,
+    );
+    setSavedSchedules(updatedSchedules);
+    localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
+  };
+
   return (
     <ScheduleContext.Provider
       value={{
@@ -76,6 +117,8 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
         setLoadedSchedule,
         loadSchedule,
         deleteSchedule,
+        checkExistingSchedule,
+        updateSchedule,
       }}
     >
       {children}

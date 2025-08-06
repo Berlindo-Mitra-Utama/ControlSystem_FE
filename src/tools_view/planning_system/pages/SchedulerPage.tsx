@@ -14,6 +14,12 @@ import ViewModeToggle from "../components/layout/ViewModeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
 import { X } from "lucide-react";
 import {
+  PlanningSystemService,
+  ProductPlanningData,
+  ProductionService,
+  ProductInfo,
+} from "../../../services/API_Services";
+import {
   generateScheduleFromForm,
   recalculateScheduleWithChanges,
   updateCalculatedFields,
@@ -122,7 +128,13 @@ interface SchedulerPageProps {
 }
 
 const SchedulerPage: React.FC = () => {
-  const { savedSchedules, setSavedSchedules, loadedSchedule } = useSchedule();
+  const {
+    savedSchedules,
+    setSavedSchedules,
+    loadedSchedule,
+    checkExistingSchedule,
+    updateSchedule,
+  } = useSchedule();
   const navigate = useNavigate();
   const { uiColors } = useTheme();
   const {
@@ -209,10 +221,34 @@ const SchedulerPage: React.FC = () => {
   const [tempActiveChildPartTableFilter, setTempActiveChildPartTableFilter] =
     useState<string[]>([]);
 
-  // Tambahkan useEffect untuk detect mobile:
+  // State untuk informasi produk
+  const [productInfo, setProductInfo] = useState<{
+    partName: string;
+    customer: string;
+    lastSavedBy?: {
+      nama: string;
+      role: string;
+    };
+    lastSavedAt?: string;
+  }>({
+    partName: "",
+    customer: "",
+    lastSavedBy: undefined,
+    lastSavedAt: undefined,
+  });
+
+  // Tambahkan useEffect untuk detect mobile dan set viewMode sesuai dengan device:
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      const isMobileDevice = window.innerWidth < 640;
+      setIsMobile(isMobileDevice);
+      
+      // Set viewMode berdasarkan device
+      if (isMobileDevice) {
+        setViewMode("cards");
+      } else {
+        setViewMode("table");
+      }
     };
 
     checkMobile();
@@ -280,6 +316,24 @@ const SchedulerPage: React.FC = () => {
         setChildParts(loadedSchedule.childParts);
       }
 
+      // Update product info dari loaded schedule
+      if (loadedSchedule.productInfo) {
+        setProductInfo({
+          partName: loadedSchedule.productInfo.partName || "",
+          customer: loadedSchedule.productInfo.customer || "",
+          lastSavedBy: loadedSchedule.productInfo.lastSavedBy,
+          lastSavedAt: loadedSchedule.productInfo.lastSavedAt,
+        });
+      } else {
+        // Fallback ke informasi dari form
+        setProductInfo({
+          partName: loadedSchedule.form.part || "",
+          customer: loadedSchedule.form.customer || "",
+          lastSavedBy: undefined,
+          lastSavedAt: undefined,
+        });
+      }
+
       const scheduleName = loadedSchedule.name;
 
       // Parse the schedule name to get month and year
@@ -301,6 +355,11 @@ const SchedulerPage: React.FC = () => {
   useEffect(() => {
     doUpdateCalculatedFields();
   }, [form.timePerPcs, form.planningHour, form.overtimeHour]);
+
+  // Update informasi produk ketika part atau customer berubah
+  useEffect(() => {
+    updateProductInfo();
+  }, [form.part, form.customer]);
 
   // Load manpowerList saat komponen dimount
   useEffect(() => {
@@ -403,6 +462,23 @@ const SchedulerPage: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     handleFormChange(e, form, setForm);
+  };
+
+  // Fungsi untuk mengupdate informasi produk
+  const updateProductInfo = () => {
+    const currentUser = ProductionService.getCurrentUserInfo();
+
+    setProductInfo({
+      partName: form.part || "",
+      customer: form.customer || "",
+      lastSavedBy: currentUser
+        ? {
+            nama: currentUser.nama,
+            role: currentUser.role,
+          }
+        : undefined,
+      lastSavedAt: new Date().toISOString(),
+    });
   };
 
   // Handler untuk manpowers (add/remove)
@@ -817,6 +893,9 @@ const SchedulerPage: React.FC = () => {
       return;
     }
 
+    // Update informasi produk sebelum menyimpan
+    updateProductInfo();
+
     // Gunakan parameter override jika ada, atau gunakan state yang ada
     const currentMonth =
       monthOverride !== undefined ? monthOverride : selectedMonth;
@@ -825,6 +904,43 @@ const SchedulerPage: React.FC = () => {
 
     const scheduleName = `${MONTHS[currentMonth]} ${currentYear}`;
 
+    // Cek apakah sudah ada jadwal untuk part, bulan, dan tahun yang sama
+    const existingSchedule = checkExistingSchedule(
+      form.part,
+      currentMonth,
+      currentYear,
+    );
+
+    if (existingSchedule) {
+      // Tampilkan konfirmasi untuk menimpa jadwal yang sudah ada
+      showConfirm(
+        `Apakah Anda yakin ingin menimpa jadwal yang sudah tersimpan?\n\nJadwal untuk ${form.part} - ${scheduleName} sudah ada dan akan diganti dengan data yang baru.`,
+        async () => {
+          // User memilih untuk menimpa
+          await performSaveSchedule(
+            currentMonth,
+            currentYear,
+            scheduleName,
+            parseInt(existingSchedule.id),
+          );
+        },
+        `Jadwal untuk ${form.part} - ${scheduleName} sudah ada`,
+        "Timpa Jadwal",
+        "Batal",
+      );
+    } else {
+      // Tidak ada jadwal yang sama, langsung simpan
+      await performSaveSchedule(currentMonth, currentYear, scheduleName);
+    }
+  };
+
+  // Fungsi untuk melakukan penyimpanan schedule
+  const performSaveSchedule = async (
+    currentMonth: number,
+    currentYear: number,
+    scheduleName: string,
+    existingId?: number,
+  ) => {
     try {
       // Konversi data untuk backend
       const scheduleDataForBackend = {
@@ -842,24 +958,45 @@ const SchedulerPage: React.FC = () => {
       const backendData = ProductionService.convertScheduleDataForBackend(
         scheduleDataForBackend,
       );
-      const response =
-        await ProductionService.createProductionSchedule(backendData);
+
+      let response;
+      if (existingId) {
+        // Update jadwal yang sudah ada
+        response = await ProductionService.updateProductionSchedule(
+          existingId,
+          backendData,
+        );
+      } else {
+        // Buat jadwal baru
+        response =
+          await ProductionService.createProductionSchedule(backendData);
+      }
 
       // Simpan juga ke localStorage untuk backup
       const newSchedule = {
-        id: response.id || Date.now().toString(),
+        id: response.id || existingId || Date.now().toString(),
         name: scheduleName,
         date: new Date().toLocaleDateString(),
         form: { ...form },
         schedule: [...schedule],
         childParts: childParts,
+        productInfo: productInfo,
       };
 
-      const updatedSchedules = [...savedSchedules, newSchedule];
-      setSavedSchedules(updatedSchedules);
-      localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
-
-      showSuccess("Schedule berhasil disimpan ke database!");
+      if (existingId) {
+        // Update jadwal yang sudah ada
+        updateSchedule(existingId.toString(), newSchedule);
+        showSuccess("Jadwal berhasil diperbarui!");
+      } else {
+        // Tambah jadwal baru
+        const updatedSchedules = [...savedSchedules, newSchedule];
+        setSavedSchedules(updatedSchedules);
+        localStorage.setItem(
+          "savedSchedules",
+          JSON.stringify(updatedSchedules),
+        );
+        showSuccess("Schedule berhasil disimpan ke database!");
+      }
     } catch (error) {
       console.error("Error saving schedule:", error);
       showAlert("Gagal menyimpan schedule ke database", "Error");
@@ -906,6 +1043,22 @@ const SchedulerPage: React.FC = () => {
     // Misal: tampilkan tabel child part, atau update state lain
     // Untuk demo, bisa console.log(data)
     console.log("Child Part generated:", data);
+  };
+
+  // Handler untuk menyimpan data ke backend
+  const handleSaveToBackend = async (data: ProductPlanningData) => {
+    try {
+      await PlanningSystemService.createProductPlanning(data);
+      showSuccess("Data perencanaan produksi berhasil disimpan ke database!");
+    } catch (error) {
+      console.error("Error saving to backend:", error);
+      showAlert(
+        error instanceof Error
+          ? error.message
+          : "Gagal menyimpan data ke database",
+        "Error",
+      );
+    }
   };
 
   // Handler untuk menghapus child part berdasarkan index
@@ -1035,6 +1188,7 @@ const SchedulerPage: React.FC = () => {
                 selectedYear={selectedYear}
                 setSelectedMonth={setSelectedMonth}
                 setSelectedYear={setSelectedYear}
+                onSaveToBackend={handleSaveToBackend}
               />
             </div>
           </div>
@@ -1595,6 +1749,7 @@ const SchedulerPage: React.FC = () => {
                 searchDate={searchDate}
                 onDataChange={handleSaveProductionChanges}
                 manpowerList={manpowerList}
+                productInfo={productInfo}
               />
               {/* Search, Add Button, and Filter Controls */}
               <div className="flex flex-col gap-4 p-4">
