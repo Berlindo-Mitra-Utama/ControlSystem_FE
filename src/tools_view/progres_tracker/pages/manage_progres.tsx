@@ -2023,15 +2023,6 @@ export default function ManageProgres() {
         isSubProcess={processModal.isSubProcess}
       />
 
-      {/* Evidence Modal */}
-      <EvidenceModal
-        isOpen={evidenceModal.isOpen}
-        onClose={() => setEvidenceModal({ ...evidenceModal, isOpen: false })}
-        evidence={evidenceModal.evidence}
-        onEvidenceChange={evidenceModal.onEvidenceChange}
-        processName={evidenceModal.processName}
-      />
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={deleteDialog.isOpen}
