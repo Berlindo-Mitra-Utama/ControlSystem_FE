@@ -231,10 +231,18 @@ const SchedulerPage: React.FC = () => {
     lastSavedAt: undefined,
   });
 
-  // Tambahkan useEffect untuk detect mobile:
+  // Tambahkan useEffect untuk detect mobile dan set viewMode sesuai dengan device:
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      const isMobileDevice = window.innerWidth < 640;
+      setIsMobile(isMobileDevice);
+      
+      // Set viewMode berdasarkan device
+      if (isMobileDevice) {
+        setViewMode("cards");
+      } else {
+        setViewMode("table");
+      }
     };
 
     checkMobile();
