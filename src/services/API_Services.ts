@@ -522,7 +522,10 @@ export const ProductionService = {
     scheduleData: ProductionSchedule,
   ): Promise<any> => {
     try {
-      const response = await api.post("/production/schedule", scheduleData);
+      const response = await api.post(
+        "/daily-production/schedule",
+        scheduleData,
+      );
       return response.data;
     } catch (error) {
       throw new Error(
@@ -537,7 +540,7 @@ export const ProductionService = {
    */
   getUserSchedules: async (): Promise<any> => {
     try {
-      const response = await api.get("/production/schedules");
+      const response = await api.get("/daily-production/schedules");
       return response.data;
     } catch (error) {
       throw new Error(
@@ -553,7 +556,7 @@ export const ProductionService = {
    */
   getScheduleById: async (id: number): Promise<any> => {
     try {
-      const response = await api.get(`/production/schedule/${id}`);
+      const response = await api.get(`/daily-production/schedule/${id}`);
       return response.data;
     } catch (error) {
       throw new Error(
@@ -569,11 +572,34 @@ export const ProductionService = {
    */
   deleteSchedule: async (id: number): Promise<any> => {
     try {
-      const response = await api.delete(`/production/schedule/${id}`);
+      const response = await api.delete(`/daily-production/schedule/${id}`);
       return response.data;
     } catch (error) {
       throw new Error(
         error.response?.data?.message || "Gagal menghapus schedule",
+      );
+    }
+  },
+
+  /**
+   * Update schedule produksi
+   * @param {number} id - ID schedule
+   * @param {ProductionSchedule} scheduleData - Data schedule yang diupdate
+   * @returns {Promise<Object>} Response dari API
+   */
+  updateProductionSchedule: async (
+    id: number,
+    scheduleData: ProductionSchedule,
+  ): Promise<any> => {
+    try {
+      const response = await api.put(
+        `/daily-production/schedule/${id}`,
+        scheduleData,
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || "Gagal mengupdate schedule",
       );
     }
   },
@@ -590,7 +616,7 @@ export const ProductionService = {
    */
   updateProductionData: async (id: number, updateData: any): Promise<any> => {
     try {
-      const response = await api.put(`/production/data/${id}`, updateData);
+      const response = await api.put(`/daily-production/${id}`, updateData);
       return response.data;
     } catch (error) {
       throw new Error(
@@ -606,7 +632,7 @@ export const ProductionService = {
    */
   updateMultipleProductionData: async (productionData: any[]): Promise<any> => {
     try {
-      const response = await api.put("/production/data/bulk", {
+      const response = await api.put("/daily-production/bulk", {
         productionData,
       });
       return response.data;
@@ -628,7 +654,7 @@ export const ProductionService = {
    */
   createManpower: async (name: string): Promise<any> => {
     try {
-      const response = await api.post("/production/manpower", { name });
+      const response = await api.post("/daily-production/manpower", { name });
       return response.data;
     } catch (error) {
       if (
@@ -652,7 +678,7 @@ export const ProductionService = {
    */
   getUserManpower: async (): Promise<any> => {
     try {
-      const response = await api.get("/production/manpower");
+      const response = await api.get("/daily-production/manpower");
       return response.data;
     } catch (error) {
       if (
@@ -677,7 +703,7 @@ export const ProductionService = {
    */
   deleteManpower: async (id: number): Promise<any> => {
     try {
-      const response = await api.delete(`/production/manpower/${id}`);
+      const response = await api.delete(`/daily-production/manpower/${id}`);
       return response.data;
     } catch (error) {
       if (
@@ -691,114 +717,6 @@ export const ProductionService = {
       }
       throw new Error(
         error.response?.data?.message || "Gagal menghapus manpower",
-      );
-    }
-  },
-
-  /**
-   * Update manpower
-   * @param {number} id - ID manpower
-   * @param {Object} updateData - Data yang akan diupdate
-   * @returns {Promise<Object>} Response dari API
-   */
-  updateManpower: async (id: number, updateData: any): Promise<any> => {
-    try {
-      const response = await api.put(`/production/manpower/${id}`, updateData);
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Gagal mengupdate manpower",
-      );
-    }
-  },
-
-  /**
-   * Menambahkan manpower ke schedule
-   * @param {Object} data - Data manpower { name, scheduleId }
-   * @returns {Promise<Object>} Response dari API
-   */
-  addManpowerToSchedule: async (data: {
-    name: string;
-    scheduleId: number;
-  }): Promise<any> => {
-    try {
-      const response = await api.post(
-        `/production/schedule/${data.scheduleId}/manpower`,
-        {
-          name: data.name,
-        },
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Gagal menambahkan manpower",
-      );
-    }
-  },
-
-  /**
-   * Menghapus manpower dari schedule
-   * @param {Object} data - Data manpower { name, scheduleId }
-   * @returns {Promise<Object>} Response dari API
-   */
-  removeManpowerFromSchedule: async (data: {
-    name: string;
-    scheduleId: number;
-  }): Promise<any> => {
-    try {
-      const response = await api.delete(
-        `/production/schedule/${data.scheduleId}/manpower`,
-        {
-          data: { name: data.name },
-        },
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Gagal menghapus manpower",
-      );
-    }
-  },
-
-  /**
-   * Menyimpan data manpower untuk schedule tertentu
-   * @param {number} scheduleId - ID schedule
-   * @param {Array} manpowerData - Array data manpower untuk setiap shift
-   * @returns {Promise<Object>} Response dari API
-   */
-  saveManpowerForSchedule: async (
-    scheduleId: number,
-    manpowerData: any[],
-  ): Promise<any> => {
-    try {
-      const response = await api.post(
-        `/production/schedule/${scheduleId}/manpower`,
-        {
-          manpowerData,
-        },
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Gagal menyimpan data manpower",
-      );
-    }
-  },
-
-  /**
-   * Mendapatkan data manpower untuk schedule tertentu
-   * @param {number} scheduleId - ID schedule
-   * @returns {Promise<Object>} Response dari API
-   */
-  getManpowerForSchedule: async (scheduleId: number): Promise<any> => {
-    try {
-      const response = await api.get(
-        `/production/schedule/${scheduleId}/manpower`,
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Gagal mengambil data manpower",
       );
     }
   },
@@ -946,12 +864,12 @@ export const ProductionService = {
       if (existingData.length > 0) {
         const updatePromises = existingData.map((item) =>
           ProductionService.updateProductionData(item.backendId, {
-            planningPcs: item.planningPcs || 0,
-            delivery: item.delivery || 0,
-            overtimePcs: item.overtimePcs || 0,
-            hasilProduksi: item.pcs || 0,
-            jamProduksiAktual: item.jamProduksiAktual || 0,
-            manpowerIds: item.manpowerIds || [1, 2, 3],
+            planningProduction: item.planningPcs || 0,
+            deliveryPlan: item.delivery || 0,
+            overtime: item.overtimePcs || 0,
+            actualProduction: item.pcs || 0,
+            actualProductionHours: item.jamProduksiAktual || 0,
+            manpower: item.manpowerIds?.length || 0,
             status: item.status || "Normal",
             notes: item.notes || "",
           }),
