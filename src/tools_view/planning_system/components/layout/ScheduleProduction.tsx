@@ -153,6 +153,7 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
           setNewManpower={setNewManpower}
           handleAddManpower={handleAddManpower}
           handleRemoveManpower={handleRemoveManpower}
+          productInfo={props.productInfo}
         />
       ) : (
         <ScheduleTableView
@@ -168,6 +169,7 @@ const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
           setNewManpower={setNewManpower}
           handleAddManpower={handleAddManpower}
           handleRemoveManpower={handleRemoveManpower}
+          productInfo={props.productInfo}
         />
       )}
     </div>

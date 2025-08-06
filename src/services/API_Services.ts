@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
-//const API_BASE_URL = "http://localhost:5555/api";
+// const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
+const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({
@@ -100,6 +100,23 @@ export interface ProductionSchedule {
   scheduleName: string;
   productionData: ProductionData[];
   createdAt?: string;
+  lastSavedBy?: UserInfo; // Tambahkan informasi user yang terakhir kali saved
+}
+
+// Interface untuk informasi user yang terakhir kali saved
+export interface UserInfo {
+  id: number;
+  nama: string;
+  nip: string;
+  role: string;
+}
+
+// Interface untuk informasi produk
+export interface ProductInfo {
+  partName: string;
+  customer: string;
+  lastSavedBy?: UserInfo;
+  lastSavedAt?: string;
 }
 
 // Interface untuk production data
@@ -809,6 +826,9 @@ export const ProductionService = {
       notes: item.notes || "",
     }));
 
+    // Dapatkan informasi user saat ini
+    const currentUser = ProductionService.getCurrentUserInfo();
+
     return {
       partName: form.part,
       customer: form.customer,
@@ -818,6 +838,51 @@ export const ProductionService = {
       timePerPcs: form.timePerPcs || 257,
       scheduleName,
       productionData,
+      lastSavedBy: currentUser, // Tambahkan informasi user yang terakhir kali saved
+    };
+  },
+
+  /**
+   * Mendapatkan informasi user saat ini dari localStorage
+   * @returns {UserInfo | null} Informasi user atau null jika tidak ada
+   */
+  getCurrentUserInfo: (): UserInfo | null => {
+    try {
+      const currentUser = localStorage.getItem("currentUser");
+      if (currentUser) {
+        const userData = JSON.parse(currentUser);
+
+        // Handle both formats: direct user data or nested under 'user' property
+        const user = userData.user || userData;
+
+        if (user && user.id && user.nama && user.nip && user.role) {
+          return {
+            id: user.id,
+            nama: user.nama,
+            nip: user.nip,
+            role: user.role,
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting current user info:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Mendapatkan informasi produk dari schedule
+   * @param {Object} scheduleData - Data schedule
+   * @returns {ProductInfo} Informasi produk
+   */
+  getProductInfo: (scheduleData: any): ProductInfo => {
+    const { form, lastSavedBy, createdAt } = scheduleData;
+    return {
+      partName: form.part || "",
+      customer: form.customer || "",
+      lastSavedBy,
+      lastSavedAt: createdAt,
     };
   },
 

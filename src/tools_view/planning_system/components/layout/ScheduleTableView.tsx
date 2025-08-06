@@ -61,6 +61,16 @@ interface ScheduleTableViewProps {
   handleAddManpower: () => void;
   handleRemoveManpower: (id: number) => void;
   onDataChange?: (updatedRows: ScheduleItem[]) => void;
+  // Tambahkan props untuk informasi produk
+  productInfo?: {
+    partName?: string;
+    customer?: string;
+    lastSavedBy?: {
+      nama: string;
+      role: string;
+    };
+    lastSavedAt?: string;
+  };
 }
 
 type FilterType =
@@ -85,6 +95,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   handleAddManpower,
   handleRemoveManpower,
   onDataChange,
+  productInfo,
 }) => {
   const { uiColors, theme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -298,6 +309,96 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Informasi Produk */}
+      {productInfo &&
+        (productInfo.partName ||
+          productInfo.customer ||
+          productInfo.lastSavedBy) && (
+          <div
+            className={`p-4 ${uiColors.bg.secondary} rounded-xl border ${uiColors.border.primary}`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+              {/* Informasi Part dan Customer */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+                {productInfo.partName && (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 text-blue-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                      />
+                    </svg>
+                    <span className={`text-sm ${uiColors.text.secondary}`}>
+                      <span className="font-semibold text-blue-400">Part:</span>{" "}
+                      {productInfo.partName}
+                    </span>
+                  </div>
+                )}
+                {productInfo.customer && (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                    <span className={`text-sm ${uiColors.text.secondary}`}>
+                      <span className="font-semibold text-green-400">
+                        Customer:
+                      </span>{" "}
+                      {productInfo.customer}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Informasi waktu terakhir saved */}
+              {productInfo.lastSavedAt && (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4 text-yellow-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span className={`text-sm ${uiColors.text.secondary}`}>
+                    <span className="font-semibold text-yellow-400">
+                      Last Saved:
+                    </span>{" "}
+                    {new Date(productInfo.lastSavedAt).toLocaleString("id-ID")}
+                    {productInfo.lastSavedBy && (
+                      <span className="text-purple-400 ml-1">
+                        by {productInfo.lastSavedBy.nama}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       {/* Filter Menu - Enhanced + Manpower Button */}
       <div
         className={`${uiColors.bg.secondary}/50 rounded-xl p-6 ${uiColors.border.primary}`}
@@ -308,12 +409,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             <div
               className={`${uiColors.bg.tertiary} ${uiColors.text.primary} rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow ${uiColors.border.primary}`}
             >
-              <Package className="w-5 h-5 text-slate-600" />
+              <Package className={`w-5 h-5 ${uiColors.text.tertiary}`} />
               Stock Awal: <span className="ml-1">{initialStock}</span>
             </div>
           </div>
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow border border-slate-600 transition"
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-base font-semibold ${uiColors.button.secondary.bg} ${uiColors.button.secondary.hover} ${uiColors.button.secondary.text} shadow ${uiColors.button.secondary.border} transition`}
             onClick={() => setShowManpowerModal(true)}
             type="button"
             title="Tambah Manpower"
@@ -328,7 +429,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
         <h3
           className={`${uiColors.text.primary} font-bold text-lg mb-4 flex items-center gap-3`}
         >
-          <Filter className="w-6 h-6 text-slate-600" />
+          <Filter className={`w-6 h-6 ${uiColors.text.tertiary}`} />
           Filter Data
         </h3>
         <div className="flex flex-wrap gap-3 items-center">
@@ -344,7 +445,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     : "px-6 py-3 rounded-xl text-base font-semibold"
                 } transition-all flex items-center gap-2 ${
                   activeFilter === option.value
-                    ? "bg-slate-700 text-white shadow-xl scale-105"
+                    ? `${uiColors.bg.tertiary} ${uiColors.text.primary} shadow-xl scale-105`
                     : `${uiColors.bg.tertiary} ${uiColors.text.tertiary} hover:${uiColors.bg.secondary} hover:${uiColors.text.primary} hover:scale-102`
                 }`}
               >

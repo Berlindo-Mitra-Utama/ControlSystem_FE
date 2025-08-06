@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { MONTHS } from "../../utils/scheduleDateUtils";
 import { useTheme } from "../../../contexts/ThemeContext";
+import {
+  PlanningSystemService,
+  ProductPlanningData,
+} from "../../../../services/API_Services";
 
 // Singkatan bulan untuk dropdown
 const MONTH_ABBREVIATIONS = [
@@ -38,6 +42,7 @@ interface ProductionFormProps {
   selectedYear: number;
   setSelectedMonth: (month: number) => void;
   setSelectedYear: (year: number) => void;
+  onSaveToBackend?: (data: ProductPlanningData) => Promise<void>;
 }
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
@@ -52,12 +57,18 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   selectedYear,
   setSelectedMonth,
   setSelectedYear,
+  onSaveToBackend,
 }) => {
   const { theme } = useTheme();
   const today = new Date();
   const [errors, setErrors] = useState<{ part?: string; customer?: string }>(
     {},
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // Handler untuk generate schedule dengan bulan & tahun
   const handleGenerateSchedule = () => {
@@ -82,6 +93,64 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
     // Generate schedule hanya di frontend, tidak perlu backend
     generateSchedule();
+  };
+
+  // Handler untuk menyimpan data ke backend
+  const handleSaveToBackend = async () => {
+    // Validasi form
+    const newErrors: { part?: string; customer?: string } = {};
+
+    if (!form.part.trim()) {
+      newErrors.part = "Part name harus diisi";
+    }
+
+    if (!form.customer.trim()) {
+      newErrors.customer = "Customer name harus diisi";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      // Persiapkan data untuk backend
+      const planningData: ProductPlanningData = {
+        partName: form.part.trim(),
+        customerName: form.customer.trim(),
+        productionMonth: selectedMonth + 1, // Konversi ke format 1-12
+        productionYear: selectedYear,
+        currentStock: form.stock || 0,
+      };
+
+      // Simpan ke backend menggunakan API service
+      await PlanningSystemService.createProductPlanning(planningData);
+
+      setSaveMessage({
+        type: "success",
+        message: "Data perencanaan produksi berhasil disimpan ke database!",
+      });
+
+      // Reset form setelah berhasil disimpan
+      setTimeout(() => {
+        setSaveMessage(null);
+      }, 3000);
+    } catch (error) {
+      console.error("Error saving to backend:", error);
+      setSaveMessage({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Gagal menyimpan data ke database",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Handler untuk date picker
@@ -557,8 +626,9 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               </div>
             </div>
 
-            {/* Action Button */}
-            <div className="flex justify-center">
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {/* Generate Schedule Button */}
               <button
                 onClick={handleGenerateSchedule}
                 disabled={isGenerating}
@@ -588,6 +658,52 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   </>
                 )}
               </button>
+
+              {/* Save to Database Button */}
+              <button
+                onClick={handleSaveToBackend}
+                disabled={
+                  isSaving || !form.part.trim() || !form.customer.trim()
+                }
+                className={`w-full px-4 sm:px-6 py-2.5 sm:py-3 ${colors.button.secondary} text-white font-bold text-xs sm:text-sm rounded-lg sm:rounded-xl focus:ring-4 focus:ring-green-300/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-xl backdrop-blur-sm`}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-3 h-3 sm:w-4 sm:h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                      />
+                    </svg>
+                    <span>Simpan ke Database</span>
+                  </>
+                )}
+              </button>
+
+              {/* Status Message */}
+              {saveMessage && (
+                <div
+                  className={`p-3 rounded-lg text-xs font-medium ${
+                    saveMessage.type === "success"
+                      ? "bg-green-500/20 border border-green-500/30 text-green-400"
+                      : "bg-red-500/20 border border-red-500/30 text-red-400"
+                  }`}
+                >
+                  {saveMessage.message}
+                </div>
+              )}
             </div>
           </div>
         </div>
