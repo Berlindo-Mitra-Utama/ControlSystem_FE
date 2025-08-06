@@ -43,51 +43,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
     "Approval": false
   });
 
-  // Calculate progress towards auto-complete
-  const calculateAutoCompleteProgress = () => {
-    const allCheckboxProcesses = [
-      "Design Tooling",
-      "Machining 1", 
-      "Machining 2",
-      "Machining 3",
-      "Assy",
-      "Approval"
-    ];
-    
-    const completedCheckboxes = allCheckboxProcesses.filter(process => processStates[process]).length;
-    const checkboxProgress = (completedCheckboxes / allCheckboxProcesses.length) * 100;
-    const materialProgress = calculateMaterialProgress();
-    const trialProgress = calculateTrialProgress();
-    
-    // Weighted average: 60% checkboxes, 20% material, 20% trial
-    return Math.round((checkboxProgress * 0.6) + (materialProgress * 0.2) + (trialProgress * 0.2));
-  };
 
-  // Check if all processes are completed
-  const checkAllProcessesCompleted = () => {
-    const allCheckboxProcesses = [
-      "Design Tooling",
-      "Machining 1", 
-      "Machining 2",
-      "Machining 3",
-      "Assy",
-      "Approval"
-    ];
-    
-    const allCheckboxesCompleted = allCheckboxProcesses.every(process => processStates[process]);
-    const materialCompleted = calculateMaterialProgress() === 100;
-    const trialCompleted = calculateTrialProgress() === 100;
-    
-    return allCheckboxesCompleted && materialCompleted && trialCompleted;
-  };
-
-  // Effect to check and auto-complete Progress Tooling
-  React.useEffect(() => {
-    const allCompleted = checkAllProcessesCompleted();
-    if (allCompleted && onProgressToolingComplete) {
-      onProgressToolingComplete(true);
-    }
-  }, [processStates, materials, trials, onProgressToolingComplete]);
 
   // Calculate material progress
   const calculateMaterialProgress = () => {
@@ -193,7 +149,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
 
   // Effect untuk auto-complete ketika overall progress mencapai 100%
   React.useEffect(() => {
-    if (totalProgress >= 100 && onProgressToolingComplete) {
+    if (totalProgress === 100 && onProgressToolingComplete) {
       onProgressToolingComplete(true);
     }
   }, [totalProgress, onProgressToolingComplete]);
@@ -238,26 +194,24 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                 ></div>
               </div>
               
-              {/* Auto-complete Status */}
-              {calculateAutoCompleteProgress() === 100 && (
-                <div className="mt-3 p-2 bg-green-600 text-white rounded text-xs">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Progress Tooling will auto-complete!</span>
-                  </div>
-                </div>
-              )}
-
               {/* Auto-complete Status berdasarkan Overall Progress */}
-              {totalProgress >= 100 && (
+              {totalProgress === 100 && (
                 <div className="mt-3 p-2 bg-blue-600 text-white rounded text-xs">
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     <span>Overall Progress 100% - Progress Tooling will auto-complete!</span>
+                  </div>
+                </div>
+              )}
+              {totalProgress < 100 && totalProgress > 0 && (
+                <div className="mt-3 p-2 bg-gray-600 text-white rounded text-xs">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Progress Tooling will auto-complete when overall progress reaches 100%</span>
                   </div>
                 </div>
               )}
@@ -298,9 +252,21 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                         )}
                       </td>
                       <td className="py-3 px-2 sm:px-3 font-medium text-xs sm:text-sm">
-                        <span className={row.completed ? "line-through text-green-400" : ""}>
+                        <span className={row.progress === 100 ? "text-green-400" : ""}>
                           {row.name}
                         </span>
+                        {row.progress === 100 && row.progress >= 100 && (
+                          <div className="inline-block ml-2" title="Process completed">
+                            <svg 
+                              className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-2 sm:px-3 text-xs sm:text-sm">
                         <span className="bg-gray-700 px-2 py-1 rounded text-xs font-medium">
@@ -401,10 +367,22 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                         className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer transition-all duration-200 hover:scale-110"
                       />
                       <span className={`text-gray-300 text-xs sm:text-sm font-medium ${
-                        trial.completed ? 'line-through text-green-400' : ''
+                        trial.completed ? 'text-green-400' : ''
                       }`}>
                         {trial.name}
                       </span>
+                      {trial.completed && (
+                        <div className="inline-block ml-2" title="Trial completed">
+                          <svg 
+                            className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
                       <span className="text-gray-400 text-xs sm:text-sm font-medium">({trial.weight}%)</span>
                     </div>
                   ))}
