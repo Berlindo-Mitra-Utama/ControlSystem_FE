@@ -582,6 +582,29 @@ export const ProductionService = {
   },
 
   /**
+   * Update schedule produksi
+   * @param {number} id - ID schedule
+   * @param {ProductionSchedule} scheduleData - Data schedule yang diupdate
+   * @returns {Promise<Object>} Response dari API
+   */
+  updateProductionSchedule: async (
+    id: number,
+    scheduleData: ProductionSchedule,
+  ): Promise<any> => {
+    try {
+      const response = await api.put(
+        `/daily-production/schedule/${id}`,
+        scheduleData,
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || "Gagal mengupdate schedule",
+      );
+    }
+  },
+
+  /**
    * Production Data Services
    */
 

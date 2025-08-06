@@ -128,7 +128,13 @@ interface SchedulerPageProps {
 }
 
 const SchedulerPage: React.FC = () => {
-  const { savedSchedules, setSavedSchedules, loadedSchedule } = useSchedule();
+  const {
+    savedSchedules,
+    setSavedSchedules,
+    loadedSchedule,
+    checkExistingSchedule,
+    updateSchedule,
+  } = useSchedule();
   const navigate = useNavigate();
   const { uiColors } = useTheme();
   const {
@@ -890,6 +896,43 @@ const SchedulerPage: React.FC = () => {
 
     const scheduleName = `${MONTHS[currentMonth]} ${currentYear}`;
 
+    // Cek apakah sudah ada jadwal untuk part, bulan, dan tahun yang sama
+    const existingSchedule = checkExistingSchedule(
+      form.part,
+      currentMonth,
+      currentYear,
+    );
+
+    if (existingSchedule) {
+      // Tampilkan konfirmasi untuk menimpa jadwal yang sudah ada
+      showConfirm(
+        `Apakah Anda yakin ingin menimpa jadwal yang sudah tersimpan?\n\nJadwal untuk ${form.part} - ${scheduleName} sudah ada dan akan diganti dengan data yang baru.`,
+        async () => {
+          // User memilih untuk menimpa
+          await performSaveSchedule(
+            currentMonth,
+            currentYear,
+            scheduleName,
+            parseInt(existingSchedule.id),
+          );
+        },
+        `Jadwal untuk ${form.part} - ${scheduleName} sudah ada`,
+        "Timpa Jadwal",
+        "Batal",
+      );
+    } else {
+      // Tidak ada jadwal yang sama, langsung simpan
+      await performSaveSchedule(currentMonth, currentYear, scheduleName);
+    }
+  };
+
+  // Fungsi untuk melakukan penyimpanan schedule
+  const performSaveSchedule = async (
+    currentMonth: number,
+    currentYear: number,
+    scheduleName: string,
+    existingId?: number,
+  ) => {
     try {
       // Konversi data untuk backend
       const scheduleDataForBackend = {
@@ -907,12 +950,23 @@ const SchedulerPage: React.FC = () => {
       const backendData = ProductionService.convertScheduleDataForBackend(
         scheduleDataForBackend,
       );
-      const response =
-        await ProductionService.createProductionSchedule(backendData);
+
+      let response;
+      if (existingId) {
+        // Update jadwal yang sudah ada
+        response = await ProductionService.updateProductionSchedule(
+          existingId,
+          backendData,
+        );
+      } else {
+        // Buat jadwal baru
+        response =
+          await ProductionService.createProductionSchedule(backendData);
+      }
 
       // Simpan juga ke localStorage untuk backup
       const newSchedule = {
-        id: response.id || Date.now().toString(),
+        id: response.id || existingId || Date.now().toString(),
         name: scheduleName,
         date: new Date().toLocaleDateString(),
         form: { ...form },
@@ -921,11 +975,20 @@ const SchedulerPage: React.FC = () => {
         productInfo: productInfo,
       };
 
-      const updatedSchedules = [...savedSchedules, newSchedule];
-      setSavedSchedules(updatedSchedules);
-      localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
-
-      showSuccess("Schedule berhasil disimpan ke database!");
+      if (existingId) {
+        // Update jadwal yang sudah ada
+        updateSchedule(existingId.toString(), newSchedule);
+        showSuccess("Jadwal berhasil diperbarui!");
+      } else {
+        // Tambah jadwal baru
+        const updatedSchedules = [...savedSchedules, newSchedule];
+        setSavedSchedules(updatedSchedules);
+        localStorage.setItem(
+          "savedSchedules",
+          JSON.stringify(updatedSchedules),
+        );
+        showSuccess("Schedule berhasil disimpan ke database!");
+      }
     } catch (error) {
       console.error("Error saving schedule:", error);
       showAlert("Gagal menyimpan schedule ke database", "Error");
