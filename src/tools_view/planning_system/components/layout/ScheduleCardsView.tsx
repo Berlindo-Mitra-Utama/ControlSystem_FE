@@ -50,6 +50,16 @@ interface ScheduleCardsViewProps {
   setNewManpower: React.Dispatch<React.SetStateAction<string>>;
   handleAddManpower: () => void;
   handleRemoveManpower: (id: number) => void;
+  // Tambahkan props untuk informasi produk
+  productInfo?: {
+    partName?: string;
+    customer?: string;
+    lastSavedBy?: {
+      nama: string;
+      role: string;
+    };
+    lastSavedAt?: string;
+  };
 }
 
 const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
@@ -65,6 +75,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   setNewManpower,
   handleAddManpower,
   handleRemoveManpower,
+  productInfo,
 }) => {
   const { uiColors, theme } = useTheme();
 
@@ -287,11 +298,102 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
   return (
     <div className="w-full p-3 sm:p-6">
+      {/* Informasi Produk */}
+      {productInfo &&
+        (productInfo.partName ||
+          productInfo.customer ||
+          productInfo.lastSavedBy) && (
+          <div
+            className={`mb-6 p-4 ${uiColors.bg.secondary} rounded-xl border ${uiColors.border.primary}`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+              {/* Informasi Part dan Customer */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+                {productInfo.partName && (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 text-blue-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                      />
+                    </svg>
+                    <span className={`text-sm ${uiColors.text.secondary}`}>
+                      <span className="font-semibold text-blue-400">Part:</span>{" "}
+                      {productInfo.partName}
+                    </span>
+                  </div>
+                )}
+                {productInfo.customer && (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                    <span className={`text-sm ${uiColors.text.secondary}`}>
+                      <span className="font-semibold text-green-400">
+                        Customer:
+                      </span>{" "}
+                      {productInfo.customer}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Informasi waktu terakhir saved */}
+              {productInfo.lastSavedAt && (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4 text-yellow-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span className={`text-sm ${uiColors.text.secondary}`}>
+                    <span className="font-semibold text-yellow-400">
+                      Last Saved:
+                    </span>{" "}
+                    {new Date(productInfo.lastSavedAt).toLocaleString("id-ID")}
+                    {productInfo.lastSavedBy && (
+                      <span className="text-purple-400 ml-1">
+                        by {productInfo.lastSavedBy.nama}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      {/* Konten utama */}
       <div className="space-y-6 sm:space-y-8">
         {/* HEADER SUMMARY TOTAL */}
         <div className="w-full mb-4">
           <div
-            className={`flex flex-col sm:flex-row gap-4 items-center justify-between ${uiColors.bg.secondary} rounded-xl p-4 border border-slate-600 shadow`}
+            className={`flex flex-col sm:flex-row gap-4 items-center justify-between ${uiColors.bg.secondary} rounded-xl p-4 border ${uiColors.border.primary} shadow`}
           >
             <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 sm:gap-4 items-center w-full sm:w-auto mb-4 sm:mb-0">
               {/* Card summary untuk setiap total utama */}

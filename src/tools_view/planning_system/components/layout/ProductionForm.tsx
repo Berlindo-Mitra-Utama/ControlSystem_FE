@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { MONTHS } from "../../utils/scheduleDateUtils";
 import { useTheme } from "../../../contexts/ThemeContext";
+import {
+  PlanningSystemService,
+  ProductPlanningData,
+} from "../../../../services/API_Services";
 
 // Singkatan bulan untuk dropdown
 const MONTH_ABBREVIATIONS = [
@@ -38,6 +42,7 @@ interface ProductionFormProps {
   selectedYear: number;
   setSelectedMonth: (month: number) => void;
   setSelectedYear: (year: number) => void;
+  onSaveToBackend?: (data: ProductPlanningData) => Promise<void>;
 }
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
@@ -52,15 +57,22 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   selectedYear,
   setSelectedMonth,
   setSelectedYear,
+  onSaveToBackend,
 }) => {
   const { theme } = useTheme();
   const today = new Date();
   const [errors, setErrors] = useState<{ part?: string; customer?: string }>(
     {},
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [notification, setNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+    title: string;
+  } | null>(null);
 
-  // Handler untuk generate schedule dengan bulan & tahun
-  const handleGenerateSchedule = () => {
+  // Handler untuk generate schedule dengan bulan & tahun dan auto save ke database
+  const handleGenerateSchedule = async () => {
     // Validasi form
     const newErrors: { part?: string; customer?: string } = {};
 
@@ -79,9 +91,56 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
     setErrors({});
     setScheduleName(`${MONTHS[selectedMonth]} ${selectedYear}`);
+    setIsSaving(true);
+    setNotification(null);
 
-    // Generate schedule hanya di frontend, tidak perlu backend
-    generateSchedule();
+    try {
+      // Persiapkan data untuk backend
+      const planningData: ProductPlanningData = {
+        partName: form.part.trim(),
+        customerName: form.customer.trim(),
+        productionMonth: selectedMonth + 1, // Konversi ke format 1-12
+        productionYear: selectedYear,
+        currentStock: form.stock || 0,
+      };
+
+      // Simpan ke backend menggunakan API service
+      await PlanningSystemService.createProductPlanning(planningData);
+
+      // Generate schedule di frontend
+      generateSchedule();
+
+      // Tampilkan notifikasi sukses
+      console.log("Setting success notification...");
+      setNotification({
+        type: "success",
+        title: "🎉 Jadwal Berhasil Dibuat!",
+        message: `Jadwal produksi untuk ${form.part} - ${form.customer} berhasil dibuat dan disimpan ke database.`,
+      });
+
+      // Reset notifikasi setelah 5 detik
+      setTimeout(() => {
+        console.log("Clearing notification...");
+        setNotification(null);
+      }, 5000);
+    } catch (error) {
+      console.error("Error saving to backend:", error);
+      setNotification({
+        type: "error",
+        title: "❌ Gagal Membuat Jadwal",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Gagal menyimpan data ke database. Silakan coba lagi.",
+      });
+
+      // Reset notifikasi error setelah 5 detik
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Handler untuk date picker
@@ -208,7 +267,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
         {isOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-            <div className="bg-gray-800/95 backdrop-blur-sm border border-gray-600 rounded-lg shadow-2xl w-full max-w-xs p-3">
+            <div className="bg-gray-800/95 backdrop-blur-sm border border-gray-600 rounded-lg shadow-2xl w-full max-w-sm p-4">
               {/* Year Navigation */}
               <div className="flex items-center justify-between mb-3">
                 <button
@@ -231,7 +290,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                 </button>
 
                 <div className="text-center">
-                  <span className="text-white font-bold text-lg">
+                  <span className="text-white font-bold text-xl">
                     {tempYear}
                   </span>
                 </div>
@@ -262,7 +321,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   <button
                     key={index}
                     onClick={() => handleMonthSelect(index)}
-                    className={`p-1.5 rounded text-xs font-medium transition-all duration-200 ${
+                    className={`p-2 rounded text-sm font-medium transition-all duration-200 ${
                       tempMonth === index
                         ? "bg-blue-600 text-white shadow-lg"
                         : "text-gray-300 hover:bg-gray-700 hover:text-white"
@@ -281,7 +340,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                     setTempYear(selectedYear);
                     setIsOpen(false);
                   }}
-                  className="flex-1 px-2 py-1.5 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded transition-colors duration-200 text-xs"
+                  className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded transition-colors duration-200 text-sm"
                 >
                   Batal
                 </button>
@@ -292,7 +351,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                     setScheduleName(`${MONTHS[tempMonth]} ${tempYear}`);
                     setIsOpen(false);
                   }}
-                  className="flex-1 px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors duration-200 text-xs"
+                  className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors duration-200 text-sm"
                 >
                   Pilih
                 </button>
@@ -306,7 +365,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
   return (
     <div
-      className={`${colors.bg.primary} border ${colors.border.primary} rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm max-h-screen`}
+      className={`${colors.bg.primary} border ${colors.border.primary} rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm max-h-screen w-full max-w-4xl mx-auto`}
     >
       {/* Header dengan gradient yang menarik */}
       <div
@@ -344,14 +403,14 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
         {/* Compact Layout - 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Left Column - Production Period & Product Info */}
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-6 sm:space-y-8">
             {/* Production Period - Calendar Style */}
             <div
-              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-sm relative z-10`}
+              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-sm relative z-10`}
             >
               <div className="flex items-center gap-2 mb-2 sm:mb-3">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
@@ -370,7 +429,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   </svg>
                 </div>
                 <h3
-                  className={`text-xs sm:text-sm font-semibold ${colors.text.primary}`}
+                  className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
                 >
                   Production Period
                 </h3>
@@ -379,7 +438,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               {/* Production Period Selector */}
               <div className="space-y-1">
                 <label
-                  className={`block text-xs font-medium ${colors.text.secondary}`}
+                  className={`block text-sm font-medium ${colors.text.secondary}`}
                 >
                   Select Month & Year
                 </label>
@@ -389,7 +448,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
             {/* Product Information */}
             <div
-              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-sm relative z-0`}
+              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-sm relative z-0`}
             >
               <div className="flex items-center gap-2 mb-2 sm:mb-3">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
@@ -408,7 +467,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   </svg>
                 </div>
                 <h3
-                  className={`text-xs sm:text-sm font-semibold ${colors.text.primary}`}
+                  className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
                 >
                   Product Information
                 </h3>
@@ -417,7 +476,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <div className="space-y-2 sm:space-y-3">
                 <div className="space-y-1">
                   <label
-                    className={`block text-xs font-medium ${colors.text.secondary}`}
+                    className={`block text-sm font-medium ${colors.text.secondary}`}
                   >
                     Part Name <span className="text-red-500">*</span>
                   </label>
@@ -428,7 +487,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                       value={form.part}
                       onChange={handleChange}
                       placeholder="Enter part name"
-                      className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 ${colors.input.bg} border ${errors.part ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-xs font-medium`}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.part ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
                       required
                     />
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
@@ -456,7 +515,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
                 <div className="space-y-1">
                   <label
-                    className={`block text-xs font-medium ${colors.text.secondary}`}
+                    className={`block text-sm font-medium ${colors.text.secondary}`}
                   >
                     Customer Name <span className="text-red-500">*</span>
                   </label>
@@ -467,7 +526,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                       value={form.customer}
                       onChange={handleChange}
                       placeholder="Enter customer name"
-                      className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 ${colors.input.bg} border ${errors.customer ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-xs font-medium`}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.customer ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
                       required
                     />
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
@@ -497,10 +556,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           </div>
 
           {/* Right Column - Production Targets & Action Button */}
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-6 sm:space-y-8">
             {/* Production Targets */}
             <div
-              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-sm`}
+              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-sm`}
             >
               <div className="flex items-center gap-2 mb-2 sm:mb-3">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
@@ -519,7 +578,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   </svg>
                 </div>
                 <h3
-                  className={`text-xs sm:text-sm font-semibold ${colors.text.primary}`}
+                  className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
                 >
                   Production Targets
                 </h3>
@@ -528,7 +587,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <div className="space-y-2 sm:space-y-3">
                 <div className="space-y-1">
                   <label
-                    className={`block text-xs font-medium ${colors.text.secondary}`}
+                    className={`block text-sm font-medium ${colors.text.secondary}`}
                   >
                     Current Stock
                   </label>
@@ -540,34 +599,35 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                       onChange={handleChange}
                       min="0"
                       placeholder="0"
-                      className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 pr-6 sm:pr-8 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-xs font-medium`}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 pr-6 sm:pr-8 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
                     />
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                       <span
-                        className={`text-xs font-medium ${colors.text.muted}`}
+                        className={`text-sm font-medium ${colors.text.muted}`}
                       >
                         PCS
                       </span>
                     </div>
                   </div>
-                  <p className={`text-xs ${colors.text.muted} mt-1`}>
+                  <p className={`text-sm ${colors.text.muted} mt-1`}>
                     Current inventory available
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Action Button */}
-            <div className="flex justify-center">
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {/* Generate Schedule Button */}
               <button
                 onClick={handleGenerateSchedule}
-                disabled={isGenerating}
-                className={`w-full px-4 sm:px-6 py-2.5 sm:py-3 ${colors.button.primary} text-white font-bold text-xs sm:text-sm rounded-lg sm:rounded-xl focus:ring-4 focus:ring-blue-300/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-xl backdrop-blur-sm`}
+                disabled={isGenerating || isSaving}
+                className={`w-full px-6 sm:px-8 py-3 sm:py-4 ${colors.button.primary} text-white font-bold text-sm sm:text-base rounded-lg sm:rounded-xl focus:ring-4 focus:ring-blue-300/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-xl backdrop-blur-sm`}
               >
-                {isGenerating ? (
+                {isGenerating || isSaving ? (
                   <>
                     <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Generating...</span>
+                    <span>Membuat Jadwal...</span>
                   </>
                 ) : (
                   <>
@@ -584,10 +644,63 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                       />
                     </svg>
-                    <span>Generate Schedule</span>
+                    <span>Generate Jadwal</span>
                   </>
                 )}
               </button>
+
+              {/* Notification */}
+              {notification && (
+                <div
+                  className={`p-6 rounded-xl text-base font-medium border-2 backdrop-blur-sm ${
+                    notification.type === "success"
+                      ? "bg-green-500/20 border-green-500/30 text-green-400 shadow-lg"
+                      : "bg-red-500/20 border-red-500/30 text-red-400 shadow-lg"
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      {notification.type === "success" ? (
+                        <svg
+                          className="w-6 h-6 text-green-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-6 h-6 text-red-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-2">
+                        {notification.title}
+                      </h4>
+                      <p className="text-base opacity-90">
+                        {notification.message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

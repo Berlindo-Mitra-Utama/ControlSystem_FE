@@ -15,6 +15,15 @@ export interface SavedSchedule {
   form: any;
   schedule: ScheduleItem[];
   childParts?: ChildPartData[];
+  productInfo?: {
+    partName?: string;
+    customer?: string;
+    lastSavedBy?: {
+      nama: string;
+      role: string;
+    };
+    lastSavedAt?: string;
+  };
 }
 
 interface ScheduleContextType {

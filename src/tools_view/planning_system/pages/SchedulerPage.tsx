@@ -14,6 +14,12 @@ import ViewModeToggle from "../components/layout/ViewModeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
 import { X } from "lucide-react";
 import {
+  PlanningSystemService,
+  ProductPlanningData,
+  ProductionService,
+  ProductInfo,
+} from "../../../services/API_Services";
+import {
   generateScheduleFromForm,
   recalculateScheduleWithChanges,
   updateCalculatedFields,
@@ -209,6 +215,22 @@ const SchedulerPage: React.FC = () => {
   const [tempActiveChildPartTableFilter, setTempActiveChildPartTableFilter] =
     useState<string[]>([]);
 
+  // State untuk informasi produk
+  const [productInfo, setProductInfo] = useState<{
+    partName: string;
+    customer: string;
+    lastSavedBy?: {
+      nama: string;
+      role: string;
+    };
+    lastSavedAt?: string;
+  }>({
+    partName: "",
+    customer: "",
+    lastSavedBy: undefined,
+    lastSavedAt: undefined,
+  });
+
   // Tambahkan useEffect untuk detect mobile:
   useEffect(() => {
     const checkMobile = () => {
@@ -280,6 +302,24 @@ const SchedulerPage: React.FC = () => {
         setChildParts(loadedSchedule.childParts);
       }
 
+      // Update product info dari loaded schedule
+      if (loadedSchedule.productInfo) {
+        setProductInfo({
+          partName: loadedSchedule.productInfo.partName || "",
+          customer: loadedSchedule.productInfo.customer || "",
+          lastSavedBy: loadedSchedule.productInfo.lastSavedBy,
+          lastSavedAt: loadedSchedule.productInfo.lastSavedAt,
+        });
+      } else {
+        // Fallback ke informasi dari form
+        setProductInfo({
+          partName: loadedSchedule.form.part || "",
+          customer: loadedSchedule.form.customer || "",
+          lastSavedBy: undefined,
+          lastSavedAt: undefined,
+        });
+      }
+
       const scheduleName = loadedSchedule.name;
 
       // Parse the schedule name to get month and year
@@ -301,6 +341,11 @@ const SchedulerPage: React.FC = () => {
   useEffect(() => {
     doUpdateCalculatedFields();
   }, [form.timePerPcs, form.planningHour, form.overtimeHour]);
+
+  // Update informasi produk ketika part atau customer berubah
+  useEffect(() => {
+    updateProductInfo();
+  }, [form.part, form.customer]);
 
   // Load manpowerList saat komponen dimount
   useEffect(() => {
@@ -403,6 +448,23 @@ const SchedulerPage: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     handleFormChange(e, form, setForm);
+  };
+
+  // Fungsi untuk mengupdate informasi produk
+  const updateProductInfo = () => {
+    const currentUser = ProductionService.getCurrentUserInfo();
+
+    setProductInfo({
+      partName: form.part || "",
+      customer: form.customer || "",
+      lastSavedBy: currentUser
+        ? {
+            nama: currentUser.nama,
+            role: currentUser.role,
+          }
+        : undefined,
+      lastSavedAt: new Date().toISOString(),
+    });
   };
 
   // Handler untuk manpowers (add/remove)
@@ -817,6 +879,9 @@ const SchedulerPage: React.FC = () => {
       return;
     }
 
+    // Update informasi produk sebelum menyimpan
+    updateProductInfo();
+
     // Gunakan parameter override jika ada, atau gunakan state yang ada
     const currentMonth =
       monthOverride !== undefined ? monthOverride : selectedMonth;
@@ -853,6 +918,7 @@ const SchedulerPage: React.FC = () => {
         form: { ...form },
         schedule: [...schedule],
         childParts: childParts,
+        productInfo: productInfo,
       };
 
       const updatedSchedules = [...savedSchedules, newSchedule];
@@ -906,6 +972,22 @@ const SchedulerPage: React.FC = () => {
     // Misal: tampilkan tabel child part, atau update state lain
     // Untuk demo, bisa console.log(data)
     console.log("Child Part generated:", data);
+  };
+
+  // Handler untuk menyimpan data ke backend
+  const handleSaveToBackend = async (data: ProductPlanningData) => {
+    try {
+      await PlanningSystemService.createProductPlanning(data);
+      showSuccess("Data perencanaan produksi berhasil disimpan ke database!");
+    } catch (error) {
+      console.error("Error saving to backend:", error);
+      showAlert(
+        error instanceof Error
+          ? error.message
+          : "Gagal menyimpan data ke database",
+        "Error",
+      );
+    }
   };
 
   // Handler untuk menghapus child part berdasarkan index
@@ -1035,6 +1117,7 @@ const SchedulerPage: React.FC = () => {
                 selectedYear={selectedYear}
                 setSelectedMonth={setSelectedMonth}
                 setSelectedYear={setSelectedYear}
+                onSaveToBackend={handleSaveToBackend}
               />
             </div>
           </div>
@@ -1595,6 +1678,7 @@ const SchedulerPage: React.FC = () => {
                 searchDate={searchDate}
                 onDataChange={handleSaveProductionChanges}
                 manpowerList={manpowerList}
+                productInfo={productInfo}
               />
               {/* Search, Add Button, and Filter Controls */}
               <div className="flex flex-col gap-4 p-4">
