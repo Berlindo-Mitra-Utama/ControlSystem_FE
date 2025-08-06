@@ -25,6 +25,15 @@ import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save, Upload, FileT
 import { Link, useParams } from "react-router-dom"
 import { Colors, getProgressColor, getUIColors } from "../../const/colors"
 
+// Import new components
+import { ProgressToolingDropdown } from "../components/ProgressToolingDropdown"
+import { ProcessFormModal } from "../components/ProcessFormModal"
+import { PartFormModal } from "../components/PartFormModal"
+import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog"
+import { PartHeader } from "../components/PartHeader"
+import { ProcessCard } from "../components/ProcessCard"
+import { EvidenceModal } from "../components/EvidenceModal"
+
 // Types and Interfaces
 interface Evidence {
   id: string
@@ -62,33 +71,11 @@ interface Part {
 const initialParts: Part[] = []
 
 // Utility Functions
-const calculateProcessProgress = (process: Process): number => {
-  if (process.children && process.children.length > 0) {
-    const completedChildren = process.children.filter((child) => child.completed).length
-    return Math.round((completedChildren / process.children.length) * 100)
-  }
-  return process.completed ? 100 : 0
-}
-
-const calculateOverallProgress = (part: Part): number => {
-  let totalTasks = 0
-  let completedTasks = 0
-
-  part.progress.forEach((progress) => {
-    progress.processes.forEach((process) => {
-      if (process.children && process.children.length > 0) {
-        process.children.forEach((child) => {
-          totalTasks++
-          if (child.completed) completedTasks++
-        })
-      } else {
-        totalTasks++
-        if (process.completed) completedTasks++
-      }
-    })
-  })
-
-  return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+// Fungsi untuk menghitung progress detail Progress Tooling
+const calculateProgressToolingDetailProgress = (): number => {
+  // Ini akan diisi dari ProgressToolingDropdown component
+  // Untuk sementara return 0, akan diupdate melalui callback
+  return 0
 }
 
 const generateId = (): string => {
@@ -282,7 +269,7 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
                 },
                 {
                   id: generateId(),
-                  name: "Design Tooling",
+                  name: "Progress Tooling",
                   completed: false,
                   evidence: []
                 }
@@ -488,480 +475,6 @@ const deleteSubProcess = (
   })
 }
 
-// Process Form Modal Component
-interface ProcessFormModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (processData: { name: string; notes?: string; completed: boolean }) => void
-  process?: Process | null
-  title: string
-  isSubProcess?: boolean
-}
-
-function ProcessFormModal({ isOpen, onClose, onSave, process, title, isSubProcess = false }: ProcessFormModalProps) {
-  const [name, setName] = useState(process?.name || "")
-  const [notes, setNotes] = useState(process?.notes || "")
-  const [completed, setCompleted] = useState(process?.completed || false)
-
-  const handleSave = () => {
-    if (!name.trim()) return
-
-    onSave({
-      name: name.trim(),
-      notes: notes.trim() || undefined,
-      completed,
-    })
-
-    // Reset form
-    setName("")
-    setNotes("")
-    setCompleted(false)
-    onClose()
-  }
-
-  const handleClose = () => {
-    // Reset form
-    setName(process?.name || "")
-    setNotes(process?.notes || "")
-    setCompleted(process?.completed || false)
-    onClose()
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-sm sm:max-w-md bg-gray-800 border-gray-700 text-white mx-4">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-bold text-white">{title}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="name" className="text-sm font-medium text-gray-300">
-              {isSubProcess ? "Sub-Process" : "Process"} Name
-            </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={`Enter ${isSubProcess ? "sub-process" : "process"} name`}
-              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="notes" className="text-sm font-medium text-gray-300">
-              Notes (Optional)
-            </Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Enter notes or description"
-              rows={3}
-              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="completed"
-              checked={completed}
-              onChange={(e) => setCompleted(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-            />
-            <Label htmlFor="completed" className="text-sm font-medium text-gray-300">
-              Mark as completed
-            </Label>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
-          <Button
-            onClick={handleClose}
-            variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent w-full sm:w-auto"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!name.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// Part Form Modal Component
-function PartFormModal({
-  isOpen,
-  onClose,
-  onSave,
-  part,
-  title,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (partData: { partName: string; partNumber: string; customer: string }) => void
-  part?: Part
-  title: string
-}) {
-  const [partName, setPartName] = useState(part?.partName || "")
-  const [partNumber, setPartNumber] = useState(part?.partNumber || "")
-  const [customer, setCustomer] = useState(part?.customer || "")
-
-  // Reset form when modal opens/closes
-  useEffect(() => {
-    if (isOpen && part) {
-      setPartName(part.partName)
-      setPartNumber(part.partNumber)
-      setCustomer(part.customer)
-    } else if (isOpen) {
-      setPartName("")
-      setPartNumber("")
-      setCustomer("")
-    }
-  }, [isOpen, part])
-
-  const handleClose = () => {
-    onClose()
-  }
-
-  const handleSave = () => {
-    onSave({
-      partName: partName.trim(),
-      partNumber: partNumber.trim(),
-      customer: customer.trim(),
-    })
-    onClose()
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm sm:max-w-md mx-4">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-bold text-white">{title}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <div>
-            <Label htmlFor="partName" className="text-sm font-medium text-gray-300">
-              Part Name
-            </Label>
-            <Input
-              id="partName"
-              value={partName}
-              onChange={(e) => setPartName(e.target.value)}
-              placeholder="Enter part name"
-              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="partNumber" className="text-sm font-medium text-gray-300">
-              Part Number
-            </Label>
-            <Input
-              id="partNumber"
-              value={partNumber}
-              onChange={(e) => setPartNumber(e.target.value)}
-              placeholder="Enter part number"
-              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="customer" className="text-sm font-medium text-gray-300">
-              Customer
-            </Label>
-            <Input
-              id="customer"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              placeholder="Enter customer name"
-              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
-          <Button
-            onClick={handleClose}
-            variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent w-full sm:w-auto"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!partName.trim() || !partNumber.trim() || !customer.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-interface EvidenceModalProps {
-  isOpen: boolean
-  onClose: () => void
-  evidence: Evidence[]
-  onEvidenceChange: (evidence: Evidence[]) => void
-  processName: string
-}
-
-function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, processName }: EvidenceModalProps) {
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadingFiles, setUploadingFiles] = useState<string[]>([])
-  const uiColors = getUIColors("dark")
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
-
-    setUploading(true)
-    setUploadProgress(0)
-    setUploadingFiles(Array.from(files).map(f => f.name))
-
-    try {
-      const newEvidence: Evidence[] = []
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        const fileId = generateId()
-        
-        // Simulate upload progress
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
-            const newProgress = prev + (100 / files.length)
-            if (newProgress >= 100) {
-              clearInterval(progressInterval)
-              return 100
-            }
-            return newProgress
-          })
-        }, 100)
-        
-        // Create a blob URL for the file
-        const blobUrl = URL.createObjectURL(file)
-        console.log('Created blob URL:', blobUrl, 'for file:', file.name, 'type:', file.type)
-        
-        const evidenceItem: Evidence = {
-          id: fileId,
-          name: file.name,
-          type: file.type.startsWith('image/') ? 'image' : 'file',
-          url: blobUrl,
-          uploadedAt: new Date().toISOString(),
-          size: file.size
-        }
-        
-        newEvidence.push(evidenceItem)
-        
-        // Wait a bit to show progress
-        await new Promise(resolve => setTimeout(resolve, 500))
-      }
-
-      onEvidenceChange([...evidence, ...newEvidence])
-    } catch (error) {
-      console.error('Error uploading files:', error)
-    } finally {
-      setUploading(false)
-      setUploadProgress(0)
-      setUploadingFiles([])
-    }
-  }
-
-  const handleDeleteEvidence = (evidenceId: string) => {
-    const evidenceToDelete = evidence.find(e => e.id === evidenceId)
-    if (evidenceToDelete) {
-      // Revoke the blob URL to free memory
-      URL.revokeObjectURL(evidenceToDelete.url)
-      console.log('Deleted evidence:', evidenceToDelete.name)
-    }
-    // Immediately remove from evidence list
-    const updatedEvidence = evidence.filter(e => e.id !== evidenceId)
-    onEvidenceChange(updatedEvidence)
-  }
-
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return 'Unknown size'
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`${uiColors.bg.modal} ${uiColors.border.primary} ${uiColors.text.primary} max-w-sm sm:max-w-md lg:max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl mx-4`}>
-        <DialogHeader>
-          <DialogTitle className={`text-lg sm:text-xl ${uiColors.text.primary}`}>Evidence for {processName}</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          {/* Upload Section */}
-          <div className={`border ${uiColors.border.secondary} rounded-lg p-3 sm:p-4 ${uiColors.bg.secondary}`}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
-              <h3 className={`text-base sm:text-lg font-semibold ${uiColors.text.primary}`}>Upload Evidence</h3>
-              <div className="flex items-center space-x-2 w-full sm:w-auto">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="evidence-upload"
-                  disabled={uploading}
-                />
-                <label
-                  htmlFor="evidence-upload"
-                  className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg cursor-pointer transition-colors w-full sm:w-auto ${
-                    uploading
-                      ? `${uiColors.bg.tertiary} ${uiColors.text.tertiary} cursor-not-allowed`
-                      : `${uiColors.button.primary.bg} hover:${uiColors.button.primary.hover} ${uiColors.button.primary.text}`
-                  }`}
-                >
-                  <Upload className="w-4 h-4" />
-                  <span className="text-sm sm:text-base">{uploading ? 'Uploading...' : 'Upload Files'}</span>
-                </label>
-              </div>
-            </div>
-            
-            {/* Upload Progress Bar */}
-            {uploading && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs sm:text-sm ${uiColors.text.secondary}`}>
-                    Uploading {uploadingFiles.length} file(s)...
-                  </span>
-                  <span className={`text-xs sm:text-sm font-medium ${uiColors.text.accent}`}>
-                    {Math.round(uploadProgress)}%
-                  </span>
-                </div>
-                <div className={`w-full h-2 ${uiColors.bg.tertiary} rounded-full overflow-hidden`}>
-                  <div 
-                    className={`h-full ${uiColors.button.primary.bg} transition-all duration-300 ease-out`}
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-                {uploadingFiles.length > 0 && (
-                  <div className="mt-2">
-                    <p className={`text-xs ${uiColors.text.tertiary} mb-1`}>Files being uploaded:</p>
-                    <div className="space-y-1">
-                      {uploadingFiles.map((fileName, index) => (
-                        <div key={index} className={`text-xs ${uiColors.text.secondary} flex items-center`}>
-                          <div className={`w-2 h-2 rounded-full mr-2 ${
-                            (index + 1) * (100 / uploadingFiles.length) <= uploadProgress 
-                              ? uiColors.button.success.bg 
-                              : uiColors.bg.tertiary
-                          }`} />
-                          <span className="truncate">{fileName}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <p className={`text-xs sm:text-sm ${uiColors.text.tertiary}`}>
-              Supported formats: Images (JPG, PNG, GIF), Documents (PDF, DOC, DOCX, XLS, XLSX), Text files
-            </p>
-          </div>
-
-          {/* Evidence List */}
-          {evidence.length > 0 && (
-            <div className={`border ${uiColors.border.secondary} rounded-lg p-3 sm:p-4 ${uiColors.bg.secondary}`}>
-              <h3 className={`text-base sm:text-lg font-semibold ${uiColors.text.primary} mb-3 sm:mb-4`}>Uploaded Evidence ({evidence.length})</h3>
-              <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                {evidence.map((item) => (
-                  <div key={item.id} className={`${uiColors.bg.tertiary} rounded-lg p-3 border ${uiColors.border.secondary} shadow-sm`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                        {item.type === 'image' ? (
-                          <Image className={`w-6 h-6 sm:w-8 sm:h-8 ${uiColors.text.accent} flex-shrink-0`} />
-                        ) : (
-                          <FileText className={`w-6 h-6 sm:w-8 sm:h-8 ${uiColors.text.success} flex-shrink-0`} />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-xs sm:text-sm font-medium ${uiColors.text.primary} truncate`}>{item.name}</p>
-                          <p className={`text-xs ${uiColors.text.tertiary}`}>
-                            {formatFileSize(item.size)} • {new Date(item.uploadedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(item.url, '_blank')}
-                          className={`${uiColors.text.accent} hover:${uiColors.text.primary} p-1 sm:p-2`}
-                        >
-                          <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(event) => {
-                            // Add visual feedback
-                            const button = event.currentTarget as HTMLButtonElement
-                            button.classList.add('scale-95')
-                            setTimeout(() => {
-                              button.classList.remove('scale-95')
-                            }, 150)
-                            
-                            handleDeleteEvidence(item.id)
-                          }}
-                          className={`${uiColors.text.error} hover:${uiColors.text.primary} transition-transform duration-150 p-1 sm:p-2`}
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Image Preview */}
-                    {item.type === 'image' && (
-                      <div className="mt-3">
-                        <img
-                          src={item.url}
-                          alt={item.name}
-                          className={`w-full h-24 sm:h-32 object-cover rounded border ${uiColors.border.secondary} transition-all duration-500 ease-in-out opacity-0`}
-                          onError={(e) => {
-                            console.error('Error loading image:', item.url)
-                            e.currentTarget.style.display = 'none'
-                          }}
-                          onLoad={(e) => {
-                            console.log('Image loaded successfully:', item.url)
-                            // Fade in the image when loaded
-                            e.currentTarget.classList.remove('opacity-0')
-                            e.currentTarget.classList.add('opacity-100')
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 // Main Manage Progress Component
 export default function ManageProgres() {
   const { partId } = useParams<{ partId: string }>()
@@ -1019,7 +532,205 @@ export default function ManageProgres() {
     onEvidenceChange: () => {}
   })
 
-  // Load data from localStorage on mount
+  // State untuk tracking auto-complete events
+  const [autoCompleteNotification, setAutoCompleteNotification] = useState<{
+    show: boolean
+    processName: string
+  }>({
+    show: false,
+    processName: ""
+  })
+
+  // State untuk menyimpan progress detail Progress Tooling
+  const [progressToolingDetailProgress, setProgressToolingDetailProgress] = useState<number>(0)
+
+  // Fungsi untuk menghitung progress process dengan mempertimbangkan detail Progress Tooling
+  const calculateProcessProgressWithDetail = (process: Process): number => {
+    // Jika process parent sudah di-complete secara manual, return 100%
+    if (process.completed) {
+      return 100
+    }
+    
+    // Jika ada sub-process, hitung berdasarkan sub-process
+    if (process.children && process.children.length > 0) {
+      let totalProgress = 0
+      let totalWeight = 0
+      
+      process.children.forEach((child) => {
+        if (child.name === "Progress Tooling") {
+          // Gunakan progress detail untuk Progress Tooling
+          totalProgress += progressToolingDetailProgress
+          totalWeight += 1
+        } else {
+          // Gunakan status completed untuk sub-process lain
+          totalProgress += child.completed ? 100 : 0
+          totalWeight += 1
+        }
+      })
+      
+      return totalWeight > 0 ? Math.round(totalProgress / totalWeight) : 0
+    }
+    
+    // Jika tidak ada sub-process dan process belum complete, return 0%
+    return 0
+  }
+
+  // Fungsi untuk menghitung overall progress dengan mempertimbangkan detail Progress Tooling
+  const calculateOverallProgressWithDetail = (part: Part): number => {
+    let totalTasks = 0
+    let completedTasks = 0
+
+    part.progress.forEach((progress) => {
+      progress.processes.forEach((process) => {
+        if (process.children && process.children.length > 0) {
+          // Jika process parent sudah complete, hitung sebagai 1 task completed
+          if (process.completed) {
+            totalTasks++
+            completedTasks++
+          } else {
+            // Hitung berdasarkan sub-process
+            process.children.forEach((child) => {
+              totalTasks++
+              if (child.name === "Progress Tooling") {
+                // Gunakan progress detail untuk Progress Tooling
+                completedTasks += Math.round(progressToolingDetailProgress / 100)
+              } else {
+                // Gunakan status completed untuk sub-process lain
+                if (child.completed) completedTasks++
+              }
+            })
+          }
+        } else {
+          // Process tanpa sub-process
+          totalTasks++
+          if (process.completed) completedTasks++
+        }
+      })
+    })
+
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+  }
+
+  // Function to set evidence modal with proper callback
+  const setEvidenceModalWithCallback = (modalData: {
+    isOpen: boolean
+    processId?: string
+    subProcessId?: string
+    processName: string
+    evidence: Evidence[]
+    categoryId?: string
+  }) => {
+    setEvidenceModal({
+      ...modalData,
+      onEvidenceChange: (evidence: Evidence[]) => {
+        if (selectedPart) {
+          handleEvidenceUpdate(
+            selectedPart.id,
+            modalData.categoryId || "",
+            modalData.processId || "",
+            modalData.subProcessId || null,
+            evidence
+          );
+        }
+      }
+    });
+  };
+
+  const handleEvidenceUpdate = (partId: string, categoryId: string, processId: string, subProcessId: string | null, evidence: Evidence[]) => {
+    try {
+      let updatedParts: Part[]
+      
+      // Find the category ID if not provided
+      let actualCategoryId = categoryId;
+      if (!actualCategoryId && selectedPart) {
+        for (const category of selectedPart.progress) {
+          const process = category.processes.find(p => p.id === processId);
+          if (process) {
+            actualCategoryId = category.id;
+            break;
+          }
+        }
+      }
+      
+      if (subProcessId) {
+        // Update sub-process evidence
+        updatedParts = parts.map(part => {
+          if (part.id === partId) {
+            return {
+              ...part,
+              progress: part.progress.map(category => {
+                if (category.id === actualCategoryId) {
+                  return {
+                    ...category,
+                    processes: category.processes.map(process => {
+                      if (process.id === processId) {
+                        return {
+                          ...process,
+                          children: process.children?.map(child => {
+                            if (child.id === subProcessId) {
+                              return { ...child, evidence }
+                            }
+                            return child
+                          })
+                        }
+                      }
+                      return process
+                    })
+                  }
+                }
+                return category
+              })
+            }
+          }
+          return part
+        })
+      } else {
+        // Update process evidence
+        updatedParts = parts.map(part => {
+          if (part.id === partId) {
+            return {
+              ...part,
+              progress: part.progress.map(category => {
+                if (category.id === actualCategoryId) {
+                  return {
+                    ...category,
+                    processes: category.processes.map(process => {
+                      if (process.id === processId) {
+                        return { ...process, evidence }
+                      }
+                      return process
+                    })
+                  }
+                }
+                return category
+              })
+            }
+          }
+          return part
+        })
+      }
+
+      const partsDataString = JSON.stringify(updatedParts)
+      setParts(updatedParts)
+      setSelectedPart(updatedParts.find(p => p.id === partId) || null)
+
+      // Save to localStorage and sessionStorage
+      try {
+        localStorage.setItem("parts-data", partsDataString)
+        sessionStorage.setItem("parts-data-backup", partsDataString)
+        console.log("Evidence updated and saved successfully")
+      } catch (error) {
+        console.error("Error saving evidence update:", error)
+      }
+
+      // Notify other components
+      window.dispatchEvent(new Event("parts-updated"))
+    } catch (error) {
+      console.error("Error updating evidence:", error)
+    }
+  }
+
+  // Load data from localStorage on mount and update Design Tooling to Progress Tooling
   useEffect(() => {
     console.log("ManageProgress: Starting to load data from storage")
     try {
@@ -1031,7 +742,15 @@ export default function ManageProgres() {
       if (savedParts && savedParts !== "undefined" && savedParts !== "null") {
         try {
           const parsedParts = JSON.parse(savedParts)
-          setParts(parsedParts)
+          // Update semua nama 'Design Tooling' menjadi 'Progress Tooling' secara rekursif
+          const updatedParts = parsedParts.map(part => ({
+            ...part,
+            progress: part.progress.map(category => ({
+              ...category,
+              processes: renameDesignToolingToProgressTooling(category.processes)
+            }))
+          }))
+          setParts(updatedParts)
           console.log("Data berhasil dimuat dari localStorage:", parsedParts)
           dataLoaded = true
           
@@ -1164,6 +883,93 @@ export default function ManageProgres() {
     }
   }, [parts])
 
+  // Auto-update process completion when sub-processes change
+  useEffect(() => {
+    if (selectedPart) {
+      const updatedParts = parts.map(part => {
+        if (part.id === selectedPart.id) {
+          return {
+            ...part,
+            progress: part.progress.map(category => ({
+              ...category,
+              processes: category.processes.map(process => {
+                const updatedProcess = updateProcessCompletion(process)
+                
+                // Check if process was just auto-completed
+                if (updatedProcess.completed && process.children && process.children.length > 0) {
+                  const wasCompletedBefore = process.completed
+                  const allChildrenCompleted = process.children.every(child => child.completed)
+                  
+                  if (!wasCompletedBefore && allChildrenCompleted) {
+                    // Show notification for auto-complete
+                    setAutoCompleteNotification({
+                      show: true,
+                      processName: process.name
+                    })
+                    
+                    // Auto-hide notification after 3 seconds
+                    setTimeout(() => {
+                      setAutoCompleteNotification({ show: false, processName: "" })
+                    }, 3000)
+                  }
+                }
+                
+                return updatedProcess
+              })
+            }))
+          }
+        }
+        return part
+      })
+      
+      // Only update if there are actual changes
+      const hasChanges = JSON.stringify(updatedParts) !== JSON.stringify(parts)
+      if (hasChanges) {
+        setParts(updatedParts)
+        setSelectedPart(updatedParts.find(p => p.id === selectedPart.id) || null)
+        
+        // Save to storage
+        try {
+          const partsDataString = JSON.stringify(updatedParts)
+          localStorage.setItem("parts-data", partsDataString)
+          sessionStorage.setItem("parts-data-backup", partsDataString)
+          window.dispatchEvent(new Event("parts-updated"))
+        } catch (error) {
+          console.error("Error saving auto-updated process completion:", error)
+        }
+      }
+    }
+  }, [selectedPart, parts])
+
+  // Helper function untuk Progress Tooling yang hanya bisa auto-complete
+  const isProgressToolingAutoCompleted = (process: Process): boolean => {
+    if (!process.children || process.children.length === 0) return false;
+    
+    // Cari Progress Tooling sub-process
+    const progressToolingChild = process.children.find(child => child.name === "Progress Tooling");
+    if (!progressToolingChild) return false;
+    
+    return progressToolingChild.completed;
+  }
+
+  // Helper function to check if process was auto-completed
+  const isProcessAutoCompleted = (process: Process): boolean => {
+    return process.completed && process.children && process.children.length > 0 && 
+           process.children.every(child => child.completed)
+  }
+
+  // Helper function to check and update process completion based on sub-processes
+  const updateProcessCompletion = (process: Process): Process => {
+    if (process.children && process.children.length > 0) {
+      const allChildrenCompleted = process.children.every(child => child.completed)
+      return {
+        ...process,
+        completed: allChildrenCompleted
+      }
+    }
+    return process
+  }
+
   // Toggle process completion
   const toggleProcess = (partId: string, progressId: string, processId: string, childId?: string) => {
     setParts((prevParts) => {
@@ -1181,11 +987,26 @@ export default function ManageProgres() {
                 if (process.id !== processId) return process
 
                 if (childId && process.children) {
+                  // Cek apakah ini Progress Tooling yang ingin di-toggle manual
+                  const child = process.children.find(c => c.id === childId);
+                  if (child && child.name === "Progress Tooling") {
+                    // Progress Tooling tidak bisa di-toggle manual
+                    return process;
+                  }
+                  
+                  // Update sub-process completion
+                  const updatedChildren = process.children.map((child) =>
+                    child.id === childId ? { ...child, completed: !child.completed } : child,
+                  )
+                  
+                  // Check if all sub-processes are completed
+                  const allChildrenCompleted = updatedChildren.length > 0 && updatedChildren.every(child => child.completed)
+                  
                   return {
                     ...process,
-                    children: process.children.map((child) =>
-                      child.id === childId ? { ...child, completed: !child.completed } : child,
-                    ),
+                    children: updatedChildren,
+                    // Auto-complete process if all children are completed
+                    completed: allChildrenCompleted
                   }
                 } else {
                   return { ...process, completed: !process.completed }
@@ -1508,90 +1329,39 @@ export default function ManageProgres() {
     })
   }
 
-  const handleEvidenceUpdate = (partId: string, categoryId: string, processId: string, subProcessId: string | null, evidence: Evidence[]) => {
-    try {
-      let updatedParts: Part[]
-      
-      if (subProcessId) {
-        // Update sub-process evidence
-        updatedParts = parts.map(part => {
-          if (part.id === partId) {
-            return {
-              ...part,
-              progress: part.progress.map(category => {
-                if (category.id === categoryId) {
-                  return {
-                    ...category,
-                    processes: category.processes.map(process => {
-                      if (process.id === processId) {
-                        return {
-                          ...process,
-                          children: process.children?.map(child => {
-                            if (child.id === subProcessId) {
-                              return { ...child, evidence }
-                            }
-                            return child
-                          })
-                        }
-                      }
-                      return process
-                    })
-                  }
-                }
-                return category
-              })
-            }
-          }
-          return part
-        })
-      } else {
-        // Update process evidence
-        updatedParts = parts.map(part => {
-          if (part.id === partId) {
-            return {
-              ...part,
-              progress: part.progress.map(category => {
-                if (category.id === categoryId) {
-                  return {
-                    ...category,
-                    processes: category.processes.map(process => {
-                      if (process.id === processId) {
-                        return { ...process, evidence }
-                      }
-                      return process
-                    })
-                  }
-                }
-                return category
-              })
-            }
-          }
-          return part
-        })
+  // Fungsi rekursif untuk mengganti semua nama 'Design Tooling' menjadi 'Progress Tooling'
+  function renameDesignToolingToProgressTooling(processes) {
+    return processes.map(process => {
+      let updatedProcess = { ...process };
+      if (updatedProcess.name === "Design Tooling") {
+        updatedProcess.name = "Progress Tooling";
       }
-
-      const partsDataString = JSON.stringify(updatedParts)
-      setParts(updatedParts)
-      setSelectedPart(updatedParts.find(p => p.id === partId) || null)
-
-      // Save to localStorage and sessionStorage
-      try {
-        localStorage.setItem("parts-data", partsDataString)
-        sessionStorage.setItem("parts-data-backup", partsDataString)
-        console.log("Evidence updated and saved successfully")
-      } catch (error) {
-        console.error("Error saving evidence update:", error)
+      if (updatedProcess.children && updatedProcess.children.length > 0) {
+        updatedProcess.children = renameDesignToolingToProgressTooling(updatedProcess.children);
       }
-
-      // Notify other components
-      window.dispatchEvent(new Event("parts-updated"))
-    } catch (error) {
-      console.error("Error updating evidence:", error)
-    }
+      return updatedProcess;
+    });
   }
 
   return (  
     <div className={`min-h-screen ${uiColors.bg.primary} ${uiColors.text.primary} p-3 sm:p-4 md:p-6`}>
+      {/* Auto-complete Notification */}
+      {autoCompleteNotification.show && (
+        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg border border-green-500 transform transition-all duration-300 ease-out animate-bounce">
+          <div className="flex items-center space-x-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-medium">
+              "{autoCompleteNotification.processName}" auto-completed!
+            </span>
+          </div>
+          <p className="text-sm mt-1 opacity-90">
+            All sub-processes are now complete
+          </p>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1610,6 +1380,12 @@ export default function ManageProgres() {
               <div className="flex-1 min-w-0">
                 <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary} break-words`}>Manage Progress</h1>
                 <p className={`${uiColors.text.tertiary} text-sm sm:text-base mt-1`}>Update process completion status for all parts</p>
+                <div className="mt-2 flex items-center space-x-2 text-xs text-blue-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Processes auto-complete when all sub-processes are finished • Green checkmark indicates completed items • Progress Tooling auto-completes when overall progress reaches 100%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1634,7 +1410,7 @@ export default function ManageProgres() {
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
                     <div className="text-center sm:text-right order-2 sm:order-1">
-                      <div className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary}`}>{calculateOverallProgress(selectedPart)}%</div>
+                      <div className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary}`}>{calculateOverallProgressWithDetail(selectedPart)}%</div>
                       <div className={`text-xs sm:text-sm ${uiColors.text.tertiary}`}>Overall Progress</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 order-1 sm:order-2">
@@ -1676,7 +1452,7 @@ export default function ManageProgres() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <Progress value={calculateOverallProgress(selectedPart)} className={`h-2 sm:h-3 ${uiColors.bg.secondary}`} />
+                  <Progress value={calculateOverallProgressWithDetail(selectedPart)} className={`h-2 sm:h-3 ${uiColors.bg.secondary}`} />
                 </div>
               </CardHeader>
 
@@ -1736,7 +1512,7 @@ export default function ManageProgres() {
                       <CardContent>
                         <div className="space-y-3 sm:space-y-4">
                           {progressCategory.processes.map((process) => {
-                            const processProgress = calculateProcessProgress(process)
+                            const processProgress = calculateProcessProgressWithDetail(process)
                             const progressColors = getProgressColor(processProgress)
                             return (
                               <div key={process.id} className={`${uiColors.bg.secondary} rounded-lg p-3 sm:p-4 w-full border ${uiColors.border.tertiary} shadow-sm`}>
@@ -1750,11 +1526,26 @@ export default function ManageProgres() {
                                     />
                                     <label
                                       htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}`}
-                                      className={`font-medium cursor-pointer flex-1 break-words ${
-                                        process.completed ? `${uiColors.text.success} line-through` : uiColors.text.primary
-                                      }`}
+                                      className={`font-medium cursor-pointer flex-1 break-words ${uiColors.text.primary}`}
                                     >
                                       {process.name}
+                                      {process.completed && (
+                                        <div className="inline-block ml-2" title="Process completed">
+                                          <svg 
+                                            className="w-4 h-4 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </div>
+                                      )}
+                                      {isProcessAutoCompleted(process) && (
+                                        <span className="ml-2 text-xs text-blue-400 font-normal">
+                                          (Auto-completed)
+                                        </span>
+                                      )}
                                     </label>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -1764,6 +1555,22 @@ export default function ManageProgres() {
                                     >
                                       {processProgress}%
                                     </Badge>
+                                    {process.children && process.children.length > 0 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-gray-600 text-gray-300 border-gray-500"
+                                      >
+                                        {process.children.filter(child => child.completed).length}/{process.children.length} sub
+                                      </Badge>
+                                    )}
+                                    {isProcessAutoCompleted(process) && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-blue-600 text-white border-blue-500"
+                                      >
+                                        Auto
+                                      </Badge>
+                                    )}
                                   </div>
                                 </div>
 
@@ -1811,13 +1618,12 @@ export default function ManageProgres() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() =>
-                                      setEvidenceModal({
+                                      setEvidenceModalWithCallback({
                                         isOpen: true,
                                         processId: process.id,
                                         processName: process.name,
                                         evidence: process.evidence || [],
-                                        onEvidenceChange: (evidence) =>
-                                          handleEvidenceUpdate(selectedPart.id, progressCategory.id, process.id, null, evidence)
+                                        categoryId: progressCategory.id,
                                       })
                                     }
                                     className={`${uiColors.text.accent} hover:${uiColors.bg.tertiary} ${uiColors.border.accent} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
@@ -1884,7 +1690,9 @@ export default function ManageProgres() {
                                     </Button>
                                     <div id={`subprocess-${process.id}`} className="mt-2 space-y-2 hidden">
                                       {process.children.map((child) => (
-                                        <div key={child.id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 ${uiColors.bg.card} rounded border ${uiColors.border.tertiary} gap-2`}>
+                                        <div key={child.id} className={`flex flex-col p-2 ${uiColors.bg.card} rounded border ${uiColors.border.tertiary} gap-2`}>
+                                          {/* First row: Label and Action buttons */}
+                                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                           <div className="flex items-center space-x-2 flex-1 min-w-0">
                                             <Checkbox
                                               id={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
@@ -1892,17 +1700,41 @@ export default function ManageProgres() {
                                               onCheckedChange={() =>
                                                 toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id)
                                               }
-                                              className={uiColors.border.tertiary}
+                                                className={`${uiColors.border.tertiary} ${
+                                                  child.name === "Progress Tooling" ? "opacity-50 cursor-not-allowed" : ""
+                                                }`}
+                                                disabled={child.name === "Progress Tooling"}
                                             />
                                             <label
                                               htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
                                               className={`text-sm cursor-pointer flex-1 break-words ${
-                                                child.completed ? `${uiColors.text.success} line-through` : uiColors.text.secondary
+                                                  child.name === "Progress Tooling" 
+                                                    ? `${uiColors.text.secondary} opacity-60 cursor-not-allowed` 
+                                                    : uiColors.text.secondary
                                               }`}
                                             >
                                               {child.name}
+                                                {child.name === "Progress Tooling" && (
+                                                  <span className="ml-2 text-xs text-blue-400 font-normal">
+                                                    {child.completed ? "(Auto-completed)" : "(Auto-complete only)"}
+                                                  </span>
+                                                )}
+                                                {child.completed && (
+                                                  <div className="inline-block ml-2" title="Sub-process completed">
+                                                    <svg 
+                                                      className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
+                                                      fill="none" 
+                                                      stroke="currentColor" 
+                                                      viewBox="0 0 24 24"
+                                                    >
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                  </div>
+                                                )}
                                             </label>
                                           </div>
+                                            
+                                            {/* Action buttons */}
                                           <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto">
                                             <Button
                                               size="sm"
@@ -1928,14 +1760,13 @@ export default function ManageProgres() {
                                               size="sm"
                                               variant="outline"
                                               onClick={() =>
-                                                setEvidenceModal({
+                                                  setEvidenceModalWithCallback({
                                                   isOpen: true,
                                                   processId: process.id,
                                                   subProcessId: child.id,
                                                   processName: child.name,
                                                   evidence: child.evidence || [],
-                                                  onEvidenceChange: (evidence) =>
-                                                    handleEvidenceUpdate(selectedPart.id, progressCategory.id, process.id, child.id, evidence)
+                                                    categoryId: progressCategory.id,
                                                 })
                                               }
                                               className={`${uiColors.text.accent} hover:${uiColors.bg.tertiary} ${uiColors.border.accent} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
@@ -1964,6 +1795,25 @@ export default function ManageProgres() {
                                               <span className="hidden sm:inline">Delete</span>
                                             </Button>
                                           </div>
+                                          </div>
+                                          
+                                          {/* Second row: Progress Tooling Dropdown (only for Progress Tooling) */}
+                                          {child.name === "Progress Tooling" && (
+                                            <div className="w-full mt-2">
+                                              <ProgressToolingDropdown 
+                                                progressToolingChild={child}
+                                                onProgressToolingComplete={(completed) => {
+                                                  if (completed) {
+                                                    // Auto-complete the Progress Tooling sub-process
+                                                    toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id);
+                                                  }
+                                                }}
+                                                onProgressUpdate={(progress) => {
+                                                  setProgressToolingDetailProgress(progress);
+                                                }}
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       ))}
                                     </div>
@@ -2024,10 +1874,9 @@ export default function ManageProgres() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={deleteDialog.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => {
             // When dialog is closed by clicking outside or pressing escape, preserve the type
             setDeleteDialog({
               isOpen: false,
@@ -2038,32 +1887,20 @@ export default function ManageProgres() {
               subProcessId: undefined,
               name: undefined
             })
-          }
         }}
-      >
-        <AlertDialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm sm:max-w-md mx-4">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-400 text-base sm:text-lg">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
-              Confirm Deletion
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300 text-sm sm:text-base">
-              Are you sure you want to delete the 
-              {deleteDialog.type === "subprocess" ? "sub-process" : deleteDialog.type === "part" ? "part" : "process"} "
-              {deleteDialog.name}"?
-              {deleteDialog.type === "process" && " This will also delete all its sub-processes."}
-              {deleteDialog.type === "part" && " This will also delete all its processes and sub-processes."}
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleDelete}
+        type={deleteDialog.type}
+        name={deleteDialog.name}
+      />
+
+      {/* Evidence Modal */}
+      <EvidenceModal
+        isOpen={evidenceModal.isOpen}
+        onClose={() => setEvidenceModal({ ...evidenceModal, isOpen: false })}
+        processName={evidenceModal.processName}
+        evidence={evidenceModal.evidence}
+        onEvidenceChange={evidenceModal.onEvidenceChange}
+      />
     </div>
   );
 }
