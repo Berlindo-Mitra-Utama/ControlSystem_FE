@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
-// const API_BASE_URL = "http://localhost:5555/api";
+// const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
+const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({
@@ -894,6 +894,30 @@ export const ProductionService = {
       throw error;
     }
   },
+};
+
+// Progress Tracker: Get All Parts (named export)
+export const getAllParts = async () => {
+  try {
+    const response = await api.get("/progress-tracker/parts");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createPart = async (partData: {
+  partName: string;
+  partNumber: string;
+  customer: string;
+  partImage?: string;
+}) => {
+  try {
+    const response = await api.post("/progress-tracker/parts", partData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 // Tambahkan interceptor untuk menangani error
