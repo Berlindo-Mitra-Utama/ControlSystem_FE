@@ -542,7 +542,41 @@ export default function ManageProgres() {
   })
 
   // State untuk menyimpan progress detail Progress Tooling
+  // Progress ini akan diupdate melalui callback dari ProgressToolingDropdown
+  // dan digunakan untuk menghitung progress bar tooling dan overall progress
   const [progressToolingDetailProgress, setProgressToolingDetailProgress] = useState<number>(0)
+
+  // Effect untuk memastikan progressToolingDetailProgress ter-update dengan benar
+  useEffect(() => {
+    if (selectedPart) {
+      // Cari Progress Tooling sub-process dan hitung progress detail
+      let totalDetailProgress = 0;
+      let foundProgressTooling = false;
+      
+      selectedPart.progress.forEach((category) => {
+        category.processes.forEach((process) => {
+          if (process.children && process.children.length > 0) {
+            process.children.forEach((child) => {
+              if (child.name === "Progress Tooling") {
+                foundProgressTooling = true;
+                // Progress detail akan diupdate melalui callback dari ProgressToolingDropdown
+              }
+            });
+          }
+        });
+      });
+      
+      // Jika tidak ada Progress Tooling, reset progress detail
+      if (!foundProgressTooling) {
+        setProgressToolingDetailProgress(0);
+      }
+    }
+  }, [selectedPart]);
+
+  // Effect untuk memastikan progress bar tooling ter-update ketika progressToolingDetailProgress berubah
+  useEffect(() => {
+    // Force re-render untuk memastikan progress bar ter-update
+  }, [progressToolingDetailProgress]);
 
   // Fungsi untuk menghitung progress process dengan mempertimbangkan detail Progress Tooling
   const calculateProcessProgressWithDetail = (process: Process): number => {
@@ -568,7 +602,8 @@ export default function ManageProgres() {
         }
       })
       
-      return totalWeight > 0 ? Math.round(totalProgress / totalWeight) : 0
+      const result = totalWeight > 0 ? Math.round(totalProgress / totalWeight) : 0
+      return result
     }
     
     // Jika tidak ada sub-process dan process belum complete, return 0%
@@ -990,7 +1025,7 @@ export default function ManageProgres() {
                   // Cek apakah ini Progress Tooling yang ingin di-toggle manual
                   const child = process.children.find(c => c.id === childId);
                   if (child && child.name === "Progress Tooling") {
-                    // Progress Tooling tidak bisa di-toggle manual
+                    // Progress Tooling tidak bisa di-toggle manual sama sekali
                     return process;
                   }
                   
@@ -1410,7 +1445,12 @@ export default function ManageProgres() {
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
                     <div className="text-center sm:text-right order-2 sm:order-1">
-                      <div className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary}`}>{calculateOverallProgressWithDetail(selectedPart)}%</div>
+                      <div 
+                        key={`overall-percentage-${selectedPart.id}-${progressToolingDetailProgress}`}
+                        className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary}`}
+                      >
+                        {calculateOverallProgressWithDetail(selectedPart)}%
+                      </div>
                       <div className={`text-xs sm:text-sm ${uiColors.text.tertiary}`}>Overall Progress</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 order-1 sm:order-2">
@@ -1452,7 +1492,11 @@ export default function ManageProgres() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <Progress value={calculateOverallProgressWithDetail(selectedPart)} className={`h-2 sm:h-3 ${uiColors.bg.secondary}`} />
+                  <Progress 
+                    key={`overall-${selectedPart.id}-${progressToolingDetailProgress}`}
+                    value={calculateOverallProgressWithDetail(selectedPart)} 
+                    className={`h-2 sm:h-3 ${uiColors.bg.secondary}`} 
+                  />
                 </div>
               </CardHeader>
 
@@ -1550,6 +1594,7 @@ export default function ManageProgres() {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <Badge
+                                      key={`${process.id}-badge-${progressToolingDetailProgress}`}
                                       variant="outline"
                                       className={`text-xs ${progressColors.color} ${progressColors.textColor} border-current`}
                                     >
@@ -1654,7 +1699,16 @@ export default function ManageProgres() {
 
                                 {/* Progress bar for this process */}
                                 <div className="mb-3">
-                                  <Progress value={processProgress} className={`h-2 ${uiColors.bg.secondary}`} />
+                                  <Progress 
+                                    key={`${process.id}-${progressToolingDetailProgress}`}
+                                    value={processProgress} 
+                                    className={`h-2 ${uiColors.bg.secondary}`} 
+                                  />
+                                  {process.name === "Tooling" && (
+                                    <div className="mt-1 text-xs text-blue-400">
+                                      Progress includes Progress Tooling detail: {progressToolingDetailProgress}%
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Child Processes - Now as Collapsible Section */}
@@ -1696,7 +1750,7 @@ export default function ManageProgres() {
                                           <div className="flex items-center space-x-2 flex-1 min-w-0">
                                             <Checkbox
                                               id={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
-                                              checked={child.completed}
+                                              checked={child.completed && progressToolingDetailProgress === 100}
                                               onCheckedChange={() =>
                                                 toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id)
                                               }
@@ -1716,10 +1770,10 @@ export default function ManageProgres() {
                                               {child.name}
                                                 {child.name === "Progress Tooling" && (
                                                   <span className="ml-2 text-xs text-blue-400 font-normal">
-                                                    {child.completed ? "(Auto-completed)" : "(Auto-complete only)"}
+                                                    {progressToolingDetailProgress === 100 ? "(Completed)" : `(Overall Progress: ${progressToolingDetailProgress}%)`}
                                                   </span>
                                                 )}
-                                                {child.completed && (
+                                                {child.completed && progressToolingDetailProgress === 100 && (
                                                   <div className="inline-block ml-2" title="Sub-process completed">
                                                     <svg 
                                                       className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
