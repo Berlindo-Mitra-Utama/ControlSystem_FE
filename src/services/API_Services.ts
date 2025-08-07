@@ -1033,10 +1033,23 @@ export const createPart = async (partData: {
   partName: string;
   partNumber: string;
   customer: string;
-  partImage?: string;
+  partImage?: File;
 }) => {
   try {
-    const response = await api.post("/progress-tracker/parts", partData);
+    const formData = new FormData();
+    formData.append('partName', partData.partName);
+    formData.append('partNumber', partData.partNumber);
+    formData.append('customer', partData.customer);
+    
+    if (partData.partImage) {
+      formData.append('partImage', partData.partImage);
+    }
+
+    const response = await api.post("/progress-tracker/parts", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   } catch (error) {
     throw error;
