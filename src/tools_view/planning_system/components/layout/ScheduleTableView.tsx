@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
-import { getCategoryColor } from "../../../const/colors";
 import { useTheme } from "../../../contexts/ThemeContext";
 import {
   formatValidDate,
@@ -12,9 +11,6 @@ import {
   calculateScheduleTotals,
   formatJamProduksi,
   formatNumber,
-  calculateAkumulasiDelivery,
-  calculateAkumulasiHasilProduksi,
-  calculateStockCustom,
 } from "../../utils/scheduleCalcUtils";
 import {
   ALL_ROWS,
@@ -26,6 +22,7 @@ import {
 import { getRowDataConfig } from "../../utils/scheduleDataUtils";
 import ManpowerDropdown from "./ManpowerDropdown";
 import EditableCell from "./EditableCell";
+import { ManpowerService } from "../../../../services/API_Services";
 import {
   Clock,
   Package,
@@ -44,6 +41,48 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
+
+// Komponen Toast Notification
+const ToastNotification = ({
+  message,
+  type,
+  isVisible,
+  onClose,
+}: {
+  message: string;
+  type: "success" | "error";
+  isVisible: boolean;
+  onClose: () => void;
+}) => {
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 3000); // Auto close setelah 3 detik
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, onClose]);
+
+  if (!isVisible) return null;
+
+  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
+  const icon = type === "success" ? "✓" : "✕";
+
+  return (
+    <div
+      className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3`}
+    >
+      <span className="text-lg font-bold">{icon}</span>
+      <span className="font-medium">{message}</span>
+      <button
+        onClick={onClose}
+        className="ml-4 text-white/80 hover:text-white text-lg font-bold"
+      >
+        ×
+      </button>
+    </div>
+  );
+};
 
 interface ScheduleTableViewProps {
   validGroupedRows: { day: number; rows: ScheduleItem[] }[];
@@ -106,6 +145,18 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const [showManpowerModal, setShowManpowerModal] = useState(false);
   // State untuk notifikasi error manpower
   const [manpowerError, setManpowerError] = useState<string>("");
+  // State untuk notifikasi sukses manpower
+  const [manpowerSuccess, setManpowerSuccess] = useState<string>("");
+  // State untuk toast notification
+  const [toastNotification, setToastNotification] = useState<{
+    message: string;
+    type: "success" | "error";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "success",
+    isVisible: false,
+  });
   // Ref untuk modal manpower
   const manpowerModalRef = useRef<HTMLDivElement>(null);
 
@@ -114,20 +165,26 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     [key: string]: number[];
   }>({});
 
-  // Simpan manpowerList ke localStorage setiap kali berubah
+  // Load manpower from database on component mount
   useEffect(() => {
-    localStorage.setItem("berlindo_manpowerList", JSON.stringify(manpowerList));
-  }, [manpowerList]);
-
-  // Load manpowerList dari localStorage saat mount
-  useEffect(() => {
-    const saved = localStorage.getItem("berlindo_manpowerList");
-    if (saved) {
+    const loadManpowerFromDatabase = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setManpowerList(parsed);
-      } catch {}
-    }
+        // Load dari backend menggunakan API
+        const response = await ManpowerService.getActiveManpowerTest();
+        console.log("Manpower loaded:", response);
+        setManpowerList(response || []);
+      } catch (error) {
+        console.error("Error loading manpower from database:", error);
+        // Fallback to default manpower if database fails
+        setManpowerList([
+          { id: 1, name: "Operator 1" },
+          { id: 2, name: "Operator 2" },
+          { id: 3, name: "Operator 3" },
+        ]);
+      }
+    };
+
+    loadManpowerFromDatabase();
   }, []);
 
   // Clean up invalid manpower IDs when manpowerList changes
@@ -307,8 +364,33 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     }
   }
 
+  // Fungsi untuk menampilkan toast notification
+  const showToast = (message: string, type: "success" | "error") => {
+    setToastNotification({
+      message,
+      type,
+      isVisible: true,
+    });
+  };
+
+  // Fungsi untuk menutup toast notification
+  const closeToast = () => {
+    setToastNotification((prev) => ({
+      ...prev,
+      isVisible: false,
+    }));
+  };
+
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      <ToastNotification
+        message={toastNotification.message}
+        type={toastNotification.type}
+        isVisible={toastNotification.isVisible}
+        onClose={closeToast}
+      />
+
       {/* Informasi Produk */}
       {productInfo &&
         (productInfo.partName ||
@@ -470,18 +552,17 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               ref={manpowerModalRef}
               className={`${uiColors.bg.tertiary} rounded-xl p-6 w-full max-w-md ${uiColors.border.primary} shadow-2xl relative`}
             >
-              <button
-                className={`absolute top-2 right-2 ${uiColors.text.tertiary} hover:${uiColors.text.primary}`}
-                onClick={() => setShowManpowerModal(false)}
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-              <h3
-                className={`text-lg font-bold ${uiColors.text.primary} mb-4 flex items-center gap-2`}
-              >
-                <Activity className="w-5 h-5 text-green-400" />
-                Daftar Manpower
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className={`text-xl font-bold ${uiColors.text.primary}`}>
+                  Daftar Manpower
+                </h2>
+                <button
+                  onClick={() => setShowManpowerModal(false)}
+                  className={`text-2xl ${uiColors.text.tertiary} hover:${uiColors.text.primary}`}
+                >
+                  ×
+                </button>
+              </div>
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
@@ -495,14 +576,84 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 />
                 <button
                   className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center"
-                  onClick={handleAddManpower}
+                  onClick={async () => {
+                    try {
+                      if (!newManpower.trim()) {
+                        setManpowerError("Nama manpower tidak boleh kosong");
+                        return;
+                      }
+
+                      // Simpan ke backend menggunakan API
+                      const response = await ManpowerService.createManpowerTest(
+                        {
+                          name: newManpower.trim(),
+                        },
+                      );
+
+                      // Refresh manpowerList dari backend
+                      const manpowerResponse =
+                        await ManpowerService.getActiveManpowerTest();
+                      setManpowerList(manpowerResponse || []);
+
+                      // Tampilkan notifikasi sukses
+                      setManpowerError(""); // Clear any previous errors
+                      showToast(
+                        `${newManpower.trim()} berhasil ditambahkan!`,
+                        "success",
+                      );
+
+                      // Clear input field
+                      setNewManpower("");
+
+                      // Jangan tutup modal, biarkan tetap terbuka
+                      // setShowManpowerModal(false);
+                    } catch (error) {
+                      console.error("Error adding manpower:", error);
+
+                      // Fallback ke state lokal jika backend gagal
+                      const newManpowerItem = {
+                        id: Date.now(),
+                        name: newManpower.trim(),
+                      };
+                      setManpowerList((prev) => [...prev, newManpowerItem]);
+
+                      // Clear input field
+                      setNewManpower("");
+
+                      // Tampilkan error yang sesuai
+                      if (
+                        error.message &&
+                        error.message.includes("ERR_CONNECTION_REFUSED")
+                      ) {
+                        showToast(
+                          "Server tidak tersedia, data disimpan lokal",
+                          "error",
+                        );
+                      } else if (
+                        error.message &&
+                        error.message.includes("Token tidak ada")
+                      ) {
+                        showToast(
+                          "Silakan login terlebih dahulu, data disimpan lokal",
+                          "error",
+                        );
+                      } else {
+                        showToast(
+                          "Gagal menyimpan ke database, data disimpan lokal",
+                          "error",
+                        );
+                      }
+                    }
+                  }}
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <ul className="space-y-2 max-h-48 overflow-y-auto">
                 {manpowerList.length === 0 && (
-                  <li className={`${uiColors.text.tertiary} text-sm`}>
+                  <li
+                    className={`${uiColors.text.tertiary} text-sm text-center py-4`}
+                  >
                     Belum ada manpower.
                   </li>
                 )}
@@ -511,11 +662,55 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     key={mp.id}
                     className={`flex items-center justify-between ${uiColors.bg.secondary} rounded-lg px-3 py-2`}
                   >
-                    <span className={`${uiColors.text.primary} font-medium`}>
-                      {mp.id}. {mp.name}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={`${uiColors.text.primary} font-medium`}>
+                        {idx + 1}. {mp.name}
+                      </span>
+                    </div>
                     <button
-                      onClick={() => handleRemoveManpower(mp.id)}
+                      onClick={async () => {
+                        try {
+                          // Hapus dari backend menggunakan API
+                          await ManpowerService.deleteManpowerTest(mp.id);
+
+                          // Refresh manpowerList dari backend
+                          const manpowerResponse =
+                            await ManpowerService.getActiveManpowerTest();
+                          setManpowerList(manpowerResponse || []);
+
+                          // Tampilkan notifikasi sukses
+                          showToast("Manpower berhasil dihapus!", "success");
+                        } catch (error) {
+                          console.error("Error removing manpower:", error);
+
+                          // Fallback ke state lokal jika backend gagal
+                          handleRemoveManpower(mp.id);
+
+                          // Tampilkan error yang sesuai
+                          if (
+                            error.message &&
+                            error.message.includes("ERR_CONNECTION_REFUSED")
+                          ) {
+                            showToast(
+                              "Server tidak tersedia, data dihapus lokal",
+                              "error",
+                            );
+                          } else if (
+                            error.message &&
+                            error.message.includes("Token tidak ada")
+                          ) {
+                            showToast(
+                              "Silakan login terlebih dahulu, data dihapus lokal",
+                              "error",
+                            );
+                          } else {
+                            showToast(
+                              "Gagal menghapus dari database, data dihapus lokal",
+                              "error",
+                            );
+                          }
+                        }
+                      }}
                       className="text-red-400 hover:text-red-600"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -539,6 +734,23 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               </button>
               <div className="font-semibold text-base text-center">
                 {manpowerError}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Notifikasi sukses */}
+        {manpowerSuccess && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl min-w-[260px] max-w-xs relative animate-fade-in-out">
+              <button
+                className="absolute top-2 right-2 text-white/80 hover:text-white text-lg font-bold"
+                onClick={() => setManpowerSuccess("")}
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+              <div className="font-semibold text-base text-center">
+                {manpowerSuccess}
               </div>
             </div>
           </div>
@@ -757,6 +969,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 setTempManpowerSelection={
                                   setTempManpowerSelection
                                 }
+                                focusedInputs={focusedInputs}
                                 setFocusedInputs={setFocusedInputs}
                                 setEditForm={setEditForm}
                                 onDataChange={onDataChange}
@@ -812,6 +1025,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 setTempManpowerSelection={
                                   setTempManpowerSelection
                                 }
+                                focusedInputs={focusedInputs}
                                 setFocusedInputs={setFocusedInputs}
                                 setEditForm={setEditForm}
                                 onDataChange={onDataChange}

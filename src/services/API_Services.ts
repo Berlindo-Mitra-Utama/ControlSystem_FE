@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
-// const API_BASE_URL = "http://localhost:5555/api";
+// const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
+const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({
@@ -644,84 +644,6 @@ export const ProductionService = {
   },
 
   /**
-   * Manpower Services
-   */
-
-  /**
-   * Membuat manpower baru
-   * @param {string} name - Nama manpower
-   * @returns {Promise<Object>} Response dari API
-   */
-  createManpower: async (name: string): Promise<any> => {
-    try {
-      const response = await api.post("/daily-production/manpower", { name });
-      return response.data;
-    } catch (error) {
-      if (
-        error.code === "ERR_NETWORK" ||
-        error.message?.includes("ERR_CONNECTION_REFUSED")
-      ) {
-        throw new Error("ERR_CONNECTION_REFUSED");
-      }
-      if (error.response?.data?.message?.includes("Token tidak ada")) {
-        throw new Error("Token tidak ada");
-      }
-      throw new Error(
-        error.response?.data?.message || "Gagal membuat manpower",
-      );
-    }
-  },
-
-  /**
-   * Mendapatkan semua manpower user
-   * @returns {Promise<Object>} Response dari API
-   */
-  getUserManpower: async (): Promise<any> => {
-    try {
-      const response = await api.get("/daily-production/manpower");
-      return response.data;
-    } catch (error) {
-      if (
-        error.code === "ERR_NETWORK" ||
-        error.message?.includes("ERR_CONNECTION_REFUSED")
-      ) {
-        throw new Error("ERR_CONNECTION_REFUSED");
-      }
-      if (error.response?.data?.message?.includes("Token tidak ada")) {
-        throw new Error("Token tidak ada");
-      }
-      throw new Error(
-        error.response?.data?.message || "Gagal mengambil data manpower",
-      );
-    }
-  },
-
-  /**
-   * Menghapus manpower
-   * @param {number} id - ID manpower
-   * @returns {Promise<Object>} Response dari API
-   */
-  deleteManpower: async (id: number): Promise<any> => {
-    try {
-      const response = await api.delete(`/daily-production/manpower/${id}`);
-      return response.data;
-    } catch (error) {
-      if (
-        error.code === "ERR_NETWORK" ||
-        error.message?.includes("ERR_CONNECTION_REFUSED")
-      ) {
-        throw new Error("ERR_CONNECTION_REFUSED");
-      }
-      if (error.response?.data?.message?.includes("Token tidak ada")) {
-        throw new Error("Token tidak ada");
-      }
-      throw new Error(
-        error.response?.data?.message || "Gagal menghapus manpower",
-      );
-    }
-  },
-
-  /**
    * Utility function untuk mengkonversi data dari frontend ke format backend
    * @param {Object} scheduleData - Data schedule dari frontend
    * @returns {Object} Data yang sudah dikonversi
@@ -892,6 +814,207 @@ export const ProductionService = {
     } catch (error) {
       console.error("Error saving production data:", error);
       throw error;
+    }
+  },
+};
+
+// Service untuk manpower
+export const ManpowerService = {
+  /**
+   * Mendapatkan semua data manpower yang aktif (dengan authentication)
+   */
+  getActiveManpower: async (): Promise<any> => {
+    try {
+      const response = await api.get("/manpower/active");
+      return response.data.data;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      if (error.response?.data?.message?.includes("Token tidak ada")) {
+        throw new Error("Token tidak ada");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal mengambil data manpower",
+      );
+    }
+  },
+
+  /**
+   * Mendapatkan semua data manpower yang aktif (tanpa authentication untuk testing)
+   */
+  getActiveManpowerTest: async (): Promise<any> => {
+    try {
+      const response = await api.get("/manpower/test/active");
+      return response.data.data;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal mengambil data manpower",
+      );
+    }
+  },
+
+  /**
+   * Membuat data manpower baru (tanpa authentication untuk testing)
+   */
+  createManpowerTest: async (manpowerData: any): Promise<any> => {
+    try {
+      const response = await api.post("/manpower/test", manpowerData);
+      return response.data.data;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal membuat manpower",
+      );
+    }
+  },
+
+  /**
+   * Menghapus data manpower (tanpa authentication untuk testing)
+   */
+  deleteManpowerTest: async (id: number): Promise<boolean> => {
+    try {
+      await api.delete(`/manpower/test/${id}`);
+      return true;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal menghapus manpower",
+      );
+    }
+  },
+
+  /**
+   * Mendapatkan semua data manpower (termasuk yang tidak aktif)
+   */
+  getAllManpower: async (): Promise<any> => {
+    try {
+      const response = await api.get("/manpower/all");
+      return response.data.data;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      if (error.response?.data?.message?.includes("Token tidak ada")) {
+        throw new Error("Token tidak ada");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal mengambil data manpower",
+      );
+    }
+  },
+
+  /**
+   * Membuat data manpower baru
+   */
+  createManpower: async (manpowerData: any): Promise<any> => {
+    try {
+      const response = await api.post("/manpower", manpowerData);
+      return response.data.data;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      if (error.response?.data?.message?.includes("Token tidak ada")) {
+        throw new Error("Token tidak ada");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal membuat manpower",
+      );
+    }
+  },
+
+  /**
+   * Mengupdate data manpower
+   */
+  updateManpower: async (id: number, manpowerData: any): Promise<any> => {
+    try {
+      const response = await api.put(`/manpower/${id}`, manpowerData);
+      return response.data.data;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      if (error.response?.data?.message?.includes("Token tidak ada")) {
+        throw new Error("Token tidak ada");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal mengupdate manpower",
+      );
+    }
+  },
+
+  /**
+   * Menghapus data manpower (soft delete)
+   */
+  deleteManpower: async (id: number): Promise<boolean> => {
+    try {
+      await api.delete(`/manpower/${id}`);
+      return true;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      if (error.response?.data?.message?.includes("Token tidak ada")) {
+        throw new Error("Token tidak ada");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal menghapus manpower",
+      );
+    }
+  },
+
+  /**
+   * Mengaktifkan kembali data manpower
+   */
+  activateManpower: async (id: number): Promise<any> => {
+    try {
+      const response = await api.patch(`/manpower/${id}/activate`);
+      return response.data.data;
+    } catch (error) {
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("ERR_CONNECTION_REFUSED")
+      ) {
+        throw new Error("ERR_CONNECTION_REFUSED");
+      }
+      if (error.response?.data?.message?.includes("Token tidak ada")) {
+        throw new Error("Token tidak ada");
+      }
+      throw new Error(
+        error.response?.data?.message || "Gagal mengaktifkan manpower",
+      );
     }
   },
 };

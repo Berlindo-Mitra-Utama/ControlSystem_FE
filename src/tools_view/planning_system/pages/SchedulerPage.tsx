@@ -170,7 +170,9 @@ const SchedulerPage: React.FC = () => {
   const [showProductionForm, setShowProductionForm] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingRow, setEditingRow] = useState<string | null>(null);
-  const [manpowerList, setManpowerList] = useState<any[]>([]);
+  const [manpowerList, setManpowerList] = useState<
+    { id: number; name: string }[]
+  >([]);
 
   const [editForm, setEditForm] = useState<Partial<ScheduleItem>>({});
 
@@ -373,11 +375,11 @@ const SchedulerPage: React.FC = () => {
           return;
         }
 
-        const { ProductionService } = await import(
+        const { ManpowerService } = await import(
           "../../../services/API_Services"
         );
-        const response = await ProductionService.getUserManpower();
-        setManpowerList(response.data || []);
+        const response = await ManpowerService.getActiveManpower();
+        setManpowerList(response || []);
       } catch (error) {
         console.error("Error loading manpower list:", error);
         // Fallback ke array kosong jika backend tidak tersedia
@@ -494,17 +496,19 @@ const SchedulerPage: React.FC = () => {
         }));
         setManpowerList((prev) => [
           ...prev,
-          { id: Date.now(), name, createdBy: 1 },
+          { id: Date.now(), name, createdBy: "System" },
         ]);
         showSuccess(`${name} berhasil ditambahkan (lokal)!`);
         return;
       }
 
       // Simpan ke backend menggunakan global manpower endpoint
-      const { ProductionService } = await import(
+      const { ManpowerService } = await import(
         "../../../services/API_Services"
       );
-      const response = await ProductionService.createManpower(name);
+      const response = await ManpowerService.createManpowerTest({
+        name: name.trim(),
+      });
 
       // Update state lokal
       setForm((prev) => ({
@@ -513,8 +517,8 @@ const SchedulerPage: React.FC = () => {
       }));
 
       // Refresh manpowerList dari backend
-      const manpowerResponse = await ProductionService.getUserManpower();
-      setManpowerList(manpowerResponse.data || []);
+      const manpowerResponse = await ManpowerService.getActiveManpowerTest();
+      setManpowerList(manpowerResponse || []);
 
       console.log("Manpower berhasil ditambahkan:", response);
       showSuccess(`${name} berhasil ditambahkan!`);
@@ -564,10 +568,10 @@ const SchedulerPage: React.FC = () => {
       }
 
       // Hapus dari backend menggunakan global manpower endpoint
-      const { ProductionService } = await import(
+      const { ManpowerService } = await import(
         "../../../services/API_Services"
       );
-      await ProductionService.deleteManpower(manpowerToDelete.id);
+      await ManpowerService.deleteManpowerTest(manpowerToDelete.id);
 
       // Update state lokal
       setForm((prev) => ({
@@ -576,8 +580,8 @@ const SchedulerPage: React.FC = () => {
       }));
 
       // Refresh manpowerList dari backend
-      const manpowerResponse = await ProductionService.getUserManpower();
-      setManpowerList(manpowerResponse.data || []);
+      const manpowerResponse = await ManpowerService.getActiveManpowerTest();
+      setManpowerList(manpowerResponse || []);
 
       console.log("Manpower berhasil dihapus:", name);
       showSuccess(`${name} berhasil dihapus!`);

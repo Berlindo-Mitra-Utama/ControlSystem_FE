@@ -36,8 +36,9 @@ export const useProductionData = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ProductionService.getUserManpower();
-      setManpowerList(response.data || []);
+      const { ManpowerService } = await import("../services/API_Services");
+      const response = await ManpowerService.getActiveManpowerTest();
+      setManpowerList(response || []);
     } catch (err) {
       console.error("Error loading manpower:", err);
       // Don't set error for manpower loading failure, just log it
@@ -175,10 +176,12 @@ export const useProductionData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await ProductionService.createManpower(name);
+      const { ManpowerService } = await import("../services/API_Services");
+      const response = await ManpowerService.createManpowerTest({ name });
 
       // Add to local state
-      setManpowerList((prev) => [...prev, response.data]);
+      const manpowerResponse = await ManpowerService.getActiveManpowerTest();
+      setManpowerList(manpowerResponse || []);
 
       return response;
     } catch (err) {
@@ -197,10 +200,12 @@ export const useProductionData = () => {
       setLoading(true);
       setError(null);
 
-      await ProductionService.deleteManpower(id);
+      const { ManpowerService } = await import("../services/API_Services");
+      await ManpowerService.deleteManpowerTest(id);
 
       // Remove from local state
-      setManpowerList((prev) => prev.filter((mp) => mp.id !== id));
+      const manpowerResponse = await ManpowerService.getActiveManpowerTest();
+      setManpowerList(manpowerResponse || []);
     } catch (err) {
       console.error("Error removing manpower:", err);
       // Don't set error for manpower operations, just log it
@@ -217,12 +222,12 @@ export const useProductionData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await ProductionService.updateManpower(id, { name });
+      const { ManpowerService } = await import("../services/API_Services");
+      const response = await ManpowerService.updateManpower(id, { name });
 
       // Update local state
-      setManpowerList((prev) =>
-        prev.map((mp) => (mp.id === id ? response.data : mp)),
-      );
+      const manpowerResponse = await ManpowerService.getActiveManpowerTest();
+      setManpowerList(manpowerResponse || []);
 
       return response;
     } catch (err) {

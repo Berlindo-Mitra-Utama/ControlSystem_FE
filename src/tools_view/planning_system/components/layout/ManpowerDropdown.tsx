@@ -8,6 +8,7 @@ interface ManpowerDropdownProps {
   setTempManpowerSelection: React.Dispatch<
     React.SetStateAction<{ [key: string]: number[] }>
   >;
+  focusedInputs: { [key: string]: boolean };
   setFocusedInputs: React.Dispatch<
     React.SetStateAction<{ [key: string]: boolean }>
   >;
@@ -23,6 +24,7 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
   manpowerList,
   tempManpowerSelection,
   setTempManpowerSelection,
+  focusedInputs,
   setFocusedInputs,
   setEditForm,
   onDataChange,
@@ -88,45 +90,54 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
     <div className="relative w-full manpower-dropdown">
       <button
         type="button"
-        className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-2 py-1 rounded-lg border border-slate-400 manpower-dropdown"
+        className="w-full bg-transparent border-none text-center focus:outline-none flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-400 manpower-dropdown hover:bg-slate-700/50 transition-colors"
         onClick={() => {
           if (manpowerList.length === 0) {
             setManpowerError("Silakan tambahkan manpower terlebih dahulu");
             return;
           }
-          setFocusedInputs((prev) => ({
-            ...prev,
-            [`${shift.id}-manpowerDropdown`]:
-              !prev[`${shift.id}-manpowerDropdown`],
-          }));
+
+          // Tutup semua dropdown manpower lainnya terlebih dahulu
+          setFocusedInputs((prev) => {
+            const newState = { ...prev };
+            // Tutup semua dropdown manpower
+            Object.keys(newState).forEach((key) => {
+              if (key.endsWith("-manpowerDropdown")) {
+                newState[key] = false;
+              }
+            });
+            // Buka dropdown yang diklik
+            newState[`${shift.id}-manpowerDropdown`] =
+              !prev[`${shift.id}-manpowerDropdown`];
+            return newState;
+          });
         }}
       >
-        {shift.manpowerIds && shift.manpowerIds.length > 0
-          ? shift.manpowerIds.length.toString()
-          : "3"}
-        <span className="ml-2">▼</span>
+        <span className="text-sm font-medium">
+          {shift.manpowerIds && shift.manpowerIds.length > 0
+            ? shift.manpowerIds.length.toString()
+            : "3"}
+        </span>
+        <span className="ml-2 text-xs">▼</span>
       </button>
 
-      {tempManpowerSelection[shift.id] !== undefined && (
+      {/* Dropdown List */}
+      {focusedInputs[`${shift.id}-manpowerDropdown`] && (
         <div
-          className={`absolute z-20 min-w-max max-w-xs ${uiColors.bg.tertiary} border border-slate-400 rounded-lg mt-1 shadow-xl manpower-dropdown`}
+          className={`absolute z-20 left-0 right-0 bg-slate-800 border border-slate-400 rounded-lg mt-1 shadow-xl min-w-[240px] max-w-[280px]`}
         >
           {/* Header */}
-          <div
-            className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
-          >
-            <h4 className={`${uiColors.text.primary} font-semibold text-sm`}>
+          <div className="bg-slate-700 px-3 py-2 border-b border-slate-400">
+            <h4 className="text-slate-200 font-semibold text-sm">
               Pilih Manpower
             </h4>
           </div>
 
           {/* Manpower List */}
-          <div className="p-2">
+          <div className="p-2 max-h-48 overflow-y-auto">
             {manpowerList.length === 0 ? (
               <div className="text-center py-4">
-                <div className={`${uiColors.text.tertiary} text-sm`}>
-                  Belum ada manpower
-                </div>
+                <div className="text-slate-400 text-sm">Belum ada manpower</div>
               </div>
             ) : (
               <div className="space-y-1">
@@ -159,11 +170,9 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
           </div>
 
           {/* Footer dengan Button */}
-          <div
-            className={`${uiColors.bg.secondary} px-3 py-2 ${uiColors.border.secondary}`}
-          >
+          <div className="bg-slate-700 px-3 py-2 border-t border-slate-400">
             <div className="flex items-center justify-between mb-2">
-              <div className={`${uiColors.text.tertiary} text-xs`}>
+              <div className="text-slate-400 text-xs">
                 {currentSelection.length} terpilih
               </div>
               <div className="text-slate-400 text-xs">Max: 6</div>
@@ -171,7 +180,7 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={handleCancel}
-                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1 px-3 rounded text-xs font-medium transition-colors"
+                className="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-1 px-3 rounded text-xs font-medium transition-colors"
               >
                 Batal
               </button>
