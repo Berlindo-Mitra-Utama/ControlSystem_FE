@@ -1019,6 +1019,30 @@ export const ManpowerService = {
   },
 };
 
+// Progress Tracker: Get All Parts (named export)
+export const getAllParts = async () => {
+  try {
+    const response = await api.get("/progress-tracker/parts");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createPart = async (partData: {
+  partName: string;
+  partNumber: string;
+  customer: string;
+  partImage?: string;
+}) => {
+  try {
+    const response = await api.post("/progress-tracker/parts", partData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Tambahkan interceptor untuk menangani error
 api.interceptors.response.use(
   (response) => response,

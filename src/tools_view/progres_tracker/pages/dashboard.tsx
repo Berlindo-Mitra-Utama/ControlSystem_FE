@@ -14,6 +14,7 @@ import {
 } from "../components/dialog";
 import { useAuth } from "../../../main_view/contexts/AuthContext";
 import { getProgressColor } from "../../const/colors";
+import { getAllParts, createPart } from '../../../services/API_Services';
 
 // Helper function to generate unique IDs
 const generateId = (): string => {
@@ -214,6 +215,20 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
   );
 }
 
+// Helper to map backend part data to frontend Part type
+function mapBackendPartToFrontend(part: any): Part {
+  return {
+    id: part.id?.toString() || generateId(),
+    partName: part.partName || part.name || '',
+    partNumber: part.partNumber || '',
+    customer: part.customer || '',
+    partImage: part.partImage || '',
+    progress: part.progress || [], // fallback to [] if not present
+    createdAt: part.createdAt || new Date().toISOString(),
+    status: part.status || 'active',
+  };
+}
+
 // Main Dashboard Component
 export default function Dashboard() {
   const [parts, setParts] = useState<Part[]>([]);
@@ -222,343 +237,71 @@ export default function Dashboard() {
   const { user, handleLogout } = useAuth();
   const navigate = useNavigate();
 
-  // Load data from localStorage on mount and listen for changes
+  // Fetch parts from backend on mount
   useEffect(() => {
-    const loadPartsData = () => {
+    const fetchParts = async () => {
       try {
-        let savedParts;
-        try {
-          savedParts = localStorage.getItem("parts-data");
-        } catch (localStorageError) {
-          console.error(
-            "Dashboard: Error mengakses localStorage:",
-            localStorageError,
-          );
-          savedParts = null;
+        const response = await getAllParts();
+        console.log('Backend response:', response);
+        let partsArray = [];
+        if (Array.isArray(response.data)) {
+          partsArray = response.data;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          partsArray = response.data.data;
         }
-
-        if (savedParts && savedParts !== "undefined" && savedParts !== "null") {
-          try {
-            const parsedData = JSON.parse(savedParts);
-            setParts(parsedData);
-            console.log("Dashboard: Data berhasil dimuat dari localStorage");
-            return;
-          } catch (parseError) {
-            console.error(
-              "Dashboard: Error parsing data dari localStorage:",
-              parseError,
-            );
-          }
+        if (partsArray.length > 0) {
+          const mappedParts = partsArray.map(mapBackendPartToFrontend);
+          setParts(mappedParts);
+        } else {
+          setParts([]);
         }
-
-        let backupData;
-        try {
-          backupData = sessionStorage.getItem("parts-data-backup");
-        } catch (sessionStorageError) {
-          console.error(
-            "Dashboard: Error mengakses sessionStorage:",
-            sessionStorageError,
-          );
-          backupData = null;
-        }
-
-        if (backupData && backupData !== "undefined" && backupData !== "null") {
-          try {
-            const parsedBackupData = JSON.parse(backupData);
-            setParts(parsedBackupData);
-            console.log(
-              "Dashboard: Data berhasil dimuat dari sessionStorage (backup)",
-            );
-
-            try {
-              localStorage.setItem("parts-data", backupData);
-            } catch (saveError) {
-              console.error(
-                "Dashboard: Error menyimpan data ke localStorage:",
-                saveError,
-              );
-            }
-          } catch (parseBackupError) {
-            console.error(
-              "Dashboard: Error parsing data dari sessionStorage:",
-              parseBackupError,
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Dashboard: Error memuat data dari storage:", error);
-      }
-    };
-
-    loadPartsData();
-
-    const handleStorageChange = (e: StorageEvent | Event | null) => {
-      if (
-        !e ||
-        (e as StorageEvent).key === "parts-data" ||
-        (e as StorageEvent).key === "parts-data-backup"
-      ) {
-        loadPartsData();
-      }
-
-      if (
-        e &&
-        (e as StorageEvent).key === "parts-data" &&
-        (e as StorageEvent).newValue
-      ) {
-        try {
-          sessionStorage.setItem(
-            "parts-data-backup",
-            (e as StorageEvent).newValue,
-          );
-          console.log(
-            "Dashboard: Data dari localStorage disinkronkan ke sessionStorage",
-          );
-        } catch (sessionStorageError) {
-          console.error(
-            "Dashboard: Error menyimpan ke sessionStorage saat sinkronisasi:",
-            sessionStorageError,
-          );
+      } catch (error: any) {
+        // Log full Axios error details
+        if (error.response) {
+          console.error('Gagal memuat data parts dari backend:', error.message);
+          console.error('Status:', error.response.status);
+          console.error('Response data:', error.response.data);
+          console.error('Headers:', error.response.headers);
+        } else if (error.request) {
+          console.error('No response received:', error.request);
+        } else {
+          console.error('Error setting up request:', error.message);
         }
       }
     };
-
-    window.addEventListener("parts-updated", handleStorageChange);
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("parts-updated", handleStorageChange);
-      window.removeEventListener("storage", handleStorageChange);
-    };
+    fetchParts();
   }, []);
 
-  // Add new part
-  const handleAddPart = (
+  // Add new part (send to backend, then refresh list)
+  const handleAddPart = async (
     partData: Omit<Part, "id" | "createdAt" | "progress" | "status"> & {
       status: "active";
     },
   ) => {
-    const newPart: Part = {
-      id: generateId(),
-      ...partData,
-      createdAt: new Date().toISOString(),
-      progress: [
-        {
-          id: "design",
-          name: "Design",
-          processes: [
-            {
-              id: generateId(),
-              name: "Nama Part/No Part/Cust.",
-              completed: false,
-              children: [],
-              evidence: [],
-            },
-            {
-              id: generateId(),
-              name: "Drawing Part",
-              completed: false,
-              children: [
-                {
-                  id: generateId(),
-                  name: "Comp/Assy",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Child Part",
-                  completed: false,
-                  evidence: [],
-                },
-              ],
-              evidence: [],
-            },
-            {
-              id: generateId(),
-              name: "Surat Perintah Kerja (SPK)",
-              completed: false,
-              children: [],
-              evidence: [],
-            },
-            {
-              id: generateId(),
-              name: "Master Schedule",
-              completed: false,
-              children: [],
-              evidence: [],
-            },
-            {
-              id: generateId(),
-              name: "PPAP",
-              completed: false,
-              children: [
-                {
-                  id: generateId(),
-                  name: "Design Record",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Engineering Change Document",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Engineering Approval",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Process Flow Diagram",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "FMEA",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Control Plan",
-                  completed: false,
-                  children: [
-                    {
-                      id: generateId(),
-                      name: "QCPC",
-                      completed: false,
-                      evidence: [],
-                    },
-                    {
-                      id: generateId(),
-                      name: "Part Inspection Standard",
-                      completed: false,
-                      evidence: [],
-                    },
-                    {
-                      id: generateId(),
-                      name: "Check Sheet",
-                      completed: false,
-                      evidence: [],
-                    },
-                  ],
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Measurement System Analysis (MSA)",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Dimensional Result",
-                  completed: false,
-                  children: [
-                    {
-                      id: generateId(),
-                      name: "Check Sheet",
-                      completed: false,
-                      evidence: [],
-                    },
-                  ],
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Material & Performance Test Result",
-                  completed: false,
-                  children: [
-                    {
-                      id: generateId(),
-                      name: "Mill Sheet",
-                      completed: false,
-                      evidence: [],
-                    },
-                    {
-                      id: generateId(),
-                      name: "Test Lain",
-                      completed: false,
-                      evidence: [],
-                    },
-                  ],
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Sample Production Part",
-                  completed: false,
-                  evidence: [],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: "manufacturing",
-          name: "Manufacturing",
-          processes: [
-            {
-              id: generateId(),
-              name: "Tooling",
-              completed: false,
-              children: [
-                {
-                  id: generateId(),
-                  name: "Master Schedule Tooling",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Trial Tooling Report (TPTR)",
-                  completed: false,
-                  evidence: [],
-                },
-                {
-                  id: generateId(),
-                  name: "Design Tooling",
-                  completed: false,
-                  evidence: [],
-                },
-              ],
-              evidence: [],
-            },
-          ],
-        },
-        {
-          id: "quality",
-          name: "Quality Control",
-          processes: [
-            {
-              id: generateId(),
-              name: "Approval (Customer)",
-              completed: false,
-              children: [],
-              evidence: [],
-            },
-          ],
-        },
-      ],
-    };
-
-    const updatedParts = [...parts, newPart];
-    setParts(updatedParts);
-
-    // Save to localStorage
     try {
-      const partsDataString = JSON.stringify(updatedParts);
-      localStorage.setItem("parts-data", partsDataString);
-      sessionStorage.setItem("parts-data-backup", partsDataString);
-      window.dispatchEvent(new Event("parts-updated"));
-      console.log("Dashboard: Part baru berhasil ditambahkan");
+      await createPart({
+        partName: partData.partName,
+        partNumber: partData.partNumber,
+        customer: partData.customer,
+        partImage: partData.partImage,
+      });
+      // Re-fetch parts after adding
+      const response = await getAllParts();
+      console.log('Backend response after add:', response);
+      let partsArray = [];
+      if (Array.isArray(response.data)) {
+        partsArray = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        partsArray = response.data.data;
+      }
+      if (partsArray.length > 0) {
+        const mappedParts = partsArray.map(mapBackendPartToFrontend);
+        setParts(mappedParts);
+      } else {
+        setParts([]);
+      }
     } catch (error) {
-      console.error("Dashboard: Error menyimpan part baru:", error);
+      console.error('Gagal menambah part:', error);
     }
   };
 
@@ -884,16 +627,16 @@ export default function Dashboard() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <CardTitle className="text-base sm:text-lg text-white font-bold line-clamp-1">
-                                {part.partName}
+                                {part.partName || '-'}
                               </CardTitle>
                               <p className="text-xs sm:text-sm text-gray-400 truncate">
-                                {part.partNumber}
+                                {part.partNumber || '-'}
                               </p>
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
                             <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-500 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs">
-                              {part.customer}
+                              {part.customer || '-'}
                             </Badge>
                             <Badge
                               className={`bg-gradient-to-r ${statusInfo.color} text-white border-0 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs flex items-center gap-1`}
@@ -920,204 +663,46 @@ export default function Dashboard() {
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 e.currentTarget.style.display = "none";
-                                e.currentTarget.nextElementSibling?.setAttribute(
-                                  "style",
-                                  "display: flex",
-                                );
                               }}
                             />
-                          ) : null}
-                          <div
-                            className="w-full h-full flex items-center justify-center text-gray-400"
-                            style={{
-                              display: part.partImage ? "none" : "flex",
-                            }}
-                          >
-                            <Image className="w-4 h-4 sm:w-6 sm:h-6" />
-                          </div>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <Image className="w-4 h-4 sm:w-6 sm:h-6" />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
 
                     <CardContent className="space-y-4 sm:space-y-6">
-                      {/* Enhanced Progress Indicator */}
+                      {/* Progress Indicator */}
                       <div className="relative group">
-                        {/* Progress Header */}
                         <div className="flex justify-between items-center mb-3 sm:mb-4">
                           <div className="flex items-center gap-1.5 sm:gap-2">
-                            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
-                              <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white group-hover:animate-pulse" />
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                              <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                             </div>
-                            <span className="text-xs sm:text-sm font-semibold text-gray-300 group-hover:text-white transition-colors duration-300 group-hover:font-bold">
+                            <span className="text-xs sm:text-sm font-semibold text-gray-300">
                               Progress
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 sm:gap-2">
-                            <span className="text-base sm:text-lg font-bold text-white group-hover:text-blue-300 transition-colors duration-300 group-hover:scale-110 transform">
+                            <span className="text-base sm:text-lg font-bold text-white">
                               {overallProgress}%
                             </span>
                             <div
-                              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${overallProgress === 100 ? "bg-green-400" : overallProgress >= 75 ? "bg-blue-400" : overallProgress >= 50 ? "bg-yellow-400" : overallProgress >= 25 ? "bg-purple-400" : "bg-gray-400"} animate-pulse group-hover:scale-125 transition-transform duration-300 group-hover:animate-bounce`}
-                            ></div>
+                              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${overallProgress === 100 ? "bg-green-400" : overallProgress >= 75 ? "bg-blue-400" : overallProgress >= 50 ? "bg-yellow-400" : overallProgress >= 25 ? "bg-purple-400" : "bg-gray-400"}`}
+                            />
                           </div>
                         </div>
-
-                        {/* Enhanced Progress Bar */}
-                        <div className="relative group/progress">
-                          {/* Background Track */}
-                          <div
-                            className={`h-2.5 sm:h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner transition-all duration-300 group-hover/progress:shadow-lg group-hover/progress:shadow-blue-500/20 group-hover/progress:shadow-purple-500/20 group-hover/progress:shadow-cyan-500/20 group-hover/progress:shadow-white/10 group-hover/progress:shadow-yellow-500/20 group-hover/progress:shadow-green-500/20 ${
-                              overallProgress === 100
-                                ? "progress-complete"
-                                : overallProgress >= 75
-                                  ? "progress-bar-glow"
-                                  : overallProgress >= 50
-                                    ? "progress-warning"
-                                    : overallProgress >= 25
-                                      ? "progress-bar-glow"
-                                      : ""
-                            }`}
-                          >
-                            {/* Animated Progress Fill */}
-                            <div
-                              className={`h-full bg-gradient-to-r ${statusInfo.color} transition-all duration-1500 ease-out rounded-full relative overflow-hidden animate-progress-fill group-hover:animate-progress-bounce ${overallProgress === 0 ? "skeleton-loading" : ""} group-hover/progress:shadow-inner `}
-                              style={
-                                {
-                                  width: `${overallProgress}%`,
-                                  "--progress-width": `${overallProgress}%`,
-                                } as React.CSSProperties
-                              }
-                            >
-                              {/* Shimmer Effect */}
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer group-hover/progress:via-white/30 group-hover/progress:animate-pulse group-hover/progress:shadow-sm group-hover/progress:shadow-purple-500/20 "></div>
-
-                              {/* Progress Glow */}
-                              <div
-                                className={`absolute inset-0 bg-gradient-to-r ${statusInfo.color} blur-sm opacity-50 animate-pulse-glow group-hover/progress:opacity-75 group-hover/progress:blur-md group-hover/progress:shadow-lg `}
-                              ></div>
-
-                              {/* Progress Particles */}
-                              {overallProgress > 0 && (
-                                <div className="absolute inset-0">
-                                  {[...Array(3)].map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className="absolute w-1 h-1 bg-white rounded-full animate-pulse group-hover/progress:scale-150 group-hover/progress:bg-yellow-300 group-hover/progress:shadow-sm "
-                                      style={{
-                                        left: `${Math.random() * 100}%`,
-                                        top: "50%",
-                                        transform: "translateY(-50%)",
-                                        animationDelay: `${i * 0.5}s`,
-                                        animationDuration: "2s",
-                                      }}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Confetti for 100% progress */}
-                              {overallProgress === 100 && (
-                                <div className="absolute inset-0 pointer-events-none">
-                                  {[...Array(5)].map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={`absolute w-2 h-2 confetti group-hover/progress:scale-150 group-hover/progress:animate-bounce group-hover/progress:shadow-sm`}
-                                      style={{
-                                        left: `${Math.random() * 100}%`,
-                                        top: "0%",
-                                        backgroundColor: [
-                                          "#ff6b6b",
-                                          "#4ecdc4",
-                                          "#45b7d1",
-                                          "#96ceb4",
-                                          "#feca57",
-                                        ][i % 5],
-                                        animationDelay: `${i * 0.2}s`,
-                                      }}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Progress Markers */}
-                          <div className="absolute inset-0 flex justify-between items-center px-0.5 sm:px-1 pointer-events-none">
-                            {[0, 25, 50, 75, 100].map((marker) => (
-                              <div
-                                key={marker}
-                                className={`w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full ${
-                                  overallProgress >= marker
-                                    ? "bg-white"
-                                    : "bg-gray-500"
-                                } transition-all duration-300 group-hover:scale-150 group-hover:shadow-sm`}
-                              ></div>
-                            ))}
-                          </div>
-
-                          {/* Progress Label */}
-                          <div className="mt-2 text-center">
-                            <span
-                              className={`text-xs font-medium ${statusInfo.textColor} bg-gradient-to-r from-gray-800/80 to-gray-700/80 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full group-hover:from-blue-600/30 group-hover:to-blue-500/30 transition-all duration-300 group-hover:scale-105 transform hover:shadow-md hover:shadow-blue-500/25 hover:shadow-purple-500/25 hover:shadow-cyan-500/25 hover:shadow-white/10 hover:shadow-yellow-500/25`}
-                            >
-                              {statusInfo.text}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Progress Stats */}
-                        <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
-                          <div className="bg-gradient-to-br from-gray-700/50 to-gray-600/50 rounded-lg p-1.5 sm:p-2 hover:from-blue-600/30 hover:to-blue-500/30 transition-all duration-300 group-hover:scale-105 transform hover:shadow-lg hover:shadow-blue-500/25 hover:shadow-purple-500/25 hover:shadow-cyan-500/25 hover:shadow-white/10 hover:shadow-yellow-500/25 hover:shadow-green-500/25">
-                            <div className="text-xs text-gray-400 group-hover:text-blue-200 transition-colors duration-300">
-                              Tasks
-                            </div>
-                            <div className="text-xs sm:text-sm font-bold text-white group-hover:text-blue-300 transition-colors duration-300">
-                              {part.progress.reduce(
-                                (total, category) =>
-                                  total +
-                                  category.processes.reduce(
-                                    (catTotal, process) =>
-                                      catTotal +
-                                      (process.children?.length || 1),
-                                    0,
-                                  ),
-                                0,
-                              )}
-                            </div>
-                          </div>
-                          <div className="bg-gradient-to-br from-gray-700/50 to-gray-600/50 rounded-lg p-1.5 sm:p-2 hover:from-green-600/30 hover:to-green-500/30 transition-all duration-300 group-hover:scale-105 transform hover:shadow-lg hover:shadow-green-500/25 hover:shadow-purple-500/25 hover:shadow-cyan-500/25 hover:shadow-white/10 hover:shadow-yellow-500/25 hover:shadow-green-500/25">
-                            <div className="text-xs text-gray-400 group-hover:text-green-200 transition-colors duration-300">
-                              Categories
-                            </div>
-                            <div className="text-xs sm:text-sm font-bold text-white group-hover:text-green-300 transition-colors duration-300">
-                              {part.progress.length}
-                            </div>
-                          </div>
-                          <div className="bg-gradient-to-br from-gray-700/50 to-gray-600/50 rounded-lg p-1.5 sm:p-2 hover:from-purple-600/30 hover:to-purple-500/30 transition-all duration-300 group-hover:scale-105 transform hover:shadow-lg hover:shadow-purple-500/25 hover:shadow-blue-500/25 hover:shadow-cyan-500/25 hover:shadow-white/10 hover:shadow-yellow-500/25 hover:shadow-green-500/25">
-                            <div className="text-xs text-gray-400 group-hover:text-purple-200 transition-colors duration-300">
-                              Status
-                            </div>
-                            <div className="text-xs sm:text-sm font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
-                              {overallProgress === 100
-                                ? "Complete"
-                                : overallProgress > 0
-                                  ? "Active"
-                                  : "Pending"}
-                            </div>
-                          </div>
-                        </div>
+                        {/* Progress Bar and Stats can be added here as needed */}
                       </div>
-
-                      {/* Spacer for more distance */}
-                      <div className="h-6 sm:h-8"></div>
 
                       {/* Manage Progress Button */}
                       <Link to={`/progress/manage_progres/${part.id}`}>
                         <Button className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 hover:from-blue-600 hover:via-purple-600 hover:to-cyan-600 text-white border-0 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group-hover:shadow-2xl hover:shadow-blue-500/25 hover:shadow-purple-500/25 hover:shadow-cyan-500/25 hover:shadow-white/10 hover:shadow-yellow-500/25 hover:shadow-green-500/25">
                           <Settings className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300 group-hover:animate-pulse" />
-                          <span className="hidden sm:inline">
-                            Manage Progress
-                          </span>
+                          <span className="hidden sm:inline">Manage Progress</span>
                           <span className="sm:hidden">Manage</span>
                         </Button>
                       </Link>
