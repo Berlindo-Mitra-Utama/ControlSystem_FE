@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 interface ScheduleItem {
@@ -57,6 +57,7 @@ const SavedSchedulesView: React.FC<SavedSchedulesViewProps> = ({
       deleteIconHover: isDark ? "hover:text-red-400" : "hover:text-red-500",
     };
   };
+
   const colors = getThemeColors();
 
   return (

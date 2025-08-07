@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { MONTHS } from "../../utils/scheduleDateUtils";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useSchedule } from "../../contexts/ScheduleContext";
 import {
   PlanningSystemService,
   ProductPlanningData,
@@ -60,6 +61,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   onSaveToBackend,
 }) => {
   const { theme } = useTheme();
+  const { savedSchedules, setSavedSchedules } = useSchedule();
   const today = new Date();
   const [errors, setErrors] = useState<{ part?: string; customer?: string }>(
     {},
@@ -110,12 +112,39 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       // Generate schedule di frontend
       generateSchedule();
 
+      // Simpan ke SavedSchedulesPage
+      const newSchedule = {
+        id: Date.now().toString(),
+        name: `${MONTHS[selectedMonth]} ${selectedYear}`,
+        date: new Date().toISOString(),
+        form: {
+          part: form.part.trim(),
+          customer: form.customer.trim(),
+          stock: form.stock || 0,
+          timePerPcs: 257, // Default value
+          initialStock: form.stock || 0,
+        },
+        schedule: [], // Akan diisi oleh generateSchedule
+        productInfo: {
+          partName: form.part.trim(),
+          customer: form.customer.trim(),
+          lastSavedBy: {
+            nama: "User", // Bisa diambil dari context auth
+            role: "Operator",
+          },
+          lastSavedAt: new Date().toISOString(),
+        },
+      };
+
+      // Tambahkan ke saved schedules
+      setSavedSchedules((prev) => [...prev, newSchedule]);
+
       // Tampilkan notifikasi sukses
       console.log("Setting success notification...");
       setNotification({
         type: "success",
         title: "🎉 Jadwal Berhasil Dibuat!",
-        message: `Jadwal produksi untuk ${form.part} - ${form.customer} berhasil dibuat dan disimpan ke database.`,
+        message: `Jadwal produksi untuk ${form.part} - ${form.customer} berhasil dibuat dan tersimpan di Saved Schedules.`,
       });
 
       // Reset notifikasi setelah 5 detik

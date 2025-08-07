@@ -242,7 +242,7 @@ const SchedulerPage: React.FC = () => {
     const checkMobile = () => {
       const isMobileDevice = window.innerWidth < 640;
       setIsMobile(isMobileDevice);
-      
+
       // Set viewMode berdasarkan device
       if (isMobileDevice) {
         setViewMode("cards");
@@ -972,15 +972,23 @@ const SchedulerPage: React.FC = () => {
           await ProductionService.createProductionSchedule(backendData);
       }
 
-      // Simpan juga ke localStorage untuk backup
+      // Simpan juga ke SavedSchedulesPage
       const newSchedule = {
         id: response.id || existingId || Date.now().toString(),
         name: scheduleName,
-        date: new Date().toLocaleDateString(),
+        date: new Date().toISOString(),
         form: { ...form },
         schedule: [...schedule],
         childParts: childParts,
-        productInfo: productInfo,
+        productInfo: {
+          partName: form.part,
+          customer: form.customer,
+          lastSavedBy: {
+            nama: "User", // Bisa diambil dari context auth
+            role: "Operator",
+          },
+          lastSavedAt: new Date().toISOString(),
+        },
       };
 
       if (existingId) {
@@ -988,14 +996,16 @@ const SchedulerPage: React.FC = () => {
         updateSchedule(existingId.toString(), newSchedule);
         showSuccess("Jadwal berhasil diperbarui!");
       } else {
-        // Tambah jadwal baru
+        // Tambah jadwal baru ke SavedSchedulesPage
         const updatedSchedules = [...savedSchedules, newSchedule];
         setSavedSchedules(updatedSchedules);
         localStorage.setItem(
           "savedSchedules",
           JSON.stringify(updatedSchedules),
         );
-        showSuccess("Schedule berhasil disimpan ke database!");
+        showSuccess(
+          "Schedule berhasil disimpan ke database dan Saved Schedules!",
+        );
       }
     } catch (error) {
       console.error("Error saving schedule:", error);
