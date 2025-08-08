@@ -1056,6 +1056,15 @@ export const createPart = async (partData: {
   }
 };
 
+export const deletePart = async (partId: string) => {
+  try {
+    const response = await api.delete(`/progress-tracker/parts/${partId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Tambahkan interceptor untuk menangani error
 api.interceptors.response.use(
   (response) => response,

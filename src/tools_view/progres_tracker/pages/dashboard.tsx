@@ -14,11 +14,34 @@ import {
 } from "../components/dialog";
 import { useAuth } from "../../../main_view/contexts/AuthContext";
 import { getProgressColor } from "../../const/colors";
-import { getAllParts, createPart } from '../../../services/API_Services';
+import { getAllParts, createPart, deletePart } from '../../../services/API_Services';
 
 // Helper function to generate unique IDs
 const generateId = (): string => {
   return Math.random().toString(36).substr(2, 9);
+};
+
+// Helper function to validate base64 image data
+const isValidBase64Image = (data: string): boolean => {
+  if (!data || typeof data !== 'string') return false;
+  
+  // Check if it's a valid data URL
+  if (!data.startsWith('data:image/')) return false;
+  
+  // Check if it has base64 data
+  const base64Data = data.split(',')[1];
+  if (!base64Data) return false;
+  
+  // Basic validation - check if it's valid base64
+  try {
+    // Try to decode a small portion to validate
+    const testData = base64Data.substring(0, 100);
+    atob(testData);
+    return true;
+  } catch (error) {
+    console.error('Invalid base64 data:', error);
+    return false;
+  }
 };
 import {
   Package,
@@ -42,6 +65,13 @@ import {
   Plus,
   Image,
   Settings,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Calendar,
+  SortAsc,
+  SortDesc,
+  Trash2,
 } from "lucide-react";
 
 // Types and Interfaces
@@ -261,25 +291,23 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
 
 // Helper to map backend part data to frontend Part type
 function mapBackendPartToFrontend(part: any): Part {
-  // Validate image URL
+  // Get image data from backend
   let partImageUrl = part.partImageUrl || part.partImage || '';
   
   console.log('Original partImageUrl:', partImageUrl);
   console.log('Full part data:', part);
   
-  // Backend now sends full URLs, so we don't need to add base URL
-  // Just validate that the URL is correct
-  if (partImageUrl && !partImageUrl.startsWith('http')) {
-    // If it's still a relative path, add base URL (fallback)
+  // Check if it's valid base64 data
+  if (partImageUrl && isValidBase64Image(partImageUrl)) {
+    // It's valid base64 data, use it directly
+    console.log('Using valid base64 image data');
+  } else if (partImageUrl && !partImageUrl.startsWith('http')) {
+    // Legacy URL handling - if it's a relative path, add base URL
     if (!partImageUrl.startsWith('/')) {
       partImageUrl = `/${partImageUrl}`;
     }
     partImageUrl = `http://localhost:5555${partImageUrl}`;
-  }
-  
-  // For external URLs that might have CORS issues, we'll skip them for now
-  // and show the fallback icon instead
-  if (partImageUrl && partImageUrl.startsWith('http') && !partImageUrl.includes('localhost')) {
+  } else if (partImageUrl && partImageUrl.startsWith('http') && !partImageUrl.includes('localhost')) {
     // Skip external URLs that might cause CORS issues, but allow localhost
     partImageUrl = '';
   }
@@ -302,8 +330,14 @@ function mapBackendPartToFrontend(part: any): Part {
 // Main Dashboard Component
 export default function Dashboard() {
   const [parts, setParts] = useState<Part[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const pageSize = 6; // max 6 part per halaman (3 kolom x 2 baris)
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<string>("newest");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [partToDelete, setPartToDelete] = useState<Part | null>(null);
   const { user, handleLogout } = useAuth();
   const navigate = useNavigate();
 
@@ -379,6 +413,37 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Gagal menambah part:', error);
     }
+  };
+
+  // Delete part
+  const handleDeletePart = async (partId: string) => {
+    try {
+      await deletePart(partId);
+      // Re-fetch parts after deleting
+      const response = await getAllParts();
+      let partsArray = [];
+      if (Array.isArray(response.data)) {
+        partsArray = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        partsArray = response.data.data;
+      }
+      if (partsArray.length > 0) {
+        const mappedParts = partsArray.map(mapBackendPartToFrontend);
+        setParts(mappedParts);
+      } else {
+        setParts([]);
+      }
+      setShowDeleteModal(false);
+      setPartToDelete(null);
+    } catch (error) {
+      console.error('Gagal menghapus part:', error);
+    }
+  };
+
+  // Handle delete confirmation
+  const handleDeleteClick = (part: Part) => {
+    setPartToDelete(part);
+    setShowDeleteModal(true);
   };
 
   // Calculate overall progress for a part
@@ -461,6 +526,42 @@ export default function Dashboard() {
     }
   });
 
+  // Sort parts based on sortBy
+  const sortedParts = [...filteredParts].sort((a, b) => {
+    switch (sortBy) {
+      case "newest":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case "oldest":
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case "name-asc":
+        return (a.partName || "").localeCompare(b.partName || "");
+      case "name-desc":
+        return (b.partName || "").localeCompare(a.partName || "");
+      case "customer-asc":
+        return (a.customer || "").localeCompare(b.customer || "");
+      case "customer-desc":
+        return (b.customer || "").localeCompare(a.customer || "");
+      default:
+        return 0;
+    }
+  });
+
+  // Hitung pagination untuk carousel
+  const totalPages = Math.max(1, Math.ceil(sortedParts.length / pageSize));
+  const clampedPage = Math.min(currentPage, totalPages - 1);
+  const pagedParts = sortedParts.slice(clampedPage * pageSize, clampedPage * pageSize + pageSize);
+
+  // Reset halaman saat total halaman berkurang atau pencarian berubah
+  useEffect(() => {
+    if (currentPage > totalPages - 1) {
+      setCurrentPage(Math.max(0, totalPages - 1));
+    }
+  }, [totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchQuery, sortBy]);
+
   // Debug logging
   console.log(
     "Dashboard render - parts:",
@@ -533,9 +634,6 @@ export default function Dashboard() {
           {/* Header with title and add button - Modern Design */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-0 mb-8">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-xl">
-                <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">
                   Engineering Project List
@@ -638,78 +736,123 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Summary Stats - Modern Design with Dark Background */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-10">
-            <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 backdrop-blur-sm hover:border-blue-500/50 transition-all duration-300">
-              <CardContent className="p-4 sm:p-6 text-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Package className="w-6 h-6 text-white" />
+          {/* Summary Stats - Compact Design */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/30 rounded-xl p-4 mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-lg font-semibold text-white">Project Summary</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Package className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm text-gray-300">Total Parts</span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-blue-400 mb-2">
+                <div className="text-xl font-bold text-blue-400">
                   {parts.length}
                 </div>
-                <div className="text-sm sm:text-base text-blue-300 font-medium">
-                  Total Parts
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-gray-300">Completed</span>
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300">
-              <CardContent className="p-4 sm:p-6 text-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle2 className="w-6 h-6 text-white" />
+                <div className="text-xl font-bold text-green-400">
+                  {parts.filter((part) => calculateOverallProgress(part) === 100).length}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-green-400 mb-2">
-                  {
-                    parts.filter(
-                      (part) => calculateOverallProgress(part) === 100,
-                    ).length
-                  }
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm text-gray-300">In Progress</span>
                 </div>
-                <div className="text-sm sm:text-base text-green-300 font-medium">
-                  Completed
+                <div className="text-xl font-bold text-yellow-400">
+                  {parts.filter((part) => calculateOverallProgress(part) > 0 && calculateOverallProgress(part) < 100).length}
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 backdrop-blur-sm hover:border-yellow-500/50 transition-all duration-300">
-              <CardContent className="p-4 sm:p-6 text-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Activity className="w-6 h-6 text-white" />
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-300">Not Started</span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-yellow-400 mb-2">
-                  {
-                    parts.filter(
-                      (part) =>
-                        calculateOverallProgress(part) > 0 &&
-                        calculateOverallProgress(part) < 100,
-                    ).length
-                  }
+                <div className="text-xl font-bold text-gray-400">
+                  {parts.filter((part) => calculateOverallProgress(part) === 0).length}
                 </div>
-                <div className="text-sm sm:text-base text-yellow-300 font-medium">
-                  In Progress
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 backdrop-blur-sm hover:border-gray-500/50 transition-all duration-300">
-              <CardContent className="p-4 sm:p-6 text-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Clock className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-400 mb-2">
-                  {
-                    parts.filter((part) => calculateOverallProgress(part) === 0)
-                      .length
-                  }
-                </div>
-                <div className="text-sm sm:text-base text-gray-300 font-medium">
-                  Not Started
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Parts Grid - Modern Design */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {filteredParts.map((part, index) => {
+          {/* Section Divider with Sorting - Responsive */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Project Parts</h2>
+                <p className="text-sm text-gray-400">Manage and track your engineering parts</p>
+              </div>
+            </div>
+            
+            {/* Enhanced Responsive Sorting Dropdown */}
+            <div className="w-full sm:w-auto">
+              {/* Mobile: Enhanced Button with Modal */}
+              <div className="sm:hidden">
+                <Button
+                  variant="outline"
+                  className="w-full bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-600/50 text-white hover:from-gray-700/90 hover:to-gray-800/90 hover:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-xl sorting-dropdown-enhanced"
+                  onClick={() => setShowSortModal(true)}
+                >
+                  <span className="flex items-center justify-between w-full">
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                      </svg>
+                      <span>
+                        {sortBy === "newest" && "Terbaru"}
+                        {sortBy === "oldest" && "Terlama"}
+                        {sortBy === "name-asc" && "Nama A-Z"}
+                        {sortBy === "name-desc" && "Nama Z-A"}
+                        {sortBy === "customer-asc" && "Customer A-Z"}
+                        {sortBy === "customer-desc" && "Customer Z-A"}
+                      </span>
+                    </span>
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </Button>
+              </div>
+              
+              {/* Desktop: Enhanced Dropdown */}
+              <div className="hidden sm:block dark-dropdown-container">
+                <div className="relative group sorting-dropdown-enhanced">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-600/50 rounded-xl px-4 py-2.5 text-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300 hover:from-gray-700/90 hover:to-gray-800/90 hover:border-blue-500/50 backdrop-blur-sm shadow-lg hover:shadow-xl appearance-none pr-10 sorting-select"
+                  >
+                    <option value="newest">Terbaru</option>
+                    <option value="oldest">Terlama</option>
+                    <option value="name-asc">Nama A-Z</option>
+                    <option value="name-desc">Nama Z-A</option>
+                    <option value="customer-asc">Customer A-Z</option>
+                    <option value="customer-desc">Customer Z-A</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-300 pointer-events-none"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Parts Grid - Compact Modern Design */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pagedParts.map((part, index) => {
               try {
                 const overallProgress = calculateOverallProgress(part);
                 const statusInfo = getStatusInfo(overallProgress);
@@ -718,142 +861,128 @@ export default function Dashboard() {
                 return (
                   <Card
                     key={part.id}
-                    className="bg-gradient-to-br from-gray-800 via-gray-750 to-gray-900 border border-gray-700/50 hover:border-gray-600/80 transition-all duration-500 hover:shadow-2xl group animate-fade-in hover:bg-gray-750/90 hover:scale-[1.02] hover:border-blue-500/40 hover:shadow-blue-500/20 hover:shadow-purple-500/20 hover:shadow-cyan-500/20 hover:shadow-white/10 hover:shadow-yellow-500/20 hover:shadow-green-500/20 sm:hover:scale-[1.02] backdrop-blur-sm card-hover"
-                    style={{ animationDelay: `${index * 100}ms` }}
+                    className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 border border-gray-700/40 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg group backdrop-blur-sm"
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <CardHeader className="pb-3 sm:pb-4">
-                      {/* Part Image - Modern design with full width and fixed height */}
-                      <div className="mb-6 flex justify-center">
-                        <div className="relative group/image w-full">
-                          <div className="w-full h-36 bg-gradient-to-br from-gray-700/80 to-gray-800/80 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-600/50 shadow-2xl backdrop-blur-sm relative">
-                            {part.partImageUrl && part.partImageUrl.trim() !== '' ? (
+                    <CardHeader className="pb-2">
+                      {/* Compact Part Image */}
+                      <div className="mb-3 flex justify-center">
+                        <div className="relative w-full">
+                          <div className="w-full h-44 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-lg flex items-center justify-center overflow-hidden border border-gray-600/30">
+                            {part.partImageUrl && part.partImageUrl.trim() !== '' && (isValidBase64Image(part.partImageUrl) || part.partImageUrl.startsWith('http')) ? (
                               <img
                                 src={part.partImageUrl}
                                 alt={part.partName}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 onError={(e) => {
-                                  console.error('Error loading image:', part.partImageUrl);
-                                  console.error('Error details:', e);
                                   e.currentTarget.style.display = "none";
-                                  // Show fallback icon
                                   const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                  if (fallback) {
-                                    fallback.classList.remove('hidden');
-                                  }
+                                  if (fallback) fallback.classList.remove('hidden');
                                 }}
                                 onLoad={(e) => {
-                                  console.log('Image loaded successfully:', part.partImageUrl);
-                                  // Hide fallback when image loads successfully
                                   const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                  if (fallback) {
-                                    fallback.classList.add('hidden');
-                                  }
+                                  if (fallback) fallback.classList.add('hidden');
                                 }}
-                                crossOrigin="anonymous"
+                                {...(part.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
                               />
                             ) : null}
-                            {/* Fallback icon - always present but hidden when image loads */}
                             <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400">
-                              <Image className="w-16 h-16" />
+                              <Image className="w-8 h-8" />
                             </div>
                           </div>
-                          {/* Glow effect on hover */}
-                          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 opacity-0 group-hover/image:opacity-100 transition-opacity duration-500 blur-xl"></div>
                         </div>
                       </div>
                       
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                              <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <CardTitle className="text-lg sm:text-xl text-white font-bold line-clamp-1 mb-1">
-                                {part.partName || '-'}
-                              </CardTitle>
-                              <p className="text-sm sm:text-base text-gray-300 font-medium">
-                                {part.partNumber || '-'}
-                              </p>
-                            </div>
+                      {/* Compact Part Info */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-md flex items-center justify-center flex-shrink-0">
+                            <Package className="w-3 h-3 text-white" />
                           </div>
-                          <div className="flex flex-wrap gap-2 sm:gap-3">
-                            <Badge className="bg-gradient-to-r from-blue-600/90 to-blue-700/90 text-white border-0 px-3 py-1.5 text-sm font-medium shadow-lg backdrop-blur-sm">
-                              {part.customer || '-'}
-                            </Badge>
-                            <Badge
-                              className={`bg-gradient-to-r ${statusInfo.color} text-white border-0 px-3 py-1.5 text-sm font-medium flex items-center gap-2 shadow-lg backdrop-blur-sm`}
-                            >
-                              <StatusIcon className="w-4 h-4" />
-                              <span className="hidden sm:inline">
-                                {statusInfo.text}
-                              </span>
-                              <span className="sm:hidden">
-                                {statusInfo.text.length > 8
-                                  ? statusInfo.text.substring(0, 8) + "..."
-                                  : statusInfo.text}
-                              </span>
-                            </Badge>
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="text-sm font-bold text-white line-clamp-1">
+                              {part.partName || '-'}
+                            </CardTitle>
+                            <p className="text-xs text-gray-400">
+                              {part.partNumber || '-'}
+                            </p>
                           </div>
+                        </div>
+                        
+                        {/* Compact Badges */}
+                        <div className="flex flex-wrap gap-1">
+                          <Badge className="bg-blue-600/80 text-white border-0 px-2 py-0.5 text-xs font-medium">
+                            {part.customer || '-'}
+                          </Badge>
+                          <Badge className={`bg-gradient-to-r ${statusInfo.color} text-white border-0 px-2 py-0.5 text-xs font-medium flex items-center gap-1`}>
+                            <StatusIcon className="w-3 h-3" />
+                            <span className="truncate">
+                              {statusInfo.text.length > 6 ? statusInfo.text.substring(0, 6) + "..." : statusInfo.text}
+                            </span>
+                          </Badge>
                         </div>
                       </div>
                     </CardHeader>
 
-                                         <CardContent className="space-y-6 sm:space-y-8">
-                       {/* Progress Indicator - Modern design */}
-                       <div className="relative group/progress">
-                         <div className="flex justify-between items-center mb-4 sm:mb-6">
-                           <div className="flex items-center gap-3 sm:gap-4">
-                             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                               <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                             </div>
-                             <span className="text-sm sm:text-base font-semibold text-gray-200">
-                               Progress
-                             </span>
-                           </div>
-                           <div className="flex items-center gap-3 sm:gap-4">
-                             <span className="text-xl sm:text-2xl font-bold text-white">
-                               {overallProgress}%
-                             </span>
-                             <div
-                               className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full shadow-lg ${overallProgress === 100 ? "bg-green-400" : overallProgress >= 75 ? "bg-blue-400" : overallProgress >= 50 ? "bg-yellow-400" : overallProgress >= 25 ? "bg-purple-400" : "bg-gray-400"}`}
-                             />
-                           </div>
-                         </div>
-                         
-                         {/* Modern Progress Bar */}
-                         <div className="w-full bg-gray-700/50 rounded-full h-2 sm:h-3 overflow-hidden backdrop-blur-sm">
-                           <div 
-                             className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                               overallProgress === 100 
-                                 ? "bg-gradient-to-r from-green-400 to-emerald-500" 
-                                 : overallProgress >= 75 
-                                 ? "bg-gradient-to-r from-blue-400 to-cyan-500" 
-                                 : overallProgress >= 50 
-                                 ? "bg-gradient-to-r from-yellow-400 to-orange-500" 
-                                 : overallProgress >= 25 
-                                 ? "bg-gradient-to-r from-purple-400 to-pink-500" 
-                                 : "bg-gradient-to-r from-gray-400 to-gray-500"
-                             }`}
-                             style={{ width: `${overallProgress}%` }}
-                           />
-                         </div>
-                       </div>
+                    <CardContent className="space-y-3 pt-0">
+                      {/* Compact Progress Indicator */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Activity className="w-3 h-3 text-blue-400" />
+                            <span className="text-xs font-medium text-gray-300">Progress</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">
+                              {overallProgress}%
+                            </span>
+                            <div className={`w-2 h-2 rounded-full ${overallProgress === 100 ? "bg-green-400" : overallProgress >= 75 ? "bg-blue-400" : overallProgress >= 50 ? "bg-yellow-400" : overallProgress >= 25 ? "bg-purple-400" : "bg-gray-400"}`} />
+                          </div>
+                        </div>
+                        
+                        {/* Compact Progress Bar */}
+                        <div className="w-full bg-gray-700/30 rounded-full h-1.5 overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ease-out ${
+                              overallProgress === 100 
+                                ? "bg-gradient-to-r from-green-400 to-emerald-500" 
+                                : overallProgress >= 75 
+                                ? "bg-gradient-to-r from-blue-400 to-cyan-500" 
+                                : overallProgress >= 50 
+                                ? "bg-gradient-to-r from-yellow-400 to-orange-500" 
+                                : overallProgress >= 25 
+                                ? "bg-gradient-to-r from-purple-400 to-pink-500" 
+                                : "bg-gradient-to-r from-gray-400 to-gray-500"
+                            }`}
+                            style={{ width: `${overallProgress}%` }}
+                          />
+                        </div>
+                      </div>
 
-                       {/* Manage Progress Button - Modern design */}
-                       <Link to={`/progress/manage_progres/${part.id}`}>
-                         <Button className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 hover:from-blue-600 hover:via-purple-600 hover:to-cyan-600 text-white border-0 flex items-center justify-center gap-3 py-4 sm:py-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] group-hover:shadow-2xl hover:shadow-blue-500/30 hover:shadow-purple-500/30 hover:shadow-cyan-500/30 hover:shadow-white/20 rounded-xl font-semibold text-base sm:text-lg">
-                           <Settings className="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform duration-300 group-hover:animate-pulse" />
-                           <span className="hidden sm:inline">Manage Progress</span>
-                           <span className="sm:hidden">Manage</span>
-                         </Button>
-                       </Link>
-                     </CardContent>
+                      {/* CRUD Buttons */}
+                      <div className="flex gap-2">
+                        {/* Edit/Manage Button */}
+                        <Link to={`/progress/manage_progres/${part.id}`} className="flex-1">
+                          <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 flex items-center justify-center gap-2 py-2 px-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.01] rounded-lg font-medium text-xs">
+                            <Settings className="w-3 h-3" />
+                            <span>Manage</span>
+                          </Button>
+                        </Link>
+                        
+                        {/* Delete Button */}
+                        <Button 
+                          onClick={() => handleDeleteClick(part)}
+                          className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0 flex items-center justify-center gap-2 py-2 px-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.01] rounded-lg font-medium text-xs"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
                   </Card>
                 );
               } catch (error) {
                 console.error("Error rendering part card:", error, part);
-                return null; // Skip rendering this card if there's an error
+                return null;
               }
             })}
           </div>
@@ -887,6 +1016,45 @@ export default function Dashboard() {
               )}
             </div>
           )}
+
+          {/* Carousel Pagination Controls */}
+          {filteredParts.length > 0 && (
+            <div className="mt-6 flex items-center justify-between gap-4">
+              <Button
+                variant="outline"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent flex items-center gap-2 px-3 py-2"
+                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                disabled={clampedPage === 0}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Prev
+              </Button>
+
+              {/* Dots */}
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i)}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      i === clampedPage ? 'bg-blue-500' : 'bg-gray-600 hover:bg-gray-500'
+                    }`}
+                    aria-label={`Page ${i + 1}`}
+                  />
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent flex items-center gap-2 px-3 py-2"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={clampedPage >= totalPages - 1}
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -896,6 +1064,108 @@ export default function Dashboard() {
         onClose={() => setShowAddModal(false)}
         onAddPart={handleAddPart}
       />
+
+      {/* Delete Confirmation Modal - Improved UI */}
+      <Dialog open={showDeleteModal} onOpenChange={() => setShowDeleteModal(false)}>
+        <DialogContent className="max-w-md w-[95vw] sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-4 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              Konfirmasi Hapus
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/30">
+              <p className="text-gray-300">
+                Apakah Anda yakin ingin menghapus part <strong className="text-white">{partToDelete?.partName}</strong>?
+              </p>
+            </div>
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+              <p className="text-sm text-red-300 flex items-center gap-2">
+                <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+                Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait part ini.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50 transition-all duration-200"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={() => partToDelete && handleDeletePart(partToDelete.id)}
+              className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white transition-all duration-200"
+            >
+              Hapus
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sorting Modal for Mobile */}
+      <Dialog open={showSortModal} onOpenChange={() => setShowSortModal(false)}>
+        <DialogContent className="max-w-sm w-[95vw] sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-4 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+              </div>
+              Urutkan Parts
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3">
+            {[
+              { value: "newest", label: "Terbaru", icon: "🕒" },
+              { value: "oldest", label: "Terlama", icon: "🕒" },
+              { value: "name-asc", label: "Nama A-Z", icon: "📝" },
+              { value: "name-desc", label: "Nama Z-A", icon: "📝" },
+              { value: "customer-asc", label: "Customer A-Z", icon: "👤" },
+              { value: "customer-desc", label: "Customer Z-A", icon: "👤" }
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  setSortBy(option.value);
+                  setShowSortModal(false);
+                }}
+                className={`w-full p-4 rounded-xl border transition-all duration-200 text-left sort-option ${
+                  sortBy === option.value
+                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-500/50 text-blue-300 sort-active"
+                    : "bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50 hover:border-gray-600/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">{option.icon}</span>
+                  <span className="font-medium">{option.label}</span>
+                  {sortBy === option.value && (
+                    <div className="ml-auto w-2 h-2 bg-blue-400 rounded-full"></div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowSortModal(false)}
+              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50 transition-all duration-200"
+            >
+              Tutup
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
              <style>{`
          @keyframes fade-in {
@@ -1074,6 +1344,104 @@ export default function Dashboard() {
            transform: translateY(-8px) scale(1.02);
            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
          }
+         
+         /* Enhanced sorting dropdown effects */
+         .sorting-dropdown-enhanced {
+           position: relative;
+           overflow: hidden;
+         }
+         
+         .sorting-dropdown-enhanced::before {
+           content: '';
+           position: absolute;
+           top: 0;
+           left: -100%;
+           width: 100%;
+           height: 100%;
+           background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+           transition: left 0.6s ease-in-out;
+         }
+         
+         .sorting-dropdown-enhanced:hover::before {
+           left: 100%;
+         }
+         
+         /* Mobile sorting modal animations */
+         .sort-option {
+           position: relative;
+           overflow: hidden;
+         }
+         
+         .sort-option::before {
+           content: '';
+           position: absolute;
+           top: 0;
+           left: -100%;
+           width: 100%;
+           height: 100%;
+           background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+           transition: left 0.4s ease-in-out;
+         }
+         
+         .sort-option:hover::before {
+           left: 100%;
+         }
+         
+         /* Pulse animation for active sort option */
+         @keyframes sort-pulse {
+           0%, 100% {
+             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+           }
+           50% {
+             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+           }
+         }
+         
+         .sort-active {
+           animation: sort-pulse 2s infinite;
+         }
+         
+         /* Dark dropdown styling */
+         .sorting-select {
+           background-color: #111827 !important;
+           color: #ffffff !important;
+         }
+         
+         .sorting-select option {
+           background-color: #111827 !important;
+           color: #ffffff !important;
+           border: 1px solid #374151 !important;
+         }
+         
+         .sorting-select option:hover {
+           background-color: #1f2937 !important;
+         }
+         
+         .sorting-select option:checked {
+           background-color: #3b82f6 !important;
+         }
+         
+         /* Force dark background for all select options */
+         select option {
+           background-color: #111827 !important;
+           color: #ffffff !important;
+         }
+         
+         /* Custom dropdown container */
+         .dark-dropdown-container {
+           background-color: #111827 !important;
+         }
+         
+         .dark-dropdown-container select {
+           background-color: #111827 !important;
+         }
+         
+         .dark-dropdown-container option {
+           background-color: #111827 !important;
+           color: #ffffff !important;
+         }
+         
+
          
          /* Mobile touch improvements */
          @media (max-width: 640px) {
