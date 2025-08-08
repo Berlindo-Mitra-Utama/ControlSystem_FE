@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { ScheduleItem } from "../types/scheduleTypes";
 import { ChildPartData } from "../types/childPartTypes";
+import { MONTHS } from "../utils/scheduleDateUtils";
 
 export interface SavedSchedule {
   id: string;
@@ -89,10 +90,15 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
     year: number,
   ): SavedSchedule | null => {
     const existingSchedule = savedSchedules.find((schedule) => {
+      // Cek berdasarkan part name dan nama jadwal yang mengandung bulan dan tahun
+      const scheduleName = schedule.name.toLowerCase();
+      const monthName = MONTHS[month].toLowerCase();
+      const yearStr = year.toString();
+
       return (
-        (schedule.form.part === partName &&
-          schedule.name.includes(`${month + 1} ${year}`)) || // Format: "Januari 2024"
-        schedule.name.includes(`${year}-${String(month + 1).padStart(2, "0")}`) // Format: "2024-01"
+        schedule.form.part === partName &&
+        scheduleName.includes(monthName) &&
+        scheduleName.includes(yearStr)
       );
     });
 

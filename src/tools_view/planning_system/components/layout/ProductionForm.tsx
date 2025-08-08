@@ -6,6 +6,7 @@ import {
   PlanningSystemService,
   ProductPlanningData,
 } from "../../../../services/API_Services";
+import Modal from "../ui/Modal";
 
 // Singkatan bulan untuk dropdown
 const MONTH_ABBREVIATIONS = [
@@ -61,7 +62,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   onSaveToBackend,
 }) => {
   const { theme } = useTheme();
-  const { savedSchedules, setSavedSchedules } = useSchedule();
+  const { savedSchedules, setSavedSchedules, checkExistingSchedule } =
+    useSchedule();
   const today = new Date();
   const [errors, setErrors] = useState<{ part?: string; customer?: string }>(
     {},
@@ -72,6 +74,9 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     message: string;
     title: string;
   } | null>(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [pendingScheduleData, setPendingScheduleData] =
+    useState<ProductPlanningData | null>(null);
 
   // Handler untuk generate schedule dengan bulan & tahun dan auto save ke database
   const handleGenerateSchedule = async () => {
@@ -92,20 +97,43 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     }
 
     setErrors({});
+
+    // Persiapkan data untuk backend
+    const planningData: ProductPlanningData = {
+      partName: form.part.trim(),
+      customerName: form.customer.trim(),
+      productionMonth: selectedMonth + 1, // Konversi ke format 1-12
+      productionYear: selectedYear,
+      currentStock: form.stock || 0,
+    };
+
+    // Cek apakah jadwal sudah ada untuk part, bulan, dan tahun yang sama
+    const existingSchedule = checkExistingSchedule(
+      form.part.trim(),
+      selectedMonth,
+      selectedYear,
+    );
+
+    if (existingSchedule) {
+      // Tampilkan modal konfirmasi
+      setPendingScheduleData(planningData);
+      setShowConfirmationModal(true);
+      return;
+    }
+
+    // Jika tidak ada jadwal yang sama, langsung proses
+    await processScheduleGeneration(planningData);
+  };
+
+  // Fungsi untuk memproses pembuatan jadwal
+  const processScheduleGeneration = async (
+    planningData: ProductPlanningData,
+  ) => {
     setScheduleName(`${MONTHS[selectedMonth]} ${selectedYear}`);
     setIsSaving(true);
     setNotification(null);
 
     try {
-      // Persiapkan data untuk backend
-      const planningData: ProductPlanningData = {
-        partName: form.part.trim(),
-        customerName: form.customer.trim(),
-        productionMonth: selectedMonth + 1, // Konversi ke format 1-12
-        productionYear: selectedYear,
-        currentStock: form.stock || 0,
-      };
-
       // Simpan ke backend menggunakan API service
       await PlanningSystemService.createProductPlanning(planningData);
 
@@ -118,16 +146,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         name: `${MONTHS[selectedMonth]} ${selectedYear}`,
         date: new Date().toISOString(),
         form: {
-          part: form.part.trim(),
-          customer: form.customer.trim(),
-          stock: form.stock || 0,
+          part: planningData.partName,
+          customer: planningData.customerName,
+          stock: planningData.currentStock,
           timePerPcs: 257, // Default value
-          initialStock: form.stock || 0,
+          initialStock: planningData.currentStock,
         },
         schedule: [], // Akan diisi oleh generateSchedule
         productInfo: {
-          partName: form.part.trim(),
-          customer: form.customer.trim(),
+          partName: planningData.partName,
+          customer: planningData.customerName,
           lastSavedBy: {
             nama: "User", // Bisa diambil dari context auth
             role: "Operator",
@@ -144,7 +172,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       setNotification({
         type: "success",
         title: "🎉 Jadwal Berhasil Dibuat!",
-        message: `Jadwal produksi untuk ${form.part} - ${form.customer} berhasil dibuat dan tersimpan di Saved Schedules.`,
+        message: `Jadwal produksi untuk ${planningData.partName} - ${planningData.customerName} berhasil dibuat dan tersimpan di Saved Schedules.`,
       });
 
       // Reset notifikasi setelah 5 detik
@@ -169,6 +197,14 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       }, 5000);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Handler untuk konfirmasi pembuatan jadwal baru
+  const handleConfirmNewSchedule = async () => {
+    if (pendingScheduleData) {
+      await processScheduleGeneration(pendingScheduleData);
+      setPendingScheduleData(null);
     }
   };
 
@@ -734,6 +770,40 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           </div>
         </div>
       </div>
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={showConfirmationModal}
+        onClose={() => {
+          setShowConfirmationModal(false);
+          setPendingScheduleData(null);
+        }}
+        title="⚠️ Jadwal Sudah Ada"
+        type="confirm"
+        onConfirm={handleConfirmNewSchedule}
+        confirmText="Ya, Buat Jadwal Baru"
+        cancelText="Batal"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300">
+            Jadwal produksi untuk{" "}
+            <strong>{pendingScheduleData?.partName}</strong> pada bulan{" "}
+            <strong>
+              {MONTHS[selectedMonth]} {selectedYear}
+            </strong>{" "}
+            sudah ada di menu Saved Schedules.
+          </p>
+          <p className="text-gray-400 text-sm">
+            Apakah Anda ingin membuat jadwal baru untuk menggantikan jadwal yang
+            sudah ada?
+          </p>
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+            <p className="text-yellow-400 text-sm">
+              💡 <strong>Tips:</strong> Anda juga bisa melihat jadwal yang sudah
+              ada di menu "Saved Schedules" untuk referensi.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
