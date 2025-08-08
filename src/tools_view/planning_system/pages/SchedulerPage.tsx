@@ -1360,12 +1360,13 @@ const SchedulerPage: React.FC = () => {
               <h2
                 className={`text-2xl sm:text-4xl font-bold ${uiColors.text.primary} mb-4`}
               >
-                Jadwal Produksi belum dibuat
+                🚀 Mulai Perencanaan Produksi
               </h2>
               <p
                 className={`text-lg sm:text-xl ${uiColors.text.tertiary} mb-6 sm:mb-8`}
               >
-                Lakukan penjadwalan sekarang
+                Buat jadwal produksi yang optimal untuk meningkatkan efisiensi
+                dan target produksi
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -1375,7 +1376,7 @@ const SchedulerPage: React.FC = () => {
                   }}
                   className="px-8 sm:px-12 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base sm:text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
-                  Tambah Penjadwalan
+                  ✨ Buat Jadwal Produksi
                 </button>
               </div>
             </div>

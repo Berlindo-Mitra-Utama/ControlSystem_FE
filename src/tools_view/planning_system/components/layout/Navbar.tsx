@@ -193,7 +193,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
             </NavbarItem>
           </>
         )}
-        
+
         {/* Theme Toggle Button (Desktop) */}
         <NavbarItem>
           <button
