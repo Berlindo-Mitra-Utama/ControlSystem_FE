@@ -28,6 +28,9 @@ import WeldingCalculator from "./tools_view/welding_kalkulator/welding_calculato
 import DashboardProgres from "./tools_view/progres_tracker/pages/dashboard";
 import ManageProgres from "./tools_view/progres_tracker/pages/manage_progres";
 
+// Work Standard
+import Component from "./tools_view/standart_kerja/work-standard";
+
 function App() {
   return (
     <AuthProvider>
@@ -96,6 +99,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <UserManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Work Standard */}
+              <Route
+                path="/work-standard"
+                element={
+                  <ProtectedRoute>
+                    <Component />
                   </ProtectedRoute>
                 }
               />
