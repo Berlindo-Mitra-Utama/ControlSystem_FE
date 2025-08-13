@@ -36,10 +36,11 @@ const SavedSchedulesPage: React.FC = () => {
   const [editingHeaderCustomerName, setEditingHeaderCustomerName] =
     useState<string>("");
 
-  // State untuk editing part overview
+  // State untuk editing part overview dengan modal
   const [editingPartName, setEditingPartName] = useState<string>("");
   const [editingPartCustomer, setEditingPartCustomer] = useState<string>("");
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
+  const [showEditPartModal, setShowEditPartModal] = useState<boolean>(false);
 
   // Fungsi untuk mendapatkan warna berdasarkan theme
   const getThemeColors = () => {
@@ -225,14 +226,15 @@ const SavedSchedulesPage: React.FC = () => {
     setEditingHeaderCustomerName("");
   };
 
-  // Fungsi untuk memulai editing part overview
+  // Fungsi untuk memulai editing part overview dengan modal
   const handleStartPartEdit = (partName: string, customer: string) => {
     setEditingPartId(partName);
     setEditingPartName(partName);
     setEditingPartCustomer(customer);
+    setShowEditPartModal(true);
   };
 
-  // Fungsi untuk handle keyboard events part overview
+  // Fungsi untuk handle keyboard events part overview dengan modal
   const handlePartKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -243,7 +245,7 @@ const SavedSchedulesPage: React.FC = () => {
     }
   };
 
-  // Fungsi untuk menyimpan perubahan part overview
+  // Fungsi untuk menyimpan perubahan part overview dengan modal
   const handleSavePartEdit = () => {
     if (!editingPartName.trim() || !editingPartCustomer.trim()) {
       alert("Nama part dan customer tidak boleh kosong!");
@@ -270,17 +272,19 @@ const SavedSchedulesPage: React.FC = () => {
     setEditingPartId(null);
     setEditingPartName("");
     setEditingPartCustomer("");
+    setShowEditPartModal(false);
 
     // Show success message
     setShowSuccessMessage(true);
     setTimeout(() => setShowSuccessMessage(false), 3000);
   };
 
-  // Fungsi untuk membatalkan editing part overview
+  // Fungsi untuk membatalkan editing part overview dengan modal
   const handleCancelPartEdit = () => {
     setEditingPartId(null);
     setEditingPartName("");
     setEditingPartCustomer("");
+    setShowEditPartModal(false);
   };
 
   // Fungsi untuk download schedule sebagai file Excel
@@ -432,10 +436,10 @@ const SavedSchedulesPage: React.FC = () => {
                         e.stopPropagation();
                         handleStartPartEdit(part.name, part.customer);
                       }}
-                      className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-lg hover:scale-110 shadow-lg border border-white/20"
+                      className="absolute top-3 right-3 z-20 p-2 bg-gray-800/80 dark:bg-white/10 backdrop-blur-sm hover:bg-gray-700/90 dark:hover:bg-white/20 rounded-lg hover:scale-110 shadow-lg border border-gray-600/30 dark:border-white/20 transition-all duration-300"
                       title="Edit nama part dan customer"
                     >
-                      <Edit3 className="w-4 h-4 text-white" />
+                      <Edit3 className="w-4 h-4 text-white dark:text-white" />
                     </button>
 
                     {/* Clickable area for navigation */}
@@ -451,91 +455,22 @@ const SavedSchedulesPage: React.FC = () => {
                       </div>
 
                       <div className="relative z-10 text-center">
-                        {editingPartId === part.name ? (
-                          // Editing mode
-                          <div className="space-y-3">
-                            <div
-                              className={`text-xs ${colors.bodyText} text-center p-2 bg-blue-500/10 rounded-lg border border-blue-500/20`}
-                            >
-                              💡 Tekan{" "}
-                              <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
-                                Enter
-                              </kbd>{" "}
-                              untuk simpan,{" "}
-                              <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
-                                Esc
-                              </kbd>{" "}
-                              untuk batal
-                            </div>
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={editingPartName}
-                                onChange={(e) =>
-                                  setEditingPartName(e.target.value)
-                                }
-                                onKeyDown={handlePartKeyDown}
-                                className={`w-full px-3 py-2 text-sm border ${colors.cardBorder} rounded-lg ${colors.cardBg} ${colors.titleText} focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold text-center`}
-                                placeholder="Nama Part"
-                                autoFocus
-                              />
-                              <input
-                                type="text"
-                                value={editingPartCustomer}
-                                onChange={(e) =>
-                                  setEditingPartCustomer(e.target.value)
-                                }
-                                onKeyDown={handlePartKeyDown}
-                                className={`w-full px-3 py-2 text-sm border ${colors.cardBorder} rounded-lg ${colors.cardBg} ${colors.bodyText} focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-center`}
-                                placeholder="Nama Customer"
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSavePartEdit();
-                                }}
-                                className="flex-1 px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-1"
-                              >
-                                <Save className="w-3 h-3" />
-                                Simpan
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCancelPartEdit();
-                                }}
-                                className="flex-1 px-3 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-1"
-                              >
-                                <X className="w-3 h-3" />
-                                Batal
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          // View mode
-                          <>
-                            <h3
-                              className={`text-xl font-bold ${colors.titleText} mb-2 group-hover:text-gray-100 transition-colors`}
-                            >
-                              {part.name}
-                            </h3>
-                            <p className={`${colors.bodyText} text-sm mb-2`}>
-                              {part.customer}
-                            </p>
-                            <p
-                              className={`${colors.descriptionText} text-xs mb-4`}
-                            >
-                              {part.description}
-                            </p>
-                            <div
-                              className={`bg-gradient-to-r ${part.color} text-white px-4 py-2 rounded-full text-sm font-medium inline-block shadow-lg`}
-                            >
-                              {partSchedules.length} jadwal tersimpan
-                            </div>
-                          </>
-                        )}
+                        <h3
+                          className={`text-xl font-bold ${colors.titleText} mb-2 group-hover:text-gray-100 transition-colors`}
+                        >
+                          {part.name}
+                        </h3>
+                        <p className={`${colors.bodyText} text-sm mb-2`}>
+                          {part.customer}
+                        </p>
+                        <p className={`${colors.descriptionText} text-xs mb-4`}>
+                          {part.description}
+                        </p>
+                        <div
+                          className={`bg-gradient-to-r ${part.color} text-white px-4 py-2 rounded-full text-sm font-medium inline-block shadow-lg`}
+                        >
+                          {partSchedules.length} jadwal tersimpan
+                        </div>
                       </div>
                     </div>
 
@@ -653,10 +588,10 @@ const SavedSchedulesPage: React.FC = () => {
                       </p>
                       <button
                         onClick={handleStartHeaderEdit}
-                        className="absolute -right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-blue-500/10 hover:bg-blue-500/20 rounded-full"
+                        className="absolute -right-6 top-1/2 -translate-y-1/2 p-1 bg-blue-500/20 hover:bg-blue-500/30 rounded-full transition-colors"
                         title="Edit nama part dan customer"
                       >
-                        <Edit3 className="w-3 h-3 text-blue-400" />
+                        <Edit3 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                       </button>
                     </div>
                   )}
@@ -794,6 +729,122 @@ const SavedSchedulesPage: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal Edit Part */}
+      {showEditPartModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={handleCancelPartEdit}
+        >
+          <div
+            className={`${colors.cardBg} border ${colors.cardBorder} rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <Edit3 className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className={`text-xl font-bold ${colors.titleText}`}>
+                    Edit Part
+                  </h3>
+                  <p className={`${colors.bodyText} text-sm`}>
+                    Ubah nama part dan customer
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleCancelPartEdit}
+                className={`p-2 ${colors.backButtonBg} ${colors.backButtonHover} rounded-lg transition-colors`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-4">
+              <div>
+                <label
+                  className={`block text-sm font-medium ${colors.titleText} mb-2`}
+                >
+                  Nama Part
+                </label>
+                <input
+                  type="text"
+                  value={editingPartName}
+                  onChange={(e) => setEditingPartName(e.target.value)}
+                  onKeyDown={handlePartKeyDown}
+                  className={`w-full px-4 py-3 border ${colors.cardBorder} rounded-lg ${colors.cardBg} ${colors.titleText} focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors`}
+                  placeholder="Masukkan nama part"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label
+                  className={`block text-sm font-medium ${colors.titleText} mb-2`}
+                >
+                  Nama Customer
+                </label>
+                <input
+                  type="text"
+                  value={editingPartCustomer}
+                  onChange={(e) => setEditingPartCustomer(e.target.value)}
+                  onKeyDown={handlePartKeyDown}
+                  className={`w-full px-4 py-3 border ${colors.cardBorder} rounded-lg ${colors.cardBg} ${colors.titleText} focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors`}
+                  placeholder="Masukkan nama customer"
+                />
+              </div>
+
+              {/* Info */}
+              <div
+                className={`p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg`}
+              >
+                <div className="flex items-start gap-2">
+                  <div className="text-blue-400 text-sm">💡</div>
+                  <div className="text-sm">
+                    <p className={`${colors.bodyText} mb-1`}>
+                      <strong>Tips:</strong> Tekan{" "}
+                      <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
+                        Enter
+                      </kbd>{" "}
+                      untuk simpan,{" "}
+                      <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
+                        Esc
+                      </kbd>{" "}
+                      untuk batal
+                    </p>
+                    <p className={`${colors.descriptionText} text-xs`}>
+                      Perubahan akan diterapkan ke semua jadwal dengan part yang
+                      sama
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCancelPartEdit}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                Batal
+              </button>
+              <button
+                onClick={handleSavePartEdit}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

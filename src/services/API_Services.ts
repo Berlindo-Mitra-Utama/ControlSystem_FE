@@ -522,12 +522,19 @@ export const ProductionService = {
     scheduleData: ProductionSchedule,
   ): Promise<any> => {
     try {
+      // Log data yang akan dikirim untuk debugging
+      console.log("Data yang akan dikirim ke backend:", scheduleData);
+
       const response = await api.post(
         "/daily-production/schedule",
         scheduleData,
       );
       return response.data;
     } catch (error) {
+      console.error("Error createProductionSchedule:", error);
+      if (error.response?.status === 404) {
+        throw new Error("Endpoint tidak ditemukan, pastikan server berjalan");
+      }
       throw new Error(
         error.response?.data?.message || "Gagal membuat schedule",
       );
@@ -592,12 +599,19 @@ export const ProductionService = {
     scheduleData: ProductionSchedule,
   ): Promise<any> => {
     try {
+      // Log data yang akan dikirim untuk debugging
+      console.log("Data yang akan diupdate ke backend:", { id, scheduleData });
+
       const response = await api.put(
         `/daily-production/schedule/${id}`,
         scheduleData,
       );
       return response.data;
     } catch (error) {
+      console.error("Error updateProductionSchedule:", error);
+      if (error.response?.status === 404) {
+        throw new Error(`Schedule dengan ID ${id} tidak ditemukan di server`);
+      }
       throw new Error(
         error.response?.data?.message || "Gagal mengupdate schedule",
       );
@@ -652,34 +666,73 @@ export const ProductionService = {
     const { form, schedule, scheduleName, selectedMonth, selectedYear } =
       scheduleData;
 
-    // Konversi production data
-    const productionData: ProductionData[] = schedule.map((item: any) => ({
-      day: item.day,
-      shift: item.shift,
-      planningPcs: item.planningPcs || 0,
-      delivery: item.delivery || 0,
-      overtimePcs: item.overtimePcs || 0,
-      hasilProduksi: item.pcs || 0,
-      jamProduksiAktual: item.jamProduksiAktual || 0,
-      manpowerIds: item.manpowerIds || [1, 2, 3],
-      status: item.status || "Normal",
-      notes: item.notes || "",
-    }));
+    console.log("Data yang diterima untuk konversi:", scheduleData);
+
+    // Validasi data yang diperlukan
+    if (!form || !schedule || !scheduleName) {
+      console.error("Data tidak lengkap:", { form, schedule, scheduleName });
+      throw new Error("Data schedule tidak lengkap");
+    }
+
+    if (!form.part || !form.customer) {
+      console.error("Part atau customer kosong:", {
+        part: form.part,
+        customer: form.customer,
+      });
+      throw new Error("Data part dan customer harus diisi");
+    }
+
+    if (!Array.isArray(schedule) || schedule.length === 0) {
+      console.error("Schedule kosong atau bukan array:", schedule);
+      throw new Error("Data schedule tidak boleh kosong");
+    }
+
+    // Konversi production data dengan validasi
+    const productionData: ProductionData[] = schedule.map(
+      (item: any, index: number) => {
+        console.log(`Validasi item ${index}:`, item);
+
+        if (!item.day || !item.shift) {
+          console.error(`Item ${index} tidak lengkap:`, item);
+          throw new Error(`Data schedule pada index ${index} tidak lengkap`);
+        }
+
+        const convertedItem = {
+          day: item.day,
+          shift: item.shift,
+          planningPcs: item.planningPcs || 0,
+          delivery: item.delivery || 0,
+          overtimePcs: item.overtimePcs || 0,
+          hasilProduksi: item.pcs || 0,
+          jamProduksiAktual: item.jamProduksiAktual || 0,
+          manpowerIds: item.manpowerIds || [1, 2, 3],
+          status: item.status || "Normal",
+          notes: item.notes || "",
+        };
+
+        console.log(`Item ${index} berhasil dikonversi:`, convertedItem);
+        return convertedItem;
+      },
+    );
 
     // Dapatkan informasi user saat ini
     const currentUser = ProductionService.getCurrentUserInfo();
+    console.log("Current user:", currentUser);
 
-    return {
+    const result = {
       partName: form.part,
       customer: form.customer,
-      month: selectedMonth,
-      year: selectedYear,
+      month: selectedMonth || new Date().getMonth() + 1,
+      year: selectedYear || new Date().getFullYear(),
       initialStock: form.stock || 0,
       timePerPcs: form.timePerPcs || 257,
       scheduleName,
       productionData,
       lastSavedBy: currentUser, // Tambahkan informasi user yang terakhir kali saved
     };
+
+    console.log("Data yang akan dikirim ke backend:", result);
+    return result;
   },
 
   /**
@@ -1037,17 +1090,17 @@ export const createPart = async (partData: {
 }) => {
   try {
     const formData = new FormData();
-    formData.append('partName', partData.partName);
-    formData.append('partNumber', partData.partNumber);
-    formData.append('customer', partData.customer);
-    
+    formData.append("partName", partData.partName);
+    formData.append("partNumber", partData.partNumber);
+    formData.append("customer", partData.customer);
+
     if (partData.partImage) {
-      formData.append('partImage', partData.partImage);
+      formData.append("partImage", partData.partImage);
     }
 
     const response = await api.post("/progress-tracker/parts", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
@@ -1059,6 +1112,72 @@ export const createPart = async (partData: {
 export const deletePart = async (partId: string) => {
   try {
     const response = await api.delete(`/progress-tracker/parts/${partId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Manage Progress API Services
+export const getPartWithProgress = async (partId: string) => {
+  try {
+    const response = await api.get(`/manage-progress/parts/${partId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProcessCompletion = async (processId: string, completed: boolean) => {
+  try {
+    const response = await api.put(`/manage-progress/processes/${processId}/toggle`, {
+      completed
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProcess = async (processId: string, processData: {
+  name: string;
+  notes?: string;
+  completed: boolean;
+}) => {
+  try {
+    const response = await api.put(`/manage-progress/processes/${processId}`, processData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProgressToolingDetail = async (processId: string, toolingData: any) => {
+  try {
+    const response = await api.put(`/manage-progress/processes/${processId}/tooling-detail`, toolingData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const uploadEvidence = async (processId: string, evidenceData: {
+  name: string;
+  type: 'image' | 'file';
+  url: string;
+  size?: number;
+}) => {
+  try {
+    const response = await api.post(`/manage-progress/processes/${processId}/evidence`, evidenceData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteEvidence = async (evidenceId: string) => {
+  try {
+    const response = await api.delete(`/manage-progress/evidence/${evidenceId}`);
     return response.data;
   } catch (error) {
     throw error;

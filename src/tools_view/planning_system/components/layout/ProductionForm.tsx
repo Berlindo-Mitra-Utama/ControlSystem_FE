@@ -156,10 +156,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         productInfo: {
           partName: planningData.partName,
           customer: planningData.customerName,
-          lastSavedBy: {
-            nama: "User", // Bisa diambil dari context auth
-            role: "Operator",
-          },
+          lastSavedBy: undefined, // Untuk jadwal baru, tidak ada lastSavedBy
           lastSavedAt: new Date().toISOString(),
         },
       };

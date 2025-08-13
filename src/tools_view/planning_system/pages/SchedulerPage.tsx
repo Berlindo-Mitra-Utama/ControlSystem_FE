@@ -468,18 +468,11 @@ const SchedulerPage: React.FC = () => {
 
   // Fungsi untuk mengupdate informasi produk
   const updateProductInfo = () => {
-    const currentUser = ProductionService.getCurrentUserInfo();
-
     setProductInfo({
       partName: form.part || "",
       customer: form.customer || "",
-      lastSavedBy: currentUser
-        ? {
-            nama: currentUser.nama,
-            role: currentUser.role,
-          }
-        : undefined,
-      lastSavedAt: new Date().toISOString(),
+      lastSavedBy: productInfo?.lastSavedBy, // Pertahankan lastSavedBy yang sudah ada
+      lastSavedAt: productInfo?.lastSavedAt, // Pertahankan lastSavedAt yang sudah ada
     });
   };
 
@@ -946,6 +939,64 @@ const SchedulerPage: React.FC = () => {
     existingId?: number,
   ) => {
     try {
+      // Import ProductionService terlebih dahulu
+      const { ProductionService } = await import(
+        "../../../services/API_Services"
+      );
+
+      // Cek koneksi server terlebih dahulu
+      let serverAvailable = false;
+      try {
+        const testResponse = await fetch("http://localhost:5555/api/health", {
+          method: "GET",
+        });
+        serverAvailable = testResponse.ok;
+      } catch (serverError) {
+        console.log("Server tidak tersedia, akan menggunakan localStorage");
+        serverAvailable = false;
+      }
+
+      // Validasi data yang diperlukan
+      if (!form.part || !form.customer) {
+        throw new Error("Data part dan customer harus diisi");
+      }
+
+      if (!schedule || schedule.length === 0) {
+        throw new Error("Data schedule tidak boleh kosong");
+      }
+
+      // Validasi data schedule
+      const invalidSchedule = schedule.find((item) => !item.day || !item.shift);
+      if (invalidSchedule) {
+        throw new Error("Data schedule tidak lengkap, silakan generate ulang");
+      }
+
+      // Validasi month dan year
+      if (!currentMonth || !currentYear) {
+        throw new Error("Data bulan dan tahun tidak valid");
+      }
+
+      // Dapatkan informasi user saat ini
+      const currentUser = ProductionService.getCurrentUserInfo();
+
+      // Cek apakah ini adalah user yang berbeda dari yang terakhir kali save
+      const shouldUpdateLastSavedBy = (() => {
+        if (!currentUser) return false; // Jika tidak ada user info, tidak update
+
+        // Jika ini adalah jadwal baru (tidak ada existingId), selalu update lastSavedBy
+        if (!existingId) return true;
+
+        // Jika ini adalah update jadwal yang sudah ada
+        const existingSchedule = savedSchedules.find(
+          (s) => s.id === existingId.toString(),
+        );
+        if (!existingSchedule?.productInfo?.lastSavedBy) return true;
+
+        // Cek apakah user saat ini berbeda dengan user yang terakhir kali save
+        const lastSavedBy = existingSchedule.productInfo.lastSavedBy;
+        return currentUser.nama !== lastSavedBy.nama;
+      })();
+
       // Konversi data untuk backend
       const scheduleDataForBackend = {
         form,
@@ -956,29 +1007,111 @@ const SchedulerPage: React.FC = () => {
       };
 
       // Simpan ke backend
-      const { ProductionService } = await import(
-        "../../../services/API_Services"
-      );
       const backendData = ProductionService.convertScheduleDataForBackend(
         scheduleDataForBackend,
       );
 
-      let response;
-      if (existingId) {
-        // Update jadwal yang sudah ada
-        response = await ProductionService.updateProductionSchedule(
-          existingId,
-          backendData,
-        );
-      } else {
-        // Buat jadwal baru
-        response =
-          await ProductionService.createProductionSchedule(backendData);
+      // Validasi data backend sebelum dikirim
+      if (
+        !backendData.partName ||
+        !backendData.customer ||
+        !backendData.productionData
+      ) {
+        console.error("Data backend tidak lengkap:", backendData);
+        throw new Error("Data perencanaan produksi tidak lengkap");
       }
+
+      console.log("Data backend yang akan dikirim:", backendData);
+
+      let response;
+
+      // Jika server tidak tersedia, langsung simpan ke localStorage
+      if (!serverAvailable) {
+        console.log("Server tidak tersedia, langsung simpan ke localStorage");
+        response = { id: existingId || Date.now() };
+      } else {
+        try {
+          if (existingId) {
+            console.log(`Mencoba update schedule dengan ID: ${existingId}`);
+            // Update jadwal yang sudah ada
+            response = await ProductionService.updateProductionSchedule(
+              existingId,
+              backendData,
+            );
+            // Jika update berhasil, gunakan ID yang dikembalikan dari server
+            if (response.id) {
+              console.log(
+                `Schedule berhasil diupdate dengan ID: ${response.id}`,
+              );
+            }
+          } else {
+            console.log("Mencoba membuat schedule baru");
+            // Buat jadwal baru
+            response =
+              await ProductionService.createProductionSchedule(backendData);
+          }
+          console.log("Response dari API:", response);
+        } catch (apiError) {
+          console.error("API Error:", apiError);
+
+          // Cek apakah ini error 404 (endpoint tidak ditemukan) atau data tidak ditemukan
+          if (
+            apiError.message.includes("Endpoint tidak ditemukan") ||
+            apiError.message.includes("Schedule dengan ID") ||
+            apiError.message.includes(
+              "Data perencanaan produksi tidak ditemukan",
+            ) ||
+            apiError.response?.status === 404
+          ) {
+            console.log(
+              "Server tidak tersedia atau data tidak ditemukan, mencoba buat schedule baru...",
+            );
+
+            // Coba buat schedule baru sebagai fallback
+            try {
+              response =
+                await ProductionService.createProductionSchedule(backendData);
+              console.log(
+                "Berhasil membuat schedule baru sebagai fallback:",
+                response,
+              );
+            } catch (createError) {
+              console.log(
+                "Gagal membuat schedule baru, menyimpan ke localStorage...",
+              );
+              response = { id: existingId || Date.now() };
+            }
+          } else {
+            // Jika error lain, throw error untuk ditangani di catch block luar
+            throw apiError;
+          }
+        }
+      }
+
+      // Tentukan lastSavedBy berdasarkan logika di atas
+      const lastSavedBy =
+        shouldUpdateLastSavedBy && currentUser
+          ? {
+              nama: currentUser.nama,
+              role: currentUser.role,
+            }
+          : (() => {
+              // Jika tidak perlu update, gunakan yang sudah ada
+              if (existingId) {
+                const existingSchedule = savedSchedules.find(
+                  (s) => s.id === existingId.toString(),
+                );
+                return existingSchedule?.productInfo?.lastSavedBy;
+              }
+              return undefined;
+            })();
 
       // Simpan juga ke SavedSchedulesPage
       const newSchedule = {
-        id: response.id || existingId || Date.now().toString(),
+        id:
+          response.id?.toString() ||
+          existingId?.toString() ||
+          Date.now().toString(),
         name: scheduleName,
         date: new Date().toISOString(),
         form: { ...form },
@@ -987,17 +1120,29 @@ const SchedulerPage: React.FC = () => {
         productInfo: {
           partName: form.part,
           customer: form.customer,
-          lastSavedBy: {
-            nama: "User", // Bisa diambil dari context auth
-            role: "Operator",
-          },
-          lastSavedAt: new Date().toISOString(),
+          lastSavedBy: lastSavedBy,
+          lastSavedAt: shouldUpdateLastSavedBy
+            ? new Date().toISOString()
+            : (() => {
+                // Jika tidak perlu update, gunakan yang sudah ada
+                if (existingId) {
+                  const existingSchedule = savedSchedules.find(
+                    (s) => s.id === existingId.toString(),
+                  );
+                  return existingSchedule?.productInfo?.lastSavedAt;
+                }
+                return new Date().toISOString();
+              })(),
         },
       };
 
       if (existingId) {
-        // Update jadwal yang sudah ada
-        updateSchedule(existingId.toString(), newSchedule);
+        // Gunakan ID dari response jika ada, atau existingId
+        const finalId = response.id?.toString() || existingId.toString();
+        console.log(
+          `Updating schedule with ID: ${finalId} (original: ${existingId}, response: ${response.id})`,
+        );
+        updateSchedule(finalId, newSchedule);
         showSuccess("Jadwal berhasil diperbarui!");
       } else {
         // Tambah jadwal baru ke SavedSchedulesPage
@@ -1007,13 +1152,44 @@ const SchedulerPage: React.FC = () => {
           "savedSchedules",
           JSON.stringify(updatedSchedules),
         );
-        showSuccess(
-          "Schedule berhasil disimpan ke database dan Saved Schedules!",
-        );
+
+        // Pesan sukses yang lebih informatif
+        const successMessage =
+          serverAvailable && response.id
+            ? "Schedule berhasil disimpan ke database dan Saved Schedules!"
+            : "Schedule berhasil disimpan ke Saved Schedules (server tidak tersedia)";
+        showSuccess(successMessage);
       }
     } catch (error) {
       console.error("Error saving schedule:", error);
-      showAlert("Gagal menyimpan schedule ke database", "Error");
+
+      // Pesan error yang lebih informatif
+      let errorMessage = "Gagal menyimpan schedule";
+      if (error.message.includes("Data part dan customer")) {
+        errorMessage = "Data part dan customer harus diisi terlebih dahulu";
+      } else if (error.message.includes("Data schedule tidak boleh kosong")) {
+        errorMessage =
+          "Data schedule tidak boleh kosong, silakan generate schedule terlebih dahulu";
+      } else if (error.message.includes("Data perencanaan produksi")) {
+        errorMessage =
+          "Data perencanaan produksi tidak lengkap, silakan cek kembali form input";
+      } else if (
+        error.message.includes("Endpoint tidak ditemukan") ||
+        error.message.includes("Schedule dengan ID")
+      ) {
+        errorMessage =
+          "Server tidak tersedia atau endpoint tidak ditemukan, schedule disimpan ke localStorage";
+      } else if (error.message.includes("Gagal menyimpan ke database")) {
+        errorMessage =
+          "Server tidak tersedia, schedule disimpan ke localStorage";
+      } else if (error.message.includes("Data schedule tidak lengkap")) {
+        errorMessage =
+          "Data schedule tidak lengkap, silakan generate ulang schedule";
+      } else {
+        errorMessage = `Error: ${error.message}`;
+      }
+
+      showAlert(errorMessage, "Error");
     }
   };
 
@@ -1358,12 +1534,12 @@ const SchedulerPage: React.FC = () => {
           >
             <div className="text-center">
               <h2
-                className={`text-2xl sm:text-4xl font-bold ${uiColors.text.primary} mb-4`}
+                className={`text-xl sm:text-2xl font-bold ${uiColors.text.primary} mb-4`}
               >
                 🚀 Mulai Perencanaan Produksi
               </h2>
               <p
-                className={`text-lg sm:text-xl ${uiColors.text.tertiary} mb-6 sm:mb-8`}
+                className={`text-base sm:text-lg ${uiColors.text.tertiary} mb-6 sm:mb-8`}
               >
                 Buat jadwal produksi yang optimal untuk meningkatkan efisiensi
                 dan target produksi

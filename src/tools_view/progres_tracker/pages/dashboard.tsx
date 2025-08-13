@@ -334,7 +334,7 @@ export default function Dashboard() {
   const pageSize = 6; // max 6 part per halaman (3 kolom x 2 baris)
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<string>("newest");
+  const [sortBy, setSortBy] = useState<string>("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [partToDelete, setPartToDelete] = useState<Part | null>(null);
@@ -542,7 +542,8 @@ export default function Dashboard() {
       case "customer-desc":
         return (b.customer || "").localeCompare(a.customer || "");
       default:
-        return 0;
+        // Default sorting (no filter applied) - show newest first
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
   });
 
@@ -631,7 +632,7 @@ export default function Dashboard() {
 
       <div className="relative z-10 p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header with title and add button - Modern Design */}
+          {/* Header with title - Modern Design */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-0 mb-8">
             <div className="flex items-center gap-4">
               <div>
@@ -643,9 +644,81 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full sm:w-auto">
+          </div>
+
+          {/* Search Results Info - Modern Design */}
+          {searchQuery && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-gray-200 font-medium">
+                    Showing {filteredParts.length} of {parts.length} parts
+                  </span>
+                </div>
+                <span className="text-gray-400 font-medium">Search: "{searchQuery}"</span>
+              </div>
+            </div>
+          )}
+
+          {/* Summary Stats - Compact Design */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-lg font-semibold text-white">Project Summary</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Package className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm text-gray-300">Total Parts</span>
+                </div>
+                <div className="text-xl font-bold text-blue-400">
+                  {parts.length}
+                </div>
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-gray-300">Completed</span>
+                </div>
+                <div className="text-xl font-bold text-green-400">
+                  {parts.filter((part) => calculateOverallProgress(part) === 100).length}
+                </div>
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm text-gray-300">In Progress</span>
+                </div>
+                <div className="text-xl font-bold text-yellow-400">
+                  {parts.filter((part) => calculateOverallProgress(part) > 0 && calculateOverallProgress(part) < 100).length}
+                </div>
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-300">Not Started</span>
+                </div>
+                <div className="text-xl font-bold text-gray-400">
+                  {parts.filter((part) => calculateOverallProgress(part) === 0).length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search and Add Section - Below Project Summary */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div className="flex-1 sm:flex-none sm:w-80">
               {/* Search Box - Modern Design */}
-              <div className="relative flex-1 sm:flex-none sm:w-80">
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg
                     className="h-5 w-5 text-gray-400"
@@ -704,7 +777,10 @@ export default function Dashboard() {
                   </button>
                 )}
               </div>
+            </div>
 
+            {/* Add New Part Button and Filter Button - Side by Side */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {/* Add New Part Button - Modern Design */}
               <Button
                 onClick={() => setShowAddModal(true)}
@@ -714,93 +790,12 @@ export default function Dashboard() {
                 <span className="hidden sm:inline">Add New Part</span>
                 <span className="sm:hidden">Add Part</span>
               </Button>
-            </div>
-          </div>
 
-          {/* Search Results Info - Modern Design */}
-          {searchQuery && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-200 font-medium">
-                    Showing {filteredParts.length} of {parts.length} parts
-                  </span>
-                </div>
-                <span className="text-gray-400 font-medium">Search: "{searchQuery}"</span>
-              </div>
-            </div>
-          )}
-
-          {/* Summary Stats - Compact Design */}
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/30 rounded-xl p-4 mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <h3 className="text-lg font-semibold text-white">Project Summary</h3>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Package className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm text-gray-300">Total Parts</span>
-                </div>
-                <div className="text-xl font-bold text-blue-400">
-                  {parts.length}
-                </div>
-              </div>
-              
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-gray-300">Completed</span>
-                </div>
-                <div className="text-xl font-bold text-green-400">
-                  {parts.filter((part) => calculateOverallProgress(part) === 100).length}
-                </div>
-              </div>
-              
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Activity className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm text-gray-300">In Progress</span>
-                </div>
-                <div className="text-xl font-bold text-yellow-400">
-                  {parts.filter((part) => calculateOverallProgress(part) > 0 && calculateOverallProgress(part) < 100).length}
-                </div>
-              </div>
-              
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">Not Started</span>
-                </div>
-                <div className="text-xl font-bold text-gray-400">
-                  {parts.filter((part) => calculateOverallProgress(part) === 0).length}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section Divider with Sorting - Responsive */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div>
-                <h2 className="text-xl font-bold text-white">Project Parts</h2>
-                <p className="text-sm text-gray-400">Manage and track your engineering parts</p>
-              </div>
-            </div>
-            
-            {/* Enhanced Responsive Sorting Dropdown */}
-            <div className="w-full sm:w-auto">
-              {/* Mobile: Enhanced Button with Modal */}
+              {/* Filter/Sort Button - Mobile */}
               <div className="sm:hidden">
                 <Button
                   variant="outline"
-                  className="w-full bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-600/50 text-white hover:from-gray-700/90 hover:to-gray-800/90 hover:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-xl sorting-dropdown-enhanced"
+                  className="w-full bg-gray-800/50 border border-gray-600/30 text-white hover:bg-gray-700/50 hover:border-gray-500/50 transition-all duration-300 shadow-sm hover:shadow-md"
                   onClick={() => setShowSortModal(true)}
                 >
                   <span className="flex items-center justify-between w-full">
@@ -809,6 +804,7 @@ export default function Dashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
                       </svg>
                       <span>
+                        {sortBy === "" && "Filter by"}
                         {sortBy === "newest" && "Terbaru"}
                         {sortBy === "oldest" && "Terlama"}
                         {sortBy === "name-asc" && "Nama A-Z"}
@@ -824,14 +820,15 @@ export default function Dashboard() {
                 </Button>
               </div>
               
-              {/* Desktop: Enhanced Dropdown */}
-              <div className="hidden sm:block dark-dropdown-container">
-                <div className="relative group sorting-dropdown-enhanced">
+              {/* Filter/Sort Dropdown - Desktop */}
+              <div className="hidden sm:block">
+                <div className="relative group">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-600/50 rounded-xl px-4 py-2.5 text-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300 hover:from-gray-700/90 hover:to-gray-800/90 hover:border-blue-500/50 backdrop-blur-sm shadow-lg hover:shadow-xl appearance-none pr-10 sorting-select"
+                    className="bg-gray-800/50 border border-gray-600/30 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300 hover:bg-gray-700/50 hover:border-gray-500/50 backdrop-blur-sm shadow-sm hover:shadow-md appearance-none pr-10"
                   >
+                    <option value="" disabled>Filter by</option>
                     <option value="newest">Terbaru</option>
                     <option value="oldest">Terlama</option>
                     <option value="name-asc">Nama A-Z</option>
@@ -844,9 +841,16 @@ export default function Dashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-300 pointer-events-none"></div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Section Divider */}
+          <div className="flex items-center gap-3 mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-white">Project Parts</h2>
+              <p className="text-sm text-gray-400">Manage and track your engineering parts</p>
             </div>
           </div>
 
@@ -1004,16 +1008,6 @@ export default function Dashboard() {
                   ? `No parts match your search for "${searchQuery}". Try a different search term.`
                   : "Start by adding your first part to create a project to-do list."}
               </p>
-              {!searchQuery && (
-                <Button
-                  onClick={() => setShowAddModal(true)}
-                  className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white border-0 flex items-center justify-center gap-3 py-4 px-8 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="hidden sm:inline">Add Your First Part</span>
-                  <span className="sm:hidden">Add First Part</span>
-                </Button>
-              )}
             </div>
           )}
 
@@ -1402,43 +1396,17 @@ export default function Dashboard() {
          }
          
          /* Dark dropdown styling */
-         .sorting-select {
-           background-color: #111827 !important;
-           color: #ffffff !important;
-         }
-         
-         .sorting-select option {
-           background-color: #111827 !important;
-           color: #ffffff !important;
-           border: 1px solid #374151 !important;
-         }
-         
-         .sorting-select option:hover {
-           background-color: #1f2937 !important;
-         }
-         
-         .sorting-select option:checked {
-           background-color: #3b82f6 !important;
-         }
-         
-         /* Force dark background for all select options */
          select option {
-           background-color: #111827 !important;
+           background-color: #1f2937 !important;
            color: #ffffff !important;
          }
          
-         /* Custom dropdown container */
-         .dark-dropdown-container {
-           background-color: #111827 !important;
+         select option:hover {
+           background-color: #374151 !important;
          }
          
-         .dark-dropdown-container select {
-           background-color: #111827 !important;
-         }
-         
-         .dark-dropdown-container option {
-           background-color: #111827 !important;
-           color: #ffffff !important;
+         select option:checked {
+           background-color: #3b82f6 !important;
          }
          
 
