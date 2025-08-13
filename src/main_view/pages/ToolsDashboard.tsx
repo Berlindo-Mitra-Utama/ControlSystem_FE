@@ -23,7 +23,8 @@ import {
   Shield,
   Flame,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
@@ -252,6 +253,9 @@ export default function ToolsDashboard() {
         case "welding":
           navigate("/welding")
           break
+        case "workstandard":
+          navigate("/work-standard")
+          break
         default:
           alert(`Mengakses tool: ${toolId}`)
       }
@@ -321,6 +325,19 @@ export default function ToolsDashboard() {
       icon: Calendar,
       gradient: "from-purple-500 to-pink-500",
       hoverGradient: "from-purple-600 to-pink-600",
+      category: "professional",
+      badge: "Staff Only",
+      requiresLogin: true,
+      badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+      maintenance: false,
+    },
+    {
+      id: "workstandard",
+      title: "Standar Kerja",
+      description: "Sistem manajemen standar kerja dan analisis waktu proses produksi",
+      icon: Clock,
+      gradient: "from-indigo-500 to-blue-500",
+      hoverGradient: "from-indigo-600 to-blue-600",
       category: "professional",
       badge: "Staff Only",
       requiresLogin: true,
