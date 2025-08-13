@@ -293,9 +293,12 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
   // Wrap delete
   const handleDeleteClick = () => setShowDeleteModal(true);
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     setShowDeleteModal(false);
-    if (props.onDelete) props.onDelete();
+    if (props.onDelete) {
+      // Panggil onDelete yang sudah ada (akan menghapus dari database dan state)
+      props.onDelete();
+    }
   };
 
   // Loading logic for navigation/filter

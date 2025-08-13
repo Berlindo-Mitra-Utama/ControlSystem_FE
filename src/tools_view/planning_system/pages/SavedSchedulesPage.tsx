@@ -157,12 +157,39 @@ const SavedSchedulesPage: React.FC = () => {
     navigate("/dashboard/scheduler");
   };
 
-  const handleDeleteSchedule = (scheduleId: string, scheduleName: string) => {
+  const handleDeleteSchedule = async (
+    scheduleId: string,
+    scheduleName: string,
+  ) => {
     const confirmDelete = window.confirm(
       `Apakah Anda yakin ingin menghapus schedule "${scheduleName}"?`,
     );
     if (confirmDelete) {
-      deleteSchedule(scheduleId);
+      try {
+        // Coba hapus dari database terlebih dahulu
+        const { ProductionService } = await import(
+          "../../../services/API_Services"
+        );
+
+        // Jika ID adalah angka (kemungkinan dari database), gunakan untuk delete
+        const numericId = parseInt(scheduleId);
+        if (!isNaN(numericId)) {
+          try {
+            await ProductionService.deleteSchedule(numericId);
+            console.log("Schedule berhasil dihapus dari database");
+          } catch (apiError) {
+            console.error("Gagal menghapus schedule dari database:", apiError);
+            // Tetap lanjutkan dengan penghapusan lokal
+          }
+        }
+
+        // Hapus dari state lokal
+        deleteSchedule(scheduleId);
+      } catch (error) {
+        console.error("Error deleting schedule:", error);
+        // Tetap hapus dari state lokal jika gagal hapus dari database
+        deleteSchedule(scheduleId);
+      }
     }
   };
 
