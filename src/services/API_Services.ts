@@ -1128,47 +1128,71 @@ export const getPartWithProgress = async (partId: string) => {
   }
 };
 
-export const updateProcessCompletion = async (processId: string, completed: boolean) => {
+export const updateProcessCompletion = async (
+  processId: string,
+  completed: boolean,
+) => {
   try {
-    const response = await api.put(`/manage-progress/processes/${processId}/toggle`, {
-      completed
-    });
+    const response = await api.put(
+      `/manage-progress/processes/${processId}/toggle`,
+      {
+        completed,
+      },
+    );
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const updateProcess = async (processId: string, processData: {
-  name: string;
-  notes?: string;
-  completed: boolean;
-}) => {
+export const updateProcess = async (
+  processId: string,
+  processData: {
+    name: string;
+    notes?: string;
+    completed: boolean;
+  },
+) => {
   try {
-    const response = await api.put(`/manage-progress/processes/${processId}`, processData);
+    const response = await api.put(
+      `/manage-progress/processes/${processId}`,
+      processData,
+    );
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const updateProgressToolingDetail = async (processId: string, toolingData: any) => {
+export const updateProgressToolingDetail = async (
+  processId: string,
+  toolingData: any,
+) => {
   try {
-    const response = await api.put(`/manage-progress/processes/${processId}/tooling-detail`, toolingData);
+    const response = await api.put(
+      `/manage-progress/processes/${processId}/tooling-detail`,
+      toolingData,
+    );
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const uploadEvidence = async (processId: string, evidenceData: {
-  name: string;
-  type: 'image' | 'file';
-  url: string;
-  size?: number;
-}) => {
+export const uploadEvidence = async (
+  processId: string,
+  evidenceData: {
+    name: string;
+    type: "image" | "file";
+    url: string;
+    size?: number;
+  },
+) => {
   try {
-    const response = await api.post(`/manage-progress/processes/${processId}/evidence`, evidenceData);
+    const response = await api.post(
+      `/manage-progress/processes/${processId}/evidence`,
+      evidenceData,
+    );
     return response.data;
   } catch (error) {
     throw error;
@@ -1177,7 +1201,9 @@ export const uploadEvidence = async (processId: string, evidenceData: {
 
 export const deleteEvidence = async (evidenceId: string) => {
   try {
-    const response = await api.delete(`/manage-progress/evidence/${evidenceId}`);
+    const response = await api.delete(
+      `/manage-progress/evidence/${evidenceId}`,
+    );
     return response.data;
   } catch (error) {
     throw error;
@@ -1207,4 +1233,168 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+// Child Part Service
+export const ChildPartService = {
+  // Get all child parts
+  async getAllChildParts() {
+    try {
+      const response = await api.get("/child-part");
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching child parts:", error);
+      throw error;
+    }
+  },
+
+  // Create new child part
+  async createChildPart(childPartData: {
+    partName: string;
+    customerName: string;
+    stockAvailable: number;
+  }) {
+    try {
+      const response = await api.post("/child-part", childPartData);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error creating child part:", error);
+      throw error;
+    }
+  },
+
+  // Update child part
+  async updateChildPart(
+    id: number,
+    childPartData: {
+      partName: string;
+      customerName: string;
+      stockAvailable: number;
+    },
+  ) {
+    try {
+      const response = await api.put(`/child-part/${id}`, childPartData);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error updating child part:", error);
+      throw error;
+    }
+  },
+
+  // Delete child part
+  async deleteChildPart(id: number) {
+    try {
+      const response = await api.delete(`/child-part/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting child part:", error);
+      throw error;
+    }
+  },
+
+  // Get child part by ID
+  async getChildPartById(id: number) {
+    try {
+      const response = await api.get(`/child-part/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching child part:", error);
+      throw error;
+    }
+  },
+};
+
+// Rencana Child Part Service
+export const RencanaChildPartService = {
+  // Get all rencana child parts
+  async getAllRencanaChildParts() {
+    try {
+      const response = await api.get("/rencana-child-part");
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching rencana child parts:", error);
+      throw error;
+    }
+  },
+
+  // Create new rencana child part
+  async createRencanaChildPart(rencanaData: {
+    childPartId: number;
+    bulan: number;
+    tahun: number;
+    hari: number;
+    shift: number;
+    rencana_inmaterial: number;
+    aktual_inmaterial: number;
+  }) {
+    try {
+      const response = await api.post("/rencana-child-part", rencanaData);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error creating rencana child part:", error);
+      throw error;
+    }
+  },
+
+  // Update rencana child part
+  async updateRencanaChildPart(
+    id: number,
+    rencanaData: {
+      childPartId: number;
+      bulan: number;
+      tahun: number;
+      hari: number;
+      shift: number;
+      rencana_inmaterial: number;
+      aktual_inmaterial: number;
+    },
+  ) {
+    try {
+      const response = await api.put(`/rencana-child-part/${id}`, rencanaData);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error updating rencana child part:", error);
+      throw error;
+    }
+  },
+
+  // Delete rencana child part
+  async deleteRencanaChildPart(id: number) {
+    try {
+      const response = await api.delete(`/rencana-child-part/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting rencana child part:", error);
+      throw error;
+    }
+  },
+
+  // Get rencana child part by child part ID
+  async getRencanaChildPartByChildPartId(childPartId: number) {
+    try {
+      const response = await api.get(
+        `/rencana-child-part/child-part/${childPartId}`,
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error(
+        "Error fetching rencana child part by child part ID:",
+        error,
+      );
+      throw error;
+    }
+  },
+
+  // Get rencana child part by bulan and tahun
+  async getRencanaChildPartByBulanTahun(bulan: number, tahun: number) {
+    try {
+      const response = await api.get(
+        `/rencana-child-part/bulan-tahun/${bulan}/${tahun}`,
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching rencana child part by bulan tahun:", error);
+      throw error;
+    }
+  },
+};
+
 export default api;
