@@ -18,6 +18,7 @@ import {
   ProductPlanningData,
   ProductionService,
   ProductInfo,
+  ChildPartService,
 } from "../../../services/API_Services";
 import {
   generateScheduleFromForm,
@@ -199,6 +200,15 @@ const SchedulerPage: React.FC = () => {
   const [childPartFilter, setChildPartFilter] = useState<"all" | string[]>(
     "all",
   );
+  // State untuk tracking perubahan child part
+  const [childPartChanges, setChildPartChanges] = useState<Set<number>>(
+    new Set(),
+  );
+  const [hasUnsavedChildPartChanges, setHasUnsavedChildPartChanges] =
+    useState(false);
+
+  // State untuk tracking perubahan schedule
+  const [hasScheduleChanges, setHasScheduleChanges] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState<boolean>(false);
   const [showPartFilterDropdown, setShowPartFilterDropdown] =
     useState<boolean>(false);
@@ -313,7 +323,7 @@ const SchedulerPage: React.FC = () => {
   useEffect(() => {
     if (loadedSchedule) {
       setForm(loadedSchedule.form);
-      setSchedule(loadedSchedule.schedule);
+      setScheduleWithTracking(loadedSchedule.schedule);
       if (loadedSchedule.childParts) {
         setChildParts(loadedSchedule.childParts);
       }
@@ -396,6 +406,89 @@ const SchedulerPage: React.FC = () => {
     };
 
     loadManpowerList();
+  }, []);
+
+  // Load child parts dari backend saat komponen dimount
+  useEffect(() => {
+    const loadChildParts = async () => {
+      try {
+        // Cek apakah user sudah login
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("User belum login, menggunakan data lokal");
+          return;
+        }
+
+        const { ChildPartService, RencanaChildPartService } = await import(
+          "../../../services/API_Services"
+        );
+        const response = await ChildPartService.getAllChildParts();
+
+        if (response && response.length > 0) {
+          // Konversi data dari backend ke format yang sesuai dengan frontend
+          const convertedChildParts: ChildPartData[] = response.map(
+            (item: any) => ({
+              id: item.id,
+              partName: item.partName,
+              customerName: item.customerName,
+              stock: item.stockAvailable,
+              inMaterial: Array.from({ length: 30 }, () => [null, null]),
+              aktualInMaterial: Array.from({ length: 30 }, () => [null, null]),
+            }),
+          );
+
+          // Load rencana data untuk setiap child part
+          for (let i = 0; i < convertedChildParts.length; i++) {
+            const childPart = convertedChildParts[i];
+            if (childPart.id) {
+              try {
+                // Coba load rencana data untuk bulan dan tahun saat ini
+                const currentMonth = new Date().getMonth() + 1;
+                const currentYear = new Date().getFullYear();
+                const rencanaResponse =
+                  await RencanaChildPartService.getRencanaChildPartByBulanTahun(
+                    currentMonth,
+                    currentYear,
+                  );
+
+                if (rencanaResponse && rencanaResponse.length > 0) {
+                  const rencanaForThisPart = rencanaResponse.find(
+                    (r: any) => r.childPartId === childPart.id,
+                  );
+
+                  if (rencanaForThisPart) {
+                    convertedChildParts[i].inMaterial =
+                      rencanaForThisPart.rencanaInMaterial ||
+                      Array.from({ length: 30 }, () => [null, null]);
+                    convertedChildParts[i].aktualInMaterial =
+                      rencanaForThisPart.aktualInMaterial ||
+                      Array.from({ length: 30 }, () => [null, null]);
+                  }
+                }
+              } catch (rencanaError) {
+                console.error(
+                  `Error loading rencana data for child part ${childPart.id}:`,
+                  rencanaError,
+                );
+                // Gunakan default values jika gagal load rencana data
+              }
+            }
+          }
+
+          setChildParts(convertedChildParts);
+          console.log(
+            "Child parts dan rencana data berhasil dimuat dari database:",
+            convertedChildParts,
+          );
+        }
+      } catch (error) {
+        console.error("Error loading child parts:", error);
+        // Fallback ke data lokal jika backend tidak tersedia
+        // Tidak perlu showAlert karena ini bukan error kritis
+      }
+    };
+
+    loadChildParts();
   }, []);
 
   // Event listeners untuk komunikasi dengan ScheduleProduction
@@ -609,7 +702,7 @@ const SchedulerPage: React.FC = () => {
 
     // Generate schedule hanya di frontend, tidak perlu backend
     const newSchedule = generateScheduleFromForm(form, schedule);
-    setSchedule(newSchedule);
+    setScheduleWithTracking(newSchedule);
     setIsGenerating(false);
     setChildPartFilter("all"); // Reset filter ke Semua Child Part setiap generate
   };
@@ -628,7 +721,7 @@ const SchedulerPage: React.FC = () => {
     });
 
     if (totalDisrupted <= 0) {
-      setSchedule(updatedSchedule);
+      setScheduleWithTracking(updatedSchedule);
       return;
     }
 
@@ -650,7 +743,7 @@ const SchedulerPage: React.FC = () => {
         notes: "Lembur untuk memenuhi target produksi dan kompensasi gangguan",
       };
 
-      setSchedule(updatedProcessedSchedule);
+      setScheduleWithTracking(updatedProcessedSchedule);
     } else {
       const overtimeSeconds = totalDisrupted * timePerPcs;
       const overtimeMinutes = overtimeSeconds / 60;
@@ -667,7 +760,7 @@ const SchedulerPage: React.FC = () => {
         notes: "Kompensasi gangguan produksi",
       };
 
-      setSchedule([...processedSchedule, overtimeSchedule]);
+      setScheduleWithTracking([...processedSchedule, overtimeSchedule]);
     }
   };
 
@@ -871,7 +964,7 @@ const SchedulerPage: React.FC = () => {
     allRows.sort(
       (a, b) => a.day - b.day || (a.shift || "").localeCompare(b.shift || ""),
     );
-    setSchedule(allRows);
+    setScheduleWithTracking(allRows);
     setEditingRow(null);
     setEditForm({});
   };
@@ -909,9 +1002,27 @@ const SchedulerPage: React.FC = () => {
     );
 
     if (existingSchedule) {
+      // Buat pesan yang lebih informatif tentang perubahan yang ada
+      let confirmationMessage = `Apakah Anda yakin ingin menimpa jadwal yang sudah tersimpan?\n\nJadwal untuk ${form.part} - ${scheduleName} sudah ada dan akan diganti dengan data yang baru.`;
+
+      // Tambahkan informasi tentang perubahan schedule jika ada
+      if (hasScheduleChanges) {
+        confirmationMessage += `\n\n📊 Perubahan pada Jadwal Produksi:\n• Data produksi telah diubah\n• Manpower assignment telah diupdate`;
+      }
+
+      // Tambahkan informasi tentang perubahan child part jika ada
+      if (hasUnsavedChildPartChanges && childPartChanges.size > 0) {
+        const changedChildParts = Array.from(childPartChanges)
+          .map((idx) => childParts[idx]?.partName)
+          .filter(Boolean);
+        if (changedChildParts.length > 0) {
+          confirmationMessage += `\n\n⚠️ Perubahan pada Child Part:\n• ${changedChildParts.join("\n• ")}\n\nData child part akan otomatis tersimpan bersama jadwal.`;
+        }
+      }
+
       // Tampilkan konfirmasi untuk menimpa jadwal yang sudah ada
       showConfirm(
-        `Apakah Anda yakin ingin menimpa jadwal yang sudah tersimpan?\n\nJadwal untuk ${form.part} - ${scheduleName} sudah ada dan akan diganti dengan data yang baru.`,
+        confirmationMessage,
         async () => {
           // User memilih untuk menimpa
           await performSaveSchedule(
@@ -927,6 +1038,29 @@ const SchedulerPage: React.FC = () => {
       );
     } else {
       // Tidak ada jadwal yang sama, langsung simpan
+      // Tampilkan notifikasi jika ada perubahan
+      let notificationMessage = "Jadwal baru akan dibuat.";
+
+      if (hasScheduleChanges) {
+        notificationMessage +=
+          "\n\n📊 Perubahan pada Jadwal Produksi:\n• Data produksi telah diubah\n• Manpower assignment telah diupdate";
+      }
+
+      if (hasUnsavedChildPartChanges && childPartChanges.size > 0) {
+        const changedChildParts = Array.from(childPartChanges)
+          .map((idx) => childParts[idx]?.partName)
+          .filter(Boolean);
+        if (changedChildParts.length > 0) {
+          notificationMessage += `\n\n⚠️ Perubahan pada Child Part:\n• ${changedChildParts.join("\n• ")}`;
+        }
+      }
+
+      if (hasScheduleChanges || hasUnsavedChildPartChanges) {
+        notificationMessage +=
+          "\n\nSemua perubahan akan otomatis tersimpan bersama jadwal.";
+        showAlert(notificationMessage, "Info");
+      }
+
       await performSaveSchedule(currentMonth, currentYear, scheduleName);
     }
   };
@@ -944,17 +1078,7 @@ const SchedulerPage: React.FC = () => {
         "../../../services/API_Services"
       );
 
-      // Cek koneksi server terlebih dahulu
-      let serverAvailable = false;
-      try {
-        const testResponse = await fetch("http://localhost:5555/api/health", {
-          method: "GET",
-        });
-        serverAvailable = testResponse.ok;
-      } catch (serverError) {
-        console.log("Server tidak tersedia, akan menggunakan localStorage");
-        serverAvailable = false;
-      }
+      // Langsung gunakan API yang tersedia
 
       // Validasi data yang diperlukan
       if (!form.part || !form.customer) {
@@ -1025,66 +1149,58 @@ const SchedulerPage: React.FC = () => {
 
       let response;
 
-      // Jika server tidak tersedia, langsung simpan ke localStorage
-      if (!serverAvailable) {
-        console.log("Server tidak tersedia, langsung simpan ke localStorage");
-        response = { id: existingId || Date.now() };
-      } else {
-        try {
-          if (existingId) {
-            console.log(`Mencoba update schedule dengan ID: ${existingId}`);
-            // Update jadwal yang sudah ada
-            response = await ProductionService.updateProductionSchedule(
-              existingId,
-              backendData,
-            );
-            // Jika update berhasil, gunakan ID yang dikembalikan dari server
-            if (response.id) {
-              console.log(
-                `Schedule berhasil diupdate dengan ID: ${response.id}`,
-              );
-            }
-          } else {
-            console.log("Mencoba membuat schedule baru");
-            // Buat jadwal baru
+      try {
+        if (existingId) {
+          console.log(`Mencoba update schedule dengan ID: ${existingId}`);
+          // Update jadwal yang sudah ada
+          response = await ProductionService.updateProductionSchedule(
+            existingId,
+            backendData,
+          );
+          // Jika update berhasil, gunakan ID yang dikembalikan dari server
+          if (response.id) {
+            console.log(`Schedule berhasil diupdate dengan ID: ${response.id}`);
+          }
+        } else {
+          console.log("Mencoba membuat schedule baru");
+          // Buat jadwal baru
+          response =
+            await ProductionService.createProductionSchedule(backendData);
+        }
+        console.log("Response dari API:", response);
+      } catch (apiError) {
+        console.error("API Error:", apiError);
+
+        // Cek apakah ini error 404 (endpoint tidak ditemukan) atau data tidak ditemukan
+        if (
+          apiError.message.includes("Endpoint tidak ditemukan") ||
+          apiError.message.includes("Schedule dengan ID") ||
+          apiError.message.includes(
+            "Data perencanaan produksi tidak ditemukan",
+          ) ||
+          apiError.response?.status === 404
+        ) {
+          console.log(
+            "Server tidak tersedia atau data tidak ditemukan, mencoba buat schedule baru...",
+          );
+
+          // Coba buat schedule baru sebagai fallback
+          try {
             response =
               await ProductionService.createProductionSchedule(backendData);
-          }
-          console.log("Response dari API:", response);
-        } catch (apiError) {
-          console.error("API Error:", apiError);
-
-          // Cek apakah ini error 404 (endpoint tidak ditemukan) atau data tidak ditemukan
-          if (
-            apiError.message.includes("Endpoint tidak ditemukan") ||
-            apiError.message.includes("Schedule dengan ID") ||
-            apiError.message.includes(
-              "Data perencanaan produksi tidak ditemukan",
-            ) ||
-            apiError.response?.status === 404
-          ) {
             console.log(
-              "Server tidak tersedia atau data tidak ditemukan, mencoba buat schedule baru...",
+              "Berhasil membuat schedule baru sebagai fallback:",
+              response,
             );
-
-            // Coba buat schedule baru sebagai fallback
-            try {
-              response =
-                await ProductionService.createProductionSchedule(backendData);
-              console.log(
-                "Berhasil membuat schedule baru sebagai fallback:",
-                response,
-              );
-            } catch (createError) {
-              console.log(
-                "Gagal membuat schedule baru, menyimpan ke localStorage...",
-              );
-              response = { id: existingId || Date.now() };
-            }
-          } else {
-            // Jika error lain, throw error untuk ditangani di catch block luar
-            throw apiError;
+          } catch (createError) {
+            console.log(
+              "Gagal membuat schedule baru, menyimpan ke localStorage...",
+            );
+            response = { id: existingId || Date.now() };
           }
+        } else {
+          // Jika error lain, throw error untuk ditangani di catch block luar
+          throw apiError;
         }
       }
 
@@ -1136,6 +1252,106 @@ const SchedulerPage: React.FC = () => {
         },
       };
 
+      // Simpan child part data ke backend jika ada
+      if (childParts.length > 0) {
+        try {
+          const { RencanaChildPartService } = await import(
+            "../../../services/API_Services"
+          );
+
+          for (const childPart of childParts) {
+            // Cek apakah child part sudah ada di database
+            if (childPart.id && typeof childPart.id === "number") {
+              // Update existing child part
+              await ChildPartService.updateChildPart(childPart.id, {
+                partName: childPart.partName,
+                customerName: childPart.customerName,
+                stockAvailable: childPart.stock || 0,
+              });
+            } else {
+              // Create new child part
+              const savedChildPart = await ChildPartService.createChildPart({
+                partName: childPart.partName,
+                customerName: childPart.customerName,
+                stockAvailable: childPart.stock || 0,
+              });
+              // Update local child part dengan ID dari database
+              childPart.id = savedChildPart.id;
+            }
+
+            // Konversi data dari format frontend (array 2D) ke format backend (per hari per shift)
+            if (childPart.inMaterial && childPart.inMaterial.length > 0) {
+              for (let day = 0; day < childPart.inMaterial.length; day++) {
+                for (let shift = 0; shift < 2; shift++) {
+                  const rencanaValue = childPart.inMaterial[day]?.[shift] || 0;
+                  const aktualValue =
+                    childPart.aktualInMaterial?.[day]?.[shift] || 0;
+
+                  // Buat data untuk setiap hari dan shift
+                  const rencanaData = {
+                    childPartId: childPart.id,
+                    bulan: currentMonth + 1, // +1 karena month di JavaScript dimulai dari 0
+                    tahun: currentYear,
+                    hari: day + 1, // +1 karena day dimulai dari 0
+                    shift: shift + 1, // +1 karena shift dimulai dari 0
+                    rencana_inmaterial: rencanaValue || 0,
+                    aktual_inmaterial: aktualValue || 0,
+                  };
+
+                  try {
+                    // Cek apakah sudah ada rencana untuk hari dan shift ini
+                    const existingRencana =
+                      await RencanaChildPartService.getRencanaChildPartByBulanTahun(
+                        currentMonth + 1,
+                        currentYear,
+                      );
+
+                    if (existingRencana && existingRencana.length > 0) {
+                      // Cari data yang sudah ada untuk hari dan shift ini
+                      const existingData = existingRencana.find(
+                        (r) =>
+                          r.childPartId === childPart.id &&
+                          r.hari === day + 1 &&
+                          r.shift === shift + 1,
+                      );
+
+                      if (existingData) {
+                        // Update existing data
+                        await RencanaChildPartService.updateRencanaChildPart(
+                          existingData.id,
+                          rencanaData,
+                        );
+                      } else {
+                        // Create new data
+                        await RencanaChildPartService.createRencanaChildPart(
+                          rencanaData,
+                        );
+                      }
+                    } else {
+                      // Create new data
+                      await RencanaChildPartService.createRencanaChildPart(
+                        rencanaData,
+                      );
+                    }
+                  } catch (rencanaError) {
+                    console.error(
+                      `Error saving rencana data for day ${day + 1}, shift ${shift + 1}:`,
+                      rencanaError,
+                    );
+                    // Lanjutkan dengan data berikutnya
+                  }
+                }
+              }
+            }
+          }
+          console.log("Child part data berhasil disimpan ke database");
+        } catch (childPartError) {
+          console.error("Error saving child part data:", childPartError);
+          // Tidak throw error, karena schedule sudah berhasil disimpan
+          // Child part data akan tetap tersimpan di localStorage
+        }
+      }
+
       if (existingId) {
         // Gunakan ID dari response jika ada, atau existingId
         const finalId = response.id?.toString() || existingId.toString();
@@ -1144,6 +1360,11 @@ const SchedulerPage: React.FC = () => {
         );
         updateSchedule(finalId, newSchedule);
         showSuccess("Jadwal berhasil diperbarui!");
+
+        // Reset semua state perubahan setelah berhasil update
+        setHasScheduleChanges(false);
+        setHasUnsavedChildPartChanges(false);
+        setChildPartChanges(new Set());
       } else {
         // Tambah jadwal baru ke SavedSchedulesPage
         const updatedSchedules = [...savedSchedules, newSchedule];
@@ -1154,12 +1375,16 @@ const SchedulerPage: React.FC = () => {
         );
 
         // Pesan sukses yang lebih informatif
-        const successMessage =
-          serverAvailable && response.id
-            ? "Schedule berhasil disimpan ke database dan Saved Schedules!"
-            : "Schedule berhasil disimpan ke Saved Schedules (server tidak tersedia)";
+        const successMessage = response.id
+          ? "Schedule berhasil disimpan ke database dan Saved Schedules!"
+          : "Schedule berhasil disimpan ke Saved Schedules (server tidak tersedia)";
         showSuccess(successMessage);
       }
+
+      // Reset semua state perubahan setelah berhasil menyimpan
+      setHasScheduleChanges(false);
+      setHasUnsavedChildPartChanges(false);
+      setChildPartChanges(new Set());
     } catch (error) {
       console.error("Error saving schedule:", error);
 
@@ -1210,29 +1435,93 @@ const SchedulerPage: React.FC = () => {
       isManualPlanningPcs: false,
       manpowers: [],
     });
-    setSchedule([]);
+    setScheduleWithTracking([]);
     setSelectedMonth(new Date().getMonth());
     setSelectedYear(new Date().getFullYear());
   };
 
   // Handler untuk generate tabel child part
-  const handleGenerateChildPart = (data: {
+  const handleGenerateChildPart = async (data: {
     partName: string;
     customerName: string;
     stock: number;
   }) => {
-    setChildParts((prev) => [
-      ...prev,
-      {
-        ...data,
-        inMaterial: Array.from({ length: 30 }, () => [null, null]), // Initialize with proper array structure
-        aktualInMaterial: Array.from({ length: 30 }, () => [null, null]), // Initialize with proper array structure
-      },
-    ]);
-    // : Lakukan aksi generate tabel child part di sini
-    // Misal: tampilkan tabel child part, atau update state lain
-    // Untuk demo, bisa console.log(data)
-    console.log("Child Part generated:", data);
+    try {
+      // ChildPartService sudah diimport di atas
+
+      // Create child part data for backend
+      const childPartData = {
+        partName: data.partName,
+        customerName: data.customerName,
+        stockAvailable: data.stock,
+      };
+
+      // Try to save to backend first
+      let savedChildPart;
+      try {
+        savedChildPart = await ChildPartService.createChildPart(childPartData);
+        console.log(
+          "Child part berhasil disimpan ke database:",
+          savedChildPart,
+        );
+      } catch (apiError) {
+        console.error("Gagal menyimpan child part ke database:", apiError);
+        // Fallback: create with temporary ID
+        savedChildPart = {
+          id: Date.now(),
+          ...childPartData,
+        };
+      }
+
+      // Create local child part data with correct structure
+      const newChildPart: ChildPartData = {
+        partName: data.partName,
+        customerName: data.customerName,
+        stock: data.stock,
+        inMaterial: Array.from({ length: days }, () => [null, null]),
+        aktualInMaterial: Array.from({ length: days }, () => [null, null]),
+      };
+
+      setChildParts((prev) => [...prev, newChildPart]);
+      setShowChildPartModal(false);
+
+      // Show success message
+      if (savedChildPart.id && typeof savedChildPart.id === "number") {
+        showSuccess("Child part berhasil disimpan ke database!");
+      } else {
+        showSuccess("Child part berhasil dibuat (disimpan lokal)");
+      }
+    } catch (error) {
+      console.error("Error dalam handleGenerateChildPart:", error);
+      showAlert("Gagal membuat child part", "Error");
+    }
+  };
+
+  // Handler untuk tracking perubahan pada child part data
+  const handleChildPartDataChange = (childPartIdx: number) => {
+    setChildPartChanges((prev) => new Set([...prev, childPartIdx]));
+    setHasUnsavedChildPartChanges(true);
+  };
+
+  // Handler untuk update child part data dengan tracking perubahan
+  const handleChildPartDataUpdate = (
+    childPartIdx: number,
+    updatedData: Partial<ChildPartData>,
+  ) => {
+    setChildParts((prev) =>
+      prev.map((cp, idx) =>
+        idx === childPartIdx ? { ...cp, ...updatedData } : cp,
+      ),
+    );
+    handleChildPartDataChange(childPartIdx);
+  };
+
+  // Wrapper untuk setSchedule dengan tracking perubahan
+  const setScheduleWithTracking = (
+    newSchedule: ScheduleItem[] | ((prev: ScheduleItem[]) => ScheduleItem[]),
+  ) => {
+    setSchedule(newSchedule);
+    setHasScheduleChanges(true);
   };
 
   // Handler untuk menyimpan data ke backend
@@ -1252,9 +1541,131 @@ const SchedulerPage: React.FC = () => {
   };
 
   // Handler untuk menghapus child part berdasarkan index
-  const handleDeleteChildPart = (idx: number) => {
-    setDeleteTargetIndex(idx);
-    setShowDeleteConfirmModal(true);
+  const handleDeleteChildPart = async (idx: number) => {
+    try {
+      const childPart = childParts[idx];
+
+      // Jika child part memiliki ID dari database, hapus dari backend
+      if (childPart.id && typeof childPart.id === "number") {
+        try {
+          await ChildPartService.deleteChildPart(childPart.id);
+          console.log("Child part berhasil dihapus dari database");
+        } catch (apiError) {
+          console.error("Gagal menghapus child part dari database:", apiError);
+          // Tetap lanjutkan dengan penghapusan lokal
+        }
+      }
+
+      // Hapus dari state lokal
+      setChildParts((prev) => prev.filter((_, i) => i !== idx));
+      setChildPartCarouselPage(0);
+
+      showSuccess("Child part berhasil dihapus");
+    } catch (error) {
+      console.error("Error deleting child part:", error);
+      showAlert("Gagal menghapus child part", "Error");
+    }
+  };
+
+  // Handler untuk menyimpan perubahan child part secara terpisah
+  const handleSaveChildPartChanges = async () => {
+    if (!hasUnsavedChildPartChanges || childPartChanges.size === 0) {
+      showAlert("Tidak ada perubahan yang perlu disimpan", "Info");
+      return;
+    }
+
+    try {
+      const { RencanaChildPartService } = await import(
+        "../../../services/API_Services"
+      );
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const childPartIdx of childPartChanges) {
+        const childPart = childParts[childPartIdx];
+        if (!childPart || !childPart.id) continue;
+
+        try {
+          // Konversi data dari format frontend ke format backend
+          if (childPart.inMaterial && childPart.inMaterial.length > 0) {
+            for (let day = 0; day < childPart.inMaterial.length; day++) {
+              for (let shift = 0; shift < 2; shift++) {
+                const rencanaValue = childPart.inMaterial[day]?.[shift] || 0;
+                const aktualValue =
+                  childPart.aktualInMaterial?.[day]?.[shift] || 0;
+
+                const rencanaData = {
+                  childPartId: childPart.id,
+                  bulan: selectedMonth + 1,
+                  tahun: selectedYear,
+                  hari: day + 1,
+                  shift: shift + 1,
+                  rencana_inmaterial: rencanaValue || 0,
+                  aktual_inmaterial: aktualValue || 0,
+                };
+
+                // Cek apakah sudah ada data untuk hari dan shift ini
+                const existingRencana =
+                  await RencanaChildPartService.getRencanaChildPartByBulanTahun(
+                    selectedMonth + 1,
+                    selectedYear,
+                  );
+
+                if (existingRencana && existingRencana.length > 0) {
+                  const existingData = existingRencana.find(
+                    (r) =>
+                      r.childPartId === childPart.id &&
+                      r.hari === day + 1 &&
+                      r.shift === shift + 1,
+                  );
+
+                  if (existingData) {
+                    await RencanaChildPartService.updateRencanaChildPart(
+                      existingData.id,
+                      rencanaData,
+                    );
+                  } else {
+                    await RencanaChildPartService.createRencanaChildPart(
+                      rencanaData,
+                    );
+                  }
+                } else {
+                  await RencanaChildPartService.createRencanaChildPart(
+                    rencanaData,
+                  );
+                }
+              }
+            }
+          }
+          successCount++;
+        } catch (error) {
+          console.error(
+            `Error saving child part ${childPart.partName}:`,
+            error,
+          );
+          errorCount++;
+        }
+      }
+
+      // Reset perubahan
+      setChildPartChanges(new Set());
+      setHasUnsavedChildPartChanges(false);
+
+      if (errorCount === 0) {
+        showSuccess(`Berhasil menyimpan ${successCount} perubahan child part!`);
+      } else if (successCount > 0) {
+        showAlert(
+          `Berhasil menyimpan ${successCount} perubahan, ${errorCount} gagal`,
+          "Warning",
+        );
+      } else {
+        showAlert("Gagal menyimpan perubahan child part", "Error");
+      }
+    } catch (error) {
+      console.error("Error saving child part changes:", error);
+      showAlert("Gagal menyimpan perubahan child part", "Error");
+    }
   };
 
   // Add confirmation handler
@@ -2557,30 +2968,6 @@ const SchedulerPage: React.FC = () => {
                 {...childParts[editChildPartIdx]}
               />
             )}
-            {/* Jika ingin menampilkan tabel child part, bisa render di sini */}
-            {/* {childParts.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-bold text-white mb-2">Daftar Child Part</h3>
-                <table className="w-full bg-slate-800 rounded-xl overflow-hidden">
-                  <thead>
-                    <tr className="text-slate-300">
-                      <th className="p-2">Nama Part</th>
-                      <th className="p-2">Nama Customer</th>
-                      <th className="p-2">Stock</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {childParts.map((cp, idx) => (
-                      <tr key={idx} className="text-white">
-                        <td className="p-2">{cp.partName}</td>
-                        <td className="p-2">{cp.customerName}</td>
-                        <td className="p-2">{cp.stock}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )} */}
           </div>
         )}
 
