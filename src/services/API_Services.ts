@@ -1065,6 +1065,72 @@ export const deletePart = async (partId: string) => {
   }
 };
 
+// Manage Progress API Services
+export const getPartWithProgress = async (partId: string) => {
+  try {
+    const response = await api.get(`/manage-progress/parts/${partId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProcessCompletion = async (processId: string, completed: boolean) => {
+  try {
+    const response = await api.put(`/manage-progress/processes/${processId}/toggle`, {
+      completed
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProcess = async (processId: string, processData: {
+  name: string;
+  notes?: string;
+  completed: boolean;
+}) => {
+  try {
+    const response = await api.put(`/manage-progress/processes/${processId}`, processData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProgressToolingDetail = async (processId: string, toolingData: any) => {
+  try {
+    const response = await api.put(`/manage-progress/processes/${processId}/tooling-detail`, toolingData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const uploadEvidence = async (processId: string, evidenceData: {
+  name: string;
+  type: 'image' | 'file';
+  url: string;
+  size?: number;
+}) => {
+  try {
+    const response = await api.post(`/manage-progress/processes/${processId}/evidence`, evidenceData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteEvidence = async (evidenceId: string) => {
+  try {
+    const response = await api.delete(`/manage-progress/evidence/${evidenceId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Tambahkan interceptor untuk menangani error
 api.interceptors.response.use(
   (response) => response,
