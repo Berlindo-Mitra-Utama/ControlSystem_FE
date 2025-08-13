@@ -136,7 +136,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         setUser(userData);
         setIsLoggedIn(true);
-        localStorage.setItem("currentUser", JSON.stringify(userData));
+        // simpan user + accessToken agar axios interceptor bisa mengirim Authorization
+        localStorage.setItem(
+          "currentUser",
+          JSON.stringify({ ...userData, accessToken: response.accessToken })
+        );
         setLoginForm({ username: "", password: "" });
 
         // Ambil daftar tools yang dapat diakses oleh user
