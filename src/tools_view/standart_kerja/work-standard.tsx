@@ -705,8 +705,8 @@ export default function ManageProgres() {
                 <Factory className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white">BERLINDO</h1>
-                <p className="text-xs text-slate-400">Manufacturing System</p>
+                <h1 className="text-lg font-bold text-white">STANDAR KERJA KOMBINASI</h1>
+                <p className="text-xs text-slate-400">Standardized Work Combination System</p>
               </div>
             </div>
 
@@ -740,31 +740,6 @@ export default function ManageProgres() {
       </div>
 
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Enhanced Header with Dark Theme */}
-        <div className="text-center py-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg">
-              <Factory className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-blue-200 to-cyan-200 bg-clip-text text-transparent">
-                STANDAR KERJA KOMBINASI
-              </h1>
-              <p className="text-lg text-slate-400 mt-1">Standardized Work Combination System</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            <span className="inline-flex items-center px-4 py-1 bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-full text-sm font-medium text-slate-300">
-              <Factory className="h-3 w-3 mr-1 text-blue-400" />
-              BERLINDO
-            </span>
-            <span className="inline-flex items-center px-4 py-1 bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-full text-sm font-medium text-slate-300">
-              <BarChart3 className="h-3 w-3 mr-1 text-emerald-400" />
-              Manufacturing Excellence
-            </span>
-          </div>
-        </div>
-
         {/* Enhanced TSK Configuration with Dark Theme */}
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-xl border border-slate-700">
           <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-t-lg p-6">
