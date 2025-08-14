@@ -697,29 +697,29 @@ export default function ManageProgres() {
     <div className="min-h-screen bg-slate-900 text-white">
       {/* User Header */}
       <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Left side - Company Logo/Name */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
               <div className="p-2 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg">
                 <Factory className="h-6 w-6 text-white" />
               </div>
-              <div>
+              <div className="text-center sm:text-left">
                 <h1 className="text-lg font-bold text-white">STANDAR KERJA KOMBINASI</h1>
                 <p className="text-xs text-slate-400">Standardized Work Combination System</p>
               </div>
             </div>
 
             {/* Right side - User Info & Logout */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 w-full sm:w-auto">
               {/* User Info */}
-              <div className="flex items-center gap-3 bg-slate-700/50 rounded-lg px-4 py-2 border border-slate-600">
+              <div className="flex items-center gap-3 bg-slate-700/50 rounded-lg px-4 py-2 border border-slate-600 w-full sm:w-auto">
                 <div className="p-2 bg-blue-500/20 rounded-lg">
                   <User className="h-4 w-4 text-blue-400" />
                 </div>
-                <div className="text-right">
+                <div className="text-center sm:text-right flex-1">
                   <div className="text-sm font-semibold text-slate-200">{user?.nama || "User"}</div>
-                  <div className="flex items-center gap-1 text-xs text-slate-400">
+                  <div className="flex items-center justify-center sm:justify-end gap-1 text-xs text-slate-400">
                     <IdCard className="h-3 w-3" />
                     NIP: {user?.nip || "-"}
                   </div>
@@ -729,7 +729,7 @@ export default function ManageProgres() {
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-400 hover:text-red-300 transition-all duration-200"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-400 hover:text-red-300 transition-all duration-200 w-full sm:w-auto"
               >
                 <LogOut className="h-4 w-4" />
                 <span className="text-sm font-medium">Logout</span>
@@ -739,30 +739,30 @@ export default function ManageProgres() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-8">
         {/* Enhanced TSK Configuration with Dark Theme */}
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-xl border border-slate-700">
-          <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-t-lg p-6">
-            <h2 className="flex items-center gap-3 text-xl font-semibold">
-              <Settings className="h-6 w-6" />
+          <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-t-lg p-4 sm:p-6">
+            <h2 className="flex items-center gap-3 text-lg sm:text-xl font-semibold">
+              <Settings className="h-5 sm:h-6 w-5 sm:w-6" />
               TSK Configuration Center
             </h2>
           </div>
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Enhanced Search Section */}
             <div className="space-y-4">
-              <label className="text-lg font-semibold flex items-center gap-2 text-slate-200">
-                <Search className="h-5 w-5 text-blue-400" />
+              <label className="text-base sm:text-lg font-semibold flex items-center gap-2 text-slate-200">
+                <Search className="h-4 sm:h-5 w-4 sm:w-5 text-blue-400" />
                 Cari dan Tambah TSK Program
               </label>
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 sm:h-5 w-4 sm:w-5" />
                 <input
                   type="text"
-                  placeholder="Ketik untuk mencari TSK Program (contoh: JIG A1, PREPARE, PROGRAM NO-1...)"
+                  placeholder="Ketik untuk mencari TSK Program..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 h-12 text-lg bg-slate-700 border-2 border-slate-600 focus:border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-white placeholder-slate-400"
+                  className="w-full pl-10 sm:pl-12 h-10 sm:h-12 text-sm sm:text-lg bg-slate-700 border-2 border-slate-600 focus:border-blue-500 rounded-lg sm:rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-white placeholder-slate-400"
                 />
               </div>
 
@@ -808,13 +808,13 @@ export default function ManageProgres() {
             </div>
 
             {/* Alternative Dropdown */}
-            <div className="space-y-3">
-              <label className="text-base font-medium text-slate-300">Atau pilih dari dropdown</label>
-              <div className="flex gap-3">
+            <div className="space-y-2 sm:space-y-3">
+              <label className="text-sm sm:text-base font-medium text-slate-300">Atau pilih dari dropdown</label>
+              <div className="flex flex-col sm:flex-row gap-3">
                 <select
                   value={currentTSK}
                   onChange={(e) => setCurrentTSK(e.target.value)}
-                  className="flex-1 h-12 bg-slate-700 border-2 border-slate-600 focus:border-blue-500 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-white"
+                  className="flex-1 h-10 sm:h-12 bg-slate-700 border-2 border-slate-600 focus:border-blue-500 rounded-lg sm:rounded-xl px-3 sm:px-4 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-white"
                 >
                   <option value="">Pilih TSK Program untuk ditambahkan</option>
                   {tskPrograms.map((program) => (
@@ -826,7 +826,7 @@ export default function ManageProgres() {
                 <button
                   onClick={addTSK}
                   disabled={!currentTSK}
-                  className="h-12 px-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-200 flex items-center gap-2"
+                  className="h-10 sm:h-12 px-4 sm:px-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg sm:rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <Plus className="h-4 w-4" />
                   Tambah TSK
@@ -837,11 +837,12 @@ export default function ManageProgres() {
             {/* Enhanced Selected TSKs */}
             {selectedTSKs.length > 0 && (
               <div className="space-y-4">
-                <label className="text-lg font-semibold flex items-center gap-2 text-slate-200">
-                  <ChevronRight className="h-5 w-5 text-emerald-400" />
-                  Urutan TSK yang Dipilih ({selectedTSKs.length} program) - Drag & Drop untuk mengatur ulang
-                </label>
-                <div className="grid gap-3 max-h-80 overflow-y-auto">
+                <label className="text-base sm:text-lg font-semibold flex items-center gap-2 text-slate-200">
+                <ChevronRight className="h-4 sm:h-5 w-4 sm:w-5 text-emerald-400" />
+                Urutan TSK yang Dipilih ({selectedTSKs.length} program) 
+                <span className="hidden sm:inline">- Drag & Drop untuk mengatur ulang</span>
+              </label>
+              <div className="grid gap-2 sm:gap-3 max-h-60 sm:max-h-80 overflow-y-auto">
                   {selectedTSKs.map((tskId, index) => {
                     const program = tskPrograms.find((p) => p.id === tskId)
                     const isDragging = draggedIndex === index
@@ -850,7 +851,7 @@ export default function ManageProgres() {
                     return (
                       <div
                         key={`${tskId}-${index}`}
-                        className={`flex items-center gap-3 p-4 rounded-xl border shadow-sm transition-all duration-200 cursor-move ${
+                        className={`flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg sm:rounded-xl border shadow-sm transition-all duration-200 cursor-move ${
                           isDragging
                             ? "bg-slate-600/70 border-blue-400 opacity-50 scale-105"
                             : isDragOver
@@ -864,40 +865,40 @@ export default function ManageProgres() {
                         onDrop={(e) => handleDrop(e, index)}
                         onDragEnd={handleDragEnd}
                       >
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-row sm:flex-col gap-1 order-2 sm:order-1">
                           <button
                             onClick={() => moveTSKUp(index)}
                             disabled={index === 0}
-                            className="h-8 w-8 p-0 border border-slate-600 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-medium transition-all duration-200 text-slate-300"
+                            className="h-7 sm:h-8 w-7 sm:w-8 p-0 border border-slate-600 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-medium transition-all duration-200 text-slate-300"
                           >
                             <ArrowUp className="h-3 w-3 mx-auto" />
                           </button>
                           <button
                             onClick={() => moveTSKDown(index)}
                             disabled={index === selectedTSKs.length - 1}
-                            className="h-8 w-8 p-0 border border-slate-600 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-medium transition-all duration-200 text-slate-300"
+                            className="h-7 sm:h-8 w-7 sm:w-8 p-0 border border-slate-600 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-medium transition-all duration-200 text-slate-300"
                           >
                             <ArrowDown className="h-3 w-3 mx-auto" />
                           </button>
                         </div>
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="p-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg border border-blue-500/30">
-                            <div className="text-sm font-bold text-blue-400">#{index + 1}</div>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-1 w-full sm:w-auto order-1 sm:order-2">
+                          <div className="p-1 sm:p-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg border border-blue-500/30">
+                            <div className="text-xs sm:text-sm font-bold text-blue-400">#{index + 1}</div>
                           </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-slate-200">{program?.name}</div>
-                            <div className="text-sm text-slate-400 flex items-center gap-1">
+                          <div className="flex-1 w-full sm:w-auto">
+                            <div className="font-semibold text-sm sm:text-base text-slate-200 truncate">{program?.name}</div>
+                            <div className="text-xs sm:text-sm text-slate-400 flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {program?.items.length} item pekerjaan
                             </div>
                           </div>
-                          <div className="text-xs text-slate-500 bg-slate-800/50 px-2 py-1 rounded border border-slate-600">
+                          <div className="text-xs text-slate-500 bg-slate-800/50 px-2 py-1 rounded border border-slate-600 hidden sm:block">
                             Drag to reorder
                           </div>
                         </div>
                         <button
                           onClick={() => removeTSK(index)}
-                          className="h-10 w-10 p-0 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all duration-200"
+                          className="h-7 sm:h-10 w-7 sm:w-10 p-0 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all duration-200 order-3"
                         >
                           <X className="h-4 w-4 mx-auto" />
                         </button>
@@ -1102,25 +1103,25 @@ export default function ManageProgres() {
               </h2>
               <p className="text-purple-100 mt-2">Grafik waktu operasi per detik - Gantt Chart Timeline</p>
             </div>
-            <div className="p-6">
-              <div className="h-[600px] w-full overflow-x-auto">
-                <div className="min-w-[800px] h-full relative">
+            <div className="p-4 sm:p-6">
+              <div className="h-[400px] sm:h-[600px] w-full overflow-x-auto">
+                <div className="min-w-[600px] sm:min-w-[800px] h-full relative">
                   {/* Enhanced Time scale header */}
-                  <div className="flex border-b-2 border-slate-600 mb-6 pb-4">
-                    <div className="w-60 font-bold text-lg text-slate-200">Operation</div>
+                  <div className="flex border-b-2 border-slate-600 mb-4 sm:mb-6 pb-3 sm:pb-4">
+                    <div className="w-40 sm:w-60 font-bold text-sm sm:text-lg text-slate-200">Operation</div>
                     <div className="flex-1 relative">
-                      <div className="flex justify-between text-sm text-slate-300 mb-2 font-medium">
+                      <div className="flex justify-between text-xs sm:text-sm text-slate-300 mb-1 sm:mb-2 font-medium">
                         {Array.from({ length: Math.ceil(totals.total / 5) + 1 }, (_, i) => (
                           <span
                             key={i}
-                            className="text-center bg-slate-700 px-2 py-1 rounded border border-slate-600"
-                            style={{ width: "40px" }}
+                            className="text-center bg-slate-700 px-1 sm:px-2 py-0.5 sm:py-1 rounded border border-slate-600"
+                            style={{ width: "30px", fontSize: "0.7rem" }}
                           >
                             {i * 5}s
                           </span>
                         ))}
                       </div>
-                      <div className="h-6 bg-slate-700 relative rounded border border-slate-600">
+                      <div className="h-4 sm:h-6 bg-slate-700 relative rounded border border-slate-600">
                         {Array.from({ length: Math.ceil(totals.total / 5) }, (_, i) => (
                           <div
                             key={i}
@@ -1137,22 +1138,22 @@ export default function ManageProgres() {
                     {chartData.map((item, index) => (
                       <div
                         key={index}
-                        className="flex items-center h-10 hover:bg-slate-700/30 rounded-lg p-1 transition-all duration-200"
+                        className="flex items-center h-8 sm:h-10 hover:bg-slate-700/30 rounded-lg p-0.5 sm:p-1 transition-all duration-200"
                       >
                         <div
-                          className="w-60 text-sm pr-3 truncate text-slate-300"
+                          className="w-40 sm:w-60 text-xs sm:text-sm pr-2 sm:pr-3 truncate text-slate-300"
                           title={`${item.programName} - ${item.itemPekerjaan}`}
                         >
-                          <span className="inline-flex items-center px-2 py-1 text-xs mr-2 bg-blue-500/20 border border-blue-500/30 rounded-full text-blue-300">
+                          <span className="inline-flex items-center px-1 sm:px-2 py-0.5 sm:py-1 text-[0.65rem] sm:text-xs mr-1 sm:mr-2 bg-blue-500/20 border border-blue-500/30 rounded-full text-blue-300">
                             {item.programName.split(" ").slice(0, 2).join(" ")}
                           </span>
-                          <span className="font-medium">{item.name}:</span> {item.itemPekerjaan.substring(0, 20)}...
+                          <span className="font-medium">{item.name}:</span> {item.itemPekerjaan.substring(0, 10)}...
                         </div>
-                        <div className="flex-1 relative h-8 bg-slate-700 border-2 border-slate-600 rounded-lg overflow-hidden shadow-inner">
+                        <div className="flex-1 relative h-6 sm:h-8 bg-slate-700 border border-slate-600 sm:border-2 rounded-lg overflow-hidden shadow-inner">
                           {/* Enhanced Lost Time */}
                           {item.lostTime > 0 && (
                             <div
-                              className="absolute top-0 h-full bg-red-500 flex items-center justify-center text-xs text-white font-bold shadow-sm"
+                              className="absolute top-0 h-full bg-red-500 flex items-center justify-center text-[0.65rem] sm:text-xs text-white font-bold shadow-sm"
                               style={{
                                 left: `${(item.startTime / totals.total) * 100}%`,
                                 width: `${(item.lostTime / totals.total) * 100}%`,
@@ -1167,7 +1168,7 @@ export default function ManageProgres() {
                           {/* Enhanced Manual Manpower */}
                           {item.manualManpower > 0 && (
                             <div
-                              className="absolute top-0 h-full bg-emerald-500 flex items-center justify-center text-xs text-white font-bold shadow-sm"
+                              className="absolute top-0 h-full bg-emerald-500 flex items-center justify-center text-[0.65rem] sm:text-xs text-white font-bold shadow-sm"
                               style={{
                                 left: `${((item.startTime + item.lostTime) / totals.total) * 100}%`,
                                 width: `${(item.manualManpower / totals.total) * 100}%`,
@@ -1182,7 +1183,7 @@ export default function ManageProgres() {
                           {/* Enhanced Auto Positioner */}
                           {item.autoPositioner > 0 && (
                             <div
-                              className="absolute top-0 h-full bg-amber-500 flex items-center justify-center text-xs text-white font-bold shadow-sm"
+                              className="absolute top-0 h-full bg-amber-500 flex items-center justify-center text-[0.65rem] sm:text-xs text-white font-bold shadow-sm"
                               style={{
                                 left: `${((item.startTime + item.lostTime + item.manualManpower) / totals.total) * 100}%`,
                                 width: `${(item.autoPositioner / totals.total) * 100}%`,
@@ -1197,7 +1198,7 @@ export default function ManageProgres() {
                           {/* Enhanced Proses Weld */}
                           {item.prosesWeld > 0 && (
                             <div
-                              className="absolute top-0 h-full bg-orange-500 flex items-center justify-center text-xs text-white font-bold shadow-sm"
+                              className="absolute top-0 h-full bg-orange-500 flex items-center justify-center text-[0.65rem] sm:text-xs text-white font-bold shadow-sm"
                               style={{
                                 left: `${((item.startTime + item.lostTime + item.manualManpower + item.autoPositioner) / totals.total) * 100}%`,
                                 width: `${(item.prosesWeld / totals.total) * 100}%`,
@@ -1219,7 +1220,7 @@ export default function ManageProgres() {
                             style={{ left: `${(item.endTime / totals.total) * 100}%` }}
                           />
                         </div>
-                        <div className="w-20 text-sm text-center font-bold text-blue-400 bg-slate-700/50 border border-slate-600 rounded-lg py-1 ml-2">
+                        <div className="w-16 sm:w-20 text-xs sm:text-sm text-center font-bold text-blue-400 bg-slate-700/50 border border-slate-600 rounded-lg py-0.5 sm:py-1 ml-1 sm:ml-2">
                           {item.duration.toFixed(1)}s
                         </div>
                       </div>
@@ -1227,53 +1228,53 @@ export default function ManageProgres() {
                   </div>
 
                   {/* Enhanced Legend */}
-                  <div className="mt-8 flex flex-wrap gap-6 justify-center p-4 bg-slate-700/30 rounded-xl border border-slate-600">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-red-500 rounded shadow-sm"></div>
-                      <span className="text-sm font-medium text-slate-300">Lost Time</span>
+                  <div className="mt-6 sm:mt-8 flex flex-wrap gap-3 sm:gap-6 justify-center p-3 sm:p-4 bg-slate-700/30 rounded-lg sm:rounded-xl border border-slate-600">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-4 sm:w-6 h-4 sm:h-6 bg-red-500 rounded shadow-sm"></div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-300">Lost Time</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-emerald-500 rounded shadow-sm"></div>
-                      <span className="text-sm font-medium text-slate-300">Manual Manpower</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-4 sm:w-6 h-4 sm:h-6 bg-emerald-500 rounded shadow-sm"></div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-300">Manual Manpower</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-amber-500 rounded shadow-sm"></div>
-                      <span className="text-sm font-medium text-slate-300">Auto Positioner & Robot</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-4 sm:w-6 h-4 sm:h-6 bg-amber-500 rounded shadow-sm"></div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-300">Auto Positioner & Robot</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-orange-500 rounded shadow-sm"></div>
-                      <span className="text-sm font-medium text-slate-300">Proses Weld</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-4 sm:w-6 h-4 sm:h-6 bg-orange-500 rounded shadow-sm"></div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-300">Proses Weld</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Enhanced Summary Statistics */}
-              <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-6">
-                <div className="text-center p-6 bg-slate-800/50 border border-red-500/30 rounded-xl shadow-lg">
-                  <Clock className="h-8 w-8 mx-auto mb-3 text-red-400" />
-                  <div className="text-3xl font-bold text-red-400">{totals.lostTime.toFixed(2)}</div>
-                  <div className="text-sm font-medium text-red-300 mt-1">Lost Time</div>
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 sm:gap-6">
+                <div className="text-center p-4 sm:p-6 bg-slate-800/50 border border-red-500/30 rounded-lg sm:rounded-xl shadow-lg">
+                  <Clock className="h-6 sm:h-8 w-6 sm:w-8 mx-auto mb-2 sm:mb-3 text-red-400" />
+                  <div className="text-2xl sm:text-3xl font-bold text-red-400">{totals.lostTime.toFixed(2)}</div>
+                  <div className="text-xs sm:text-sm font-medium text-red-300 mt-1">Lost Time</div>
                 </div>
-                <div className="text-center p-6 bg-slate-800/50 border border-emerald-500/30 rounded-xl shadow-lg">
-                  <Users className="h-8 w-8 mx-auto mb-3 text-emerald-400" />
-                  <div className="text-3xl font-bold text-emerald-400">{totals.manualManpower.toFixed(2)}</div>
-                  <div className="text-sm font-medium text-emerald-300 mt-1">Manual Manpower</div>
+                <div className="text-center p-4 sm:p-6 bg-slate-800/50 border border-emerald-500/30 rounded-lg sm:rounded-xl shadow-lg">
+                  <Users className="h-6 sm:h-8 w-6 sm:w-8 mx-auto mb-2 sm:mb-3 text-emerald-400" />
+                  <div className="text-2xl sm:text-3xl font-bold text-emerald-400">{totals.manualManpower.toFixed(2)}</div>
+                  <div className="text-xs sm:text-sm font-medium text-emerald-300 mt-1">Manual Manpower</div>
                 </div>
-                <div className="text-center p-6 bg-slate-800/50 border border-amber-500/30 rounded-xl shadow-lg">
-                  <Settings className="h-8 w-8 mx-auto mb-3 text-amber-400" />
-                  <div className="text-3xl font-bold text-amber-400">{totals.autoPositioner.toFixed(2)}</div>
-                  <div className="text-sm font-medium text-amber-300 mt-1">Auto Positioner</div>
+                <div className="text-center p-4 sm:p-6 bg-slate-800/50 border border-amber-500/30 rounded-lg sm:rounded-xl shadow-lg">
+                  <Settings className="h-6 sm:h-8 w-6 sm:w-8 mx-auto mb-2 sm:mb-3 text-amber-400" />
+                  <div className="text-2xl sm:text-3xl font-bold text-amber-400">{totals.autoPositioner.toFixed(2)}</div>
+                  <div className="text-xs sm:text-sm font-medium text-amber-300 mt-1">Auto Positioner</div>
                 </div>
-                <div className="text-center p-6 bg-slate-800/50 border border-orange-500/30 rounded-xl shadow-lg">
-                  <Zap className="h-8 w-8 mx-auto mb-3 text-orange-400" />
-                  <div className="text-3xl font-bold text-orange-400">{totals.prosesWeld.toFixed(2)}</div>
-                  <div className="text-sm font-medium text-orange-300 mt-1">Proses Weld</div>
+                <div className="text-center p-4 sm:p-6 bg-slate-800/50 border border-orange-500/30 rounded-lg sm:rounded-xl shadow-lg">
+                  <Zap className="h-6 sm:h-8 w-6 sm:w-8 mx-auto mb-2 sm:mb-3 text-orange-400" />
+                  <div className="text-2xl sm:text-3xl font-bold text-orange-400">{totals.prosesWeld.toFixed(2)}</div>
+                  <div className="text-xs sm:text-sm font-medium text-orange-300 mt-1">Proses Weld</div>
                 </div>
-                <div className="text-center p-6 bg-slate-800/50 border border-blue-500/30 rounded-xl shadow-lg">
-                  <BarChart3 className="h-8 w-8 mx-auto mb-3 text-blue-400" />
-                  <div className="text-3xl font-bold text-blue-400">{totals.total.toFixed(2)}</div>
-                  <div className="text-sm font-medium text-blue-300 mt-1">Total Time</div>
+                <div className="text-center p-4 sm:p-6 bg-slate-800/50 border border-blue-500/30 rounded-lg sm:rounded-xl shadow-lg">
+                  <BarChart3 className="h-6 sm:h-8 w-6 sm:w-8 mx-auto mb-2 sm:mb-3 text-blue-400" />
+                  <div className="text-2xl sm:text-3xl font-bold text-blue-400">{totals.total.toFixed(2)}</div>
+                  <div className="text-xs sm:text-sm font-medium text-blue-300 mt-1">Total Time</div>
                 </div>
               </div>
             </div>
