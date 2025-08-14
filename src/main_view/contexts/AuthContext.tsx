@@ -185,6 +185,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             case "monitoring":
               navigate("/dashboard"); // atau route khusus untuk monitoring
               break;
+            case "workstandard":
+              navigate("/work-standard");
+              break;
             default:
               navigate("/dashboard");
           }

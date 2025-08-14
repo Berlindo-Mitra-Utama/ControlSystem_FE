@@ -7,13 +7,11 @@ import {
   BarChart3,
   Settings,
   Users,
-  FileText,
   TrendingUp,
   Wrench,
   Lock,
   Unlock,
   Calculator,
-  PieChart,
   Factory,
   ArrowLeft,
   AlertTriangle,
@@ -23,7 +21,8 @@ import {
   Shield,
   Flame,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
@@ -252,6 +251,9 @@ export default function ToolsDashboard() {
         case "welding":
           navigate("/welding")
           break
+        case "workstandard":
+          navigate("/work-standard")
+          break
         default:
           alert(`Mengakses tool: ${toolId}`)
       }
@@ -288,19 +290,6 @@ export default function ToolsDashboard() {
       maintenance: false,
     },
     {
-      id: "converter",
-      title: "Unit Converter",
-      description: "Konversi satuan untuk produksi dan engineering calculations",
-      icon: PieChart,
-      gradient: "from-blue-400 to-cyan-500",
-      hoverGradient: "from-blue-500 to-cyan-600",
-      category: "public",
-      badge: "Open",
-      requiresLogin: false,
-      badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
-      maintenance: true,
-    },
-    {
       id: "hitungcoil",
       title: "Hitung Coil",
       description: "Kalkulasi material coil dan inventory management system",
@@ -328,6 +317,19 @@ export default function ToolsDashboard() {
       maintenance: false,
     },
     {
+      id: "workstandard",
+      title: "Standar Kerja",
+      description: "Sistem manajemen standar kerja dan analisis waktu proses produksi",
+      icon: Clock,
+      gradient: "from-indigo-500 to-blue-500",
+      hoverGradient: "from-indigo-600 to-blue-600",
+      category: "professional",
+      badge: "Staff Only",
+      requiresLogin: true,
+      badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+      maintenance: false,
+    },
+    {
       id: "progress",
       title: "Progress Tracker",
       description: "Pantau dan kelola progres produksi",
@@ -339,19 +341,6 @@ export default function ToolsDashboard() {
       requiresLogin: true,
       badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
       maintenance: false,
-    },
-    {
-      id: "reports",
-      title: "Laporan Produksi",
-      description: "Generate laporan harian dan bulanan",
-      icon: FileText,
-      gradient: "from-indigo-500 to-purple-500",
-      hoverGradient: "from-indigo-600 to-purple-600",
-      category: "professional",
-      badge: "Staff Only",
-      requiresLogin: true,
-      badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-      maintenance: true,
     },
     // Management Tools
     {

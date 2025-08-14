@@ -50,6 +50,10 @@ export default function LoginPage() {
           title: "Monitoring Real-time",
           description: "Monitor status produksi real-time",
         },
+        workstandard: {
+          title: "Standar Kerja",
+          description: "Pantau standar kerja produksi",
+        },
       };
     return toolId ? toolsMap[toolId] : null;
   };

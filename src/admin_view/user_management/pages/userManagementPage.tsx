@@ -73,11 +73,8 @@ export default function UserManagementPage() {
 
   const [availableTools] = useState<Tool[]>([
     { id: "scheduler", name: "Planning System", category: "planning", icon: Calendar },
-    { id: "reports", name: "Laporan Produksi", category: "reporting", icon: FileText },
-    { id: "analytics", name: "Analytics Dashboard", category: "analytics", icon: TrendingUp },
-    { id: "usermanagement", name: "User Management", category: "admin", icon: Users, requiresRole: ["admin"] },
-    { id: "systemconfig", name: "System Config", category: "admin", icon: Settings, requiresRole: ["admin"] },
-    { id: "monitoring", name: "Real-time Monitor", category: "monitoring", icon: Activity },
+    { id: "progress", name: "Progress Tracker", category: "monitoring", icon: Activity },
+    { id: "workstandard", name: "Standar Kerja", category: "production", icon: FileText },
   ])
 
   const [showAddForm, setShowAddForm] = useState(false)
