@@ -12,6 +12,7 @@ import ChildPartTable from "../components/layout/ChildPartTable";
 import ChildPartCardView from "../components/layout/ChildPartCardView";
 import ViewModeToggle from "../components/layout/ViewModeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
+import * as XLSX from "xlsx";
 import { X } from "lucide-react";
 import {
   PlanningSystemService,
@@ -37,7 +38,22 @@ import {
 } from "../utils/scheduleDateUtils";
 import { ScheduleItem } from "../types/scheduleTypes";
 import { ChildPartData } from "../types/childPartTypes";
-import { BarChart2, Package, Layers, Target, Factory } from "lucide-react";
+import {
+  BarChart2,
+  Package,
+  Layers,
+  Target,
+  Factory,
+  Eye,
+  Calendar,
+  ArrowLeft,
+  Download,
+  Trash2,
+  Cog,
+  Clock,
+  CheckCircle,
+  Edit3,
+} from "lucide-react";
 
 // CSS untuk animasi dan custom scrollbar
 const fadeInUpAnimation = `
@@ -136,6 +152,7 @@ const SchedulerPage: React.FC = () => {
     loadedSchedule,
     checkExistingSchedule,
     updateSchedule,
+    loadSchedule,
   } = useSchedule();
   const navigate = useNavigate();
   const { uiColors } = useTheme();
@@ -226,6 +243,8 @@ const SchedulerPage: React.FC = () => {
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
     null,
   );
+  const [selectedPart, setSelectedPart] = useState<string | null>(null);
+  const [showScheduleCards, setShowScheduleCards] = useState(false);
 
   // Temporary filter states for selection before applying
   const [tempChildPartFilter, setTempChildPartFilter] = useState<
@@ -747,6 +766,9 @@ const SchedulerPage: React.FC = () => {
     setScheduleWithTracking(newSchedule);
     setIsGenerating(false);
     setChildPartFilter("all"); // Reset filter ke Semua Child Part setiap generate
+
+    // Tampilkan card jadwal setelah generate
+    setShowScheduleCards(true);
   };
 
   const recalculateSchedule = (updatedSchedule: ScheduleItem[]) => {
@@ -1443,6 +1465,7 @@ const SchedulerPage: React.FC = () => {
     setScheduleWithTracking([]);
     setSelectedMonth(new Date().getMonth());
     setSelectedYear(new Date().getFullYear());
+    setShowScheduleCards(false);
   };
 
   // Handler untuk generate tabel child part
@@ -1859,6 +1882,134 @@ const SchedulerPage: React.FC = () => {
   const days =
     schedule.length > 0 ? Math.max(...schedule.map((s) => s.day)) : 30;
 
+  // Styled parts list (samakan dengan SavedSchedulesPage)
+  const parts = React.useMemo(() => {
+    const uniqueParts = new Map<
+      string,
+      {
+        name: string;
+        customer: string;
+        color: string;
+        bgColor: string;
+        borderColor: string;
+        description: string;
+      }
+    >();
+
+    const colorVariants = [
+      {
+        color: "from-blue-500 to-blue-600",
+        bgColor: "bg-blue-500",
+        borderColor: "border-blue-500/30",
+      },
+      {
+        color: "from-green-500 to-green-600",
+        bgColor: "bg-green-500",
+        borderColor: "border-green-500/30",
+      },
+      {
+        color: "from-purple-500 to-purple-600",
+        bgColor: "bg-purple-500",
+        borderColor: "border-purple-500/30",
+      },
+      {
+        color: "from-orange-500 to-orange-600",
+        bgColor: "bg-orange-500",
+        borderColor: "border-orange-500/30",
+      },
+      {
+        color: "from-red-500 to-red-600",
+        bgColor: "bg-red-500",
+        borderColor: "border-red-500/30",
+      },
+      {
+        color: "from-indigo-500 to-indigo-600",
+        bgColor: "bg-indigo-500",
+        borderColor: "border-indigo-500/30",
+      },
+    ];
+
+    savedSchedules.forEach((s) => {
+      const partName = s.form.part;
+      if (!uniqueParts.has(partName)) {
+        const idx = uniqueParts.size % colorVariants.length;
+        const variant = colorVariants[idx];
+        uniqueParts.set(partName, {
+          name: partName,
+          customer: s.form.customer,
+          color: variant.color,
+          bgColor: variant.bgColor,
+          borderColor: variant.borderColor,
+          description: `Jadwal produksi untuk ${partName}`,
+        });
+      }
+    });
+    return Array.from(uniqueParts.values());
+  }, [savedSchedules]);
+
+  // Flag untuk menyembunyikan section Saved saat sedang menampilkan dashboard produksi
+  const isViewingSchedule = schedule.length > 0 && !showScheduleCards;
+
+  const getSchedulesByPart = (partName: string) =>
+    savedSchedules.filter((s) => s.form.part === partName);
+
+  const handleShowSchedule = (saved: SavedSchedule) => {
+    loadSchedule(saved);
+    setShowScheduleCards(false); // Sembunyikan card jadwal
+    setTimeout(() => {
+      const el = document.getElementById("schedule-table-section");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
+  const handleDownloadExcel = (saved: SavedSchedule) => {
+    try {
+      const timePerPcs = saved.form.timePerPcs || 257;
+      const initialStock = saved.form.initialStock || 0;
+      let runningStock = initialStock;
+      const scheduleData = (saved.schedule || []).map(
+        (item: any, index: number) => {
+          const planningHour = item.planningHour || 0;
+          const overtimeHour = item.overtimeHour || 0;
+          const delivery = item.delivery || 0;
+          const planningPcs =
+            planningHour > 0
+              ? Math.floor((planningHour * 3600) / timePerPcs)
+              : 0;
+          const overtimePcs =
+            overtimeHour > 0
+              ? Math.floor((overtimeHour * 3600) / timePerPcs)
+              : 0;
+          const hasilProduksi = planningPcs + overtimePcs;
+          const prevStock = runningStock;
+          const rencanaStock = prevStock + hasilProduksi - delivery;
+          runningStock = rencanaStock;
+          return {
+            No: index + 1,
+            Hari: item.day,
+            Shift: item.shift,
+            Waktu: item.time,
+            Status: item.status,
+            "Stok Awal": prevStock,
+            Delivery: delivery,
+            "Planning Hour": planningHour,
+            "Overtime Hour": overtimeHour,
+            "Planning PCS": planningPcs,
+            "Overtime PCS": overtimePcs,
+            "Hasil Produksi": hasilProduksi,
+            "Stok Akhir": rencanaStock,
+            "Jam Produksi Aktual": item.jamProduksiAktual || 0,
+            Catatan: item.notes || "",
+          };
+        },
+      );
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(scheduleData);
+      XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+      XLSX.writeFile(wb, `${saved.name}.xlsx`);
+    } catch (e) {}
+  };
+
   // Fungsi untuk menyimpan data dari komponen ke backend
   const saveProductionDataToBackend = async (
     productionData: ScheduleItem[],
@@ -1893,6 +2044,186 @@ const SchedulerPage: React.FC = () => {
     <div className="w-full min-h-screen flex items-start justify-center pt-16 sm:pt-20">
       {/* SchedulerPage main content */}
       <div className="w-full max-w-none mx-auto px-2 sm:px-4 lg:px-6">
+        {/* Saved section integrated */}
+        {savedSchedules.length > 0 && !isViewingSchedule && (
+          <div className="mb-6">
+            {!selectedPart ? (
+              <div>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2
+                      className={`text-2xl font-bold ${uiColors.text.primary}`}
+                    >
+                      Saved Schedules
+                    </h2>
+                    <p className={`${uiColors.text.tertiary}`}>
+                      Manage your saved production schedules by part
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      resetFormAndSchedule();
+                      setShowProductionForm(true);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow transition-all"
+                  >
+                    ✨ Buat Jadwal Produksi
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {parts.map((p) => (
+                    <div
+                      key={p.name}
+                      onClick={() => setSelectedPart(p.name)}
+                      className={`group relative ${uiColors.bg.secondary} border ${p.borderColor} rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden`}
+                    >
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
+                      ></div>
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div
+                            className={`${p.bgColor} w-12 h-12 rounded-xl flex items-center justify-center`}
+                          >
+                            <Package className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <div
+                              className={`text-lg font-bold ${uiColors.text.primary} truncate`}
+                            >
+                              {p.name}
+                            </div>
+                            <div
+                              className={`${uiColors.text.tertiary} text-sm truncate`}
+                            >
+                              {p.customer}
+                            </div>
+                          </div>
+                        </div>
+                        <p className={`${uiColors.text.tertiary} text-xs mb-3`}>
+                          {p.description}
+                        </p>
+                        <div
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-white bg-gradient-to-r ${p.color} text-xs font-medium`}
+                        >
+                          <Calendar className="w-4 h-4" />
+                          {getSchedulesByPart(p.name).length} jadwal tersimpan
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="absolute top-3 right-3 z-20 p-2 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 shadow border border-gray-300"
+                          title="Edit part"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-4 p-4 bg-white border border-gray-200 rounded-xl flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedPart(null)}
+                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Package className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-lg font-bold text-gray-900 truncate">
+                      {selectedPart}
+                    </div>
+                    <div className="text-sm text-gray-600 truncate">
+                      {parts.find((p) => p.name === selectedPart)?.customer}
+                    </div>
+                  </div>
+                  <div className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-center">
+                    <div className="text-xs text-gray-500">Total Schedules</div>
+                    <div className="text-lg font-bold text-gray-900">
+                      {getSchedulesByPart(selectedPart).length}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {getSchedulesByPart(selectedPart).map((s) => (
+                    <div
+                      key={s.id}
+                      className="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-500/10 rounded-lg">
+                            <Calendar className="w-5 h-5 text-blue-500" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">
+                              {s.name}
+                            </div>
+                            <div className="text-xs text-gray-600 flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Dibuat:{" "}
+                              {new Date(s.date).toLocaleString("id-ID")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-1 bg-green-500/10 rounded-full">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        </div>
+                      </div>
+
+                      <div className="mb-4 space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Package className="w-4 h-4 text-blue-500" />
+                          <span>
+                            <span className="font-medium">Part:</span>{" "}
+                            {s.form.part}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Cog className="w-4 h-4 text-purple-500" />
+                          <span>
+                            <span className="font-medium">Customer:</span>{" "}
+                            {s.form.customer}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleShowSchedule(s)}
+                          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" /> Tampilkan
+                        </button>
+                        <button
+                          onClick={() => handleDownloadExcel(s)}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                          title="Download Excel"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteScheduleFromDatabase(s.id)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Main content below */}
         {/* ...existing code... */}
 
@@ -2080,30 +2411,251 @@ const SchedulerPage: React.FC = () => {
 
         {/* If no schedule, show blank state */}
         {schedule.length === 0 ? (
-          <div
-            className={`flex flex-col items-center justify-center min-h-[500px] sm:min-h-[600px] ${uiColors.bg.secondary} ${uiColors.border.primary} rounded-3xl p-8 sm:p-16 mx-auto max-w-4xl`}
-          >
-            <div className="text-center">
-              <h2
-                className={`text-xl sm:text-2xl font-bold ${uiColors.text.primary} mb-4`}
+          savedSchedules.length > 0 ? (
+            <div className="h-0" />
+          ) : (
+            <div
+              className={`flex flex-col items-center justify-center min-h-[500px] sm:min-h-[600px] ${uiColors.bg.secondary} ${uiColors.border.primary} rounded-3xl p-8 sm:p-16 mx-auto max-w-4xl`}
+            >
+              <div className="text-center">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => {
+                      resetFormAndSchedule();
+                      setShowProductionForm(true);
+                    }}
+                    className="px-8 sm:px-12 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base sm:text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  >
+                    ✨ Buat Jadwal Produksi
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        ) : showScheduleCards ? (
+          // Tampilan Card Jadwal (sama persis dengan Saved Scheduler)
+          <div className="w-full max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h1
+                className={`text-3xl font-bold ${uiColors.text.primary} mb-2`}
               >
-                🚀 Mulai Perencanaan Produksi
-              </h2>
-              <p
-                className={`text-base sm:text-lg ${uiColors.text.tertiary} mb-6 sm:mb-8`}
-              >
-                Buat jadwal produksi yang optimal untuk meningkatkan efisiensi
-                dan target produksi
+                Saved Schedules
+              </h1>
+              <p className={`${uiColors.text.tertiary} text-lg`}>
+                Manage your saved production schedules by part
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            </div>
+
+            {/* Part Selection Box */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-gray-900">
+                      {form.part || "29N Muffler"}
+                    </div>
+                    <div className="text-gray-600">
+                      {form.customer || "DEF"}
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                  <div className="text-sm text-gray-600">Total Schedules</div>
+                  <div className="text-2xl font-bold text-gray-900">1</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Schedule Card - Sama persis dengan Saved Scheduler */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {MONTHS[selectedMonth]} {selectedYear}
+                </h3>
+                <div className="flex items-center gap-2 text-green-500">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-600 mb-4">
+                Dibuat:{" "}
+                {new Date().toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}{" "}
+                pukul{" "}
+                {new Date().toLocaleTimeString("id-ID", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-gray-900">
+                    Part: {form.part || "29N Muffler"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-gray-900">
+                    Customer: {form.customer || "DEF"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowScheduleCards(false)}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  Tampilkan
+                </button>
+                <button
+                  onClick={() => {
+                    const event = new CustomEvent("downloadExcel");
+                    window.dispatchEvent(event);
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Download
+                </button>
+                <button
+                  onClick={() => {
+                    resetFormAndSchedule();
+                    setShowScheduleCards(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Hapus
+                </button>
+              </div>
+
+              {/* Tombol Buat Jadwal Baru */}
+              <div className="mt-4 pt-4 border-t border-gray-300">
                 <button
                   onClick={() => {
                     resetFormAndSchedule();
                     setShowProductionForm(true);
                   }}
-                  className="px-8 sm:px-12 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base sm:text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
                 >
-                  ✨ Buat Jadwal Produksi
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  Buat Jadwal Baru
                 </button>
               </div>
             </div>
@@ -2130,6 +2682,33 @@ const SchedulerPage: React.FC = () => {
 
                 {/* Combined Controls */}
                 <div className="flex flex-row items-center gap-2 sm:gap-4">
+                  {/* Tombol Kembali ke Card */}
+                  <button
+                    onClick={() => {
+                      setShowScheduleCards(false);
+                      setSchedule([]);
+                      try {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      } catch {}
+                    }}
+                    className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all duration-200 text-sm flex items-center gap-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                      />
+                    </svg>
+                    Kembali ke Card
+                  </button>
+
                   {/* View Mode Toggle */}
                   <ViewModeToggle
                     currentView={viewMode}
