@@ -1199,13 +1199,32 @@ export const updateProcess = async (
   }
 };
 
+// Progress Tooling Detail APIs (persist granular data of tooling progress)
 export const updateProgressToolingDetail = async (
-  processId: string,
+  params: { partId: string; categoryId: string; processId: string; subProcessId: string },
   toolingData: any,
 ) => {
   try {
-    // Backend route berada di progress-tracker, bukan manage-progress
-    const response = await api.put(`/progress-tracker/processes/${processId}/tooling-detail`, toolingData);
+    const { partId, categoryId, processId, subProcessId } = params;
+    // Backend saat ini cukup mengidentifikasi detail berdasar processId (child Progress Tooling)
+    const response = await api.put(
+      `/progress-detail/tooling-detail/${partId}/${categoryId}/${processId}/${subProcessId}`,
+      toolingData,
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getProgressToolingDetail = async (
+  params: { partId: string; categoryId: string; processId: string; subProcessId: string },
+) => {
+  try {
+    const { partId, categoryId, processId, subProcessId } = params;
+    const response = await api.get(
+      `/progress-detail/tooling-detail/${partId}/${categoryId}/${processId}/${subProcessId}`,
+    );
     return response.data;
   } catch (error) {
     throw error;
@@ -1227,6 +1246,7 @@ export const updateProgressDetail = async (
 ) => {
   try {
     const { partId, categoryId, processId, subProcessId } = params;
+    // Router dimount pada /api/progress-detail → prefix '/progress-detail' wajib ada
     const url = subProcessId
       ? `/progress-detail/${partId}/${categoryId}/${processId}/${subProcessId}`
       : `/progress-detail/${partId}/${categoryId}/${processId}`;

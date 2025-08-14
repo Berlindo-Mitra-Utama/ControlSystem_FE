@@ -91,6 +91,7 @@ interface Process {
   notes?: string;
   children?: Process[];
   evidence?: Evidence[];
+  toolingDetail?: any;
 }
 
 interface ProgressCategory {
@@ -109,6 +110,7 @@ interface Part {
   progress: ProgressCategory[];
   createdAt: string;
   status: "active" | "completed" | "on-hold";
+  overallProgress?: number;
 }
 
 // Add Part Modal Component
@@ -332,7 +334,8 @@ function mapBackendPartToFrontend(part: any): Part {
           name: child.name || '',
           completed: !!child.completed, // Ensure boolean
           notes: child.notes || '',
-          evidence: child.evidence || []
+          evidence: child.evidence || [],
+          toolingDetail: child.toolingDetail || null
         })) : [],
         evidence: process.evidence || []
       })) : []
@@ -355,6 +358,7 @@ function mapBackendPartToFrontend(part: any): Part {
     progress: progressData,
     createdAt: part.createdAt || new Date().toISOString(),
     status: part.status || 'active',
+    overallProgress: typeof part.overallProgress === 'number' ? Math.round(part.overallProgress) : undefined,
   };
 }
 
@@ -509,40 +513,43 @@ export default function Dashboard() {
   };
 
   // Calculate overall progress for a part
-  // Logika:
-  // 1. Hitung semua unit (process + sub-process)
-  // 2. Setiap unit yang completed = 1, tidak completed = 0
-  // 3. Return persentase keseluruhan
-  // Note: Fungsi ini konsisten dengan calculateOverallProgressWithDetail di manage_progres.tsx
+  // Mengikutsertakan Progress Tooling (fractional berdasarkan toolingDetail.overallProgress)
   const calculateOverallProgress = (part: Part): number => {
-    if (part.progress.length === 0) return 0;
+    // Prefer progress yang dihitung backend agar konsisten dengan Manage Progress
+    if (typeof part.overallProgress === 'number') {
+      return Math.max(0, Math.min(100, Math.round(part.overallProgress)));
+    }
+    if (!part.progress || part.progress.length === 0) return 0;
 
-    let totalTasks = 0;
-    let completedTasks = 0;
+    let totalUnits = 0;
+    let completedUnits = 0;
 
     part.progress.forEach((category) => {
       category.processes.forEach((process) => {
         if (process.children && process.children.length > 0) {
-          // Jika ada sub-process, hitung berdasarkan sub-process
           process.children.forEach((child) => {
-            totalTasks++;
-            if (child.completed) completedTasks++;
+            totalUnits += 1;
+            if (child.name === 'Progress Tooling' && (child as any).toolingDetail && typeof (child as any).toolingDetail.overallProgress === 'number') {
+              const pct = Math.max(0, Math.min(100, Number((child as any).toolingDetail.overallProgress)));
+              completedUnits += pct / 100;
+            } else if (child.completed) {
+              completedUnits += 1;
+            }
           });
         } else {
-          // Jika tidak ada sub-process, hitung berdasarkan process langsung
-          totalTasks++;
-          if (process.completed) completedTasks++;
+          totalUnits += 1;
+          if (process.completed) completedUnits += 1;
         }
       });
     });
 
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const computed = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+    return Math.max(0, Math.min(100, computed));
   };
 
   // Helper function untuk memastikan konsistensi perhitungan progress
   // Menggunakan fungsi yang sama dengan manage progress untuk konsistensi
   const getConsistentProgress = (part: Part): number => {
-    // Gunakan fungsi yang sama dengan manage progress
     return calculateOverallProgress(part);
   };
 

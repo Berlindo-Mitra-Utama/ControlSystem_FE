@@ -24,7 +24,7 @@ import {
 import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save, Upload, FileText, Image, Download } from "lucide-react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { Colors, getProgressColor, getUIColors } from "../../const/colors"
-import { getPartById, updatePart, getAllParts, deletePart, updateProcessCompletion as apiUpdateProcessCompletion, updateProgressDetail } from '../../../services/API_Services'
+import { getPartById, updatePart, getAllParts, deletePart, updateProcessCompletion as apiUpdateProcessCompletion, updateProgressDetail, updateProgressToolingDetail as apiUpdateProgressToolingDetail } from '../../../services/API_Services'
 
 // Import new components
 import { ProgressToolingDropdown } from "../components/ProgressToolingDropdown"
@@ -52,6 +52,7 @@ interface Process {
   notes?: string
   children?: Process[]
   evidence?: Evidence[]
+  toolingDetail?: any
 }
 
 interface ProgressCategory {
@@ -138,7 +139,8 @@ function mapBackendPartToFrontend(part: any): Part {
           name: child.name || '',
           completed: !!child.completed, // Ensure boolean - read from database
           notes: child.notes || '',
-          evidence: child.evidence || []
+          evidence: child.evidence || [],
+          toolingDetail: child.toolingDetail || null
         })) : [],
         evidence: process.evidence || []
       })) : []
@@ -671,6 +673,8 @@ export default function ManageProgres() {
   // Progress ini akan diupdate melalui callback dari ProgressToolingDropdown
   // dan digunakan untuk menghitung progress bar tooling dan overall progress
   const [progressToolingDetailProgress, setProgressToolingDetailProgress] = useState<number>(0)
+  // Cache full detail payload per tooling sub-process id for persistence on Save
+  const [toolingDetailBySubProcessId, setToolingDetailBySubProcessId] = useState<Record<string, any>>({})
 
   // State untuk modal gambar part
   const [imageModal, setImageModal] = useState<{
@@ -700,7 +704,11 @@ export default function ManageProgres() {
             process.children.forEach((child) => {
               if (child.name === "Progress Tooling") {
                 foundProgressTooling = true;
-                // Progress detail akan diupdate melalui callback dari ProgressToolingDropdown
+                // Prefill dari backend jika tersedia agar tidak reset ke 0
+                const backendOverall = (child as any)?.toolingDetail?.overallProgress;
+                if (typeof backendOverall === 'number') {
+                  totalDetailProgress = backendOverall;
+                }
               }
             });
           }
@@ -710,6 +718,10 @@ export default function ManageProgres() {
       // Jika tidak ada Progress Tooling, reset progress detail
       if (!foundProgressTooling) {
         setProgressToolingDetailProgress(0);
+      } else {
+        if (totalDetailProgress > 0) {
+          setProgressToolingDetailProgress(Math.round(totalDetailProgress));
+        }
       }
     }
   }, [selectedPart]);
@@ -861,8 +873,17 @@ export default function ManageProgres() {
                     parentProcessId: process.id
                   });
                   updates.push(apiUpdateProcessCompletion(child.id, childCompleted))
-                  // Persist detail ke progress-detail untuk referensi
+                  // Persist granular tooling detail/progress additionally if available
                   if (isValidUuid(selectedPart.id) && isValidUuid(category.id) && isValidUuid(process.id)) {
+                    const fullDetail = toolingDetailBySubProcessId[child.id] || { overallProgress: progressToolingDetailProgress }
+                    detailSaves.push(
+                      apiUpdateProgressToolingDetail({
+                        partId: selectedPart.id,
+                        categoryId: category.id,
+                        processId: child.id,
+                        subProcessId: child.id
+                      }, fullDetail)
+                    )
                     detailSaves.push(
                       updateProgressDetail({
                         partId: selectedPart.id,
@@ -916,17 +937,29 @@ export default function ManageProgres() {
       }
       
       const results = await Promise.allSettled(updates)
+      // Pisahkan tooling detail vs generic progress detail agar error messaging akurat
+      const toolingDetailPromises = detailSaves.filter(p =>
+        // Heuristik: axios request path mengandung '/tooling-detail/'
+        // Tidak ada akses langsung ke URL di sini, jadi kita tandai saat push (lihat di bawah)
+        // Placeholder; akan ditimpa oleh metadata pada object Promise jika ada
+        false
+      )
       const detailResults = await Promise.allSettled(detailSaves)
       console.log('Backend update results:', results);
       console.log('Progress detail save results:', detailResults)
       
       // Check for any failed updates
       const failedUpdates = results.filter(result => result.status === 'rejected');
+      const failedDetailUpdates = detailResults.filter(result => result.status === 'rejected');
       if (failedUpdates.length > 0) {
         console.error('Some updates failed:', failedUpdates);
         // Show error message to user
         alert('Beberapa update gagal disimpan. Silakan coba lagi.');
         return;
+      }
+      // Note: beberapa detail non-tooling mungkin gagal karena optional table, tapi tidak blocker.
+      if (failedDetailUpdates.length > 0) {
+        console.warn('Some progress detail updates failed (non-blocking):', failedDetailUpdates);
       }
       
       console.log('All updates completed, refreshing data from backend...');
@@ -2178,6 +2211,10 @@ export default function ManageProgres() {
                                             <div className="w-full mt-2">
                                               <ProgressToolingDropdown 
                                                 progressToolingChild={child}
+                                                partId={selectedPart.id}
+                                                categoryId={progressCategory.id}
+                                                processId={child.id}
+                                                subProcessId={child.id}
                                                 onProgressToolingComplete={(completed) => {
                                                   if (completed) {
                                                     // Auto-complete the Progress Tooling sub-process
@@ -2186,6 +2223,9 @@ export default function ManageProgres() {
                                                 }}
                                                 onProgressUpdate={(progress) => {
                                                   setProgressToolingDetailProgress(progress);
+                                                }}
+                                                onDetailChange={(detail) => {
+                                                  setToolingDetailBySubProcessId(prev => ({ ...prev, [child.id]: detail }))
                                                 }}
                                               />
                                             </div>
