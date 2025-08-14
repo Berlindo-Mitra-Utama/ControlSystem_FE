@@ -182,7 +182,7 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-[95vw] sm:w-auto bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 text-white mx-4">
+      <DialogContent className="w-[92vw] max-w-md sm:w-auto bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 text-white mx-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
             <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
@@ -792,7 +792,7 @@ export default function Dashboard() {
 
           {/* Search and Add Section - Below Project Summary */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div className="flex-1 sm:flex-none sm:w-80">
+            <div className="w-full max-w-[360px] mx-auto sm:max-w-none sm:w-80 sm:mx-0">
               {/* Search Box - Modern Design */}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -1136,8 +1136,8 @@ export default function Dashboard() {
       />
 
       {/* Delete Confirmation Modal - Improved UI */}
-      <Dialog open={showDeleteModal} onOpenChange={() => setShowDeleteModal(false)}>
-        <DialogContent className="max-w-md w-[95vw] sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-4 shadow-2xl">
+  <Dialog open={showDeleteModal} onOpenChange={() => setShowDeleteModal(false)}>
+        <DialogContent className="w-[92vw] max-w-md sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-auto shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
@@ -1180,8 +1180,8 @@ export default function Dashboard() {
       </Dialog>
 
       {/* Sorting Modal for Mobile */}
-      <Dialog open={showSortModal} onOpenChange={() => setShowSortModal(false)}>
-        <DialogContent className="max-w-sm w-[95vw] sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-4 shadow-2xl">
+  <Dialog open={showSortModal} onOpenChange={() => setShowSortModal(false)}>
+        <DialogContent className="w-[92vw] max-w-sm sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-auto shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">

@@ -1597,7 +1597,7 @@ export default function ManageProgres() {
               <Link to="/progress">
                 <Button
                   variant="outline"
-                  className={`mr-0 sm:mr-4 mb-3 sm:mb-0 w-full sm:w-auto ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} bg-transparent`}
+                  className={`mr-0 sm:mr-4 mb-2 sm:mb-0 w-full sm:w-auto ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} bg-transparent`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="m15 18-6-6 6-6"/></svg>
                   <span className="hidden sm:inline">Back to Dashboard</span>
@@ -1605,13 +1605,16 @@ export default function ManageProgres() {
                 </Button>
               </Link>
               <div className="flex-1 min-w-0">
-                <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary} break-words`}>Manage Progress</h1>
-                <p className={`${uiColors.text.tertiary} text-sm sm:text-base mt-1`}>Update process completion status for all parts</p>
-                <div className="mt-2 flex items-center space-x-2 text-xs text-blue-400">
+                <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary} break-words text-center sm:text-left`}>Manage Progress</h1>
+                <p className={`${uiColors.text.tertiary} text-sm sm:text-base mt-1 text-center sm:text-left`}>Update process completion status for all parts</p>
+                <div className="mt-2 hidden sm:flex items-center space-x-2 text-xs text-blue-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>Processes auto-complete when all sub-processes are finished • Green checkmark indicates completed items • Progress Tooling auto-completes when overall progress reaches 100%</span>
+                </div>
+                <div className="mt-2 flex sm:hidden items-center justify-center text-[11px] text-blue-400">
+                  <span>Tips: Processes auto-complete when all sub-processes are done</span>
                 </div>
               </div>
             </div>
@@ -1623,15 +1626,15 @@ export default function ManageProgres() {
           {selectedPart ? (
             <Card key={selectedPart.id} className={`${uiColors.bg.card} ${uiColors.border.primary} shadow-lg`}>
               <CardHeader className="pb-3 sm:pb-4">
-                <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0">
+                <div className="flex flex-col lg:flex-row justify-between items-start gap-4 w-full">
+                  <div className="flex-1 min-w-0 w-full">
                     
                     {/* Part Image and Details Container */}
-                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-row gap-4 mb-4 items-stretch w-full">
                       {/* Part Image */}
                       {selectedPart.partImageUrl && selectedPart.partImageUrl.trim() !== '' && (isValidBase64Image(selectedPart.partImageUrl) || selectedPart.partImageUrl.startsWith('http')) && (
-                        <div className="flex-shrink-0">
-                          <div className="relative w-48 h-32 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-lg overflow-hidden border border-gray-600/30 cursor-pointer hover:scale-105 transition-transform duration-200"
+                        <div className="flex-shrink-0 mx-auto lg:mx-0 h-full w-full lg:w-auto">
+                          <div className="relative w-full max-w-[220px] h-40 md:h-48 lg:w-48 lg:h-full bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-lg overflow-hidden border border-gray-600/30 cursor-pointer hover:scale-105 transition-transform duration-200 mx-auto"
                                onClick={() => setImageModal({
                                  isOpen: true,
                                  imageUrl: selectedPart.partImageUrl!,
@@ -1659,13 +1662,13 @@ export default function ManageProgres() {
                               <div className="text-white text-sm font-medium">Click to view full size</div>
                   </div>
                       </div>
-                          <p className="text-xs text-gray-400 mt-1">Click image to view full size</p>
+                          <p className="text-xs text-gray-400 mt-1 text-center lg:hidden">Click image to view full size</p>
                     </div>
                       )}
                       
                       {/* Part Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="space-y-4 p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/40 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:border-gray-600/60">
+                      <div className="flex-1 min-w-0 w-full">
+                        <div className="w-full max-w-full space-y-4 p-5 md:p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/40 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.01] hover:border-gray-600/60">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 group">
                             <span className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} min-w-[130px] bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent drop-shadow-sm`}>Part Name:</span>
                             <span className={`text-lg sm:text-xl font-semibold ${uiColors.text.secondary} break-words tracking-wide group-hover:text-white transition-colors duration-200`}>{selectedPart.partName}</span>
@@ -1680,10 +1683,38 @@ export default function ManageProgres() {
                           </div>
                         </div>
                       </div>
+                      {/* Pie chart on the right of details */}
+                      {(() => {
+                        const percent = calculateOverallProgressWithDetail(selectedPart)
+                        const r = 42
+                        const stroke = 10
+                        const c = 2 * Math.PI * r
+                        const offset = c * (1 - percent / 100)
+                        return (
+                          <div className="hidden lg:flex items-center justify-center pl-2 pr-4">
+                            <div className="relative w-28 h-28">
+                              <svg viewBox="0 0 100 100" className="w-28 h-28">
+                                <defs>
+                                  <linearGradient id="overallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#60a5fa" />
+                                    <stop offset="100%" stopColor="#a78bfa" />
+                                  </linearGradient>
+                                </defs>
+                                <circle cx="50" cy="50" r={r} stroke="rgba(255,255,255,0.15)" strokeWidth={stroke} fill="none" />
+                                <circle cx="50" cy="50" r={r} stroke="url(#overallGrad)" strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset} />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <div className={`text-xl font-bold ${uiColors.text.primary}`}>{percent}%</div>
+                                <div className={`text-[10px] ${uiColors.text.tertiary}`}>Overall</div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
-                  <div className="flex flex-col items-center lg:items-end gap-3 w-full lg:w-auto">
-					<div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-col items-stretch sm:items-end gap-3 w-full lg:w-auto">
+                    <div className="flex flex-col gap-2 w-full sm:w-auto">
                       <Button
                         size="sm"
                         variant="outline"
@@ -1695,7 +1726,7 @@ export default function ManageProgres() {
                             part: selectedPart,
                           })
                         }
-                        className={`${uiColors.text.secondary} hover:${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-7 sm:h-8`}
+                        className={`${uiColors.text.secondary} hover:${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-9 sm:h-8`}
                       >
                         <Edit className="w-3 h-3 mr-1" />
                         <span className="hidden sm:inline">Edit Part</span>
@@ -1706,7 +1737,7 @@ export default function ManageProgres() {
                         variant="outline"
                         onClick={saveAllProgressToBackend}
                         disabled={isSaving}
-                        className={`${uiColors.text.accent} hover:${uiColors.bg.secondary} ${uiColors.border.accent} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-7 sm:h-8`}
+                        className={`${uiColors.text.accent} hover:${uiColors.bg.secondary} ${uiColors.border.accent} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-9 sm:h-8`}
                       >
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m4-4H8" />
@@ -1725,42 +1756,14 @@ export default function ManageProgres() {
                             name: selectedPart.partName,
                           })
                         }
-                        className={`${uiColors.text.error} hover:${uiColors.bg.secondary} ${uiColors.border.error} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-7 sm:h-8`}
+                        className={`${uiColors.text.error} hover:${uiColors.bg.secondary} ${uiColors.border.error} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-9 sm:h-8`}
                       >
                         <Trash2 className="w-3 h-3 mr-1" />
                         <span className="hidden sm:inline">Delete Part</span>
                         <span className="sm:hidden">Delete</span>
                       </Button>
                     </div>
-					{/* Pie chart */}
-					{(() => {
-						const percent = calculateOverallProgressWithDetail(selectedPart)
-						const r = 42
-						const stroke = 10
-						const c = 2 * Math.PI * r
-						const offset = c * (1 - percent / 100)
-						return (
-							<div className="flex items-center justify-center">
-                          <div className="relative w-28 h-28">
-                            <svg viewBox="0 0 100 100" className="w-28 h-28">
-										<defs>
-											<linearGradient id="overallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-												<stop offset="0%" stopColor="#60a5fa" />
-												<stop offset="100%" stopColor="#a78bfa" />
-											</linearGradient>
-										</defs>
-										<circle cx="50" cy="50" r={r} stroke="rgba(255,255,255,0.15)" strokeWidth={stroke} fill="none" />
-										<circle cx="50" cy="50" r={r} stroke="url(#overallGrad)" strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset} />
-									</svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-										<div className={`text-xl font-bold ${uiColors.text.primary}`}>{percent}%</div>
-										<div className={`text-[10px] ${uiColors.text.tertiary}`}>Overall</div>
                   </div>
-                </div>
-                </div>
-						)
-					})()}
-				  </div>
                 </div>
                 
               </CardHeader>

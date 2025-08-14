@@ -56,7 +56,7 @@ export function PartFormModal({ isOpen, onClose, onSave, part, title }: PartForm
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm sm:max-w-md mx-4">
+      <DialogContent className="bg-gray-800 border-gray-700 text-white w-[92vw] max-w-sm sm:max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-bold text-white">{title}</DialogTitle>
         </DialogHeader>

@@ -106,7 +106,7 @@ export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, pro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm sm:max-w-md lg:max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl mx-4">
+      <DialogContent className="bg-gray-800 border-gray-700 text-white w-[92vw] max-w-sm sm:max-w-md lg:max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl mx-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl text-white">Evidence for {processName}</DialogTitle>
         </DialogHeader>

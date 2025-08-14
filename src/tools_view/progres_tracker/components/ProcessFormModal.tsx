@@ -57,7 +57,7 @@ export function ProcessFormModal({ isOpen, onClose, onSave, process, title, isSu
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-sm sm:max-w-md bg-gray-800 border-gray-700 text-white mx-4">
+      <DialogContent className="w-[92vw] max-w-sm sm:max-w-md bg-gray-800 border-gray-700 text-white mx-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-bold text-white">{title}</DialogTitle>
         </DialogHeader>

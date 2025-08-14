@@ -55,7 +55,7 @@ export function DeleteConfirmationDialog({ isOpen, onClose, onConfirm, type, nam
         }
       }}
     >
-      <AlertDialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm sm:max-w-md mx-4">
+      <AlertDialogContent className="bg-gray-800 border-gray-700 text-white w-[92vw] max-w-sm sm:max-w-md mx-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-red-400 text-base sm:text-lg">
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
