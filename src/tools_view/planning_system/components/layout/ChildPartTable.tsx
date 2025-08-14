@@ -282,6 +282,12 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       }
     }
   }
+  
+  // Determine if we should show each section based on activeFilter
+  const showRencanaInMaterial = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("rencanaInMaterial");
+  const showAktualInMaterial = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("aktualInMaterial");
+  const showRencanaStock = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("rencanaStock");
+  const showAktualStock = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("aktualStock");
 
   // Helper untuk dapatkan nama hari dari urutan hari ke-d (mulai Senin)
   const getDayName = (day: number) => {
@@ -440,21 +446,29 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             {/* Rows */}
             <div className="space-y-0">
               {/* In Material */}
-              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
-                <div className="whitespace-pre-line">RENCANA IN MATERIAL</div>
-              </div>
+              {showRencanaInMaterial && (
+                <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                  <div className="whitespace-pre-line">RENCANA IN MATERIAL</div>
+                </div>
+              )}
               {/* Aktual In Material */}
-              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
-                <div className="whitespace-pre-line">AKTUAL IN MATERIAL</div>
-              </div>
+              {showAktualInMaterial && (
+                <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                  <div className="whitespace-pre-line">AKTUAL IN MATERIAL</div>
+                </div>
+              )}
               {/* Rencana Stock */}
-              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
-                <div className="whitespace-pre-line">RENCANA STOCK (PCS)</div>
-              </div>
+              {showRencanaStock && (
+                <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                  <div className="whitespace-pre-line">RENCANA STOCK (PCS)</div>
+                </div>
+              )}
               {/* Aktual Stock */}
-              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
-                <div className="whitespace-pre-line">AKTUAL STOCK (PCS)</div>
-              </div>
+              {showAktualStock && (
+                <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                  <div className="whitespace-pre-line">AKTUAL STOCK (PCS)</div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -469,18 +483,26 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
             {/* Total Rows */}
             <div className="space-y-0">
-              <div className="h-16 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 border-b border-gray-300 dark:border-gray-600 text-blue-700 dark:text-blue-200 font-mono text-sm font-bold">
-                {totalInMaterial.toLocaleString()}
-              </div>
-              <div className="h-16 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 border-b border-gray-300 dark:border-gray-600 text-blue-700 dark:text-blue-200 font-mono text-sm font-bold">
-                {totalAktualInMaterial.toLocaleString()}
-              </div>
-              <div className="h-16 flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 border-b border-gray-300 dark:border-gray-600 text-amber-700 dark:text-amber-200 font-mono text-sm font-bold">
-                -
-              </div>
-              <div className="h-16 flex items-center justify-center bg-sky-100 dark:bg-sky-900/30 border-b border-gray-300 dark:border-gray-600 text-sky-700 dark:text-sky-200 font-mono text-sm font-bold">
-                -
-              </div>
+              {showRencanaInMaterial && (
+                <div className="h-16 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 border-b border-gray-300 dark:border-gray-600 text-blue-700 dark:text-blue-200 font-mono text-sm font-bold">
+                  {totalInMaterial.toLocaleString()}
+                </div>
+              )}
+              {showAktualInMaterial && (
+                <div className="h-16 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 border-b border-gray-300 dark:border-gray-600 text-blue-700 dark:text-blue-200 font-mono text-sm font-bold">
+                  {totalAktualInMaterial.toLocaleString()}
+                </div>
+              )}
+              {showRencanaStock && (
+                <div className="h-16 flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 border-b border-gray-300 dark:border-gray-600 text-amber-700 dark:text-amber-200 font-mono text-sm font-bold">
+                  -
+                </div>
+              )}
+              {showAktualStock && (
+                <div className="h-16 flex items-center justify-center bg-sky-100 dark:bg-sky-900/30 border-b border-gray-300 dark:border-gray-600 text-sky-700 dark:text-sky-200 font-mono text-sm font-bold">
+                  -
+                </div>
+              )}
             </div>
           </div>
 
@@ -516,61 +538,69 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   {/* Data Rows */}
                   <div className="space-y-0">
                     {/* Rencana In Material - Baris 1 */}
-                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-blue-100 dark:bg-blue-900/30">
-                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
-                        <InputCell
-                          value={inMaterial[dayIdx][0]}
-                          onChange={(v) => handleInMaterialChange(dayIdx, 0, v)}
-                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
+                    {showRencanaInMaterial && (
+                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-blue-100 dark:bg-blue-900/30">
+                        <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                          <InputCell
+                            value={inMaterial[dayIdx][0]}
+                            onChange={(v) => handleInMaterialChange(dayIdx, 0, v)}
+                            className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                          <InputCell
+                            value={inMaterial[dayIdx][1]}
+                            onChange={(v) => handleInMaterialChange(dayIdx, 1, v)}
+                            className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
                       </div>
-                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
-                        <InputCell
-                          value={inMaterial[dayIdx][1]}
-                          onChange={(v) => handleInMaterialChange(dayIdx, 1, v)}
-                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
+                    )}
                     {/* Aktual In Material - Baris 2 */}
-                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-blue-100 dark:bg-blue-900/30">
-                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
-                        <InputCell
-                          value={aktualInMaterial[dayIdx][0]}
-                          onChange={(v) =>
-                            handleAktualInMaterialChange(dayIdx, 0, v)
-                          }
-                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
+                    {showAktualInMaterial && (
+                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-blue-100 dark:bg-blue-900/30">
+                        <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                          <InputCell
+                            value={aktualInMaterial[dayIdx][0]}
+                            onChange={(v) =>
+                              handleAktualInMaterialChange(dayIdx, 0, v)
+                            }
+                            className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                          <InputCell
+                            value={aktualInMaterial[dayIdx][1]}
+                            onChange={(v) =>
+                              handleAktualInMaterialChange(dayIdx, 1, v)
+                            }
+                            className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
+                        </div>
                       </div>
-                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
-                        <InputCell
-                          value={aktualInMaterial[dayIdx][1]}
-                          onChange={(v) =>
-                            handleAktualInMaterialChange(dayIdx, 1, v)
-                          }
-                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
+                    )}
                     {/* Rencana Stock - Baris 3 */}
-                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-amber-100 dark:bg-amber-900/30">
-                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
-                        {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
+                    {showRencanaStock && (
+                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-amber-100 dark:bg-amber-900/30">
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
+                          {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
+                        </div>
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
+                          {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                        </div>
                       </div>
-                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
-                        {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
-                      </div>
-                    </div>
+                    )}
                     {/* Aktual Stock - Baris 4 */}
-                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-sky-100 dark:bg-sky-900/30">
-                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
-                        {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
+                    {showAktualStock && (
+                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-sky-100 dark:bg-sky-900/30">
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
+                          {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
+                        </div>
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
+                          {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                        </div>
                       </div>
-                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
-                        {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
