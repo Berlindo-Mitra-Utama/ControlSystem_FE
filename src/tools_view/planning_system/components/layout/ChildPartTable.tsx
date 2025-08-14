@@ -293,9 +293,12 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
   // Wrap delete
   const handleDeleteClick = () => setShowDeleteModal(true);
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     setShowDeleteModal(false);
-    if (props.onDelete) props.onDelete();
+    if (props.onDelete) {
+      // Panggil onDelete yang sudah ada (akan menghapus dari database dan state)
+      props.onDelete();
+    }
   };
 
   // Loading logic for navigation/filter
@@ -321,18 +324,15 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
   return (
     <div className="space-y-6">
-      {/* Filter Menu - Enhanced + Manpower Button */}
-      <div
-        className={`${uiColors.bg.secondary}/50 rounded-xl p-6 ${uiColors.border.primary}`}
-      >
-        {/* Info Part dan Customer */}
+      {/* Info Part dan Customer */}
+      <div className="bg-gray-100 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div className="flex flex-wrap gap-4 items-center mb-4">
           <div className="flex items-center gap-4">
             {/* Part Info */}
             {props.partName && (
               <div className="flex items-center gap-2">
                 <svg
-                  className="w-4 h-4 text-blue-400"
+                  className="w-4 h-4 text-blue-600 dark:text-blue-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -344,8 +344,10 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                   />
                 </svg>
-                <span className={`text-sm ${uiColors.text.secondary}`}>
-                  <span className="font-semibold text-blue-400">Part:</span>{" "}
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                    Part:
+                  </span>{" "}
                   {props.partName}
                 </span>
               </div>
@@ -354,7 +356,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             {props.customerName && (
               <div className="flex items-center gap-2">
                 <svg
-                  className="w-4 h-4 text-green-400"
+                  className="w-4 h-4 text-green-600 dark:text-green-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -366,8 +368,8 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   />
                 </svg>
-                <span className={`text-sm ${uiColors.text.secondary}`}>
-                  <span className="font-semibold text-green-400">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold text-green-600 dark:text-green-400">
                     Customer:
                   </span>{" "}
                   {props.customerName}
@@ -377,337 +379,108 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
           </div>
         </div>
 
-        {/* Card Stock Info - Dipindah ke bawah */}
-        <div className="flex flex-wrap gap-4 items-center mb-6">
-          {/* Stock Info */}
-          <div
-            className={`bg-gray-800 text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-gray-600`}
-          >
-            <Package className={`w-5 h-5 text-blue-400`} />
-            Stock Awal:{" "}
-            <span className="ml-1 text-blue-300">
-              {props.initialStock === null
-                ? "0"
-                : props.initialStock.toLocaleString()}
-            </span>
+        {/* Card Stock Info dengan Delete Button */}
+        <div className="flex flex-wrap gap-4 items-center mb-6 justify-between">
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* Stock Info */}
+            <div className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-gray-300 dark:border-gray-600">
+              <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              Stock Awal:{" "}
+              <span className="ml-1 text-blue-700 dark:text-blue-300">
+                {props.initialStock === null
+                  ? "0"
+                  : props.initialStock.toLocaleString()}
+              </span>
+            </div>
+            {/* Total Rencana Info */}
+            <div className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-gray-300 dark:border-gray-600">
+              <Layers className="w-5 h-5 text-green-600 dark:text-green-400" />
+              Total Rencana:{" "}
+              <span className="ml-1 text-green-700 dark:text-green-400">
+                {totalInMaterial.toLocaleString()}
+              </span>
+            </div>
+            {/* Total Aktual Info */}
+            <div className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-gray-300 dark:border-gray-600">
+              <Layers className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              Total Aktual:{" "}
+              <span className="ml-1 text-yellow-700 dark:text-yellow-400">
+                {totalAktualInMaterial.toLocaleString()}
+              </span>
+            </div>
           </div>
-          {/* Total Rencana Info */}
-          <div
-            className={`bg-gray-800 text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-gray-600`}
-          >
-            <Layers className={`w-5 h-5 text-green-400`} />
-            Total Rencana:{" "}
-            <span className="ml-1 text-green-400">
-              {totalInMaterial.toLocaleString()}
-            </span>
-          </div>
-          {/* Total Aktual Info */}
-          <div
-            className={`bg-gray-800 text-white rounded-lg px-4 py-2 font-semibold text-base flex items-center gap-2 shadow border border-gray-600`}
-          >
-            <Layers className={`w-5 h-5 text-yellow-400`} />
-            Total Aktual:{" "}
-            <span className="ml-1 text-yellow-400">
-              {totalAktualInMaterial.toLocaleString()}
-            </span>
-          </div>
-        </div>
-        {/* Divider */}
-        <div className={`border-b ${uiColors.border.secondary} mb-4`} />
-        {/* Judul Filter Data */}
-        <h3
-          className={`${uiColors.text.primary} font-bold text-lg mb-4 flex items-center gap-3`}
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
-            />
-          </svg>
-          Filter Data
-        </h3>
-        <div className="flex flex-wrap gap-3 items-center">
-          <button
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 bg-blue-600 text-white shadow-xl scale-105 hover:bg-blue-700`}
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+
+          {/* Delete Button */}
+          {props.renderHeaderAction && (
+            <button
+              className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200"
+              onClick={handleDeleteClick}
+              type="button"
+              title="Delete"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-            Semua Data
-          </button>
-          <button
-            className={`px-6 py-3 rounded-xl text-base font-semibold transition-all flex items-center gap-2 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white hover:scale-102`}
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Delivery
-          </button>
-          <button
-            className={`px-6 py-3 rounded-xl text-base font-semibold transition-all flex items-center gap-2 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white hover:scale-102`}
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Planning
-          </button>
-          <button
-            className={`px-6 py-3 rounded-xl text-base font-semibold transition-all flex items-center gap-2 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white hover:scale-102`}
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Overtime
-          </button>
-          <button
-            className={`px-6 py-3 rounded-xl text-base font-semibold transition-all flex items-center gap-2 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white hover:scale-102`}
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
-            Hasil Produksi
-          </button>
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Action Buttons - Hanya delete dengan icon trash */}
-      {props.renderHeaderAction && (
-        <div className="flex justify-end">
-          <button
-            className={`p-2 ${uiColors.button.danger.bg} ${uiColors.button.danger.hover} ${uiColors.button.danger.text} rounded-lg transition-all duration-200`}
-            onClick={handleDeleteClick}
-            type="button"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {/* Table Container */}
-      <div
-        className={`relative ${uiColors.bg.secondary}/50 rounded-xl overflow-hidden ${uiColors.border.primary}`}
-      >
+      <div className="relative bg-gray-100 dark:bg-gray-800/50 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
         {/* Container with horizontal scroll */}
         <div className="flex">
           {/* Frozen Left Column - DESCRIPTION */}
-          <div
-            className={`flex-shrink-0 ${uiColors.bg.tertiary} ${uiColors.border.secondary} w-48`}
-          >
+          <div className="flex-shrink-0 bg-gray-200 dark:bg-gray-700 border-r border-gray-300 dark:border-gray-600 w-48">
             {/* Header */}
-            <div
-              className={`h-24 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.border.secondary}`}
-            >
-              <div
-                className={`${uiColors.text.primary} font-bold text-lg text-center px-4`}
-              >
+            <div className="h-24 flex items-center justify-center bg-gray-300 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-600">
+              <div className="text-gray-900 dark:text-white font-bold text-lg text-center px-4">
                 DESCRIPTION
               </div>
             </div>
 
             {/* Rows */}
             <div className="space-y-0">
-              {(!props.activeFilter || props.activeFilter.length === 0) && (
-                <>
-                  {/* In Material */}
-                  <div
-                    className={`h-16 flex items-center justify-center px-4 ${uiColors.bg.tertiary} ${uiColors.border.secondary} text-white font-semibold text-sm text-center leading-tight`}
-                  >
-                    <div className="whitespace-pre-line">
-                      RENCANA IN MATERIAL
-                    </div>
-                  </div>
-                  {/* Aktual In Material */}
-                  <div
-                    className={`h-16 flex items-center justify-center px-4 ${uiColors.bg.tertiary} ${uiColors.border.secondary} text-white font-semibold text-sm text-center leading-tight`}
-                  >
-                    <div className="whitespace-pre-line">
-                      AKTUAL IN MATERIAL
-                    </div>
-                  </div>
-                  {/* Rencana Stock */}
-                  <div
-                    className={`h-16 flex items-center justify-center px-4 ${uiColors.bg.tertiary} ${uiColors.border.secondary} text-white font-semibold text-sm text-center leading-tight`}
-                  >
-                    <div className="whitespace-pre-line">
-                      RENCANA STOCK (PCS)
-                    </div>
-                  </div>
-                  {/* Aktual Stock */}
-                  <div
-                    className={`h-16 flex items-center justify-center px-4 ${uiColors.bg.tertiary} ${uiColors.border.secondary} text-white font-semibold text-sm text-center leading-tight`}
-                  >
-                    <div className="whitespace-pre-line">
-                      AKTUAL STOCK (PCS)
-                    </div>
-                  </div>
-                </>
-              )}
-              {props.activeFilter &&
-                props.activeFilter.includes("rencanaInMaterial") && (
-                  <div
-                    className={`h-16 flex items-center justify-center bg-blue-900/30 text-blue-200 font-mono text-sm font-bold`}
-                  >
-                    {totalInMaterial.toLocaleString()}
-                  </div>
-                )}
-              {props.activeFilter &&
-                props.activeFilter.includes("aktualInMaterial") && (
-                  <div
-                    className={`h-16 flex items-center justify-center bg-blue-900/30 text-blue-200 font-mono text-sm font-bold`}
-                  >
-                    {totalAktualInMaterial.toLocaleString()}
-                  </div>
-                )}
-              {props.activeFilter &&
-                props.activeFilter.includes("rencanaStock") && (
-                  <div
-                    className={`h-16 flex items-center justify-center bg-amber-900/30 text-amber-200 font-mono text-sm font-bold`}
-                  >
-                    -
-                  </div>
-                )}
-              {props.activeFilter &&
-                props.activeFilter.includes("aktualStock") && (
-                  <div
-                    className={`h-16 flex items-center justify-center bg-sky-900/30 text-sky-200 font-mono text-sm font-bold`}
-                  >
-                    -
-                  </div>
-                )}
+              {/* In Material */}
+              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                <div className="whitespace-pre-line">RENCANA IN MATERIAL</div>
+              </div>
+              {/* Aktual In Material */}
+              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                <div className="whitespace-pre-line">AKTUAL IN MATERIAL</div>
+              </div>
+              {/* Rencana Stock */}
+              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                <div className="whitespace-pre-line">RENCANA STOCK (PCS)</div>
+              </div>
+              {/* Aktual Stock */}
+              <div className="h-16 flex items-center justify-center px-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-sm text-center leading-tight">
+                <div className="whitespace-pre-line">AKTUAL STOCK (PCS)</div>
+              </div>
             </div>
           </div>
 
           {/* TOTAL Column */}
-          <div
-            className={`flex-shrink-0 ${uiColors.bg.tertiary} ${uiColors.border.secondary} w-40`}
-          >
+          <div className="flex-shrink-0 bg-gray-200 dark:bg-gray-700 border-r border-gray-300 dark:border-gray-600 w-40">
             {/* Header */}
-            <div
-              className={`h-24 flex items-center justify-center ${uiColors.bg.secondary} ${uiColors.border.secondary}`}
-            >
-              <div
-                className={`${uiColors.text.primary} font-bold text-lg text-center px-4`}
-              >
+            <div className="h-24 flex items-center justify-center bg-gray-300 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-600">
+              <div className="text-gray-900 dark:text-white font-bold text-lg text-center px-4">
                 TOTAL
               </div>
             </div>
 
             {/* Total Rows */}
             <div className="space-y-0">
-              {(!props.activeFilter || props.activeFilter.length === 0) && (
-                <>
-                  <div
-                    className={`h-16 flex items-center justify-center bg-blue-900/30 text-blue-200 font-mono text-sm font-bold`}
-                  >
-                    {totalInMaterial.toLocaleString()}
-                  </div>
-                  <div
-                    className={`h-16 flex items-center justify-center bg-blue-900/30 text-blue-200 font-mono text-sm font-bold`}
-                  >
-                    {totalAktualInMaterial.toLocaleString()}
-                  </div>
-                  <div
-                    className={`h-16 flex items-center justify-center bg-amber-900/30 text-amber-200 font-mono text-sm font-bold`}
-                  >
-                    -
-                  </div>
-                  <div
-                    className={`h-16 flex items-center justify-center bg-sky-900/30 text-sky-200 font-mono text-sm font-bold`}
-                  >
-                    -
-                  </div>
-                </>
-              )}
-              {props.activeFilter &&
-                props.activeFilter.includes("rencanaInMaterial") && (
-                  <div
-                    className={`h-16 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.text.primary} font-mono text-sm font-bold`}
-                  >
-                    {totalInMaterial.toLocaleString()}
-                  </div>
-                )}
-              {props.activeFilter &&
-                props.activeFilter.includes("aktualInMaterial") && (
-                  <div
-                    className={`h-16 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.text.primary} font-mono text-sm font-bold`}
-                  >
-                    {totalAktualInMaterial.toLocaleString()}
-                  </div>
-                )}
-              {props.activeFilter &&
-                props.activeFilter.includes("rencanaStock") && (
-                  <div
-                    className={`h-16 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.text.primary} font-mono text-sm font-bold`}
-                  >
-                    -
-                  </div>
-                )}
-              {props.activeFilter &&
-                props.activeFilter.includes("aktualStock") && (
-                  <div
-                    className={`h-16 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.text.primary} font-mono text-sm font-bold`}
-                  >
-                    -
-                  </div>
-                )}
+              <div className="h-16 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 border-b border-gray-300 dark:border-gray-600 text-blue-700 dark:text-blue-200 font-mono text-sm font-bold">
+                {totalInMaterial.toLocaleString()}
+              </div>
+              <div className="h-16 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 border-b border-gray-300 dark:border-gray-600 text-blue-700 dark:text-blue-200 font-mono text-sm font-bold">
+                {totalAktualInMaterial.toLocaleString()}
+              </div>
+              <div className="h-16 flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 border-b border-gray-300 dark:border-gray-600 text-amber-700 dark:text-amber-200 font-mono text-sm font-bold">
+                -
+              </div>
+              <div className="h-16 flex items-center justify-center bg-sky-100 dark:bg-sky-900/30 border-b border-gray-300 dark:border-gray-600 text-sky-700 dark:text-sky-200 font-mono text-sm font-bold">
+                -
+              </div>
             </div>
           </div>
 
@@ -717,14 +490,12 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               {Array.from({ length: props.days }, (_, dayIdx) => (
                 <div
                   key={dayIdx}
-                  className={`flex-shrink-0 w-40 ${uiColors.border.secondary}`}
+                  className="flex-shrink-0 w-40 border-r border-gray-300 dark:border-gray-600"
                 >
                   {/* Date Header */}
-                  <div
-                    className={`h-24 ${uiColors.bg.tertiary} ${uiColors.border.secondary}`}
-                  >
+                  <div className="h-24 bg-gray-300 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-600">
                     <div className="text-center p-3">
-                      <div className={`${uiColors.text.primary} font-bold`}>
+                      <div className="text-gray-900 dark:text-white font-bold">
                         <div>
                           <div className="text-sm">{getDayName(dayIdx)}</div>
                           <div className="text-xl font-bold">{dayIdx + 1}</div>
@@ -744,96 +515,62 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
                   {/* Data Rows */}
                   <div className="space-y-0">
-                    {(!props.activeFilter ||
-                      props.activeFilter.length === 0) && (
-                      <>
-                        {/* Rencana In Material */}
-                        <div
-                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary} bg-blue-900/30`}
-                        >
-                          <div
-                            className={`text-center flex items-center justify-center text-blue-200 font-mono text-sm font-semibold`}
-                          >
-                            <InputCell
-                              value={inMaterial[dayIdx][0]}
-                              onChange={(v) =>
-                                handleInMaterialChange(dayIdx, 0, v)
-                              }
-                              className={`w-16 px-2 py-1 rounded bg-blue-800/50 border border-blue-600 text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                            />
-                          </div>
-                          <div
-                            className={`text-center flex items-center justify-center text-blue-200 font-mono text-sm font-semibold`}
-                          >
-                            <InputCell
-                              value={inMaterial[dayIdx][1]}
-                              onChange={(v) =>
-                                handleInMaterialChange(dayIdx, 1, v)
-                              }
-                              className={`w-16 px-2 py-1 rounded bg-blue-800/50 border border-blue-600 text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                            />
-                          </div>
-                        </div>
-                        {/* Aktual In Material */}
-                        <div
-                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary} bg-blue-900/30`}
-                        >
-                          <div
-                            className={`text-center flex items-center justify-center text-blue-200 font-mono text-sm font-semibold`}
-                          >
-                            <InputCell
-                              value={aktualInMaterial[dayIdx][0]}
-                              onChange={(v) =>
-                                handleAktualInMaterialChange(dayIdx, 0, v)
-                              }
-                              className={`w-16 px-2 py-1 rounded bg-blue-800/50 border border-blue-600 text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent`}
-                            />
-                          </div>
-                          <div
-                            className={`text-center flex items-center justify-center text-blue-200 font-mono text-sm font-semibold`}
-                          >
-                            <InputCell
-                              value={aktualInMaterial[dayIdx][1]}
-                              onChange={(v) =>
-                                handleAktualInMaterialChange(dayIdx, 1, v)
-                              }
-                              className={`w-16 px-2 py-1 rounded bg-blue-800/50 border border-blue-600 text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent`}
-                            />
-                          </div>
-                        </div>
-                        {/* Rencana Stock */}
-                        <div
-                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary} bg-amber-900/30`}
-                        >
-                          <div
-                            className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${rencanaStock[dayIdx * 2] < 0 ? "text-red-400 font-bold" : rencanaStock[dayIdx * 2] > 0 ? "text-green-300 font-bold" : "text-amber-200"}`}
-                          >
-                            {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
-                          </div>
-                          <div
-                            className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${rencanaStock[dayIdx * 2 + 1] < 0 ? "text-red-400 font-bold" : rencanaStock[dayIdx * 2 + 1] > 0 ? "text-green-300 font-bold" : "text-amber-200"}`}
-                          >
-                            {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
-                          </div>
-                        </div>
-                        {/* Aktual Stock */}
-                        <div
-                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary} bg-sky-900/30`}
-                        >
-                          <div
-                            className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${aktualStock[dayIdx * 2] < 0 ? "text-red-400 font-bold" : aktualStock[dayIdx * 2] > 0 ? "text-green-300 font-bold" : "text-sky-200"}`}
-                          >
-                            {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
-                          </div>
-                          <div
-                            className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${aktualStock[dayIdx * 2 + 1] < 0 ? "text-red-400 font-bold" : aktualStock[dayIdx * 2 + 1] > 0 ? "text-green-300 font-bold" : "text-sky-200"}`}
-                          >
-                            {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {/* Filtered rows would go here */}
+                    {/* Rencana In Material - Baris 1 */}
+                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-blue-100 dark:bg-blue-900/30">
+                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                        <InputCell
+                          value={inMaterial[dayIdx][0]}
+                          onChange={(v) => handleInMaterialChange(dayIdx, 0, v)}
+                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                        <InputCell
+                          value={inMaterial[dayIdx][1]}
+                          onChange={(v) => handleInMaterialChange(dayIdx, 1, v)}
+                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    {/* Aktual In Material - Baris 2 */}
+                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-blue-100 dark:bg-blue-900/30">
+                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                        <InputCell
+                          value={aktualInMaterial[dayIdx][0]}
+                          onChange={(v) =>
+                            handleAktualInMaterialChange(dayIdx, 0, v)
+                          }
+                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
+                        <InputCell
+                          value={aktualInMaterial[dayIdx][1]}
+                          onChange={(v) =>
+                            handleAktualInMaterialChange(dayIdx, 1, v)
+                          }
+                          className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    {/* Rencana Stock - Baris 3 */}
+                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-amber-100 dark:bg-amber-900/30">
+                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
+                        {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
+                      </div>
+                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
+                        {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                      </div>
+                    </div>
+                    {/* Aktual Stock - Baris 4 */}
+                    <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-sky-100 dark:bg-sky-900/30">
+                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
+                        {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
+                      </div>
+                      <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
+                        {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}

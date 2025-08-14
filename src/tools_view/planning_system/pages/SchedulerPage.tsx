@@ -19,6 +19,7 @@ import {
   ProductionService,
   ProductInfo,
   ChildPartService,
+  RencanaChildPartService,
 } from "../../../services/API_Services";
 import {
   generateScheduleFromForm,
@@ -373,17 +374,58 @@ const SchedulerPage: React.FC = () => {
     updateProductInfo();
   }, [form.part, form.customer]);
 
+  // Helper function untuk mendapatkan token dari localStorage
+  const getAuthToken = () => {
+    try {
+      const currentUser = localStorage.getItem("currentUser");
+      console.log(
+        "🔍 Checking localStorage for currentUser:",
+        currentUser ? "Found" : "Not found",
+      );
+
+      if (currentUser) {
+        const userData = JSON.parse(currentUser);
+        console.log("👤 Parsed user data:", {
+          username: userData.username,
+          nama: userData.nama,
+          role: userData.role,
+          hasAccessToken: !!userData.accessToken,
+        });
+
+        if (userData.accessToken) {
+          console.log(
+            "✅ Token found:",
+            userData.accessToken.substring(0, 20) + "...",
+          );
+          return userData.accessToken;
+        } else {
+          console.log("❌ No accessToken found in user data");
+          return null;
+        }
+      }
+
+      console.log("❌ No currentUser found in localStorage");
+      return null;
+    } catch (error) {
+      console.error("❌ Error parsing currentUser from localStorage:", error);
+      return null;
+    }
+  };
+
   // Load manpowerList saat komponen dimount
   useEffect(() => {
     const loadManpowerList = async () => {
       try {
+        console.log("🔄 Loading manpower list...");
         // Cek apakah user sudah login
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
-          console.log("User belum login, menggunakan data lokal");
+          console.log("❌ User belum login, menggunakan data lokal");
           setManpowerList([]);
           return;
         }
+
+        console.log("✅ User sudah login, mencoba load dari backend...");
 
         const { ManpowerService } = await import(
           "../../../services/API_Services"
@@ -413,7 +455,7 @@ const SchedulerPage: React.FC = () => {
     const loadChildParts = async () => {
       try {
         // Cek apakah user sudah login
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           console.log("User belum login, menggunakan data lokal");
           return;
@@ -573,7 +615,7 @@ const SchedulerPage: React.FC = () => {
   const addManPower = async (name: string) => {
     try {
       // Cek apakah user sudah login
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       if (!token) {
         // Jika belum login, simpan hanya ke state lokal
         setForm((prev) => ({
@@ -635,7 +677,7 @@ const SchedulerPage: React.FC = () => {
   const removeManPower = async (name: string) => {
     try {
       // Cek apakah user sudah login
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       if (!token) {
         // Jika belum login, hapus hanya dari state lokal
         setForm((prev) => ({
@@ -1002,23 +1044,8 @@ const SchedulerPage: React.FC = () => {
     );
 
     if (existingSchedule) {
-      // Buat pesan yang lebih informatif tentang perubahan yang ada
-      let confirmationMessage = `Apakah Anda yakin ingin menimpa jadwal yang sudah tersimpan?\n\nJadwal untuk ${form.part} - ${scheduleName} sudah ada dan akan diganti dengan data yang baru.`;
-
-      // Tambahkan informasi tentang perubahan schedule jika ada
-      if (hasScheduleChanges) {
-        confirmationMessage += `\n\n📊 Perubahan pada Jadwal Produksi:\n• Data produksi telah diubah\n• Manpower assignment telah diupdate`;
-      }
-
-      // Tambahkan informasi tentang perubahan child part jika ada
-      if (hasUnsavedChildPartChanges && childPartChanges.size > 0) {
-        const changedChildParts = Array.from(childPartChanges)
-          .map((idx) => childParts[idx]?.partName)
-          .filter(Boolean);
-        if (changedChildParts.length > 0) {
-          confirmationMessage += `\n\n⚠️ Perubahan pada Child Part:\n• ${changedChildParts.join("\n• ")}\n\nData child part akan otomatis tersimpan bersama jadwal.`;
-        }
-      }
+      // Buat pesan konfirmasi yang sederhana
+      const confirmationMessage = `Apakah Anda yakin ingin menimpa jadwal yang sudah tersimpan?\n\nJadwal untuk ${form.part} - ${scheduleName} sudah ada dan akan diganti dengan data yang baru.`;
 
       // Tampilkan konfirmasi untuk menimpa jadwal yang sudah ada
       showConfirm(
@@ -1038,28 +1065,6 @@ const SchedulerPage: React.FC = () => {
       );
     } else {
       // Tidak ada jadwal yang sama, langsung simpan
-      // Tampilkan notifikasi jika ada perubahan
-      let notificationMessage = "Jadwal baru akan dibuat.";
-
-      if (hasScheduleChanges) {
-        notificationMessage +=
-          "\n\n📊 Perubahan pada Jadwal Produksi:\n• Data produksi telah diubah\n• Manpower assignment telah diupdate";
-      }
-
-      if (hasUnsavedChildPartChanges && childPartChanges.size > 0) {
-        const changedChildParts = Array.from(childPartChanges)
-          .map((idx) => childParts[idx]?.partName)
-          .filter(Boolean);
-        if (changedChildParts.length > 0) {
-          notificationMessage += `\n\n⚠️ Perubahan pada Child Part:\n• ${changedChildParts.join("\n• ")}`;
-        }
-      }
-
-      if (hasScheduleChanges || hasUnsavedChildPartChanges) {
-        notificationMessage +=
-          "\n\nSemua perubahan akan otomatis tersimpan bersama jadwal.";
-        showAlert(notificationMessage, "Info");
-      }
 
       await performSaveSchedule(currentMonth, currentYear, scheduleName);
     }
@@ -1487,9 +1492,9 @@ const SchedulerPage: React.FC = () => {
 
       // Show success message
       if (savedChildPart.id && typeof savedChildPart.id === "number") {
-        showSuccess("Child part berhasil disimpan ke database!");
+        showSuccess("Child part berhasil di generate!");
       } else {
-        showSuccess("Child part berhasil dibuat (disimpan lokal)");
+        showSuccess("Child part berhasil di generate!");
       }
     } catch (error) {
       console.error("Error dalam handleGenerateChildPart:", error);
@@ -1544,26 +1549,161 @@ const SchedulerPage: React.FC = () => {
   const handleDeleteChildPart = async (idx: number) => {
     try {
       const childPart = childParts[idx];
+      console.log("=== MULAI PROSES DELETE CHILD PART ===");
+      console.log("Child part yang akan dihapus:", childPart);
+      console.log("ID child part:", childPart.id, "Type:", typeof childPart.id);
 
       // Jika child part memiliki ID dari database, hapus dari backend
       if (childPart.id && typeof childPart.id === "number") {
+        console.log(
+          "✅ Child part memiliki ID database, akan hapus dari backend",
+        );
+
         try {
-          await ChildPartService.deleteChildPart(childPart.id);
-          console.log("Child part berhasil dihapus dari database");
+          // Hapus semua data rencana child part terlebih dahulu
+          console.log("📋 Langkah 1: Mencoba hapus data rencana child part...");
+
+          try {
+            // Hapus berdasarkan childPartId saja, tidak perlu filter bulan/tahun
+            console.log(
+              `🔍 Mencari data rencana untuk childPartId: ${childPart.id}`,
+            );
+            const allRencana =
+              await RencanaChildPartService.getRencanaChildPartByChildPartId(
+                childPart.id,
+              );
+
+            if (allRencana && allRencana.length > 0) {
+              console.log(
+                `📊 Menemukan ${allRencana.length} data rencana untuk dihapus:`,
+                allRencana,
+              );
+
+              for (const rencana of allRencana) {
+                try {
+                  console.log(`🗑️ Mencoba hapus rencana ID: ${rencana.id}`);
+                  await RencanaChildPartService.deleteRencanaChildPart(
+                    rencana.id,
+                  );
+                  console.log(`✅ Berhasil hapus rencana ID: ${rencana.id}`);
+                } catch (deleteError) {
+                  console.error(
+                    `❌ Gagal hapus rencana ID ${rencana.id}:`,
+                    deleteError,
+                  );
+                }
+              }
+              console.log(
+                `🎯 Total ${allRencana.length} data rencana child part berhasil dihapus dari database`,
+              );
+            } else {
+              console.log(
+                "ℹ️ Tidak ada data rencana yang ditemukan untuk child part ini",
+              );
+            }
+          } catch (rencanaError) {
+            console.error(
+              "❌ Gagal mengambil data rencana child part:",
+              rencanaError,
+            );
+            console.log("⚠️ Lanjutkan dengan penghapusan child part utama...");
+          }
+
+          // Hapus child part dari database
+          console.log(
+            "📋 Langkah 2: Mencoba hapus child part utama dari database...",
+          );
+          console.log(`🗑️ Mencoba hapus child part dengan ID: ${childPart.id}`);
+
+          const deleteResult = await ChildPartService.deleteChildPart(
+            childPart.id,
+          );
+          console.log("✅ Child part berhasil dihapus dari database");
+          console.log("Response dari delete:", deleteResult);
+
+          // Hapus dari state lokal hanya jika berhasil hapus dari database
+          console.log("📋 Langkah 3: Update state lokal...");
+          setChildParts((prev) => prev.filter((_, i) => i !== idx));
+          setChildPartCarouselPage(0);
+          showSuccess("Child part berhasil dihapus dari database!");
+          console.log("=== PROSES DELETE SELESAI - BERHASIL ===");
         } catch (apiError) {
-          console.error("Gagal menghapus child part dari database:", apiError);
-          // Tetap lanjutkan dengan penghapusan lokal
+          console.error(
+            "❌ Gagal menghapus child part dari database:",
+            apiError,
+          );
+          console.error("Error details:", {
+            message: apiError.message,
+            status: apiError.response?.status,
+            data: apiError.response?.data,
+          });
+          showAlert(
+            "Gagal menghapus child part dari database. Silakan coba lagi.",
+            "Error",
+          );
+          // JANGAN hapus dari state lokal jika gagal hapus dari database
+          console.log(
+            "⚠️ Tidak menghapus dari state lokal karena gagal hapus dari database",
+          );
+          return;
         }
+      } else {
+        // Jika tidak ada ID database, hapus dari state lokal saja
+        console.log(
+          "⚠️ Child part tidak memiliki ID database, hapus dari state lokal saja",
+        );
+        setChildParts((prev) => prev.filter((_, i) => i !== idx));
+        setChildPartCarouselPage(0);
+        showSuccess("Child part berhasil dihapus dari state lokal");
+        console.log("=== PROSES DELETE SELESAI - LOKAL SAJA ===");
+      }
+    } catch (error) {
+      console.error("❌ Error deleting child part:", error);
+      showAlert("Gagal menghapus child part", "Error");
+      console.log("=== PROSES DELETE SELESAI - ERROR ===");
+    }
+  };
+
+  // Handler untuk menghapus schedule dari database
+  const handleDeleteScheduleFromDatabase = async (scheduleId: string) => {
+    try {
+      const { ProductionService } = await import(
+        "../../../services/API_Services"
+      );
+
+      // Cari schedule yang akan dihapus
+      const scheduleToDelete = savedSchedules.find((s) => s.id === scheduleId);
+      if (!scheduleToDelete) {
+        console.error("Schedule tidak ditemukan untuk dihapus");
+        return;
+      }
+
+      // Coba hapus dari backend menggunakan ID schedule
+      try {
+        // Jika ID adalah angka (kemungkinan dari database), gunakan untuk delete
+        const numericId = parseInt(scheduleId);
+        if (!isNaN(numericId)) {
+          await ProductionService.deleteSchedule(numericId);
+          console.log("Schedule berhasil dihapus dari database");
+        }
+      } catch (apiError) {
+        console.error("Gagal menghapus schedule dari database:", apiError);
+        // Tetap lanjutkan dengan penghapusan lokal
       }
 
       // Hapus dari state lokal
-      setChildParts((prev) => prev.filter((_, i) => i !== idx));
-      setChildPartCarouselPage(0);
+      const updatedSchedules = savedSchedules.filter(
+        (s) => s.id !== scheduleId,
+      );
+      setSavedSchedules(updatedSchedules);
 
-      showSuccess("Child part berhasil dihapus");
+      // Update localStorage
+      localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
+
+      showSuccess("Schedule berhasil dihapus");
     } catch (error) {
-      console.error("Error deleting child part:", error);
-      showAlert("Gagal menghapus child part", "Error");
+      console.error("Error deleting schedule:", error);
+      showAlert("Gagal menghapus schedule", "Error");
     }
   };
 

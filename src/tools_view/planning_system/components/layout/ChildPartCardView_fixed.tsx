@@ -129,10 +129,6 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-  const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
-    null,
-  );
 
   // Track days that have user input to prevent resetting
   const [daysWithUserInput, setDaysWithUserInput] = useState<Set<number>>(
@@ -478,219 +474,10 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
     });
   };
 
-  // Render baris sesuai filter
-  const renderFilteredContent = () => {
+  // Render konten utama tanpa filter
+  const renderMainContent = () => {
     const displayDay = getCurrentDisplayDay();
 
-    // Jika tidak ada filter aktif, tampilkan semua konten
-    if (!props.activeFilter || props.activeFilter.length === 0) {
-      return (
-        <>
-          {/* Carousel Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={goToPrevDay}
-              disabled={
-                selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0
-              }
-              className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-
-            <div className="text-center">
-              <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
-                {selectedDate
-                  ? formatSelectedDate(selectedDate)
-                  : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString("id-ID", { month: "long" })} ${new Date().getFullYear()}`}
-              </div>
-            </div>
-
-            <button
-              onClick={goToNextDay}
-              disabled={
-                selectedDate
-                  ? selectedDate.getDate() >= 31
-                  : displayDay === props.days - 1
-              }
-              className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* In Material */}
-          <div className="space-y-4">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <Layers className="w-5 h-5 text-blue-400" />
-              Rencana In Material
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`rencana-shift1-day${displayDay}`}
-                    value={inMaterial[displayDay][0]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 0, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`rencana-shift2-day${displayDay}`}
-                    value={inMaterial[displayDay][1]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 1, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Aktual In Material */}
-          <div className="space-y-4 mt-6">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <Layers className="w-5 h-5 text-green-400" />
-              Aktual In Material
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`aktual-shift1-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][0]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 0, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`aktual-shift2-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][1]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 1, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Rencana Stock */}
-          <div className="space-y-4 mt-6">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <TrendingUp className="w-5 h-5 text-green-400" />
-              Rencana Stock (PCS)
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
-                  </div>
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Aktual Stock */}
-          <div className="space-y-4 mt-6">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <TrendingDown className="w-5 h-5 text-red-400" />
-              Aktual Stock (PCS)
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
-                  </div>
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    // Jika ada filter aktif, tampilkan konten sesuai filter yang dipilih
     return (
       <>
         {/* Carousel Navigation */}
@@ -700,13 +487,13 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
             disabled={
               selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0
             }
-            className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
+            className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 text-gray-700 dark:text-white rounded-lg transition-all disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
           <div className="text-center">
-            <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
+            <div className="text-lg font-medium text-gray-700 dark:text-gray-300">
               {selectedDate
                 ? formatSelectedDate(selectedDate)
                 : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString("id-ID", { month: "long" })} ${new Date().getFullYear()}`}
@@ -720,184 +507,139 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
                 ? selectedDate.getDate() >= 31
                 : displayDay === props.days - 1
             }
-            className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
+            className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 text-gray-700 dark:text-white rounded-lg transition-all disabled:cursor-not-allowed"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Render konten sesuai filter yang dipilih */}
-        {props.activeFilter.includes("rencanaInMaterial") && (
-          <div className="space-y-4">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <Layers className="w-5 h-5 text-blue-400" />
-              Rencana In Material
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`rencana-shift1-day${displayDay}`}
-                    value={inMaterial[displayDay][0]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 0, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`rencana-shift2-day${displayDay}`}
-                    value={inMaterial[displayDay][1]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 1, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
+        {/* In Material */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            Rencana In Material
+          </h3>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 1
+                </label>
+                <InputCell
+                  key={`rencana-shift1-day${displayDay}`}
+                  value={inMaterial[displayDay][0]}
+                  onChange={(v) => handleInMaterialChange(displayDay, 0, v)}
+                  className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 2
+                </label>
+                <InputCell
+                  key={`rencana-shift2-day${displayDay}`}
+                  value={inMaterial[displayDay][1]}
+                  onChange={(v) => handleInMaterialChange(displayDay, 1, v)}
+                  className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                />
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {props.activeFilter.includes("aktualInMaterial") && (
-          <div className="space-y-4 mt-6">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <Layers className="w-5 h-5 text-green-400" />
-              Aktual In Material
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`aktual-shift1-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][0]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 0, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`aktual-shift2-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][1]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 1, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
+        {/* Aktual In Material */}
+        <div className="space-y-4 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Layers className="w-5 h-5 text-green-600 dark:text-green-400" />
+            Aktual In Material
+          </h3>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 1
+                </label>
+                <InputCell
+                  key={`aktual-shift1-day${displayDay}`}
+                  value={aktualInMaterial[displayDay][0]}
+                  onChange={(v) =>
+                    handleAktualInMaterialChange(displayDay, 0, v)
+                  }
+                  className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 2
+                </label>
+                <InputCell
+                  key={`aktual-shift2-day${displayDay}`}
+                  value={aktualInMaterial[displayDay][1]}
+                  onChange={(v) =>
+                    handleAktualInMaterialChange(displayDay, 1, v)
+                  }
+                  className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                />
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {props.activeFilter.includes("rencanaStock") && (
-          <div className="space-y-4 mt-6">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <TrendingUp className="w-5 h-5 text-blue-400" />
-              Rencana Stock (PCS)
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
-                  </div>
+        {/* Rencana Stock */}
+        <div className="space-y-4 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            Rencana Stock (PCS)
+          </h3>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 1
+                </label>
+                <div className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-center text-base text-gray-900 dark:text-white">
+                  {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
                 </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 2
+                </label>
+                <div className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-center text-base text-gray-900 dark:text-white">
+                  {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {props.activeFilter.includes("aktualStock") && (
-          <div className="space-y-4 mt-6">
-            <h3
-              className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
-            >
-              <TrendingDown className="w-5 h-5 text-red-400" />
-              Aktual Stock (PCS)
-            </h3>
-            <div
-              className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
-                  </div>
+        {/* Aktual Stock */}
+        <div className="space-y-4 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+            Aktual Stock (PCS)
+          </h3>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 1
+                </label>
+                <div className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-center text-base text-gray-900 dark:text-white">
+                  {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
                 </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Shift 2
+                </label>
+                <div className="w-full px-4 py-3 rounded bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-center text-base text-gray-900 dark:text-white">
+                  {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </>
     );
   };
@@ -993,7 +735,7 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
       {/* Card Content */}
       <div className="bg-gray-200 dark:bg-gray-700 rounded-b-xl border border-gray-300 dark:border-gray-600 border-t-0">
-        <div className="p-4 pt-2">{renderFilteredContent()}</div>
+        <div className="p-4 pt-2">{renderMainContent()}</div>
       </div>
 
       {/* Calendar Modal */}
