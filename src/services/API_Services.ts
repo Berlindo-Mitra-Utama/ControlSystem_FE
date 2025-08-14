@@ -1118,6 +1118,44 @@ export const deletePart = async (partId: string) => {
   }
 };
 
+// Get part by ID
+export const getPartById = async (partId: string) => {
+  try {
+    const response = await api.get(`/progress-tracker/parts/${partId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Update part
+export const updatePart = async (partId: string, partData: {
+  partName: string;
+  partNumber: string;
+  customer: string;
+  partImage?: File;
+}) => {
+  try {
+    const formData = new FormData();
+    formData.append("partName", partData.partName);
+    formData.append("partNumber", partData.partNumber);
+    formData.append("customer", partData.customer);
+
+    if (partData.partImage) {
+      formData.append("partImage", partData.partImage);
+    }
+
+    const response = await api.put(`/progress-tracker/parts/${partId}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Manage Progress API Services
 export const getPartWithProgress = async (partId: string) => {
   try {
@@ -1130,8 +1168,8 @@ export const getPartWithProgress = async (partId: string) => {
 
 export const updateProcessCompletion = async (processId: string, completed: boolean) => {
   try {
-    const response = await api.put(`/manage-progress/processes/${processId}/toggle`, {
-      completed
+    const response = await api.put(`/progress-tracker/processes/${processId}/completion`, {
+      completed,
     });
     return response.data;
   } catch (error) {
@@ -1154,7 +1192,33 @@ export const updateProcess = async (processId: string, processData: {
 
 export const updateProgressToolingDetail = async (processId: string, toolingData: any) => {
   try {
-    const response = await api.put(`/manage-progress/processes/${processId}/tooling-detail`, toolingData);
+    // Backend route berada di progress-tracker, bukan manage-progress
+    const response = await api.put(`/progress-tracker/processes/${processId}/tooling-detail`, toolingData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Progress Detail (persist per category/process/subprocess state & notes)
+export const updateProgressDetail = async (
+  params: {
+    partId: string;
+    categoryId: string;
+    processId: string;
+    subProcessId?: string | null;
+  },
+  payload: {
+    completed: boolean;
+    notes?: string;
+  }
+) => {
+  try {
+    const { partId, categoryId, processId, subProcessId } = params;
+    const url = subProcessId
+      ? `/progress-detail/${partId}/${categoryId}/${processId}/${subProcessId}`
+      : `/progress-detail/${partId}/${categoryId}/${processId}`;
+    const response = await api.put(url, payload);
     return response.data;
   } catch (error) {
     throw error;

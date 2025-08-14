@@ -314,6 +314,36 @@ function mapBackendPartToFrontend(part: any): Part {
   
   console.log('Final partImageUrl:', partImageUrl);
   
+  // Handle progress data mapping with proper structure preservation
+  let progressData = [];
+  
+  if (part.ProgressCategories && Array.isArray(part.ProgressCategories)) {
+    // Backend returns ProgressCategories with nested structure
+    progressData = part.ProgressCategories.map((category: any) => ({
+      id: category.id?.toString() || generateId(),
+      name: category.name || '',
+      processes: category.processes ? category.processes.map((process: any) => ({
+        id: process.id?.toString() || generateId(),
+        name: process.name || '',
+        completed: !!process.completed, // Ensure boolean
+        notes: process.notes || '',
+        children: process.children ? process.children.map((child: any) => ({
+          id: child.id?.toString() || generateId(),
+          name: child.name || '',
+          completed: !!child.completed, // Ensure boolean
+          notes: child.notes || '',
+          evidence: child.evidence || []
+        })) : [],
+        evidence: process.evidence || []
+      })) : []
+    }));
+  } else if (part.progress && Array.isArray(part.progress)) {
+    // Fallback to direct progress data
+    progressData = part.progress;
+  }
+
+  console.log('Mapped progress data:', progressData);
+  
   return {
     id: part.id?.toString() || generateId(),
     partName: part.partName || part.name || '',
@@ -321,7 +351,8 @@ function mapBackendPartToFrontend(part: any): Part {
     customer: part.customer || '',
     partImage: part.partImage || '',
     partImageUrl: partImageUrl,
-    progress: part.progress || [], // fallback to [] if not present
+    // Use the properly mapped progress data
+    progress: progressData,
     createdAt: part.createdAt || new Date().toISOString(),
     status: part.status || 'active',
   };
@@ -357,6 +388,23 @@ export default function Dashboard() {
         if (partsArray.length > 0) {
           const mappedParts = partsArray.map(mapBackendPartToFrontend);
           console.log('Mapped parts:', mappedParts);
+          
+          // Log completion status untuk debugging
+          mappedParts.forEach((part, partIndex) => {
+            console.log(`Dashboard - Part ${partIndex + 1}: ${part.partName}`);
+            part.progress.forEach((category, catIndex) => {
+              console.log(`  Category ${catIndex + 1}: ${category.name}`);
+              category.processes.forEach((process, procIndex) => {
+                console.log(`    Process ${procIndex + 1}: ${process.name} - Completed: ${process.completed}`);
+                if (process.children) {
+                  process.children.forEach((child, childIndex) => {
+                    console.log(`      Child ${childIndex + 1}: ${child.name} - Completed: ${child.completed}`);
+                  });
+                }
+              });
+            });
+          });
+          
           setParts(mappedParts);
         } else {
           setParts([]);
@@ -389,12 +437,15 @@ export default function Dashboard() {
     },
   ) => {
     try {
+      console.log('Adding new part:', partData);
       await createPart({
         partName: partData.partName,
         partNumber: partData.partNumber,
         customer: partData.customer,
         partImage: partData.partImage,
       });
+      console.log('Part created successfully, refreshing data...');
+      
       // Re-fetch parts after adding
       const response = await getAllParts();
       console.log('Backend response after add:', response);
@@ -406,19 +457,26 @@ export default function Dashboard() {
       }
       if (partsArray.length > 0) {
         const mappedParts = partsArray.map(mapBackendPartToFrontend);
+        console.log('Mapped parts after add:', mappedParts);
         setParts(mappedParts);
       } else {
         setParts([]);
       }
+      
+      console.log('Parts data refreshed after adding new part');
     } catch (error) {
       console.error('Gagal menambah part:', error);
+      alert('Gagal menambah part. Silakan coba lagi.');
     }
   };
 
   // Delete part
   const handleDeletePart = async (partId: string) => {
     try {
+      console.log('Deleting part:', partId);
       await deletePart(partId);
+      console.log('Part deleted successfully, refreshing data...');
+      
       // Re-fetch parts after deleting
       const response = await getAllParts();
       let partsArray = [];
@@ -429,14 +487,18 @@ export default function Dashboard() {
       }
       if (partsArray.length > 0) {
         const mappedParts = partsArray.map(mapBackendPartToFrontend);
+        console.log('Mapped parts after delete:', mappedParts);
         setParts(mappedParts);
       } else {
         setParts([]);
       }
+      
       setShowDeleteModal(false);
       setPartToDelete(null);
+      console.log('Parts data refreshed after deleting part');
     } catch (error) {
       console.error('Gagal menghapus part:', error);
+      alert('Gagal menghapus part. Silakan coba lagi.');
     }
   };
 
@@ -447,6 +509,11 @@ export default function Dashboard() {
   };
 
   // Calculate overall progress for a part
+  // Logika:
+  // 1. Hitung semua unit (process + sub-process)
+  // 2. Setiap unit yang completed = 1, tidak completed = 0
+  // 3. Return persentase keseluruhan
+  // Note: Fungsi ini konsisten dengan calculateOverallProgressWithDetail di manage_progres.tsx
   const calculateOverallProgress = (part: Part): number => {
     if (part.progress.length === 0) return 0;
 
@@ -456,11 +523,13 @@ export default function Dashboard() {
     part.progress.forEach((category) => {
       category.processes.forEach((process) => {
         if (process.children && process.children.length > 0) {
+          // Jika ada sub-process, hitung berdasarkan sub-process
           process.children.forEach((child) => {
             totalTasks++;
             if (child.completed) completedTasks++;
           });
         } else {
+          // Jika tidak ada sub-process, hitung berdasarkan process langsung
           totalTasks++;
           if (process.completed) completedTasks++;
         }
@@ -468,6 +537,13 @@ export default function Dashboard() {
     });
 
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  };
+
+  // Helper function untuk memastikan konsistensi perhitungan progress
+  // Menggunakan fungsi yang sama dengan manage progress untuk konsistensi
+  const getConsistentProgress = (part: Part): number => {
+    // Gunakan fungsi yang sama dengan manage progress
+    return calculateOverallProgress(part);
   };
 
   // Get status info
@@ -688,7 +764,7 @@ export default function Dashboard() {
                   <span className="text-sm text-gray-300">Completed</span>
                 </div>
                 <div className="text-xl font-bold text-green-400">
-                  {parts.filter((part) => calculateOverallProgress(part) === 100).length}
+                  {parts.filter((part) => getConsistentProgress(part) === 100).length}
                 </div>
               </div>
               
@@ -698,7 +774,7 @@ export default function Dashboard() {
                   <span className="text-sm text-gray-300">In Progress</span>
                 </div>
                 <div className="text-xl font-bold text-yellow-400">
-                  {parts.filter((part) => calculateOverallProgress(part) > 0 && calculateOverallProgress(part) < 100).length}
+                  {parts.filter((part) => getConsistentProgress(part) > 0 && getConsistentProgress(part) < 100).length}
                 </div>
               </div>
               
@@ -708,7 +784,7 @@ export default function Dashboard() {
                   <span className="text-sm text-gray-300">Not Started</span>
                 </div>
                 <div className="text-xl font-bold text-gray-400">
-                  {parts.filter((part) => calculateOverallProgress(part) === 0).length}
+                  {parts.filter((part) => getConsistentProgress(part) === 0).length}
                 </div>
               </div>
             </div>
@@ -858,7 +934,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {pagedParts.map((part, index) => {
               try {
-                const overallProgress = calculateOverallProgress(part);
+                const overallProgress = getConsistentProgress(part);
                 const statusInfo = getStatusInfo(overallProgress);
                 const StatusIcon = statusInfo.icon;
 

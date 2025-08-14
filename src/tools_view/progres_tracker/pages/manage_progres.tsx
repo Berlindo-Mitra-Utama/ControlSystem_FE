@@ -22,8 +22,9 @@ import {
   AlertDialogTitle,
 } from "../components/alert-dialog"
 import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save, Upload, FileText, Image, Download } from "lucide-react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useNavigate } from "react-router-dom"
 import { Colors, getProgressColor, getUIColors } from "../../const/colors"
+import { getPartById, updatePart, getAllParts, deletePart, updateProcessCompletion as apiUpdateProcessCompletion, updateProgressDetail } from '../../../services/API_Services'
 
 // Import new components
 import { ProgressToolingDropdown } from "../components/ProgressToolingDropdown"
@@ -65,10 +66,113 @@ interface Part {
   partNumber: string
   customer: string
   progress: ProgressCategory[]
+  createdAt?: string
+  status?: string
+  partImage?: string
+  partImageUrl?: string
 }
 
-// Sample Data - Empty initial array, data will be loaded from localStorage
-const initialParts: Part[] = []
+// Helper function to validate base64 image data
+const isValidBase64Image = (data: string): boolean => {
+  if (!data || typeof data !== 'string') return false;
+  
+  // Check if it's a valid data URL
+  if (!data.startsWith('data:image/')) return false;
+  
+  // Check if it has base64 data
+  const base64Data = data.split(',')[1];
+  if (!base64Data) return false;
+  
+  // Basic validation - check if it's valid base64
+  try {
+    // Try to decode a small portion to validate
+    const testData = base64Data.substring(0, 100);
+    atob(testData);
+    return true;
+  } catch (error) {
+    console.error('Invalid base64 data:', error);
+    return false;
+  }
+};
+
+// Helper function to map backend part data to frontend Part type
+function mapBackendPartToFrontend(part: any): Part {
+  // Get image data from backend
+  let partImageUrl = part.partImageUrl || part.partImage || '';
+  
+  console.log('Original partImageUrl:', partImageUrl);
+  console.log('Full part data:', part);
+  
+  // Check if it's valid base64 data
+  if (partImageUrl && isValidBase64Image(partImageUrl)) {
+    // It's valid base64 data, use it directly
+    console.log('Using valid base64 image data');
+  } else if (partImageUrl && !partImageUrl.startsWith('http')) {
+    // Legacy URL handling - if it's a relative path, add base URL
+    if (!partImageUrl.startsWith('/')) {
+      partImageUrl = `/${partImageUrl}`;
+    }
+    partImageUrl = `http://localhost:5555${partImageUrl}`;
+  } else if (partImageUrl && partImageUrl.startsWith('http') && !partImageUrl.includes('localhost')) {
+    // Skip external URLs that might cause CORS issues, but allow localhost
+    partImageUrl = '';
+  }
+  
+  console.log('Final partImageUrl:', partImageUrl);
+
+  // Handle progress data mapping with proper structure preservation
+  let progressData = [];
+  
+  if (part.ProgressCategories && Array.isArray(part.ProgressCategories)) {
+    // Backend returns ProgressCategories with nested structure
+    progressData = part.ProgressCategories.map((category: any) => ({
+      id: category.id?.toString() || generateId(),
+      name: category.name || '',
+      processes: category.processes ? category.processes.map((process: any) => ({
+        id: process.id?.toString() || generateId(),
+        name: process.name || '',
+        completed: !!process.completed, // Ensure boolean - read from database
+        notes: process.notes || '',
+        children: process.children ? process.children.map((child: any) => ({
+          id: child.id?.toString() || generateId(),
+          name: child.name || '',
+          completed: !!child.completed, // Ensure boolean - read from database
+          notes: child.notes || '',
+          evidence: child.evidence || []
+        })) : [],
+        evidence: process.evidence || []
+      })) : []
+    }));
+  } else if (part.progress && Array.isArray(part.progress)) {
+    // Fallback to direct progress data
+    progressData = part.progress;
+  }
+
+  console.log('Mapped progress data:', progressData);
+  console.log('Process completion status from backend:');
+  progressData.forEach((category: any) => {
+    category.processes.forEach((process: any) => {
+      console.log(`- ${process.name}: ${process.completed}`);
+      if (process.children) {
+        process.children.forEach((child: any) => {
+          console.log(`  - ${child.name}: ${child.completed}`);
+        });
+      }
+    });
+  });
+
+  return {
+    id: part.id?.toString() || generateId(),
+    partName: part.partName || part.name || '',
+    partNumber: part.partNumber || '',
+    customer: part.customer || '',
+    progress: progressData,
+    createdAt: part.createdAt || new Date().toISOString(),
+    status: part.status || 'active',
+    partImage: part.partImage || '',
+    partImageUrl: partImageUrl,
+  };
+}
 
 // Utility Functions
 // Fungsi untuk menghitung progress detail Progress Tooling
@@ -78,119 +182,122 @@ const calculateProgressToolingDetailProgress = (): number => {
   return 0
 }
 
-const generateId = (): string => {
-  return Math.random().toString(36).substr(2, 9)
-}
-
-// Add a new part
-const addPart = (parts: Part[], partData: { partName: string; partNumber: string; customer: string }): Part[] => {
-  const newPart: Part = {
-    id: generateId(),
-    partName: partData.partName,
-    partNumber: partData.partNumber,
-    customer: partData.customer,
-    progress: [
-      {
-        id: "design",
-        name: "Design",
+// Function to create comprehensive default progress structure
+const createComprehensiveProgressStructure = (): ProgressCategory[] => {
+  return [
+    {
+      id: generateId(),
+      name: "Drawing Part",
         processes: [
-          {
-            id: generateId(),
-            name: "Nama Part/No Part/Cust.",
-            completed: false,
-            children: [],
-            evidence: []
-          },
           {
             id: generateId(),
             name: "Drawing Part",
             completed: false,
+          notes: "",
             children: [
               {
                 id: generateId(),
                 name: "Comp/Assy",
                 completed: false,
+              notes: "",
                 evidence: []
               },
               {
                 id: generateId(),
                 name: "Child Part",
                 completed: false,
+              notes: "",
                 evidence: []
               }
             ],
             evidence: []
+        }
+      ]
           },
+    {
+      id: generateId(),
+      name: "Documentation",
+      processes: [
           {
             id: generateId(),
             name: "Surat Perintah Kerja (SPK)",
             completed: false,
-            children: [],
+          notes: "",
             evidence: []
           },
           {
             id: generateId(),
             name: "Master Schedule",
             completed: false,
-            children: [],
+          notes: "",
             evidence: []
+        }
+      ]
           },
           {
             id: generateId(),
-            name: "PPAP",
-            completed: false,
-            children: [
+      name: "PPAP (Production Part Approval Process)",
+      processes: [
               {
                 id: generateId(),
-                name: "Design Record",
+          name: "Product Review",
                 completed: false,
+          notes: "",
                 evidence: []
               },
               {
                 id: generateId(),
                 name: "Engineering Change Document",
                 completed: false,
+          notes: "",
                 evidence: []
               },
               {
                 id: generateId(),
                 name: "Engineering Approval",
                 completed: false,
+          notes: "",
                 evidence: []
               },
               {
                 id: generateId(),
                 name: "Process Flow Diagram",
                 completed: false,
+          notes: "",
                 evidence: []
               },
               {
                 id: generateId(),
                 name: "FMEA",
                 completed: false,
+          notes: "",
                 evidence: []
               },
               {
                 id: generateId(),
                 name: "Control Plan",
                 completed: false,
+          notes: "",
                 children: [
                   {
                     id: generateId(),
                     name: "QCPC",
                     completed: false,
+              notes: "",
                     evidence: []
                   },
                   {
                     id: generateId(),
-                    name: "Part Inspection Standard",
+              name: "Part Insp. Standar",
                     completed: false,
+              notes: "",
                     evidence: []
                   },
                   {
                     id: generateId(),
                     name: "Check Sheet",
                     completed: false,
+              notes: "",
                     evidence: []
                   }
                 ],
@@ -198,19 +305,29 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
               },
               {
                 id: generateId(),
-                name: "Measurement System Analysis (MSA)",
+          name: "Measurement System Analyst (MSA)",
                 completed: false,
+          notes: "",
                 evidence: []
               },
               {
                 id: generateId(),
                 name: "Dimensional Result",
                 completed: false,
+          notes: "",
                 children: [
+            {
+              id: generateId(),
+              name: "ISIR",
+              completed: false,
+              notes: "",
+              evidence: []
+            },
                   {
                     id: generateId(),
                     name: "Check Sheet",
                     completed: false,
+              notes: "",
                     evidence: []
                   }
                 ],
@@ -218,21 +335,18 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
               },
               {
                 id: generateId(),
-                name: "Material & Performance Test Result",
+          name: "Material and Performance Test Result",
                 completed: false,
+          notes: "",
                 children: [
                   {
                     id: generateId(),
-                    name: "Mill Sheet",
+              name: "MillSheet",
                     completed: false,
-                    evidence: []
-                  },
-                  {
-                    id: generateId(),
-                    name: "Test Lain",
-                    completed: false,
+              notes: "",
                     evidence: []
                   }
+            // Custom tests can be added manually by user using the "Add Sub" button
                 ],
                 evidence: []
               },
@@ -240,81 +354,91 @@ const addPart = (parts: Part[], partData: { partName: string; partNumber: string
                 id: generateId(),
                 name: "Sample Production Part",
                 completed: false,
+          notes: "",
                 evidence: []
               }
             ]
-          }
-        ],
       },
               {
-          id: "manufacturing",
-          name: "Manufacturing",
+      id: generateId(),
+      name: "Tooling",
           processes: [
             {
               id: generateId(),
               name: "Tooling",
               completed: false,
+          notes: "",
               children: [
                 {
                   id: generateId(),
                   name: "Master Schedule Tooling",
                   completed: false,
+              notes: "",
                   evidence: []
                 },
                 {
                   id: generateId(),
-                  name: "Trial Tooling Report (TPTR)",
+              name: "Trial Tooling Report",
                   completed: false,
+              notes: "",
                   evidence: []
                 },
                 {
                   id: generateId(),
                   name: "Progress Tooling",
                   completed: false,
+              notes: "",
                   evidence: []
                 }
               ],
               evidence: []
             }
-          ],
+      ]
         },
               {
-          id: "quality",
-          name: "Quality Control",
+      id: generateId(),
+      name: "Final Approval",
           processes: [
             {
               id: generateId(),
-              name: "Approval (Customer)",
+          name: "Approval",
               completed: false,
-              children: [],
+          notes: "",
               evidence: []
             }
-          ],
-        },
-    ],
-  }
-  return [...parts, newPart]
+      ]
+    }
+  ]
 }
 
-// Edit an existing part
-const editPart = (parts: Part[], partId: string, partData: { partName: string; partNumber: string; customer: string }): Part[] => {
-  return parts.map((part) => {
-    if (part.id !== partId) return part
-
+// Function to ensure part has comprehensive progress structure
+const ensureComprehensiveProgressStructure = (part: Part): Part => {
+  // Always create the comprehensive structure to ensure all processes are present
+  // This will override any existing structure with the complete one
     return {
       ...part,
-      partName: partData.partName,
-      partNumber: partData.partNumber,
-      customer: partData.customer,
-    }
-  })
+    progress: createComprehensiveProgressStructure()
+  }
 }
 
-// Delete a part
-const deletePart = (parts: Part[], partId: string): Part[] => {
-  return parts.filter((part) => part.id !== partId)
+// Function to update existing part with comprehensive structure (for button click)
+const updatePartWithComprehensiveStructure = (part: Part): Part => {
+  console.log('Updating part with comprehensive structure:', part.partName);
+  return ensureComprehensiveProgressStructure(part);
 }
 
+const generateId = (): string => {
+  return Math.random().toString(36).substr(2, 9)
+}
+
+// Helper untuk validasi UUID (ID dari database)
+const isValidUuid = (value: string | undefined | null): boolean => {
+  if (!value) return false
+  // UUID v4 pattern sederhana: 36 chars dengan '-'
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value)
+}
+
+// Local utility functions for process management
 const addProcess = (parts: Part[], partId: string, categoryId: string, newProcess: Omit<Process, "id">): Part[] => {
   return parts.map((part) => {
     if (part.id !== partId) return part
@@ -478,9 +602,11 @@ const deleteSubProcess = (
 // Main Manage Progress Component
 export default function ManageProgres() {
   const { partId } = useParams<{ partId: string }>()
-  const [parts, setParts] = useState<Part[]>(initialParts)
+  const [parts, setParts] = useState<Part[]>([])
   const [selectedPart, setSelectedPart] = useState<Part | null>(null)
   const [showDetailedProcesses, setShowDetailedProcesses] = useState(false)
+  const navigate = useNavigate()
+
   const uiColors = getUIColors("dark")
   const [partModal, setPartModal] = useState<{
     isOpen: boolean
@@ -546,6 +672,21 @@ export default function ManageProgres() {
   // dan digunakan untuk menghitung progress bar tooling dan overall progress
   const [progressToolingDetailProgress, setProgressToolingDetailProgress] = useState<number>(0)
 
+  // State untuk modal gambar part
+  const [imageModal, setImageModal] = useState<{
+    isOpen: boolean
+    imageUrl: string
+    partName: string
+  }>({
+    isOpen: false,
+    imageUrl: '',
+    partName: ''
+  })
+
+  // Saving state for explicit Save button
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
+
   // Effect untuk memastikan progressToolingDetailProgress ter-update dengan benar
   useEffect(() => {
     if (selectedPart) {
@@ -578,7 +719,18 @@ export default function ManageProgres() {
     // Force re-render untuk memastikan progress bar ter-update
   }, [progressToolingDetailProgress]);
 
+  // Effect untuk mengatur visibility sub-process berdasarkan showDetailedProcesses
+  useEffect(() => {
+    // The JSX will automatically handle the visibility based on showDetailedProcesses state
+  }, [showDetailedProcesses, selectedPart]);
+
   // Fungsi untuk menghitung progress process dengan mempertimbangkan detail Progress Tooling
+  // Logika: 
+  // 1. Jika process sudah completed manual, return 100%
+  // 2. Jika ada sub-process, hitung berdasarkan sub-process:
+  //    - Progress Tooling menggunakan progress detail (0-100%)
+  //    - Sub-process lain menggunakan status completed (0 atau 100%)
+  // 3. Jika tidak ada sub-process, return 0%
   const calculateProcessProgressWithDetail = (process: Process): number => {
     // Jika process parent sudah di-complete secara manual, return 100%
     if (process.completed) {
@@ -594,15 +746,15 @@ export default function ManageProgres() {
         if (child.name === "Progress Tooling") {
           // Gunakan progress detail untuk Progress Tooling
           totalProgress += progressToolingDetailProgress
-          totalWeight += 1
+          totalWeight += 100 // Progress Tooling memiliki weight 100%
         } else {
           // Gunakan status completed untuk sub-process lain
           totalProgress += child.completed ? 100 : 0
-          totalWeight += 1
+          totalWeight += 100
         }
       })
       
-      const result = totalWeight > 0 ? Math.round(totalProgress / totalWeight) : 0
+      const result = totalWeight > 0 ? Math.round(totalProgress / totalWeight * 100) : 0
       return result
     }
     
@@ -611,39 +763,192 @@ export default function ManageProgres() {
   }
 
   // Fungsi untuk menghitung overall progress dengan mempertimbangkan detail Progress Tooling
+  // Logika:
+  // 1. Hitung semua unit (process + sub-process)
+  // 2. Progress Tooling menggunakan progress detail (0-100%)
+  // 3. Process/sub-process lain menggunakan status completed (0 atau 1)
+  // 4. Return persentase keseluruhan
   const calculateOverallProgressWithDetail = (part: Part): number => {
-    let totalTasks = 0
-    let completedTasks = 0
+    let totalUnits = 0
+    let completedUnits = 0
 
-    part.progress.forEach((progress) => {
-      progress.processes.forEach((process) => {
-        if (process.children && process.children.length > 0) {
-          // Jika process parent sudah complete, hitung sebagai 1 task completed
-          if (process.completed) {
-            totalTasks++
-            completedTasks++
-          } else {
-            // Hitung berdasarkan sub-process
-            process.children.forEach((child) => {
-              totalTasks++
-              if (child.name === "Progress Tooling") {
-                // Gunakan progress detail untuk Progress Tooling
-                completedTasks += Math.round(progressToolingDetailProgress / 100)
-              } else {
-                // Gunakan status completed untuk sub-process lain
-                if (child.completed) completedTasks++
-              }
-            })
-          }
+    part.progress.forEach((category) => {
+      category.processes.forEach((proc) => {
+        if (proc.children && proc.children.length > 0) {
+          // Jika ada sub-process, hitung berdasarkan sub-process
+          proc.children.forEach((child) => {
+            totalUnits += 1
+            if (child.name === "Progress Tooling") {
+              // Progress Tooling menggunakan progress detail
+              completedUnits += (progressToolingDetailProgress / 100)
+            } else if (child.completed) {
+              completedUnits += 1
+            }
+          })
         } else {
-          // Process tanpa sub-process
-          totalTasks++
-          if (process.completed) completedTasks++
+          // Jika tidak ada sub-process, hitung berdasarkan process langsung
+          totalUnits += 1
+          if (proc.completed) completedUnits += 1
         }
       })
     })
 
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+    return totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0
+  }
+
+  // Save all current progress state to backend (explicit save)
+  // Logika:
+  // 1. Collect semua update progress (process + sub-process)
+  // 2. Progress Tooling completion status berdasarkan progress detail
+  // 3. Kirim semua update ke backend secara batch
+  // 4. Refresh data dari backend untuk memastikan konsistensi
+  const saveAllProgressToBackend = async () => {
+    if (!selectedPart) return
+    setIsSaving(true)
+    try {
+      console.log('Starting to save all progress to backend...');
+      console.log('Selected part before save:', selectedPart);
+      
+      const updates: Promise<any>[] = []
+      const updateData: any[] = []
+      
+      let skippedNoId = 0
+      const detailSaves: Promise<any>[] = []
+      selectedPart.progress.forEach((category) => {
+        console.log(`Processing category: ${category.name}`);
+        category.processes.forEach((process) => {
+          console.log(`Processing process: ${process.name}, completed: ${process.completed}`);
+          
+          // Hanya kirim ke backend jika ID valid (UUID dari DB)
+          if (isValidUuid(process.id)) {
+            updateData.push({
+              processId: process.id,
+              completed: !!process.completed,
+              type: 'process'
+            });
+            updates.push(apiUpdateProcessCompletion(process.id, !!process.completed))
+            // Persist detail parent (completed & notes)
+            if (isValidUuid(selectedPart.id) && isValidUuid(category.id)) {
+              detailSaves.push(
+                updateProgressDetail({
+                  partId: selectedPart.id,
+                  categoryId: category.id,
+                  processId: process.id
+                }, {
+                  completed: !!process.completed,
+                  notes: process.notes || ''
+                })
+              )
+            }
+          } else {
+            skippedNoId += 1
+          }
+          
+          // Save children
+          if (process.children && process.children.length > 0) {
+            process.children.forEach((child) => {
+              console.log(`Processing child: ${child.name}, completed: ${child.completed}`);
+              if (child.name === 'Progress Tooling') {
+                // Progress Tooling completion status berdasarkan progress detail
+                const childCompleted = progressToolingDetailProgress === 100;
+                console.log(`Progress Tooling child completed: ${childCompleted} (detail progress: ${progressToolingDetailProgress}%)`);
+                
+                if (isValidUuid(child.id)) {
+                  updateData.push({
+                    processId: child.id,
+                    completed: childCompleted,
+                    type: 'subprocess',
+                    parentProcessId: process.id
+                  });
+                  updates.push(apiUpdateProcessCompletion(child.id, childCompleted))
+                  // Persist detail ke progress-detail untuk referensi
+                  if (isValidUuid(selectedPart.id) && isValidUuid(category.id) && isValidUuid(process.id)) {
+                    detailSaves.push(
+                      updateProgressDetail({
+                        partId: selectedPart.id,
+                        categoryId: category.id,
+                        processId: process.id,
+                        subProcessId: child.id
+                      }, {
+                        completed: childCompleted,
+                        notes: child.notes || ''
+                      })
+                    )
+                  }
+                } else {
+                  skippedNoId += 1
+                }
+              } else {
+                if (isValidUuid(child.id)) {
+                  updateData.push({
+                    processId: child.id,
+                    completed: !!child.completed,
+                    type: 'subprocess',
+                    parentProcessId: process.id
+                  });
+                  updates.push(apiUpdateProcessCompletion(child.id, !!child.completed))
+                  if (isValidUuid(selectedPart.id) && isValidUuid(category.id) && isValidUuid(process.id)) {
+                    detailSaves.push(
+                      updateProgressDetail({
+                        partId: selectedPart.id,
+                        categoryId: category.id,
+                        processId: process.id,
+                        subProcessId: child.id
+                      }, {
+                        completed: !!child.completed,
+                        notes: child.notes || ''
+                      })
+                    )
+                  }
+                } else {
+                  skippedNoId += 1
+                }
+              }
+            })
+          }
+        })
+      })
+      
+      console.log('Update data to be sent:', updateData);
+      console.log(`Sending ${updates.length} updates to backend...`);
+      if (skippedNoId > 0) {
+        console.warn(`Skipped ${skippedNoId} items without valid DB IDs (likely UI-only items).`)
+      }
+      
+      const results = await Promise.allSettled(updates)
+      const detailResults = await Promise.allSettled(detailSaves)
+      console.log('Backend update results:', results);
+      console.log('Progress detail save results:', detailResults)
+      
+      // Check for any failed updates
+      const failedUpdates = results.filter(result => result.status === 'rejected');
+      if (failedUpdates.length > 0) {
+        console.error('Some updates failed:', failedUpdates);
+        // Show error message to user
+        alert('Beberapa update gagal disimpan. Silakan coba lagi.');
+        return;
+      }
+      
+      console.log('All updates completed, refreshing data from backend...');
+      
+      // Wait a bit for backend to process the updates
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      // Refresh data from backend to ensure consistency
+      await refreshPartsData()
+      
+      setHasUnsavedChanges(false)
+      console.log('Progress saved successfully!');
+      
+      // Show success message to user
+      alert('Progress berhasil disimpan ke database!');
+      
+    } catch (error) {
+      console.error('Gagal menyimpan progress ke backend:', error)
+      alert('Gagal menyimpan progress. Silakan coba lagi.');
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Function to set evidence modal with proper callback
@@ -765,158 +1070,167 @@ export default function ManageProgres() {
     }
   }
 
-  // Load data from localStorage on mount and update Design Tooling to Progress Tooling
+  // Load data from backend on mount
   useEffect(() => {
-    console.log("ManageProgress: Starting to load data from storage")
-    try {
-      // Coba ambil data dari localStorage
-      const savedParts = localStorage.getItem("parts-data")
-      console.log("ManageProgress: Raw data from localStorage:", savedParts)
-      let dataLoaded = false
-      
-      if (savedParts && savedParts !== "undefined" && savedParts !== "null") {
-        try {
-          const parsedParts = JSON.parse(savedParts)
-          // Update semua nama 'Design Tooling' menjadi 'Progress Tooling' secara rekursif
-          const updatedParts = parsedParts.map(part => ({
-            ...part,
-            progress: part.progress.map(category => ({
-              ...category,
-              processes: renameDesignToolingToProgressTooling(category.processes)
-            }))
-          }))
-          setParts(updatedParts)
-          console.log("Data berhasil dimuat dari localStorage:", parsedParts)
-          dataLoaded = true
-          
-          // Simpan juga ke sessionStorage sebagai backup
-          sessionStorage.setItem("parts-data-backup", savedParts)
-        } catch (parseError) {
-          console.error("Error parsing data dari localStorage:", parseError)
-          // Jika parsing localStorage gagal, coba ambil dari sessionStorage
+    const fetchParts = async () => {
+      try {
+        console.log("ManageProgress: Starting to load data from backend")
+        const response = await getAllParts()
+        console.log('Backend response:', response)
+        let partsArray = []
+        if (Array.isArray(response.data)) {
+          partsArray = response.data
+        } else if (response.data && Array.isArray(response.data.data)) {
+          partsArray = response.data.data
         }
-      }
-      
-      // Jika data dari localStorage tidak valid atau parsing gagal, coba ambil dari sessionStorage
-      if (!dataLoaded) {
-        const backupData = sessionStorage.getItem("parts-data-backup")
-        
-        if (backupData && backupData !== "undefined" && backupData !== "null") {
-          try {
-            const parsedBackupData = JSON.parse(backupData)
-            setParts(parsedBackupData)
-            console.log("Data berhasil dimuat dari sessionStorage (backup)")
-            dataLoaded = true
-            
-            // Simpan kembali ke localStorage untuk memperbaiki data yang rusak
-            localStorage.setItem("parts-data", backupData)
-            
-            // Notify other components
-            window.dispatchEvent(new Event("parts-updated"))
-          } catch (parseBackupError) {
-            console.error("Error parsing data dari sessionStorage:", parseBackupError)
-            // Jika parsing sessionStorage juga gagal, inisialisasi dengan array kosong
+        console.log('Parts array:', partsArray)
+        if (partsArray.length > 0) {
+          const mappedParts = partsArray.map(mapBackendPartToFrontend)
+          console.log('Mapped parts:', mappedParts)
+          
+          // Log completion status untuk debugging
+          mappedParts.forEach((part, partIndex) => {
+            console.log(`Part ${partIndex + 1}: ${part.partName}`);
+            part.progress.forEach((category, catIndex) => {
+              console.log(`  Category ${catIndex + 1}: ${category.name}`);
+              category.processes.forEach((process, procIndex) => {
+                console.log(`    Process ${procIndex + 1}: ${process.name} - Completed: ${process.completed}`);
+                if (process.children) {
+                  process.children.forEach((child, childIndex) => {
+                    console.log(`      Child ${childIndex + 1}: ${child.name} - Completed: ${child.completed}`);
+                  });
+                }
+              });
+            });
+          });
+          
+          setParts(mappedParts)
+          
+          // Save to localStorage as backup
+          saveToLocalStorage(mappedParts)
+          
+        } else {
+          // Try to load from localStorage if backend has no data
+          const localData = loadFromLocalStorage()
+          if (localData) {
+            console.log('Using data from localStorage as fallback')
+            setParts(localData)
+          } else {
+            setParts([])
           }
         }
-      }
-      
-      // Jika tidak ada data valid di localStorage maupun sessionStorage, inisialisasi dengan array kosong
-      if (!dataLoaded) {
-        console.log("Tidak ada data valid di localStorage atau sessionStorage, inisialisasi dengan array kosong")
-        setParts([])
+      } catch (error: any) {
+        console.error('Gagal memuat data parts dari backend:', error.message)
+        if (error.response) {
+          console.error('Status:', error.response.status)
+          console.error('Response data:', error.response.data)
+        }
         
-        // Simpan array kosong ke kedua storage
-        const emptyArray = JSON.stringify([])
-        localStorage.setItem("parts-data", emptyArray)
-        sessionStorage.setItem("parts-data-backup", emptyArray)
-        
-        // Notify other components
-        window.dispatchEvent(new Event("parts-updated"))
+        // Try to load from localStorage if backend fails
+        const localData = loadFromLocalStorage()
+        if (localData) {
+          console.log('Using data from localStorage as fallback due to backend error')
+          setParts(localData)
+        } else {
+          setParts([])
+        }
       }
-    } catch (error) {
-      console.error("Error memuat data dari storage:", error)
-      // Jika terjadi error, inisialisasi dengan array kosong
-      setParts([])
-      const emptyArray = JSON.stringify([])
-      localStorage.setItem("parts-data", emptyArray)
-      sessionStorage.setItem("parts-data-backup", emptyArray)
     }
+    fetchParts()
   }, [])
 
   // Find selected part based on partId from URL
   useEffect(() => {
     console.log("ManageProgress: partId from URL:", partId)
     console.log("ManageProgress: parts loaded:", parts.length)
-    console.log("ManageProgress: parts data:", parts)
     
     if (partId && parts.length > 0) {
       const foundPart = parts.find(part => part.id === partId)
       console.log("ManageProgress: found part:", foundPart)
-      setSelectedPart(foundPart || null)
+      if (foundPart) {
+        setSelectedPart(foundPart)
+      } else {
+        // If part not found, redirect to dashboard
+        console.log("ManageProgress: part not found, redirecting to dashboard")
+        navigate('/progress')
+      }
     } else if (partId && parts.length === 0) {
       console.log("ManageProgress: partId exists but no parts loaded")
     } else if (!partId) {
-      console.log("ManageProgress: no partId in URL")
+      console.log("ManageProgress: no partId in URL, redirecting to dashboard")
+      navigate('/progress')
     }
-  }, [partId, parts])
+  }, [partId, parts, navigate])
 
-  // Auto-save data to localStorage whenever parts change
-  useEffect(() => {
-    // Hanya simpan data jika parts bukan array kosong
-    if (parts.length === 0) return;
-    
-    // Simpan data ke localStorage dan sessionStorage
+  // Function to refresh parts data from backend
+  const refreshPartsData = async () => {
     try {
-      const partsData = JSON.stringify(parts)
+      console.log('Refreshing parts data from backend...');
+      const response = await getAllParts()
+      console.log('Backend response:', response);
       
-      // Simpan ke localStorage dengan try-catch terpisah
-      try {
-        localStorage.setItem("parts-data", partsData)
-        console.log("Data berhasil disimpan ke localStorage")
-      } catch (localStorageError) {
-        console.error("Error menyimpan ke localStorage:", localStorageError)
+      let partsArray = []
+      if (Array.isArray(response.data)) {
+        partsArray = response.data
+      } else if (response.data && Array.isArray(response.data.data)) {
+        partsArray = response.data.data
       }
       
-      // Simpan juga ke sessionStorage dengan try-catch terpisah
-      try {
-        sessionStorage.setItem("parts-data-backup", partsData)
-        console.log("Data berhasil disimpan ke sessionStorage sebagai backup")
-      } catch (sessionStorageError) {
-        console.error("Error menyimpan ke sessionStorage:", sessionStorageError)
-      }
+      console.log('Parts array from backend:', partsArray);
       
-      // Dispatch custom event to notify other tabs/components
-      window.dispatchEvent(new Event("parts-updated"))
-      
-      // Verifikasi data tersimpan dengan benar di localStorage
-      const savedData = localStorage.getItem("parts-data")
-      if (!savedData || savedData === "undefined" || savedData === "null") {
-        console.error("Data tidak tersimpan dengan benar di localStorage")
-        // Coba simpan ulang ke localStorage
-        try {
-          localStorage.setItem("parts-data", partsData)
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang ke localStorage:", retryError)
+      if (partsArray.length > 0) {
+        const mappedParts = partsArray.map(mapBackendPartToFrontend)
+        console.log('Mapped parts after refresh:', mappedParts);
+        
+        // Find the current selected part in the new data
+        if (selectedPart) {
+          const updatedSelectedPart = mappedParts.find(part => part.id === selectedPart.id)
+          console.log('Current selected part:', selectedPart);
+          console.log('Updated selected part from backend:', updatedSelectedPart);
+          
+          if (updatedSelectedPart) {
+            // Update selected part dengan data dari backend
+            setSelectedPart(updatedSelectedPart)
+            
+            // Update parts array juga
+            setParts(mappedParts)
+            
+            // Reset unsaved changes karena data sudah sync dengan backend
+            setHasUnsavedChanges(false)
+            
+            // Save to localStorage as backup
+            saveToLocalStorage(mappedParts)
+            
+            console.log('Selected part updated with backend data');
+          }
+        } else {
+          // Jika tidak ada selected part, update parts array saja
+          setParts(mappedParts)
+          
+          // Save to localStorage as backup
+          saveToLocalStorage(mappedParts)
+        }
+      } else {
+        // Try to load from localStorage if backend has no data
+        const localData = loadFromLocalStorage()
+        if (localData) {
+          console.log('Using data from localStorage as fallback after refresh')
+          setParts(localData)
+        } else {
+          setParts([])
         }
       }
-      
-      // Verifikasi data tersimpan dengan benar di sessionStorage
-      const backupData = sessionStorage.getItem("parts-data-backup")
-      if (!backupData || backupData === "undefined" || backupData === "null") {
-        console.error("Data backup tidak tersimpan dengan benar di sessionStorage")
-        // Coba simpan ulang ke sessionStorage
-        try {
-          sessionStorage.setItem("parts-data-backup", partsData)
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang ke sessionStorage:", retryError)
-        }
-      }
-      
-      console.log("Data berhasil disimpan ke localStorage dan sessionStorage sebagai backup")
     } catch (error) {
-      console.error("Error menyimpan data ke storage:", error)
+      console.error('Gagal refresh data parts dari backend:', error)
+      
+      // Try to load from localStorage if backend fails
+      const localData = loadFromLocalStorage()
+      if (localData) {
+        console.log('Using data from localStorage as fallback after refresh error')
+        setParts(localData)
+      }
     }
-  }, [parts])
+  }
 
   // Auto-update process completion when sub-processes change
   useEffect(() => {
@@ -963,15 +1277,11 @@ export default function ManageProgres() {
         setParts(updatedParts)
         setSelectedPart(updatedParts.find(p => p.id === selectedPart.id) || null)
         
-        // Save to storage
-        try {
-          const partsDataString = JSON.stringify(updatedParts)
-          localStorage.setItem("parts-data", partsDataString)
-          sessionStorage.setItem("parts-data-backup", partsDataString)
-          window.dispatchEvent(new Event("parts-updated"))
-        } catch (error) {
-          console.error("Error saving auto-updated process completion:", error)
-        }
+        // TODO: Send update to backend API
+        // For now, we'll just refresh the data to ensure consistency
+        setTimeout(() => {
+          refreshPartsData()
+        }, 1000)
       }
     }
   }, [selectedPart, parts])
@@ -996,102 +1306,133 @@ export default function ManageProgres() {
   // Helper function to check and update process completion based on sub-processes
   const updateProcessCompletion = (process: Process): Process => {
     if (process.children && process.children.length > 0) {
-      const allChildrenCompleted = process.children.every(child => child.completed)
+      // Hitung progress berdasarkan sub-process
+      let totalSubProcesses = process.children.length;
+      let completedSubProcesses = 0;
+      
+      process.children.forEach(child => {
+        if (child.name === "Progress Tooling") {
+          // Progress Tooling menggunakan progress detail
+          completedSubProcesses += (progressToolingDetailProgress / 100);
+        } else if (child.completed) {
+          completedSubProcesses += 1;
+        }
+      });
+      
+      // Auto-complete jika semua sub-process selesai
+      const allCompleted = completedSubProcesses >= totalSubProcesses;
+      
       return {
         ...process,
-        completed: allChildrenCompleted
+        completed: allCompleted
       }
     }
     return process
   }
 
   // Toggle process completion
-  const toggleProcess = (partId: string, progressId: string, processId: string, childId?: string) => {
-    setParts((prevParts) => {
-      const updatedParts = prevParts.map((part) => {
-        if (part.id !== partId) return part
-
-        return {
-          ...part,
-          progress: part.progress.map((progress) => {
-            if (progress.id !== progressId) return progress
-
-            return {
-              ...progress,
-              processes: progress.processes.map((process) => {
-                if (process.id !== processId) return process
-
-                if (childId && process.children) {
-                  // Cek apakah ini Progress Tooling yang ingin di-toggle manual
-                  const child = process.children.find(c => c.id === childId);
-                  if (child && child.name === "Progress Tooling") {
-                    // Progress Tooling tidak bisa di-toggle manual sama sekali
-                    return process;
-                  }
-                  
-                  // Update sub-process completion
-                  const updatedChildren = process.children.map((child) =>
-                    child.id === childId ? { ...child, completed: !child.completed } : child,
-                  )
-                  
-                  // Check if all sub-processes are completed
-                  const allChildrenCompleted = updatedChildren.length > 0 && updatedChildren.every(child => child.completed)
-                  
-                  return {
-                    ...process,
-                    children: updatedChildren,
-                    // Auto-complete process if all children are completed
-                    completed: allChildrenCompleted
-                  }
-                } else {
-                  return { ...process, completed: !process.completed }
-                }
-              }),
-            }
-          }),
+  // Logika:
+  // 1. Progress Tooling tidak bisa di-toggle manual (hanya auto-complete)
+  // 2. Update local state terlebih dahulu (optimistic update)
+  // 3. Mark sebagai having unsaved changes
+  // 4. Progress akan disimpan ke backend saat user klik Save
+  const toggleProcess = async (partId: string, progressId: string, processId: string, childId?: string) => {
+    try {
+      // Tentukan nilai completed baru yang akan dikirim ke backend (optimistic)
+      let toggledCompleted = false
+      let isProgressToolingChild = false
+      if (selectedPart) {
+        const category = selectedPart.progress.find(c => c.id === progressId)
+        const proc = category?.processes.find(p => p.id === processId)
+        if (childId && proc?.children) {
+          const child = proc.children.find(c => c.id === childId)
+          isProgressToolingChild = child?.name === 'Progress Tooling'
+          toggledCompleted = !(child?.completed ?? false)
+        } else {
+          toggledCompleted = !(proc?.completed ?? false)
         }
+      }
+
+      // Jika Progress Tooling child, abaikan (tidak boleh manual)
+      if (isProgressToolingChild) return
+
+      console.log(`Toggling process: partId=${partId}, progressId=${progressId}, processId=${processId}, childId=${childId}`);
+      console.log(`New completed status: ${toggledCompleted}`);
+
+      // Update local state first; TIDAK kirim ke backend di sini (hanya saat Save)
+      setParts((prevParts) => {
+        const updatedParts = prevParts.map((part) => {
+          if (part.id !== partId) return part
+
+          return {
+            ...part,
+            progress: part.progress.map((progress) => {
+              if (progress.id !== progressId) return progress
+
+              return {
+                ...progress,
+                processes: progress.processes.map((process) => {
+                  if (process.id !== processId) return process
+
+                  if (childId && process.children) {
+                    // Cek apakah ini Progress Tooling yang ingin di-toggle manual
+                    const child = process.children.find(c => c.id === childId);
+                    if (child && child.name === "Progress Tooling") {
+                      // Progress Tooling tidak bisa di-toggle manual sama sekali
+                      return process;
+                    }
+                    
+                    // Update sub-process completion
+                    const updatedChildren = process.children.map((child) =>
+                      child.id === childId ? { ...child, completed: !child.completed } : child,
+                    )
+                    
+                    // Check if all sub-processes are completed
+                    const allChildrenCompleted = updatedChildren.length > 0 && updatedChildren.every(child => child.completed)
+                    
+                    console.log(`Sub-process ${childId} toggled to: ${!updatedChildren.find(c => c.id === childId)?.completed}`);
+                    console.log(`All children completed: ${allChildrenCompleted}`);
+                    
+                    return {
+                      ...process,
+                      children: updatedChildren,
+                      // Auto-complete process if all children are completed
+                      completed: allChildrenCompleted
+                    }
+                  } else {
+                    console.log(`Process ${processId} toggled to: ${!process.completed}`);
+                    return { ...process, completed: !process.completed }
+                  }
+                }),
+              }
+            }),
+          }
+        })
+        
+        // Update selected part if it's the current part
+        if (selectedPart && selectedPart.id === partId) {
+          const updatedSelectedPart = updatedParts.find(part => part.id === partId)
+          if (updatedSelectedPart) {
+            console.log('Updating selected part with new completion status');
+            setSelectedPart(updatedSelectedPart)
+          }
+        }
+        
+        setHasUnsavedChanges(true)
+        console.log('Local state updated, marked as having unsaved changes');
+        return updatedParts
       })
       
-      try {
-        // Konversi data ke string JSON
-        const partsDataString = JSON.stringify(updatedParts)
-        
-        // Simpan langsung ke localStorage untuk memastikan data tersimpan
-        localStorage.setItem("parts-data", partsDataString)
-        
-        // Simpan juga ke sessionStorage sebagai backup
-        sessionStorage.setItem("parts-data-backup", partsDataString)
-        
-        // Verifikasi data tersimpan di localStorage
-        const savedData = localStorage.getItem("parts-data")
-        if (!savedData || savedData === "undefined" || savedData === "null") {
-          console.error("Data tidak tersimpan dengan benar di localStorage setelah toggle complete")
-          // Coba simpan ulang
-          localStorage.setItem("parts-data", partsDataString)
-        }
-        
-        // Verifikasi data tersimpan di sessionStorage
-        const backupData = sessionStorage.getItem("parts-data-backup")
-        if (!backupData || backupData === "undefined" || backupData === "null") {
-          console.error("Data tidak tersimpan dengan benar di sessionStorage setelah toggle complete")
-          // Coba simpan ulang
-          sessionStorage.setItem("parts-data-backup", partsDataString)
-        }
-        
-        // Notify other components
-        window.dispatchEvent(new Event("parts-updated"))
-        
-        console.log("Status complete berhasil diubah dan disimpan")
-      } catch (error) {
-        console.error("Error saat menyimpan perubahan status complete:", error)
-      }
-      
-      return updatedParts
-    })
+      console.log("Status complete berhasil diubah di local state")
+    } catch (error) {
+      console.error("Error saat mengubah status complete:", error)
+      // Refresh data to revert any incorrect changes
+      refreshPartsData()
+    }
   }
 
   // Handle process form save
-  const handleProcessSave = (processData: { name: string; notes?: string; completed: boolean }) => {
+  const handleProcessSave = async (processData: { name: string; notes?: string; completed: boolean }) => {
     const { partId, categoryId, processId, subProcessId, type, isSubProcess } = processModal
 
     if (!partId || !categoryId) return
@@ -1117,239 +1458,77 @@ export default function ManageProgres() {
         }
       }
       
-      // Konversi data ke string JSON
-      const partsDataString = JSON.stringify(updatedParts);
-      
-      // Simpan langsung ke localStorage untuk memastikan data tersimpan
-      try {
-        localStorage.setItem("parts-data", partsDataString);
-        console.log("Data process berhasil disimpan ke localStorage");
-      } catch (localStorageError) {
-        console.error("Error menyimpan process ke localStorage:", localStorageError);
-      }
-      
-      // Simpan juga ke sessionStorage sebagai backup
-      try {
-        sessionStorage.setItem("parts-data-backup", partsDataString);
-        console.log("Data process berhasil disimpan ke sessionStorage sebagai backup");
-      } catch (sessionStorageError) {
-        console.error("Error menyimpan process ke sessionStorage:", sessionStorageError);
-      }
-      
-      // Verifikasi data tersimpan di localStorage
-      let savedData;
-      try {
-        savedData = localStorage.getItem("parts-data");
-      } catch (getError) {
-        console.error("Error mengakses localStorage untuk verifikasi:", getError);
-        savedData = null;
-      }
-      
-      if (!savedData || savedData === "undefined" || savedData === "null") {
-        console.error("Data process tidak tersimpan dengan benar di localStorage setelah save");
-        // Coba simpan ulang
-        try {
-          localStorage.setItem("parts-data", partsDataString);
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang process ke localStorage:", retryError);
+      // Update selected part if it's the current part
+      if (selectedPart && selectedPart.id === partId) {
+        const updatedSelectedPart = updatedParts.find(part => part.id === partId);
+        if (updatedSelectedPart) {
+          setSelectedPart(updatedSelectedPart);
         }
       }
       
-      // Verifikasi data tersimpan di sessionStorage
-      let backupData;
-      try {
-        backupData = sessionStorage.getItem("parts-data-backup");
-      } catch (getError) {
-        console.error("Error mengakses sessionStorage untuk verifikasi:", getError);
-        backupData = null;
-      }
+      // Mark as having unsaved changes
+      setHasUnsavedChanges(true);
       
-      if (!backupData || backupData === "undefined" || backupData === "null") {
-        console.error("Data process tidak tersimpan dengan benar di sessionStorage setelah save");
-        // Coba simpan ulang
-        try {
-          sessionStorage.setItem("parts-data-backup", partsDataString);
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang process ke sessionStorage:", retryError);
-        }
-      }
-      
-      // Notify other components
-      window.dispatchEvent(new Event("parts-updated"));
-      
-      console.log("Data process berhasil disimpan:", updatedParts);
+      console.log("Data process berhasil disimpan secara lokal. Gunakan tombol Save untuk menyimpan ke backend.");
     } catch (error) {
       console.error("Error saat menyimpan process:", error);
     }
   }
 
   // Handle part form save
-  const handlePartSave = (partData: { partName: string; partNumber: string; customer: string }) => {
+  const handlePartSave = async (partData: { partName: string; partNumber: string; customer: string }) => {
     const { partId, type } = partModal
 
     try {
-      let updatedParts: Part[] = [];
-      
-      if (type === "add") {
-        updatedParts = addPart(parts, partData);
-        setParts(updatedParts);
-      } else if (type === "edit" && partId) {
-        updatedParts = editPart(parts, partId, partData);
-        setParts(updatedParts);
+      if (type === "edit" && partId) {
+        // Update existing part via backend API
+        await updatePart(partId, partData);
+        console.log("Data part berhasil diupdate via backend");
+      } else {
+        // For add, we'll redirect to dashboard since this page is for managing existing parts
+        console.log("Add new part should be done from dashboard");
+        navigate('/progress');
+        return;
       }
       
-      // Konversi data ke string JSON
-      const partsDataString = JSON.stringify(updatedParts);
+      // Refresh data from backend
+      await refreshPartsData();
       
-      // Simpan langsung ke localStorage untuk memastikan data tersimpan
-      try {
-        localStorage.setItem("parts-data", partsDataString);
-        console.log("Data part berhasil disimpan ke localStorage");
-      } catch (localStorageError) {
-        console.error("Error menyimpan part ke localStorage:", localStorageError);
-      }
-      
-      // Simpan juga ke sessionStorage sebagai backup
-      try {
-        sessionStorage.setItem("parts-data-backup", partsDataString);
-        console.log("Data part berhasil disimpan ke sessionStorage sebagai backup");
-      } catch (sessionStorageError) {
-        console.error("Error menyimpan part ke sessionStorage:", sessionStorageError);
-      }
-      
-      // Verifikasi data tersimpan di localStorage
-      let savedData;
-      try {
-        savedData = localStorage.getItem("parts-data");
-      } catch (getError) {
-        console.error("Error mengakses localStorage untuk verifikasi:", getError);
-        savedData = null;
-      }
-      
-      if (!savedData || savedData === "undefined" || savedData === "null") {
-        console.error("Data part tidak tersimpan dengan benar di localStorage setelah save");
-        // Coba simpan ulang
-        try {
-          localStorage.setItem("parts-data", partsDataString);
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang part ke localStorage:", retryError);
-        }
-      }
-      
-      // Verifikasi data tersimpan di sessionStorage
-      let backupData;
-      try {
-        backupData = sessionStorage.getItem("parts-data-backup");
-      } catch (getError) {
-        console.error("Error mengakses sessionStorage untuk verifikasi:", getError);
-        backupData = null;
-      }
-      
-      if (!backupData || backupData === "undefined" || backupData === "null") {
-        console.error("Data part tidak tersimpan dengan benar di sessionStorage setelah save");
-        // Coba simpan ulang
-        try {
-          sessionStorage.setItem("parts-data-backup", partsDataString);
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang part ke sessionStorage:", retryError);
-        }
-      }
-      
-      // Notify other components
-      window.dispatchEvent(new Event("parts-updated"));
-      
-      console.log("Data part berhasil disimpan:", updatedParts);
+      console.log("Data part berhasil disimpan dan di-refresh dari backend");
     } catch (error) {
       console.error("Error saat menyimpan part:", error);
     }
   }
 
   // Handle delete confirmation
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const { type, partId, categoryId, processId, subProcessId } = deleteDialog
 
     try {
-      let updatedParts: Part[]
-      let partsDataString: string
-
       if (type === "part" && partId) {
-        updatedParts = deletePart(parts, partId)
-        partsDataString = JSON.stringify(updatedParts)
-        setParts(updatedParts)
-        setSelectedPart(null)
+        // Delete part via backend API
+        await deletePart(partId);
+        console.log("Part berhasil dihapus dari backend");
+        setSelectedPart(null);
+        navigate('/progress');
       } else if (type === "process" && partId && categoryId && processId) {
-        updatedParts = deleteProcess(parts, partId, categoryId, processId)
-        partsDataString = JSON.stringify(updatedParts)
-        setParts(updatedParts)
-        setSelectedPart(updatedParts.find(p => p.id === partId) || null)
+        // For now, we'll just refresh data since process deletion API might not be implemented
+        console.log("Process deletion via API not implemented yet");
+        await refreshPartsData();
       } else if (type === "subprocess" && partId && categoryId && processId && subProcessId) {
-        updatedParts = deleteSubProcess(parts, partId, categoryId, processId, subProcessId)
-        partsDataString = JSON.stringify(updatedParts)
-        setParts(updatedParts)
-        setSelectedPart(updatedParts.find(p => p.id === partId) || null)
+        // For now, we'll just refresh data since subprocess deletion API might not be implemented
+        console.log("Subprocess deletion via API not implemented yet");
+        await refreshPartsData();
       } else {
         console.error("Missing required parameters for deletion")
         return
       }
 
-      // Simpan data ke localStorage dengan try-catch terpisah
-      try {
-        localStorage.setItem("parts-data", partsDataString)
-        console.log("Data berhasil disimpan ke localStorage setelah delete")
-      } catch (localStorageError) {
-        console.error("Error menyimpan ke localStorage setelah delete:", localStorageError)
-      }
-      
-      // Simpan juga ke sessionStorage dengan try-catch terpisah
-      try {
-        sessionStorage.setItem("parts-data-backup", partsDataString)
-        console.log("Data berhasil disimpan ke sessionStorage sebagai backup setelah delete")
-      } catch (sessionStorageError) {
-        console.error("Error menyimpan ke sessionStorage setelah delete:", sessionStorageError)
-      }
-      
-      // Verifikasi data tersimpan di localStorage
-      let savedData;
-      try {
-        savedData = localStorage.getItem("parts-data");
-      } catch (getError) {
-        console.error("Error mengakses localStorage untuk verifikasi setelah delete:", getError);
-        savedData = null;
-      }
-      
-      if (!savedData || savedData === "undefined" || savedData === "null") {
-        console.error("Data tidak tersimpan dengan benar di localStorage setelah delete")
-        // Coba simpan ulang
-        try {
-          localStorage.setItem("parts-data", partsDataString);
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang data ke localStorage setelah delete:", retryError);
-        }
-      }
-      
-      // Verifikasi data tersimpan di sessionStorage
-      let backupData;
-      try {
-        backupData = sessionStorage.getItem("parts-data-backup");
-      } catch (getError) {
-        console.error("Error mengakses sessionStorage untuk verifikasi setelah delete:", getError);
-        backupData = null;
-      }
-      
-      if (!backupData || backupData === "undefined" || backupData === "null") {
-        console.error("Data tidak tersimpan dengan benar di sessionStorage setelah delete")
-        // Coba simpan ulang
-        try {
-          sessionStorage.setItem("parts-data-backup", partsDataString);
-        } catch (retryError) {
-          console.error("Gagal menyimpan ulang data ke sessionStorage setelah delete:", retryError);
-        }
-      }
-      
-      // Notify other components
-      window.dispatchEvent(new Event("parts-updated"));
+      console.log("Data berhasil dihapus dan di-refresh dari backend");
     } catch (error) {
       console.error("Error saat menghapus data:", error);
+      // Refresh data to ensure consistency
+      await refreshPartsData();
     }
 
     // Close the dialog but preserve the type
@@ -1364,18 +1543,31 @@ export default function ManageProgres() {
     })
   }
 
-  // Fungsi rekursif untuk mengganti semua nama 'Design Tooling' menjadi 'Progress Tooling'
-  function renameDesignToolingToProgressTooling(processes) {
-    return processes.map(process => {
-      let updatedProcess = { ...process };
-      if (updatedProcess.name === "Design Tooling") {
-        updatedProcess.name = "Progress Tooling";
+  // Function to save data to localStorage as backup
+  const saveToLocalStorage = (partsData: Part[]) => {
+    try {
+      const partsDataString = JSON.stringify(partsData)
+      localStorage.setItem("parts-data", partsDataString)
+      sessionStorage.setItem("parts-data-backup", partsDataString)
+      console.log("Data saved to localStorage and sessionStorage as backup")
+    } catch (error) {
+      console.error("Error saving to localStorage:", error)
+    }
+  }
+
+  // Function to load data from localStorage as fallback
+  const loadFromLocalStorage = (): Part[] | null => {
+    try {
+      const partsDataString = localStorage.getItem("parts-data")
+      if (partsDataString) {
+        const partsData = JSON.parse(partsDataString)
+        console.log("Data loaded from localStorage as fallback")
+        return partsData
       }
-      if (updatedProcess.children && updatedProcess.children.length > 0) {
-        updatedProcess.children = renameDesignToolingToProgressTooling(updatedProcess.children);
-      }
-      return updatedProcess;
-    });
+    } catch (error) {
+      console.error("Error loading from localStorage:", error)
+    }
+    return null
   }
 
   return (  
@@ -1433,27 +1625,65 @@ export default function ManageProgres() {
               <CardHeader className="pb-3 sm:pb-4">
                 <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className={`text-lg sm:text-xl md:text-2xl ${uiColors.text.primary} mb-2 sm:mb-3 break-words`}>{selectedPart.partName}</CardTitle>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className={`${uiColors.bg.secondary} ${uiColors.text.secondary} ${uiColors.border.secondary} text-xs sm:text-sm`}>
-                        {selectedPart.partNumber}
-                      </Badge>
-                      <Badge variant="outline" className={`${uiColors.bg.secondary} ${uiColors.text.secondary} ${uiColors.border.secondary} text-xs sm:text-sm`}>
-                        {selectedPart.customer}
-                      </Badge>
+                    
+                    {/* Part Image and Details Container */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                      {/* Part Image */}
+                      {selectedPart.partImageUrl && selectedPart.partImageUrl.trim() !== '' && (isValidBase64Image(selectedPart.partImageUrl) || selectedPart.partImageUrl.startsWith('http')) && (
+                        <div className="flex-shrink-0">
+                          <div className="relative w-48 h-32 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-lg overflow-hidden border border-gray-600/30 cursor-pointer hover:scale-105 transition-transform duration-200"
+                               onClick={() => setImageModal({
+                                 isOpen: true,
+                                 imageUrl: selectedPart.partImageUrl!,
+                                 partName: selectedPart.partName
+                               })}>
+                            <img
+                              src={selectedPart.partImageUrl}
+                              alt={selectedPart.partName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                if (fallback) fallback.classList.remove('hidden');
+                              }}
+                              onLoad={(e) => {
+                                const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                if (fallback) fallback.classList.add('hidden');
+                              }}
+                              {...(selectedPart.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
+                            />
+                            <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400 hidden">
+                              <Image className="w-8 h-8" />
+                    </div>
+                            <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <div className="text-white text-sm font-medium">Click to view full size</div>
+                  </div>
+                      </div>
+                          <p className="text-xs text-gray-400 mt-1">Click image to view full size</p>
+                    </div>
+                      )}
+                      
+                      {/* Part Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="space-y-4 p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/40 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:border-gray-600/60">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 group">
+                            <span className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} min-w-[130px] bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent drop-shadow-sm`}>Part Name:</span>
+                            <span className={`text-lg sm:text-xl font-semibold ${uiColors.text.secondary} break-words tracking-wide group-hover:text-white transition-colors duration-200`}>{selectedPart.partName}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 group">
+                            <span className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} min-w-[130px] bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm`}>Part Number:</span>
+                            <span className={`text-lg sm:text-xl font-semibold ${uiColors.text.secondary} break-words tracking-wide font-mono bg-gray-800/50 px-3 py-1 rounded-lg border border-gray-700/50 group-hover:border-green-400/50 group-hover:bg-gray-700/50 transition-all duration-200`}>{selectedPart.partNumber}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 group">
+                            <span className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} min-w-[130px] bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow-sm`}>Customer:</span>
+                            <span className={`text-lg sm:text-xl font-semibold ${uiColors.text.secondary} break-words tracking-wide group-hover:text-white transition-colors duration-200`}>{selectedPart.customer}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
-                    <div className="text-center sm:text-right order-2 sm:order-1">
-                      <div 
-                        key={`overall-percentage-${selectedPart.id}-${progressToolingDetailProgress}`}
-                        className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary}`}
-                      >
-                        {calculateOverallProgressWithDetail(selectedPart)}%
-                      </div>
-                      <div className={`text-xs sm:text-sm ${uiColors.text.tertiary}`}>Overall Progress</div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 order-1 sm:order-2">
+                  <div className="flex flex-col items-center lg:items-end gap-3 w-full lg:w-auto">
+					<div className="flex flex-wrap items-center gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -1474,6 +1704,19 @@ export default function ManageProgres() {
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={saveAllProgressToBackend}
+                        disabled={isSaving}
+                        className={`${uiColors.text.accent} hover:${uiColors.bg.secondary} ${uiColors.border.accent} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-7 sm:h-8`}
+                      >
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m4-4H8" />
+                        </svg>
+                        <span className="hidden sm:inline">{isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save*' : 'Save'}</span>
+                        <span className="sm:hidden">{isSaving ? '...' : 'Save'}</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() =>
                           setDeleteDialog({
                             isOpen: true,
@@ -1489,15 +1732,37 @@ export default function ManageProgres() {
                         <span className="sm:hidden">Delete</span>
                       </Button>
                     </div>
+					{/* Pie chart */}
+					{(() => {
+						const percent = calculateOverallProgressWithDetail(selectedPart)
+						const r = 42
+						const stroke = 10
+						const c = 2 * Math.PI * r
+						const offset = c * (1 - percent / 100)
+						return (
+							<div className="flex items-center justify-center">
+                          <div className="relative w-28 h-28">
+                            <svg viewBox="0 0 100 100" className="w-28 h-28">
+										<defs>
+											<linearGradient id="overallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+												<stop offset="0%" stopColor="#60a5fa" />
+												<stop offset="100%" stopColor="#a78bfa" />
+											</linearGradient>
+										</defs>
+										<circle cx="50" cy="50" r={r} stroke="rgba(255,255,255,0.15)" strokeWidth={stroke} fill="none" />
+										<circle cx="50" cy="50" r={r} stroke="url(#overallGrad)" strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset} />
+									</svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+										<div className={`text-xl font-bold ${uiColors.text.primary}`}>{percent}%</div>
+										<div className={`text-[10px] ${uiColors.text.tertiary}`}>Overall</div>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <Progress 
-                    key={`overall-${selectedPart.id}-${progressToolingDetailProgress}`}
-                    value={calculateOverallProgressWithDetail(selectedPart)} 
-                    className={`h-2 sm:h-3 ${uiColors.bg.secondary}`} 
-                  />
                 </div>
+						)
+					})()}
+				  </div>
+                </div>
+                
               </CardHeader>
 
               <CardContent>
@@ -1505,14 +1770,37 @@ export default function ManageProgres() {
                 <div className="mb-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
                     <h3 className={`text-base sm:text-lg font-semibold ${uiColors.text.primary}`}>Process Summary</h3>
+                     <div className="flex flex-col items-end gap-2">
+                       {/* View All Process Detail Toggle Button */}
                     <Button
-                      onClick={() => setShowDetailedProcesses(!showDetailedProcesses)}
+                        onClick={() => {
+                           // Toggle hanya visibilitas; jangan mengganti struktur/ID dari backend
+                           setShowDetailedProcesses(!showDetailedProcesses);
+                           if (!showDetailedProcesses) {
+                             setTimeout(() => {
+                               const detailedSection = document.querySelector('[data-section="detailed-processes"]');
+                               if (detailedSection) detailedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                             }, 100);
+                           }
+                         }}
                       variant="outline"
                       size="sm"
                       className={`w-full sm:w-auto ${uiColors.button.primary.bg} hover:${uiColors.button.primary.hover} ${uiColors.button.primary.text} ${uiColors.button.primary.border}`}
                     >
-                      <span className="hidden sm:inline">{showDetailedProcesses ? "Hide Detailed Processes" : "View All Processes"}</span>
-                      <span className="sm:hidden">{showDetailedProcesses ? "Hide Details" : "View Details"}</span>
+                         <svg
+                           className="w-4 h-4 mr-2"
+                           fill="none"
+                           stroke="currentColor"
+                           viewBox="0 0 24 24"
+                         >
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                         </svg>
+                         <span className="hidden sm:inline">
+                           {showDetailedProcesses ? "Hide Process Details" : "View All Process Detail"}
+                         </span>
+                         <span className="sm:hidden">
+                           {showDetailedProcesses ? "Hide" : "View All"}
+                         </span>
                       <svg
                         className={`w-4 h-4 ml-2 transition-transform duration-200 ${showDetailedProcesses ? 'rotate-180' : ''}`}
                         fill="none"
@@ -1522,13 +1810,18 @@ export default function ManageProgres() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </Button>
+                     </div>
                   </div>
                 </div>
 
-                {/* Category Cards with Process Dropdowns - Only shown when showDetailedProcesses is true */}
+                {/* When hidden, we render nothing below header */}
+                {!showDetailedProcesses && null}
+
+                {/* Category Cards with Process Dropdowns - Conditionally show detailed processes */}
                 {showDetailedProcesses && (
-                  <div className="space-y-4 sm:space-y-6">
-                    {selectedPart.progress.map((progressCategory) => (
+                  <div className="space-y-4 sm:space-y-6" data-section="detailed-processes">
+                    {selectedPart.progress.map((progressCategory) => {
+                      return (
                     <Card key={progressCategory.id} className={`${uiColors.bg.tertiary} ${uiColors.border.secondary} shadow-md`}>
                       <CardHeader className="pb-3">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1711,30 +2004,29 @@ export default function ManageProgres() {
                                   )}
                                 </div>
 
+                                    {/* Process Notes */}
+                                    {process.notes && (
+                                      <div className="mb-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <FileText className="w-4 h-4 text-blue-400" />
+                                          <span className="text-sm font-medium text-gray-300">Notes</span>
+                                        </div>
+                                        <p className="text-sm text-gray-400">{process.notes}</p>
+                                      </div>
+                                    )}
+
                                 {/* Child Processes - Now as Collapsible Section */}
                                 {process.children && process.children.length > 0 && (
                                   <div className="mt-3">
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => {
-                                        // Toggle sub-process visibility for this process
-                                        const processElement = document.getElementById(`subprocess-${process.id}`)
-                                        if (processElement) {
-                                          processElement.classList.toggle('hidden')
-                                        }
-                                        // Toggle chevron rotation
-                                        const chevron = document.getElementById(`chevron-${process.id}`)
-                                        if (chevron) {
-                                          chevron.classList.toggle('rotate-180')
-                                        }
-                                      }}
-                                      className={`w-full justify-between ${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary}`}
+                                          className={`w-full justify-between ${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} cursor-default`}
                                     >
                                       <span className="text-sm">Sub-Processes ({process.children.length})</span>
                                       <svg
                                         id={`chevron-${process.id}`}
-                                        className="w-4 h-4 transition-transform duration-200"
+                                            className={`w-4 h-4 transition-transform duration-200 ${showDetailedProcesses ? 'rotate-180' : ''}`}
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -1742,7 +2034,7 @@ export default function ManageProgres() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                       </svg>
                                     </Button>
-                                    <div id={`subprocess-${process.id}`} className="mt-2 space-y-2 hidden">
+                                        <div id={`subprocess-${process.id}`} className={`mt-2 space-y-2 ${showDetailedProcesses ? '' : 'hidden'}`}>
                                       {process.children.map((child) => (
                                         <div key={child.id} className={`flex flex-col p-2 ${uiColors.bg.card} rounded border ${uiColors.border.tertiary} gap-2`}>
                                           {/* First row: Label and Action buttons */}
@@ -1750,10 +2042,14 @@ export default function ManageProgres() {
                                           <div className="flex items-center space-x-2 flex-1 min-w-0">
                                             <Checkbox
                                               id={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
-                                              checked={child.completed && progressToolingDetailProgress === 100}
-                                              onCheckedChange={() =>
-                                                toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id)
-                                              }
+                                              checked={child.name === "Progress Tooling" ? progressToolingDetailProgress === 100 : child.completed}
+                                              onCheckedChange={() => {
+                                                if (child.name === "Progress Tooling") {
+                                                  // Progress Tooling tidak bisa di-toggle manual
+                                                  return;
+                                                }
+                                                toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id);
+                                              }}
                                                 className={`${uiColors.border.tertiary} ${
                                                   child.name === "Progress Tooling" ? "opacity-50 cursor-not-allowed" : ""
                                                 }`}
@@ -1773,7 +2069,19 @@ export default function ManageProgres() {
                                                     {progressToolingDetailProgress === 100 ? "(Completed)" : `(Overall Progress: ${progressToolingDetailProgress}%)`}
                                                   </span>
                                                 )}
-                                                {child.completed && progressToolingDetailProgress === 100 && (
+                                                {child.name === "Progress Tooling" && progressToolingDetailProgress === 100 && (
+                                                  <div className="inline-block ml-2" title="Sub-process completed">
+                                                    <svg 
+                                                      className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
+                                                      fill="none" 
+                                                      stroke="currentColor" 
+                                                      viewBox="0 0 24 24"
+                                                    >
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                  </div>
+                                                )}
+                                                {child.name !== "Progress Tooling" && child.completed && (
                                                   <div className="inline-block ml-2" title="Sub-process completed">
                                                     <svg 
                                                       className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
@@ -1850,6 +2158,17 @@ export default function ManageProgres() {
                                             </Button>
                                           </div>
                                           </div>
+                                              
+                                              {/* Sub-process Notes */}
+                                              {child.notes && (
+                                                <div className="p-2 bg-gray-800/30 rounded border border-gray-700/20">
+                                                  <div className="flex items-center gap-2 mb-1">
+                                                    <FileText className="w-3 h-3 text-blue-400" />
+                                                    <span className="text-xs font-medium text-gray-400">Notes</span>
+                                                  </div>
+                                                  <p className="text-xs text-gray-500">{child.notes}</p>
+                                                </div>
+                                              )}
                                           
                                           {/* Second row: Progress Tooling Dropdown (only for Progress Tooling) */}
                                           {child.name === "Progress Tooling" && (
@@ -1873,13 +2192,37 @@ export default function ManageProgres() {
                                     </div>
                                   </div>
                                 )}
+
+                                    {/* Process Evidence Summary */}
+                                    {process.evidence && process.evidence.length > 0 && (
+                                      <div className="mt-3 p-3 bg-gray-800/30 rounded-lg border border-gray-700/20">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Upload className="w-4 h-4 text-green-400" />
+                                          <span className="text-sm font-medium text-gray-300">Evidence ({process.evidence.length})</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          {process.evidence.map((evidence) => (
+                                            <div key={evidence.id} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded border border-gray-600/20">
+                                              {evidence.type === 'image' ? (
+                                                <Image className="w-4 h-4 text-blue-400" />
+                                              ) : (
+                                                <FileText className="w-4 h-4 text-green-400" />
+                                              )}
+                                              <span className="text-xs text-gray-400 truncate">{evidence.name}</span>
+                                              <span className="text-xs text-gray-500">({new Date(evidence.uploadedAt).toLocaleDateString()})</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )
                           })}
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                      )
+                    })}
                 </div>
                 )}
               </CardContent>
@@ -1955,6 +2298,55 @@ export default function ManageProgres() {
         evidence={evidenceModal.evidence}
         onEvidenceChange={evidenceModal.onEvidenceChange}
       />
+
+      {/* Image Modal */}
+      <Dialog open={imageModal.isOpen} onOpenChange={() => setImageModal({ ...imageModal, isOpen: false })}>
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-4 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                <Image className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              {imageModal.partName} - Part Image
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex justify-center items-center p-4">
+            <div className="relative max-w-full max-h-[70vh] overflow-hidden rounded-lg">
+              <img
+                src={imageModal.imageUrl}
+                alt={imageModal.partName}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback-full');
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+                {...(imageModal.imageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
+              />
+              <div className="image-fallback-full absolute inset-0 flex items-center justify-center text-gray-400 hidden">
+                <div className="text-center">
+                  <Image className="w-16 h-16 mx-auto mb-4" />
+                  <p className="text-lg">Failed to load image</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setImageModal({ ...imageModal, isOpen: false })}
+              className="border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50 transition-all duration-200"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+
+
