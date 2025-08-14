@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { getProgressToolingDetail } from "../../../services/API_Services";
 
 interface Material {
   name: string;
@@ -19,9 +20,16 @@ interface ProgressToolingDropdownProps {
   progressToolingChild: any;
   onProgressToolingComplete?: (completed: boolean) => void;
   onProgressUpdate?: (progress: number) => void;
+  // Identifiers for backend persistence
+  partId: string;
+  categoryId: string;
+  processId: string;
+  subProcessId: string;
+  // Bubble full detail payload to parent for Save
+  onDetailChange?: (detail: any) => void;
 }
 
-export function ProgressToolingDropdown({ progressToolingChild, onProgressToolingComplete, onProgressUpdate }: ProgressToolingDropdownProps) {
+export function ProgressToolingDropdown({ progressToolingChild, onProgressToolingComplete, onProgressUpdate, partId, categoryId, processId, subProcessId, onDetailChange }: ProgressToolingDropdownProps) {
   const [open, setOpen] = React.useState(false);
   const [materials, setMaterials] = React.useState<Material[]>([
     { name: "Steel", actual: null, planned: null, unit: "kg" },
@@ -147,6 +155,23 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
     return sum + (row.progress * row.weight / 100);
   }, 0);
 
+  // Build payload to persist
+  const buildDetailPayload = React.useCallback(() => {
+    return {
+      designToolingCompleted: processStates["Design Tooling"],
+      rawMaterialActual: materials[0]?.actual ?? null,
+      rawMaterialPlanned: materials[0]?.planned ?? null,
+      machining1Completed: processStates["Machining 1"],
+      machining2Completed: processStates["Machining 2"],
+      machining3Completed: processStates["Machining 3"],
+      assyCompleted: processStates["Assy"],
+      trialCount: trialCount || 1,
+      trialsCompleted: (trials || []).map(t => ({ completed: !!t.completed })),
+      approvalCompleted: processStates["Approval"],
+      overallProgress: Math.round(totalProgress),
+    };
+  }, [materials, processStates, trials, trialCount, totalProgress]);
+
   // Effect untuk auto-complete ketika overall progress mencapai 100%
   React.useEffect(() => {
     if (totalProgress === 100 && onProgressToolingComplete) {
@@ -159,7 +184,49 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
     if (onProgressUpdate) {
       onProgressUpdate(totalProgress);
     }
-  }, [totalProgress, onProgressUpdate]);
+    if (onDetailChange) {
+      onDetailChange(buildDetailPayload());
+    }
+  }, [totalProgress, onProgressUpdate, onDetailChange, buildDetailPayload]);
+
+  // Load existing tooling detail to prefill UI
+  React.useEffect(() => {
+    const loadDetail = async () => {
+      try {
+        // Coba minimal (by processId) lalu fallback dengan route lengkap untuk kompatibilitas
+        let res = await getProgressToolingDetail({ partId, categoryId, processId, subProcessId });
+        if (!res?.success && processId) {
+          res = await getProgressToolingDetail({ partId: '', categoryId: '', processId, subProcessId: '' } as any);
+        }
+        if (res?.success && res.data) {
+          const d = res.data;
+          setProcessStates(prev => ({
+            ...prev,
+            "Design Tooling": !!d.designToolingCompleted,
+            "Machining 1": !!d.machining1Completed,
+            "Machining 2": !!d.machining2Completed,
+            "Machining 3": !!d.machining3Completed,
+            "Assy": !!d.assyCompleted,
+            "Approval": !!d.approvalCompleted,
+          }));
+          setMaterials([{ name: materials[0].name, unit: materials[0].unit, actual: d.rawMaterialActual ?? null, planned: d.rawMaterialPlanned ?? null }]);
+          const count = d.trialCount || 1;
+          updateTrialCount(count);
+          if (Array.isArray(d.trialsCompleted) && d.trialsCompleted.length > 0) {
+            const newTrials = [] as Trial[];
+            for (let i = 0; i < count; i++) {
+              newTrials.push({ name: `Trial ${i + 1}`, completed: !!d.trialsCompleted[i]?.completed, weight: Math.round(20 / count) });
+            }
+            setTrials(newTrials);
+          }
+        }
+      } catch (err) {
+        // ignore missing detail
+      }
+    };
+    loadDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partId, categoryId, processId, subProcessId]);
 
   return (
     <div className="w-full mt-2">
