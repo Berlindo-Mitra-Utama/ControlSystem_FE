@@ -663,16 +663,6 @@ export default function Dashboard() {
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link to="/tools">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent text-xs sm:text-sm"
-                >
-                  <span className="hidden sm:inline">← Kembali</span>
-                  <span className="sm:hidden">←</span>
-                </Button>
-              </Link>
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
@@ -700,7 +690,7 @@ export default function Dashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-red-400 hover:border-red-500 bg-transparent flex items-center gap-1 sm:gap-2 text-xs sm:text-sm transition-colors duration-200"
                   onClick={() => handleLogout()}
                 >
                   <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />

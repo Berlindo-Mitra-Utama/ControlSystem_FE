@@ -11,6 +11,7 @@ import { MONTHS } from "../utils/scheduleDateUtils";
 
 export interface SavedSchedule {
   id: string;
+  backendId?: number;
   name: string;
   date: string;
   form: any;
@@ -40,6 +41,7 @@ interface ScheduleContextType {
     year: number,
   ) => SavedSchedule | null;
   updateSchedule: (id: string, updatedSchedule: SavedSchedule) => void;
+  saveSchedulesToStorage: (schedules: SavedSchedule[]) => void;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(
@@ -69,7 +71,53 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
   useEffect(() => {
     const saved = localStorage.getItem("savedSchedules");
     if (saved) {
-      setSavedSchedules(JSON.parse(saved));
+      const parsedSchedules = JSON.parse(saved);
+
+      // Bersihkan jadwal lama dengan ID yang tidak konsisten
+      const cleanedSchedules = parsedSchedules.map(
+        (schedule: SavedSchedule) => {
+          // Jika ID menggunakan format lama (timestamp), buat ID baru yang konsisten
+          if (
+            schedule.id &&
+            schedule.id.length > 20 &&
+            !isNaN(Number(schedule.id))
+          ) {
+            const partName =
+              schedule.form?.part || schedule.productInfo?.partName || "";
+            const scheduleName = schedule.name || "";
+
+            // Extract bulan dan tahun dari nama jadwal
+            const monthMatch = scheduleName.match(
+              /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)/i,
+            );
+            const yearMatch = scheduleName.match(/(\d{4})/);
+
+            if (monthMatch && yearMatch) {
+              const monthIndex = MONTHS.findIndex(
+                (m) => m.toLowerCase() === monthMatch[1].toLowerCase(),
+              );
+              const year = parseInt(yearMatch[1]);
+
+              if (monthIndex !== -1 && year) {
+                const newId = `${partName}-${monthIndex}-${year}`
+                  .replace(/\s+/g, "-")
+                  .toLowerCase();
+                return { ...schedule, id: newId };
+              }
+            }
+          }
+          return schedule;
+        },
+      );
+
+      // Hapus duplikat berdasarkan ID baru
+      const uniqueSchedules = cleanedSchedules.filter(
+        (schedule: SavedSchedule, index: number, self: SavedSchedule[]) =>
+          index === self.findIndex((s) => s.id === schedule.id),
+      );
+
+      setSavedSchedules(uniqueSchedules);
+      localStorage.setItem("savedSchedules", JSON.stringify(uniqueSchedules));
     }
   }, []);
 
@@ -89,17 +137,13 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
     month: number,
     year: number,
   ): SavedSchedule | null => {
-    const existingSchedule = savedSchedules.find((schedule) => {
-      // Cek berdasarkan part name dan nama jadwal yang mengandung bulan dan tahun
-      const scheduleName = schedule.name.toLowerCase();
-      const monthName = MONTHS[month].toLowerCase();
-      const yearStr = year.toString();
+    // Buat ID yang konsisten berdasarkan part, bulan, dan tahun
+    const scheduleId = `${partName}-${month}-${year}`
+      .replace(/\s+/g, "-")
+      .toLowerCase();
 
-      return (
-        schedule.form.part === partName &&
-        scheduleName.includes(monthName) &&
-        scheduleName.includes(yearStr)
-      );
+    const existingSchedule = savedSchedules.find((schedule) => {
+      return schedule.id === scheduleId;
     });
 
     return existingSchedule || null;
@@ -114,6 +158,11 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
     localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
   };
 
+  // Fungsi untuk menyimpan jadwal ke localStorage
+  const saveSchedulesToStorage = (schedules: SavedSchedule[]) => {
+    localStorage.setItem("savedSchedules", JSON.stringify(schedules));
+  };
+
   return (
     <ScheduleContext.Provider
       value={{
@@ -125,6 +174,7 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
         deleteSchedule,
         checkExistingSchedule,
         updateSchedule,
+        saveSchedulesToStorage,
       }}
     >
       {children}
