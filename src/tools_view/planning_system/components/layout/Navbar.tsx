@@ -99,7 +99,6 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   const defaultMenuItems: MenuItem[] = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/dashboard/scheduler", label: "Scheduler" },
-    { path: "/dashboard/saved", label: `Saved (${savedSchedulesCount})` },
   ];
 
   // Gunakan custom menu items atau default

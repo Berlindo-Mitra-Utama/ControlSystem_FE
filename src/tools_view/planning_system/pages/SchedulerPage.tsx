@@ -53,6 +53,7 @@ import {
   Clock,
   CheckCircle,
   Edit3,
+  Plus,
 } from "lucide-react";
 
 // CSS untuk animasi dan custom scrollbar
@@ -213,6 +214,10 @@ const SchedulerPage: React.FC = () => {
     updateSchedule,
     loadSchedule,
   } = useSchedule();
+
+  // Helper untuk membentuk ID konsisten: part-monthIndex-year (monthIndex 0-11)
+  const makeScheduleId = (part: string, monthIndex: number, year: number) =>
+    `${part}-${monthIndex}-${year}`.replace(/\s+/g, "-").toLowerCase();
   const navigate = useNavigate();
   const { uiColors } = useTheme();
   const {
@@ -614,6 +619,122 @@ const SchedulerPage: React.FC = () => {
     loadChildParts();
   }, []);
 
+  // Load saved schedules dari backend saat komponen dimount
+  useEffect(() => {
+    const loadSavedSchedules = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) {
+          console.log("User belum login, menggunakan data lokal");
+          // Load dari localStorage sebagai fallback
+          const localData = localStorage.getItem("savedSchedules");
+          if (localData) {
+            try {
+              const parsedData = JSON.parse(localData);
+              setSavedSchedules(parsedData);
+              console.log(
+                "Loaded saved schedules from localStorage:",
+                parsedData,
+              );
+            } catch (parseError) {
+              console.error("Error parsing localStorage data:", parseError);
+            }
+          }
+          return;
+        }
+
+        const { ProductionService } = await import(
+          "../../../services/API_Services"
+        );
+
+        // Load semua production schedules dari backend
+        const response = await ProductionService.getUserSchedules();
+        console.log("🔍 Response dari getUserSchedules:", response);
+
+        // Handle response dari backend - backend mengembalikan { schedules: [...] }
+        const schedules =
+          response?.data?.schedules || response?.schedules || response || [];
+        console.log("📋 Schedules yang diproses:", schedules);
+
+        if (schedules && schedules.length > 0) {
+          // Konversi data dari backend ke format frontend
+          const convertedSchedules = schedules.map((item: any) => {
+            const monthIndex = item.productionMonth
+              ? item.productionMonth - 1
+              : new Date().getMonth();
+            const year = item.productionYear || new Date().getFullYear();
+            const partName = item.partName || "";
+            const stableId = makeScheduleId(partName, monthIndex, year);
+            return {
+              id: stableId,
+              backendId: item.id ? Number(item.id) : undefined,
+              name: item.scheduleName || `${MONTHS[monthIndex]} ${year}`,
+              date: item.createdAt || new Date().toISOString(),
+              form: {
+                part: partName,
+                customer: item.customerName || "",
+                timePerPcs: item.timePerPcs || 257,
+                cycle1: item.cycle1 || 0,
+                cycle7: item.cycle7 || 0,
+                cycle35: item.cycle35 || 0,
+                stock: item.currentStock || 332,
+                planningHour: item.planningHour || 274,
+                overtimeHour: item.overtimeHour || 119,
+                planningPcs: item.planningPcs || 3838,
+                overtimePcs: item.overtimePcs || 1672,
+                isManualPlanningPcs: item.isManualPlanningPcs || false,
+                manpowers: item.manpowers || [],
+                partImageUrl: item.partImageUrl || undefined,
+              },
+              schedule: item.dailyProductions || [],
+              childParts: item.childParts || [],
+              productInfo: {
+                partName: partName,
+                customer: item.customerName || "",
+                lastSavedBy: item.updatedBy
+                  ? { nama: item.updatedBy, role: "user" }
+                  : undefined,
+                lastSavedAt: item.updatedAt,
+              },
+            };
+          });
+
+          // Update savedSchedules state
+          // Dedupe berdasarkan ID konsisten
+          const deduped = convertedSchedules.filter(
+            (s: any, idx: number, arr: any[]) =>
+              idx === arr.findIndex((x: any) => x.id === s.id),
+          );
+          setSavedSchedules(deduped);
+          localStorage.setItem("savedSchedules", JSON.stringify(deduped));
+
+          console.log(
+            "Saved schedules berhasil dimuat dari database:",
+            convertedSchedules,
+          );
+        }
+      } catch (error) {
+        console.error("Error loading saved schedules:", error);
+        // Fallback ke data lokal jika backend tidak tersedia
+        const localData = localStorage.getItem("savedSchedules");
+        if (localData) {
+          try {
+            const parsedData = JSON.parse(localData);
+            setSavedSchedules(parsedData);
+            console.log(
+              "Fallback: Loaded saved schedules from localStorage:",
+              parsedData,
+            );
+          } catch (parseError) {
+            console.error("Error parsing localStorage data:", parseError);
+          }
+        }
+      }
+    };
+
+    loadSavedSchedules();
+  }, []);
+
   // Event listeners untuk komunikasi dengan ScheduleProduction
   useEffect(() => {
     const handleAddManpowerEvent = (event: CustomEvent) => {
@@ -823,11 +944,87 @@ const SchedulerPage: React.FC = () => {
     setIsGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Generate schedule hanya di frontend, tidak perlu backend
+    // Generate schedule di frontend
     const newSchedule = generateScheduleFromForm(form, schedule);
     setScheduleWithTracking(newSchedule);
     setIsGenerating(false);
     setChildPartFilter("all"); // Reset filter ke Semua Child Part setiap generate
+
+    // Auto save ke backend setelah generate
+    try {
+      await saveSchedule();
+
+      // Refresh data dari backend setelah save berhasil
+      const token = getAuthToken();
+      if (token) {
+        const { ProductionService } = await import(
+          "../../../services/API_Services"
+        );
+        const response = await ProductionService.getUserSchedules();
+        console.log("🔄 Response dari getUserSchedules (generate):", response);
+
+        // Handle response dari backend - backend mengembalikan { schedules: [...] }
+        const schedules =
+          response?.data?.schedules || response?.schedules || response || [];
+        console.log("📋 Schedules yang diproses (generate):", schedules);
+
+        if (schedules && schedules.length > 0) {
+          const convertedSchedules = schedules.map((item: any) => ({
+            id: makeScheduleId(
+              item.partName || "",
+              item.productionMonth
+                ? item.productionMonth - 1
+                : new Date().getMonth(),
+              item.productionYear || new Date().getFullYear(),
+            ),
+            name:
+              item.scheduleName ||
+              `${MONTHS[item.productionMonth - 1 || 0]} ${item.productionYear || new Date().getFullYear()}`,
+            date: item.createdAt || new Date().toISOString(),
+            form: {
+              part: item.partName || "",
+              customer: item.customerName || "",
+              timePerPcs: item.timePerPcs || 257,
+              cycle1: item.cycle1 || 0,
+              cycle7: item.cycle7 || 0,
+              cycle35: item.cycle35 || 0,
+              stock: item.currentStock || 332,
+              planningHour: item.planningHour || 274,
+              overtimeHour: item.overtimeHour || 119,
+              planningPcs: item.planningPcs || 3838,
+              overtimePcs: item.overtimePcs || 1672,
+              isManualPlanningPcs: item.isManualPlanningPcs || false,
+              manpowers: item.manpowers || [],
+              partImageUrl: item.partImageUrl || undefined,
+            },
+            schedule: item.dailyProductions || [],
+            childParts: item.childParts || [],
+            productInfo: {
+              partName: item.partName || "",
+              customer: item.customerName || "",
+              lastSavedBy: item.updatedBy
+                ? { nama: item.updatedBy, role: "user" }
+                : undefined,
+              lastSavedAt: item.updatedAt,
+            },
+          }));
+
+          setSavedSchedules(convertedSchedules);
+          localStorage.setItem(
+            "savedSchedules",
+            JSON.stringify(convertedSchedules),
+          );
+        }
+      }
+
+      showSuccess("Jadwal berhasil di-generate dan tersimpan!");
+    } catch (error) {
+      console.error("Error auto-saving after generate:", error);
+      showAlert(
+        "Jadwal berhasil di-generate, tetapi gagal tersimpan otomatis",
+        "Peringatan",
+      );
+    }
   };
 
   const recalculateSchedule = (updatedSchedule: ScheduleItem[]) => {
@@ -1445,6 +1642,17 @@ const SchedulerPage: React.FC = () => {
           `Updating schedule with ID: ${finalId} (original: ${existingId}, response: ${response.id})`,
         );
         updateSchedule(finalId, newSchedule);
+
+        // Update localStorage juga
+        const updatedSchedules = savedSchedules.map((s) =>
+          s.id === finalId ? newSchedule : s,
+        );
+        setSavedSchedules(updatedSchedules);
+        localStorage.setItem(
+          "savedSchedules",
+          JSON.stringify(updatedSchedules),
+        );
+
         showSuccess("Jadwal berhasil diperbarui!");
 
         // Reset semua state perubahan setelah berhasil update
@@ -1645,6 +1853,7 @@ const SchedulerPage: React.FC = () => {
     });
     setShowEditPartModal(false);
     setEditingPartId(null);
+    showSuccess("Berhasil menyimpan perubahan part dan customer!");
   };
 
   const handleCancelPartEdit = () => {
@@ -1787,20 +1996,30 @@ const SchedulerPage: React.FC = () => {
         return;
       }
 
-      // Coba hapus dari backend menggunakan ID schedule
+      // Tentukan ID backend dengan benar: utamakan backendId dari data, baru fallback bila scheduleId numeric murni
+      const backendId =
+        scheduleToDelete.backendId !== undefined
+          ? scheduleToDelete.backendId
+          : /^\d+$/.test(scheduleId)
+            ? parseInt(scheduleId)
+            : undefined;
+
+      // Coba hapus dari backend menggunakan ID backend yang valid
       try {
-        // Jika ID adalah angka (kemungkinan dari database), gunakan untuk delete
-        const numericId = parseInt(scheduleId);
-        if (!isNaN(numericId)) {
-          await ProductionService.deleteSchedule(numericId);
+        if (backendId && !isNaN(Number(backendId))) {
+          await ProductionService.deleteSchedule(Number(backendId));
           console.log("Schedule berhasil dihapus dari database");
+        } else {
+          console.log(
+            "Backend ID tidak tersedia, lewati penghapusan di server (hapus lokal saja)",
+          );
         }
       } catch (apiError) {
         console.error("Gagal menghapus schedule dari database:", apiError);
         // Tetap lanjutkan dengan penghapusan lokal
       }
 
-      // Hapus dari state lokal
+      // Hapus dari state lokal (berdasarkan stable id)
       const updatedSchedules = savedSchedules.filter(
         (s) => s.id !== scheduleId,
       );
@@ -2143,97 +2362,91 @@ const SchedulerPage: React.FC = () => {
           <div className="mb-8">
             {!selectedPart ? (
               <div>
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h2
-                      className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${uiColors.text.primary} mb-1`}
-                    >
-                      Production Scheduler
-                    </h2>
-                    <p
-                      className={`${uiColors.text.tertiary} text-sm sm:text-base`}
-                    >
-                      Buat dan kelola jadwal produksi per part secara ringkas
-                      dan rapi
-                    </p>
-                  </div>
+                <div className="flex items-center justify-end mb-2 sm:mb-3 max-w-7xl mx-auto">
                   <button
                     onClick={() => {
                       resetFormAndSchedule();
                       setShowProductionForm(true);
                     }}
-                    className="px-5 sm:px-6 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 text-white rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 font-semibold"
+                    className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all text-sm font-medium"
+                    title="Tambah jadwal"
                   >
-                    ✨ Buat Jadwal Produksi
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Jadwal</span>
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {parts.map((p) => (
-                    <div
-                      key={p.name}
-                      onClick={() => setSelectedPart(p.name)}
-                      className={`group relative ${uiColors.bg.secondary} border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
-                      style={{ minHeight: "150px" }}
-                    >
-                      <div className="col-span-5 md:col-span-5 relative">
-                        {p.imageUrl ? (
-                          <img
-                            src={p.imageUrl}
-                            alt={p.name}
-                            className="absolute inset-0 w-full h-full object-cover object-center"
-                          />
-                        ) : (
-                          <div
-                            className={`absolute inset-0 ${p.bgColor} flex items-center justify-center`}
-                          >
-                            <Package className="w-10 h-10 text-white" />
+                <div className="max-w-7xl mx-auto w-full">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-6 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2">
+                      {parts.map((p) => (
+                        <div
+                          key={p.name}
+                          onClick={() => setSelectedPart(p.name)}
+                          className={`group relative ${uiColors.bg.secondary} border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
+                          style={{ minHeight: "150px" }}
+                        >
+                          <div className="col-span-5 md:col-span-5 relative">
+                            {p.imageUrl ? (
+                              <img
+                                src={p.imageUrl}
+                                alt={p.name}
+                                className="absolute inset-0 w-full h-full object-cover object-center"
+                              />
+                            ) : (
+                              <div
+                                className={`absolute inset-0 ${p.bgColor} flex items-center justify-center`}
+                              >
+                                <Package className="w-10 h-10 text-white" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between">
-                        <div className="flex items-start justify-between">
-                          <div className="min-w-0">
-                            <div
-                              className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} truncate`}
-                            >
-                              {p.name}
+                          <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between">
+                            <div className="flex items-start justify-between">
+                              <div className="min-w-0">
+                                <div
+                                  className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} truncate`}
+                                >
+                                  {p.name}
+                                </div>
+                                <div
+                                  className={`${uiColors.text.tertiary} text-sm truncate mt-0.5`}
+                                >
+                                  {p.customer}
+                                </div>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingPartId(p.name);
+                                  setEditingPartName(p.name);
+                                  setEditingPartCustomer(p.customer);
+                                  setShowEditPartModal(true);
+                                }}
+                                className="p-2.5 rounded-full bg-white hover:bg-gray-50 text-gray-700 shadow-lg border border-gray-200 transition-all duration-200 hover:scale-110"
+                                title="Edit part"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
                             </div>
-                            <div
-                              className={`${uiColors.text.tertiary} text-sm truncate mt-0.5`}
-                            >
-                              {p.customer}
+                            <div>
+                              <p
+                                className={`${uiColors.text.tertiary} text-xs mb-3`}
+                              >
+                                {p.description}
+                              </p>
+                              <div
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white bg-gradient-to-r ${p.color} text-xs font-semibold shadow-md`}
+                              >
+                                <Calendar className="w-4 h-4" />
+                                {getSchedulesByPart(p.name).length} jadwal
+                                tersimpan
+                              </div>
                             </div>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingPartId(p.name);
-                              setEditingPartName(p.name);
-                              setEditingPartCustomer(p.customer);
-                              setShowEditPartModal(true);
-                            }}
-                            className="p-2.5 rounded-full bg-white hover:bg-gray-50 text-gray-700 shadow-lg border border-gray-200 transition-all duration-200 hover:scale-110"
-                            title="Edit part"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
                         </div>
-                        <div>
-                          <p
-                            className={`${uiColors.text.tertiary} text-xs mb-3`}
-                          >
-                            {p.description}
-                          </p>
-                          <div
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white bg-gradient-to-r ${p.color} text-xs font-semibold shadow-md`}
-                          >
-                            <Calendar className="w-4 h-4" />
-                            {getSchedulesByPart(p.name).length} jadwal tersimpan
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
 
                 {showEditPartModal && (
@@ -2451,9 +2664,12 @@ const SchedulerPage: React.FC = () => {
                 setScheduleName={() => {}}
                 handleChange={handleChange}
                 isGenerating={isGenerating}
-                generateSchedule={() => {
-                  // Jangan langsung buka dashboard produksi. Tutup modal saja.
+                generateSchedule={async () => {
+                  // Generate dan auto-save, lalu tutup modal
+                  await generateSchedule();
                   setShowProductionForm(false);
+                  // Reset form setelah generate berhasil
+                  resetFormAndSchedule();
                 }}
                 saveSchedule={saveSchedule}
                 selectedMonth={selectedMonth}
@@ -2461,6 +2677,11 @@ const SchedulerPage: React.FC = () => {
                 setSelectedMonth={setSelectedMonth}
                 setSelectedYear={setSelectedYear}
                 onSaveToBackend={handleSaveToBackend}
+                onSuccess={(msg) => {
+                  showSuccess(msg || "Jadwal berhasil digenerate!");
+                  setShowProductionForm(false);
+                  resetFormAndSchedule();
+                }}
               />
             </div>
           </div>

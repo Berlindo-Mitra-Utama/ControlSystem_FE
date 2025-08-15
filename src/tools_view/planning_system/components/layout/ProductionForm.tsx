@@ -48,6 +48,8 @@ interface ProductionFormProps {
   setSelectedMonth: (month: number) => void;
   setSelectedYear: (year: number) => void;
   onSaveToBackend?: (data: ProductPlanningData) => Promise<void>;
+  onClose?: () => void;
+  onSuccess?: (message?: string) => void;
 }
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
@@ -63,21 +65,23 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   setSelectedMonth,
   setSelectedYear,
   onSaveToBackend,
+  onClose,
+  onSuccess,
 }) => {
   const { theme } = useTheme();
-  const { savedSchedules, setSavedSchedules, checkExistingSchedule } =
-    useSchedule();
+  const {
+    savedSchedules,
+    setSavedSchedules,
+    checkExistingSchedule,
+    saveSchedulesToStorage,
+  } = useSchedule();
   const today = new Date();
   const [errors, setErrors] = useState<{ part?: string; customer?: string }>(
     {},
   );
   const [partImagePreview, setPartImagePreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [notification, setNotification] = useState<{
-    type: "success" | "error";
-    message: string;
-    title: string;
-  } | null>(null);
+
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingScheduleData, setPendingScheduleData] =
     useState<ProductPlanningData | null>(null);
@@ -135,9 +139,15 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   ) => {
     setScheduleName(`${MONTHS[selectedMonth]} ${selectedYear}`);
     setIsSaving(true);
-    setNotification(null);
 
     try {
+      // Cek apakah jadwal sudah ada untuk part, bulan, dan tahun yang sama
+      const existingSchedule = checkExistingSchedule(
+        form.part.trim(),
+        selectedMonth,
+        selectedYear,
+      );
+
       // Simpan ke backend menggunakan API service
       await PlanningSystemService.createProductPlanning(planningData);
 
@@ -150,12 +160,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         },
         [],
       );
-      // Tutup modal melalui callback
-      generateSchedule();
+
+      // Buat ID yang konsisten berdasarkan part, bulan, dan tahun
+      const scheduleId =
+        `${planningData.partName}-${selectedMonth}-${selectedYear}`
+          .replace(/\s+/g, "-")
+          .toLowerCase();
 
       // Simpan ke SavedSchedulesPage
       const newSchedule = {
-        id: Date.now().toString(),
+        id: scheduleId,
         name: `${MONTHS[selectedMonth]} ${selectedYear}`,
         date: new Date().toISOString(),
         form: {
@@ -175,37 +189,33 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         },
       };
 
-      // Tambahkan ke saved schedules
-      setSavedSchedules((prev) => [...prev, newSchedule]);
+      // Update saved schedules - timpa jadwal lama jika ada, atau tambah baru
+      setSavedSchedules((prev) => {
+        // Cari jadwal yang sudah ada dengan ID yang sama
+        const existingIndex = prev.findIndex(
+          (schedule) => schedule.id === scheduleId,
+        );
 
-      // Tampilkan notifikasi sukses
-      console.log("Setting success notification...");
-      setNotification({
-        type: "success",
-        title: "Jadwal Berhasil Dibuat!",
-        message: `Jadwal produksi untuk ${planningData.partName} - ${planningData.customerName} berhasil dibuat dan tersimpan di Saved Schedules.`,
+        let updatedSchedules;
+        if (existingIndex !== -1) {
+          // Timpa jadwal yang sudah ada
+          updatedSchedules = [...prev];
+          updatedSchedules[existingIndex] = newSchedule;
+        } else {
+          // Tambah jadwal baru
+          updatedSchedules = [...prev, newSchedule];
+        }
+
+        // Simpan ke localStorage
+        saveSchedulesToStorage(updatedSchedules);
+        return updatedSchedules;
       });
 
-      // Reset notifikasi setelah 5 detik
-      setTimeout(() => {
-        console.log("Clearing notification...");
-        setNotification(null);
-      }, 5000);
+      if (onSuccess) onSuccess("Jadwal berhasil digenerate!");
+      if (onClose) onClose();
     } catch (error) {
       console.error("Error saving to backend:", error);
-      setNotification({
-        type: "error",
-        title: "Gagal Membuat Jadwal",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Gagal menyimpan data ke database. Silakan coba lagi.",
-      });
-
-      // Reset notifikasi error setelah 5 detik
-      setTimeout(() => {
-        setNotification(null);
-      }, 5000);
+      alert("Gagal menyimpan data ke database. Silakan coba lagi.");
     } finally {
       setIsSaving(false);
     }
@@ -216,6 +226,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     if (pendingScheduleData) {
       await processScheduleGeneration(pendingScheduleData);
       setPendingScheduleData(null);
+      setShowConfirmationModal(false); // Tutup modal konfirmasi
     }
   };
 
@@ -758,7 +769,13 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                <div
+                  className={`${
+                    theme === "dark"
+                      ? "border-gray-600 bg-gray-800/40"
+                      : "border-gray-300 bg-gray-50"
+                  } border-2 border-dashed rounded-lg p-5 text-center transition-all`}
+                >
                   <svg
                     className="w-8 h-8 mx-auto text-gray-400 mb-2"
                     fill="none"
@@ -790,7 +807,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               />
               <label
                 htmlFor="part-image-upload"
-                className={`block w-full px-3 py-2 text-center ${colors.button.secondary} text-sm font-medium rounded-lg cursor-pointer transition-all duration-200 hover:scale-105`}
+                className={`block w-full px-4 py-3 text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg cursor-pointer transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
               >
                 {partImagePreview ? "Change Image" : "Upload Image"}
               </label>
@@ -829,57 +846,6 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               </>
             )}
           </button>
-
-          {/* Notification */}
-          {notification && (
-            <div
-              className={`mt-4 p-6 rounded-xl text-base font-medium border-2 ${
-                notification.type === "success"
-                  ? "bg-green-500/20 border-green-500/30 text-green-400 shadow-lg"
-                  : "bg-red-500/20 border-red-500/30 text-red-400 shadow-lg"
-              }`}
-            >
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  {notification.type === "success" ? (
-                    <svg
-                      className="w-6 h-6 text-green-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="w-6 h-6 text-red-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-lg mb-2">
-                    {notification.title}
-                  </h4>
-                  <p className="text-base opacity-90">{notification.message}</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
       {/* Confirmation Modal */}
@@ -902,16 +868,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
             <strong>
               {MONTHS[selectedMonth]} {selectedYear}
             </strong>{" "}
-            sudah ada di menu Saved Schedules.
+            sudah ada dalam sistem.
           </p>
           <p className="text-gray-400 text-sm">
             Apakah Anda ingin membuat jadwal baru untuk menggantikan jadwal yang
             sudah ada?
           </p>
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-            <p className="text-yellow-400 text-sm">
-              <strong>Tips:</strong> Anda juga bisa melihat jadwal yang sudah
-              ada di menu "Saved Schedules" untuk referensi.
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+            <p className="text-blue-400 text-sm">
+              <strong>Info:</strong> Jadwal lama akan ditimpa dengan data yang
+              baru.
             </p>
           </div>
         </div>
