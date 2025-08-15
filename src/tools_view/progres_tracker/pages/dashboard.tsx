@@ -690,7 +690,7 @@ export default function Dashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-gray-700 text-gray-300 hover:border-red-500 hover:text-red-500 hover:bg-red-500/10 bg-transparent flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-red-400 hover:border-red-500 bg-transparent flex items-center gap-1 sm:gap-2 text-xs sm:text-sm transition-colors duration-200"
                   onClick={() => handleLogout()}
                 >
                   <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
