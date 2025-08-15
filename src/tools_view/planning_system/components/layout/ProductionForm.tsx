@@ -7,6 +7,7 @@ import {
   ProductPlanningData,
 } from "../../../../services/API_Services";
 import Modal from "../ui/Modal";
+import { generateScheduleFromForm } from "../../utils/scheduleCalcUtils";
 
 // Singkatan bulan untuk dropdown
 const MONTH_ABBREVIATIONS = [
@@ -28,6 +29,8 @@ interface FormData {
   part: string;
   customer: string;
   stock: number;
+  partImage?: File | null;
+  timePerPcs?: number;
 }
 
 interface ProductionFormProps {
@@ -68,6 +71,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   const [errors, setErrors] = useState<{ part?: string; customer?: string }>(
     {},
   );
+  const [partImagePreview, setPartImagePreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{
     type: "success" | "error";
@@ -137,7 +141,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       // Simpan ke backend menggunakan API service
       await PlanningSystemService.createProductPlanning(planningData);
 
-      // Generate schedule di frontend
+      // Generate schedule untuk disimpan ke Saved Schedules (bukan langsung tampil dashboard)
+      const generatedSchedule = generateScheduleFromForm(
+        {
+          ...form,
+          stock: planningData.currentStock,
+          timePerPcs: form.timePerPcs || 257,
+        },
+        [],
+      );
+      // Tutup modal melalui callback
       generateSchedule();
 
       // Simpan ke SavedSchedulesPage
@@ -151,8 +164,9 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           stock: planningData.currentStock,
           timePerPcs: 257, // Default value
           initialStock: planningData.currentStock,
+          partImageUrl: partImagePreview || (form as any).partImageUrl || null,
         },
-        schedule: [], // Akan diisi oleh generateSchedule
+        schedule: generatedSchedule,
         productInfo: {
           partName: planningData.partName,
           customer: planningData.customerName,
@@ -168,7 +182,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       console.log("Setting success notification...");
       setNotification({
         type: "success",
-        title: "🎉 Jadwal Berhasil Dibuat!",
+        title: "Jadwal Berhasil Dibuat!",
         message: `Jadwal produksi untuk ${planningData.partName} - ${planningData.customerName} berhasil dibuat dan tersimpan di Saved Schedules.`,
       });
 
@@ -181,7 +195,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       console.error("Error saving to backend:", error);
       setNotification({
         type: "error",
-        title: "❌ Gagal Membuat Jadwal",
+        title: "Gagal Membuat Jadwal",
         message:
           error instanceof Error
             ? error.message
@@ -211,28 +225,57 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     setSelectedYear(date.getFullYear());
   };
 
-  // Theme colors dengan gradient yang lebih menarik
+  // Handler untuk upload gambar part
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validasi ukuran file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Ukuran file terlalu besar. Maksimal 5MB.");
+        return;
+      }
+
+      // Validasi tipe file
+      if (!file.type.startsWith("image/")) {
+        alert("File harus berupa gambar.");
+        return;
+      }
+
+      // Update form
+      handleChange({
+        target: { name: "partImage", value: file },
+      } as unknown as React.ChangeEvent<HTMLInputElement>);
+
+      // Preview gambar
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPartImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handler untuk hapus gambar
+  const handleRemoveImage = () => {
+    setPartImagePreview(null);
+    handleChange({
+      target: { name: "partImage", value: null },
+    } as unknown as React.ChangeEvent<HTMLInputElement>);
+  };
+
+  // Theme colors yang lebih clean
   const colors = {
     bg: {
-      primary:
-        theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-          : "bg-gradient-to-br from-white via-gray-50 to-white",
-      secondary: theme === "dark" ? "bg-gray-800/50" : "bg-gray-50/50",
-      card:
-        theme === "dark"
-          ? "bg-gray-800/80 backdrop-blur-sm"
-          : "bg-white/80 backdrop-blur-sm",
-      header:
-        theme === "dark"
-          ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20"
-          : "bg-gradient-to-r from-blue-50 to-purple-50",
+      primary: theme === "dark" ? "bg-gray-900" : "bg-white",
+      secondary: theme === "dark" ? "bg-gray-800" : "bg-gray-50",
+      card: theme === "dark" ? "bg-gray-800" : "bg-white",
+      header: theme === "dark" ? "bg-gray-800" : "bg-gray-50",
     },
     border: {
-      primary: theme === "dark" ? "border-gray-700/50" : "border-gray-200/50",
-      secondary: theme === "dark" ? "border-gray-600/30" : "border-gray-300/30",
-      accent: theme === "dark" ? "border-blue-500/30" : "border-blue-300/30",
-      error: theme === "dark" ? "border-red-500/50" : "border-red-300/50",
+      primary: theme === "dark" ? "border-gray-700" : "border-gray-200",
+      secondary: theme === "dark" ? "border-gray-600" : "border-gray-300",
+      accent: theme === "dark" ? "border-blue-500" : "border-blue-300",
+      error: theme === "dark" ? "border-red-500" : "border-red-300",
     },
     text: {
       primary: theme === "dark" ? "text-white" : "text-gray-900",
@@ -242,25 +285,19 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       error: theme === "dark" ? "text-red-400" : "text-red-600",
     },
     input: {
-      bg:
-        theme === "dark"
-          ? "bg-gray-800/80 backdrop-blur-sm"
-          : "bg-white/80 backdrop-blur-sm",
-      border: theme === "dark" ? "border-gray-600/50" : "border-gray-300/50",
+      bg: theme === "dark" ? "bg-gray-800" : "bg-white",
+      border: theme === "dark" ? "border-gray-600" : "border-gray-300",
       focus:
         theme === "dark"
           ? "focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
           : "focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50",
       placeholder:
         theme === "dark" ? "placeholder-gray-500" : "placeholder-gray-400",
-      error: theme === "dark" ? "border-red-500/50" : "border-red-300/50",
+      error: theme === "dark" ? "border-red-500" : "border-red-300",
     },
     select: {
-      bg:
-        theme === "dark"
-          ? "bg-gray-800/80 backdrop-blur-sm"
-          : "bg-white/80 backdrop-blur-sm",
-      border: theme === "dark" ? "border-gray-600/50" : "border-gray-300/50",
+      bg: theme === "dark" ? "bg-gray-800" : "bg-white",
+      border: theme === "dark" ? "border-gray-600" : "border-gray-300",
       text: theme === "dark" ? "text-white" : "text-gray-900",
       focus:
         theme === "dark"
@@ -272,8 +309,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         "bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700",
       secondary:
         theme === "dark"
-          ? "bg-gray-700/80 hover:bg-gray-600/80 backdrop-blur-sm"
-          : "bg-gray-200/80 hover:bg-gray-300/80 backdrop-blur-sm",
+          ? "bg-gray-700 hover:bg-gray-600"
+          : "bg-gray-200 hover:bg-gray-300",
       danger:
         "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800",
     },
@@ -295,7 +332,6 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
     const handleMonthSelect = (month: number) => {
       setTempMonth(month);
-      // Popup tetap terbuka, tidak menutup otomatis
     };
 
     const handleYearChange = (direction: "prev" | "next") => {
@@ -328,8 +364,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         </button>
 
         {isOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-            <div className="bg-gray-800/95 backdrop-blur-sm border border-gray-600 rounded-lg shadow-2xl w-full max-w-sm p-4">
+          <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+            <div className="bg-gray-800 border border-gray-600 rounded-lg shadow-2xl w-full max-w-sm p-4">
               {/* Year Navigation */}
               <div className="flex items-center justify-between mb-3">
                 <button
@@ -426,15 +462,12 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   };
 
   return (
-    <div
-      className={`${colors.bg.primary} border ${colors.border.primary} rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm max-h-screen w-full max-w-4xl mx-auto`}
-    >
-      {/* Header dengan gradient yang menarik */}
+    <div className="w-full">
+      {/* Header */}
       <div
-        className={`${colors.bg.header} border-b ${colors.border.primary} px-4 sm:px-6 py-3 sm:py-4 relative overflow-hidden`}
+        className={`${colors.bg.header} border-b ${colors.border.primary} px-4 sm:px-6 py-3 sm:py-4`}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10"></div>
-        <div className="relative z-10">
+        <div>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center">
               <svg
@@ -465,236 +498,150 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         </div>
       </div>
 
-      <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
-        {/* Compact Layout - 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          {/* Left Column - Production Period & Product Info */}
-          <div className="space-y-6 sm:space-y-8">
-            {/* Production Period - Calendar Style */}
-            <div
-              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-sm relative z-10`}
-            >
-              <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
+      <div
+        className={`${theme === "dark" ? "bg-transparent" : "bg-white"} p-4 sm:p-6 space-y-4 sm:space-y-6 rounded-b-3xl`}
+      >
+        {/* 2x2 Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Top Left - Production Period */}
+          <div
+            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4 relative z-10`}
+          >
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  Production Period
-                </h3>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
               </div>
+              <h3
+                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
+              >
+                Production Period
+              </h3>
+            </div>
 
-              {/* Production Period Selector */}
+            <div className="space-y-1">
+              <label
+                className={`block text-sm font-medium ${colors.text.secondary}`}
+              >
+                Select Month & Year
+              </label>
+              <ProductionPeriodSelector />
+            </div>
+          </div>
+
+          {/* Top Right - Production Targets */}
+          <div
+            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4`}
+          >
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <h3
+                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
+              >
+                Production Targets
+              </h3>
+            </div>
+
+            <div className="space-y-1">
+              <label
+                className={`block text-sm font-medium ${colors.text.secondary}`}
+              >
+                Current Stock
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  name="stock"
+                  value={form.stock}
+                  onChange={handleChange}
+                  min="0"
+                  placeholder="0"
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 pr-6 sm:pr-8 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <span className={`text-sm font-medium ${colors.text.muted}`}>
+                    PCS
+                  </span>
+                </div>
+              </div>
+              <p className={`text-sm ${colors.text.muted} mt-1`}>
+                Current inventory available
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom Left - Product Information */}
+          <div
+            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4 relative z-0`}
+          >
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                  />
+                </svg>
+              </div>
+              <h3
+                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
+              >
+                Product Information
+              </h3>
+            </div>
+
+            <div className="space-y-2 sm:space-y-3">
               <div className="space-y-1">
                 <label
                   className={`block text-sm font-medium ${colors.text.secondary}`}
                 >
-                  Select Month & Year
+                  Part Name <span className="text-red-500">*</span>
                 </label>
-                <ProductionPeriodSelector />
-              </div>
-            </div>
-
-            {/* Product Information */}
-            <div
-              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-sm relative z-0`}
-            >
-              <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
-                >
-                  Product Information
-                </h3>
-              </div>
-
-              <div className="space-y-2 sm:space-y-3">
-                <div className="space-y-1">
-                  <label
-                    className={`block text-sm font-medium ${colors.text.secondary}`}
-                  >
-                    Part Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="part"
-                      value={form.part}
-                      onChange={handleChange}
-                      placeholder="Enter part name"
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.part ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
-                      required
-                    />
-                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                      <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                  {errors.part && (
-                    <p className={`text-xs ${colors.text.error} mt-1`}>
-                      {errors.part}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <label
-                    className={`block text-sm font-medium ${colors.text.secondary}`}
-                  >
-                    Customer Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="customer"
-                      value={form.customer}
-                      onChange={handleChange}
-                      placeholder="Enter customer name"
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.customer ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
-                      required
-                    />
-                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                      <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                  {errors.customer && (
-                    <p className={`text-xs ${colors.text.error} mt-1`}>
-                      {errors.customer}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Production Targets & Action Button */}
-          <div className="space-y-6 sm:space-y-8">
-            {/* Production Targets */}
-            <div
-              className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-sm`}
-            >
-              <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
-                >
-                  Production Targets
-                </h3>
-              </div>
-
-              <div className="space-y-2 sm:space-y-3">
-                <div className="space-y-1">
-                  <label
-                    className={`block text-sm font-medium ${colors.text.secondary}`}
-                  >
-                    Current Stock
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      name="stock"
-                      value={form.stock}
-                      onChange={handleChange}
-                      min="0"
-                      placeholder="0"
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 pr-6 sm:pr-8 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
-                    />
-                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                      <span
-                        className={`text-sm font-medium ${colors.text.muted}`}
-                      >
-                        PCS
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-sm ${colors.text.muted} mt-1`}>
-                    Current inventory available
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              {/* Generate Schedule Button */}
-              <button
-                onClick={handleGenerateSchedule}
-                disabled={isGenerating || isSaving}
-                className={`w-full px-6 sm:px-8 py-3 sm:py-4 ${colors.button.primary} text-white font-bold text-sm sm:text-base rounded-lg sm:rounded-xl focus:ring-4 focus:ring-blue-300/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-xl backdrop-blur-sm`}
-              >
-                {isGenerating || isSaving ? (
-                  <>
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Membuat Jadwal...</span>
-                  </>
-                ) : (
-                  <>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="part"
+                    value={form.part}
+                    onChange={handleChange}
+                    placeholder="Enter part name"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.part ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                    required
+                  />
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                     <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4"
+                      className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -703,68 +650,236 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
                       />
                     </svg>
-                    <span>Generate Jadwal</span>
-                  </>
-                )}
-              </button>
-
-              {/* Notification */}
-              {notification && (
-                <div
-                  className={`p-6 rounded-xl text-base font-medium border-2 backdrop-blur-sm ${
-                    notification.type === "success"
-                      ? "bg-green-500/20 border-green-500/30 text-green-400 shadow-lg"
-                      : "bg-red-500/20 border-red-500/30 text-red-400 shadow-lg"
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      {notification.type === "success" ? (
-                        <svg
-                          className="w-6 h-6 text-green-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      ) : (
-                        <svg
-                          className="w-6 h-6 text-red-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg mb-2">
-                        {notification.title}
-                      </h4>
-                      <p className="text-base opacity-90">
-                        {notification.message}
-                      </p>
-                    </div>
                   </div>
                 </div>
-              )}
+                {errors.part && (
+                  <p className={`text-xs ${colors.text.error} mt-1`}>
+                    {errors.part}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  className={`block text-sm font-medium ${colors.text.secondary}`}
+                >
+                  Customer Name <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="customer"
+                    value={form.customer}
+                    onChange={handleChange}
+                    placeholder="Enter customer name"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.customer ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                    required
+                  />
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <svg
+                      className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                {errors.customer && (
+                  <p className={`text-xs ${colors.text.error} mt-1`}>
+                    {errors.customer}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Bottom Right - Part Image Upload */}
+          <div
+            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4`}
+          >
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <h3
+                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
+              >
+                Part Image
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              {partImagePreview ? (
+                <div className="relative">
+                  <img
+                    src={partImagePreview}
+                    alt="Part preview"
+                    className="w-full h-24 object-cover rounded-lg border border-gray-300"
+                  />
+                  <button
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                  <svg
+                    className="w-8 h-8 mx-auto text-gray-400 mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  <p className={`text-sm ${colors.text.muted}`}>
+                    Upload part image (optional)
+                  </p>
+                  <p className={`text-xs ${colors.text.muted} mt-1`}>
+                    Max 5MB, JPG/PNG
+                  </p>
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="part-image-upload"
+              />
+              <label
+                htmlFor="part-image-upload"
+                className={`block w-full px-3 py-2 text-center ${colors.button.secondary} text-sm font-medium rounded-lg cursor-pointer transition-all duration-200 hover:scale-105`}
+              >
+                {partImagePreview ? "Change Image" : "Upload Image"}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Generate Button - Full Width Below Grid */}
+        <div className="pt-2">
+          <button
+            onClick={handleGenerateSchedule}
+            disabled={isGenerating || isSaving}
+            className={`w-full px-6 sm:px-8 py-3 sm:py-4 ${colors.button.primary} text-white font-bold text-sm sm:text-base rounded-lg sm:rounded-xl focus:ring-4 focus:ring-blue-300/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-xl`}
+          >
+            {isGenerating || isSaving ? (
+              <>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>Membuat Jadwal...</span>
+              </>
+            ) : (
+              <>
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                <span>Generate Jadwal</span>
+              </>
+            )}
+          </button>
+
+          {/* Notification */}
+          {notification && (
+            <div
+              className={`mt-4 p-6 rounded-xl text-base font-medium border-2 ${
+                notification.type === "success"
+                  ? "bg-green-500/20 border-green-500/30 text-green-400 shadow-lg"
+                  : "bg-red-500/20 border-red-500/30 text-red-400 shadow-lg"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  {notification.type === "success" ? (
+                    <svg
+                      className="w-6 h-6 text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-6 h-6 text-red-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-lg mb-2">
+                    {notification.title}
+                  </h4>
+                  <p className="text-base opacity-90">{notification.message}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       {/* Confirmation Modal */}
@@ -795,7 +910,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           </p>
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
             <p className="text-yellow-400 text-sm">
-              💡 <strong>Tips:</strong> Anda juga bisa melihat jadwal yang sudah
+              <strong>Tips:</strong> Anda juga bisa melihat jadwal yang sudah
               ada di menu "Saved Schedules" untuk referensi.
             </p>
           </div>

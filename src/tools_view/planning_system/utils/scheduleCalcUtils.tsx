@@ -434,7 +434,16 @@ export const handleFormChange = (
   form: any,
   setForm: (form: any) => void,
 ) => {
-  const { name, value } = e.target;
+  const { name, value } = e.target as any;
+
+  // Tangani field non-numerik khusus
+  if (name === "partImage" || name === "partImageUrl") {
+    setForm((prev: any) => ({
+      ...prev,
+      [name]: value,
+    }));
+    return;
+  }
   const numericValue = Number.parseFloat(value);
 
   if (name === "manpowers") return;
