@@ -2262,17 +2262,50 @@ const SchedulerPage: React.FC = () => {
   }, [savedSchedules]);
 
   // Flag untuk menyembunyikan section Saved saat sedang menampilkan dashboard produksi
-  const isViewingSchedule = schedule.length > 0;
+  const isViewingSchedule = schedule && schedule.length > 0;
 
   const getSchedulesByPart = (partName: string) =>
     savedSchedules.filter((s) => s.form.part === partName);
 
   const handleShowSchedule = (saved: SavedSchedule) => {
-    loadSchedule(saved);
-    setTimeout(() => {
-      const el = document.getElementById("schedule-table-section");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 0);
+    try {
+      // Paksa apply state lokal supaya bisa tampil lagi meski memilih schedule yang sama
+      setForm(saved.form);
+      setScheduleWithTracking(saved.schedule || []);
+      setSelectedPart(saved.form?.part || null);
+
+      // Update product info
+      if (saved.productInfo) {
+        setProductInfo({
+          partName: saved.productInfo.partName || saved.form.part || "",
+          customer: saved.productInfo.customer || saved.form.customer || "",
+          lastSavedBy: saved.productInfo.lastSavedBy,
+          lastSavedAt: saved.productInfo.lastSavedAt,
+        });
+      } else {
+        setProductInfo({
+          partName: saved.form.part || "",
+          customer: saved.form.customer || "",
+          lastSavedBy: undefined,
+          lastSavedAt: undefined,
+        });
+      }
+
+      // Parse bulan & tahun dari nama schedule (contoh: "Agustus 2025")
+      const yearMatch = saved.name.match(/(\d{4})/);
+      const monthIndex = MONTHS.findIndex((m) => saved.name.includes(m));
+      if (monthIndex >= 0) setSelectedMonth(monthIndex);
+      if (yearMatch && yearMatch[1]) setSelectedYear(parseInt(yearMatch[1]));
+
+      // Simpan juga ke context (gunakan objek baru agar perubahan terdeteksi)
+      loadSchedule({ ...saved });
+
+      // Scroll ke tabel
+      setTimeout(() => {
+        const el = document.getElementById("schedule-table-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+    } catch {}
   };
 
   const handleDownloadExcel = (saved: SavedSchedule) => {
