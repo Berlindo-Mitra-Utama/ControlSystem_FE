@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/alert-dialog"
-import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save, Upload, FileText, Image, Download, LogOut } from "lucide-react"
+import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save, Upload, FileText, Image, Download } from "lucide-react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { Colors, getProgressColor, getUIColors } from "../../const/colors"
 import { getPartById, updatePart, getAllParts, deletePart, updateProcessCompletion as apiUpdateProcessCompletion, updateProgressDetail, updateProgressToolingDetail as apiUpdateProgressToolingDetail } from '../../../services/API_Services'
@@ -1627,14 +1627,14 @@ export default function ManageProgres() {
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="w-full sm:w-auto">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
-              <Link to="/logout">
+              <Link to="/progress">
                 <Button
                   variant="outline"
-                  className={`mr-0 sm:mr-4 mb-2 sm:mb-0 w-full sm:w-auto ${uiColors.border.secondary} ${uiColors.text.secondary} hover:border-red-500 hover:text-red-500 hover:bg-red-500/10 bg-transparent`}
+                  className={`mr-0 sm:mr-4 mb-2 sm:mb-0 w-full sm:w-auto ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} bg-transparent`}
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Logout</span>
-                  <span className="sm:hidden">Logout</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                  <span className="hidden sm:inline">Back to Dashboard</span>
+                  <span className="sm:hidden">Back</span>
                 </Button>
               </Link>
               <div className="flex-1 min-w-0">
