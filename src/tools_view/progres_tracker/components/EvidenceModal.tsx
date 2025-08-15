@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { uploadEvidence, deleteEvidence, getProcessEvidence } from "../../../services/API_Services";
 import { Button } from "./button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
 import { Upload, FileText, Image, Download, Trash2 } from "lucide-react";
@@ -20,20 +21,66 @@ interface EvidenceModalProps {
   evidence: Evidence[];
   onEvidenceChange: (evidence: Evidence[]) => void;
   processName: string;
+  processId?: string;
+  subProcessId?: string;
+  partId?: string;
+  categoryId?: string;
 }
 
-export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, processName }: EvidenceModalProps) {
+export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, processName, processId, subProcessId, partId, categoryId }: EvidenceModalProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
+  const [currentEvidence, setCurrentEvidence] = useState<Evidence[]>(evidence);
+
+  // Load evidence from database when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      const loadEvidence = async () => {
+        try {
+          const targetProcessId = subProcessId || processId;
+          if (targetProcessId) {
+            const res = await getProcessEvidence(targetProcessId);
+            const list = res?.data || res?.evidence || [];
+            if (Array.isArray(list)) {
+              setCurrentEvidence(list);
+              onEvidenceChange(list);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load evidence:', error);
+        }
+      };
+      loadEvidence();
+    }
+  }, [isOpen, processId, subProcessId, onEvidenceChange]);
 
   const generateId = (): string => {
     return Math.random().toString(36).substr(2, 9);
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
+
+    // Validasi ukuran file (maksimal 10MB per file)
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].size > maxFileSize) {
+        alert(`File "${files[i].name}" terlalu besar. Maksimal ukuran file adalah 10MB.`);
+        event.target.value = '';
+        return;
+      }
+    }
 
     setUploading(true);
     setUploadProgress(0);
@@ -45,8 +92,9 @@ export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, pro
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileId = generateId();
+        const targetProcessId = subProcessId || processId || "";
         
-        // Simulate upload progress
+        // Simulate upload progress visual
         const progressInterval = setInterval(() => {
           setUploadProgress(prev => {
             const newProgress = prev + (100 / files.length);
@@ -57,26 +105,47 @@ export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, pro
             return newProgress;
           });
         }, 100);
-        
-        // Create a blob URL for the file
-        const blobUrl = URL.createObjectURL(file);
-        
-        const evidenceItem: Evidence = {
-          id: fileId,
-          name: file.name,
-          type: file.type.startsWith('image/') ? 'image' : 'file',
-          url: blobUrl,
-          uploadedAt: new Date().toISOString(),
-          size: file.size
-        };
-        
-        newEvidence.push(evidenceItem);
-        
-        // Wait a bit to show progress
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+          const base64 = await fileToBase64(file);
+          const payload = {
+            name: file.name,
+            type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
+            url: base64,
+            size: file.size
+          };
+          let createdId: string | undefined = undefined;
+          if (targetProcessId) {
+            try {
+              // Tambahkan data tambahan untuk tabel baru
+              const enhancedPayload = {
+                ...payload,
+                partId,
+                categoryId,
+                subProcessId: subProcessId || null
+              };
+              const resp = await uploadEvidence(targetProcessId, enhancedPayload);
+              createdId = resp?.data?.id || resp?.data?.evidenceId || resp?.id || undefined;
+            } catch (err) {
+              console.error('Upload evidence to backend failed:', err);
+            }
+          }
+          const evidenceItem: Evidence = {
+            id: createdId || fileId,
+            name: file.name,
+            type: payload.type,
+            url: payload.url,
+            uploadedAt: new Date().toISOString(),
+            size: file.size
+          };
+          newEvidence.push(evidenceItem);
+        } finally {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
       }
 
-      onEvidenceChange([...evidence, ...newEvidence]);
+      const updatedEvidence = [...currentEvidence, ...newEvidence];
+      setCurrentEvidence(updatedEvidence);
+      onEvidenceChange(updatedEvidence);
     } catch (error) {
       console.error('Error uploading files:', error);
     } finally {
@@ -86,15 +155,20 @@ export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, pro
     }
   };
 
-  const handleDeleteEvidence = (evidenceId: string) => {
-    const evidenceToDelete = evidence.find(e => e.id === evidenceId);
-    if (evidenceToDelete) {
-      // Revoke the blob URL to free memory
-      URL.revokeObjectURL(evidenceToDelete.url);
+  const handleDeleteEvidence = async (evidenceId: string) => {
+    try {
+      // Hapus dari backend bila mungkin
+      try { await deleteEvidence(evidenceId); } catch {}
+      const evidenceToDelete = currentEvidence.find(e => e.id === evidenceId);
+      if (evidenceToDelete && evidenceToDelete.url?.startsWith('blob:')) {
+        URL.revokeObjectURL(evidenceToDelete.url);
+      }
+      const updatedEvidence = currentEvidence.filter(e => e.id !== evidenceId);
+      setCurrentEvidence(updatedEvidence);
+      onEvidenceChange(updatedEvidence);
+    } catch (err) {
+      console.error('Delete evidence failed:', err);
     }
-    // Immediately remove from evidence list
-    const updatedEvidence = evidence.filter(e => e.id !== evidenceId);
-    onEvidenceChange(updatedEvidence);
   };
 
   const formatFileSize = (bytes?: number) => {
@@ -179,15 +253,17 @@ export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, pro
             
             <p className="text-xs sm:text-sm text-gray-400">
               Supported formats: Images (JPG, PNG, GIF), Documents (PDF, DOC, DOCX, XLS, XLSX), Text files
+              <br />
+              <span className="text-yellow-400">Maximum file size: 10MB per file</span>
             </p>
           </div>
 
           {/* Evidence List */}
-          {evidence.length > 0 && (
-            <div className="border border-gray-600 rounded-lg p-3 sm:p-4 bg-gray-700">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Uploaded Evidence ({evidence.length})</h3>
-              <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                {evidence.map((item) => (
+                      {currentEvidence.length > 0 && (
+              <div className="border border-gray-600 rounded-lg p-3 sm:p-4 bg-gray-700">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Uploaded Evidence ({currentEvidence.length})</h3>
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                  {currentEvidence.map((item) => (
                   <div key={item.id} className="bg-gray-600 rounded-lg p-3 border border-gray-500 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
@@ -204,14 +280,16 @@ export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, pro
                         </div>
                       </div>
                       <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(item.url, '_blank')}
-                          className="text-blue-400 hover:text-white p-1 sm:p-2"
-                        >
-                          <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
+                        {item.url && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(item.url, '_blank')}
+                            className="text-blue-400 hover:text-white p-1 sm:p-2"
+                          >
+                            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -223,25 +301,7 @@ export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, pro
                       </div>
                     </div>
                     
-                    {/* Image Preview */}
-                    {item.type === 'image' && (
-                      <div className="mt-3">
-                        <img
-                          src={item.url}
-                          alt={item.name}
-                          className="w-full h-24 sm:h-32 object-cover rounded border border-gray-500 transition-all duration-500 ease-in-out opacity-0"
-                          onError={(e) => {
-                            console.error('Error loading image:', item.url);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                          onLoad={(e) => {
-                            // Fade in the image when loaded
-                            e.currentTarget.classList.remove('opacity-0');
-                            e.currentTarget.classList.add('opacity-100');
-                          }}
-                        />
-                      </div>
-                    )}
+                    {/* No image preview as requested; textual description only */}
                   </div>
                 ))}
               </div>

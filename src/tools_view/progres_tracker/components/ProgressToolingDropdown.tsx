@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { getProgressToolingDetail } from "../../../services/API_Services";
+import { getProgressToolingDetail, getProgressToolingTrials } from "../../../services/API_Services";
 
 interface Material {
   name: string;
@@ -31,24 +31,41 @@ interface ProgressToolingDropdownProps {
 
 export function ProgressToolingDropdown({ progressToolingChild, onProgressToolingComplete, onProgressUpdate, partId, categoryId, processId, subProcessId, onDetailChange }: ProgressToolingDropdownProps) {
   const [open, setOpen] = React.useState(false);
+  const initialDetail = (progressToolingChild as any)?.toolingDetail || null;
+  const [initialized, setInitialized] = React.useState<boolean>(!!(initialDetail && typeof initialDetail.overallProgress === 'number'));
+  const cacheKey = React.useMemo(() => `tooling-detail-${partId}-${categoryId}-${processId}-${subProcessId}`, [partId, categoryId, processId, subProcessId]);
+
+  const loadFromCache = React.useCallback(() => {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }, [cacheKey]);
   const [materials, setMaterials] = React.useState<Material[]>([
-    { name: "Steel", actual: null, planned: null, unit: "kg" },
+    { name: "Steel", actual: initialDetail?.rawMaterialActual ?? null, planned: initialDetail?.rawMaterialPlanned ?? null, unit: "kg" },
     { name: "Aluminum", actual: null, planned: null, unit: "kg" },
     { name: "Copper", actual: null, planned: null, unit: "kg" }
   ]);
-  const [trials, setTrials] = React.useState<Trial[]>([
-    { name: "Trial 1", completed: false, weight: 10 }
-  ]);
-  const [trialCount, setTrialCount] = React.useState<number | null>(1);
+  const initialTrialCount = typeof initialDetail?.trialCount === 'number' ? initialDetail.trialCount : 1;
+  let initialTrials: Trial[] = Array.from({ length: initialTrialCount }).map((_, i) => ({
+    name: `Trial ${i + 1}`,
+    completed: !!initialDetail?.trialsCompleted?.[i]?.completed,
+    weight: Math.round(20 / initialTrialCount)
+  }));
+  const [trials, setTrials] = React.useState<Trial[]>(initialTrials.length ? initialTrials : [{ name: "Trial 1", completed: false, weight: 10 }]);
+  const [trialCount, setTrialCount] = React.useState<number | null>(initialTrialCount);
   
   // State untuk checkbox processes
   const [processStates, setProcessStates] = React.useState({
-    "Design Tooling": false,
-    "Machining 1": false,
-    "Machining 2": false,
-    "Machining 3": false,
-    "Assy": false,
-    "Approval": false
+    "Design Tooling": !!initialDetail?.designToolingCompleted,
+    "Machining 1": !!initialDetail?.machining1Completed,
+    "Machining 2": !!initialDetail?.machining2Completed,
+    "Machining 3": !!initialDetail?.machining3Completed,
+    "Assy": !!initialDetail?.assyCompleted,
+    "Approval": !!initialDetail?.approvalCompleted
   });
 
 
@@ -154,6 +171,9 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
   const totalProgress = rows.reduce((sum, row) => {
     return sum + (row.progress * row.weight / 100);
   }, 0);
+  const overallProgress = initialized && typeof initialDetail?.overallProgress === 'number'
+    ? Math.max(0, Math.min(100, Math.round(Number(initialDetail.overallProgress))))
+    : Math.round(totalProgress);
 
   // Build payload to persist
   const buildDetailPayload = React.useCallback(() => {
@@ -167,10 +187,11 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
       assyCompleted: processStates["Assy"],
       trialCount: trialCount || 1,
       trialsCompleted: (trials || []).map(t => ({ completed: !!t.completed })),
+      trials: (trials || []).map((t, idx) => ({ index: idx + 1, name: t.name, completed: !!t.completed, weight: typeof t.weight === 'number' ? t.weight : 0 })),
       approvalCompleted: processStates["Approval"],
-      overallProgress: Math.round(totalProgress),
+      overallProgress: overallProgress,
     };
-  }, [materials, processStates, trials, trialCount, totalProgress]);
+  }, [materials, processStates, trials, trialCount, overallProgress]);
 
   // Effect untuk auto-complete ketika overall progress mencapai 100%
   React.useEffect(() => {
@@ -182,12 +203,15 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
   // Effect untuk mengupdate progress ke parent component
   React.useEffect(() => {
     if (onProgressUpdate) {
-      onProgressUpdate(totalProgress);
+      onProgressUpdate(overallProgress);
     }
     if (onDetailChange) {
-      onDetailChange(buildDetailPayload());
+      const payload = buildDetailPayload();
+      onDetailChange(payload);
+      // Cache locally untuk mencegah reset saat backend belum simpan detail
+      try { localStorage.setItem(cacheKey, JSON.stringify(payload)); } catch {}
     }
-  }, [totalProgress, onProgressUpdate, onDetailChange, buildDetailPayload]);
+  }, [overallProgress, onProgressUpdate, onDetailChange, buildDetailPayload, cacheKey]);
 
   // Load existing tooling detail to prefill UI
   React.useEffect(() => {
@@ -198,7 +222,12 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
         if (!res?.success && processId) {
           res = await getProgressToolingDetail({ partId: '', categoryId: '', processId, subProcessId: '' } as any);
         }
-        if (res?.success && res.data) {
+        let d = res?.success && res.data ? res.data : null;
+        if (!d) {
+          // Fallback ke cache lokal jika backend belum punya data
+          d = loadFromCache();
+        }
+        if (d) {
           const d = res.data;
           setProcessStates(prev => ({
             ...prev,
@@ -219,14 +248,54 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
             }
             setTrials(newTrials);
           }
+          // Muat daftar trials rinci jika tersedia (nama, weight per trial)
+          try {
+            const trialRes = await getProgressToolingTrials({ partId, categoryId, processId });
+            const arr = trialRes?.data || trialRes?.trials || [];
+            if (Array.isArray(arr) && arr.length > 0) {
+              // Gunakan data trial tabel sebagai sumber utama
+              const sorted = [...arr].sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
+              updateTrialCount(sorted.length);
+              initialTrials = sorted.map((t: any) => ({
+                name: t.name || `Trial ${t.index}`,
+                completed: !!t.completed,
+                weight: typeof t.weight === 'number' ? t.weight : Math.round(20 / sorted.length)
+              }));
+              setTrials(initialTrials);
+            }
+          } catch {}
+          setInitialized(true);
         }
       } catch (err) {
-        // ignore missing detail
+        // Backend gagal: coba cache lokal
+        const d = loadFromCache();
+        if (d) {
+          setProcessStates(prev => ({
+            ...prev,
+            "Design Tooling": !!d.designToolingCompleted,
+            "Machining 1": !!d.machining1Completed,
+            "Machining 2": !!d.machining2Completed,
+            "Machining 3": !!d.machining3Completed,
+            "Assy": !!d.assyCompleted,
+            "Approval": !!d.approvalCompleted,
+          }));
+          setMaterials([{ name: materials[0].name, unit: materials[0].unit, actual: d.rawMaterialActual ?? null, planned: d.rawMaterialPlanned ?? null }]);
+          const count = d.trialCount || 1;
+          updateTrialCount(count);
+          if (Array.isArray(d.trialsCompleted) && d.trialsCompleted.length > 0) {
+            const newTrials = [] as Trial[];
+            for (let i = 0; i < count; i++) {
+              newTrials.push({ name: `Trial ${i + 1}`, completed: !!d.trialsCompleted[i]?.completed, weight: Math.round(20 / count) });
+            }
+            setTrials(newTrials);
+          }
+          setInitialized(true);
+        }
       }
     };
     loadDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [partId, categoryId, processId, subProcessId]);
+  }, [partId, categoryId, processId, subProcessId, loadFromCache]);
 
   return (
     <div className="w-full mt-2">
@@ -252,17 +321,17 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
             <div className="mb-6 p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg border border-gray-600">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
                 <span className="text-white font-semibold text-sm sm:text-base">Overall Progress</span>
-                <span className="text-blue-400 font-bold text-lg sm:text-xl">{Math.round(totalProgress)}%</span>
+                <span className="text-blue-400 font-bold text-lg sm:text-xl">{overallProgress}%</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-3 sm:h-4 overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 sm:h-4 rounded-full transition-all duration-500 ease-out shadow-lg"
-                  style={{ width: `${Math.round(totalProgress)}%` }}
+                  style={{ width: `${overallProgress}%` }}
                 ></div>
               </div>
               
               {/* Auto-complete Status berdasarkan Overall Progress */}
-              {totalProgress === 100 && (
+              {overallProgress === 100 && (
                 <div className="mt-3 p-2 bg-blue-600 text-white rounded text-xs">
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,7 +341,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                   </div>
                 </div>
               )}
-              {totalProgress < 100 && totalProgress > 0 && (
+              {overallProgress < 100 && overallProgress > 0 && (
                 <div className="mt-3 p-2 bg-gray-600 text-white rounded text-xs">
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

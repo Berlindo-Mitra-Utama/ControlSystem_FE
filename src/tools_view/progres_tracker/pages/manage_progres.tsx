@@ -6,25 +6,14 @@ import { Badge } from "../components/badge"
 import { Checkbox } from "../components/checkbox"
 import { Button } from "../components/button"
 import { Progress } from "../components/progress"
-import { Input } from "../components/input"
-import { Textarea } from "../components/textarea"
-import { Label } from "../components/label"
+// removed unused: Input, Textarea, Label
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../components/alert-dialog"
-import { Plus, Edit, Trash2, MoreVertical, AlertTriangle, X, Save, Upload, FileText, Image, Download } from "lucide-react"
+// removed unused: DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+// removed unused AlertDialog components
+import { Plus, Edit, Trash2, Upload, FileText, Image, Download } from "lucide-react"
 import { Link, useParams, useNavigate } from "react-router-dom"
-import { Colors, getProgressColor, getUIColors } from "../../const/colors"
-import { getPartById, updatePart, getAllParts, deletePart, updateProcessCompletion as apiUpdateProcessCompletion, updateProgressDetail, updateProgressToolingDetail as apiUpdateProgressToolingDetail } from '../../../services/API_Services'
+import { getProgressColor, getUIColors } from "../../const/colors"
+import { updatePart, getAllParts, deletePart, updateProcessCompletion as apiUpdateProcessCompletion, updateProgressDetail, updateProgressToolingDetail as apiUpdateProgressToolingDetail, getProgressToolingDetail, getPartWithProgress, upsertProgressToolingTrials, getProgressToolingTrials } from '../../../services/API_Services'
 
 // Import new components
 import { ProgressToolingDropdown } from "../components/ProgressToolingDropdown"
@@ -34,6 +23,7 @@ import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog
 import { PartHeader } from "../components/PartHeader"
 import { ProcessCard } from "../components/ProcessCard"
 import { EvidenceModal } from "../components/EvidenceModal"
+import { getProcessEvidence, deleteEvidence } from "../../../services/API_Services"
 
 // Types and Interfaces
 interface Evidence {
@@ -653,6 +643,7 @@ export default function ManageProgres() {
     processName: string
     evidence: Evidence[]
     onEvidenceChange: (evidence: Evidence[]) => void
+    categoryId?: string
   }>({
     isOpen: false,
     processName: "",
@@ -691,9 +682,51 @@ export default function ManageProgres() {
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
 
+
+
   // Effect untuk memastikan progressToolingDetailProgress ter-update dengan benar
   useEffect(() => {
     if (selectedPart) {
+      // Prefetch: cari dan ambil nilai tooling detail dari backend agar overall langsung akurat
+      const prefetchTooling = async () => {
+        try {
+          for (const category of selectedPart.progress) {
+            for (const process of category.processes) {
+              if (process.children && process.children.length > 0) {
+                for (const child of process.children) {
+                  if (child.name === "Progress Tooling") {
+                    // Jika backend punya detail, gunakan itu untuk set progress lokal juga
+                    if (
+                      isValidUuid(selectedPart.id) &&
+                      isValidUuid(category.id) &&
+                      isValidUuid(process.id) &&
+                      isValidUuid(child.id)
+                    ) {
+                      try {
+                        const resp = await getProgressToolingDetail({
+                          partId: selectedPart.id,
+                          categoryId: category.id,
+                          processId: child.id,
+                          subProcessId: child.id
+                        })
+                        const overall = resp?.data?.overallProgress ?? resp?.overallProgress
+                        if (typeof overall === 'number') {
+                          setProgressToolingDetailProgress(Math.round(Math.max(0, Math.min(100, overall))))
+                          setToolingDetailBySubProcessId(prev => ({ ...prev, [child.id]: { ...(prev[child.id] || {}), overallProgress: overall } }))
+                        }
+                      } catch (e) {
+                        // Abaikan jika endpoint belum ada datanya
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+      prefetchTooling()
+
       // Cari Progress Tooling sub-process dan hitung progress detail
       let totalDetailProgress = 0;
       let foundProgressTooling = false;
@@ -736,6 +769,17 @@ export default function ManageProgres() {
     // The JSX will automatically handle the visibility based on showDetailedProcesses state
   }, [showDetailedProcesses, selectedPart]);
 
+  // Helper: ambil nilai overall progress dari child "Progress Tooling" jika tersedia dari backend,
+  // fallback ke state lokal jika belum ada
+  const getToolingOverallFromChild = (child: Process): number => {
+    const raw = (child as any)?.toolingDetail?.overallProgress
+    if (typeof raw === 'number' && !isNaN(raw)) {
+      const clamped = Math.max(0, Math.min(100, Number(raw)))
+      return Math.round(clamped)
+    }
+    return progressToolingDetailProgress
+  }
+
   // Fungsi untuk menghitung progress process dengan mempertimbangkan detail Progress Tooling
   // Logika: 
   // 1. Jika process sudah completed manual, return 100%
@@ -756,8 +800,8 @@ export default function ManageProgres() {
       
       process.children.forEach((child) => {
         if (child.name === "Progress Tooling") {
-          // Gunakan progress detail untuk Progress Tooling
-          totalProgress += progressToolingDetailProgress
+          // Gunakan progress detail untuk Progress Tooling dari data backend bila ada
+          totalProgress += getToolingOverallFromChild(child)
           totalWeight += 100 // Progress Tooling memiliki weight 100%
         } else {
           // Gunakan status completed untuk sub-process lain
@@ -791,8 +835,8 @@ export default function ManageProgres() {
           proc.children.forEach((child) => {
             totalUnits += 1
             if (child.name === "Progress Tooling") {
-              // Progress Tooling menggunakan progress detail
-              completedUnits += (progressToolingDetailProgress / 100)
+              // Progress Tooling menggunakan progress detail dari backend bila ada
+              completedUnits += (getToolingOverallFromChild(child) / 100)
             } else if (child.completed) {
               completedUnits += 1
             }
@@ -884,6 +928,16 @@ export default function ManageProgres() {
                         subProcessId: child.id
                       }, fullDetail)
                     )
+                    // Simpan trial granular jika tersedia
+                    if (Array.isArray((fullDetail as any).trials) && (fullDetail as any).trials.length > 0) {
+                      detailSaves.push(
+                        upsertProgressToolingTrials({
+                          partId: selectedPart.id,
+                          categoryId: category.id,
+                          processId: child.id
+                        }, (fullDetail as any).trials)
+                      )
+                    }
                     detailSaves.push(
                       updateProgressDetail({
                         partId: selectedPart.id,
@@ -1004,6 +1058,10 @@ export default function ManageProgres() {
             modalData.subProcessId || null,
             evidence
           );
+          // Update isi modal agar bukti tampil langsung di dalam modal
+          setEvidenceModal(prev => ({ ...prev, evidence }));
+          // Broadcast untuk komponen list di bawah judul
+          window.dispatchEvent(new Event('evidence-updated'));
         }
       }
     });
@@ -1103,74 +1161,166 @@ export default function ManageProgres() {
     }
   }
 
-  // Load data from backend on mount
+  // Load data from backend on mount (preload full detail for selected part if available)
   useEffect(() => {
     const fetchParts = async () => {
       try {
         console.log("ManageProgress: Starting to load data from backend")
         const response = await getAllParts()
-        console.log('Backend response:', response)
         let partsArray = []
         if (Array.isArray(response.data)) {
           partsArray = response.data
         } else if (response.data && Array.isArray(response.data.data)) {
           partsArray = response.data.data
         }
-        console.log('Parts array:', partsArray)
         if (partsArray.length > 0) {
-          const mappedParts = partsArray.map(mapBackendPartToFrontend)
-          console.log('Mapped parts:', mappedParts)
-          
-          // Log completion status untuk debugging
-          mappedParts.forEach((part, partIndex) => {
-            console.log(`Part ${partIndex + 1}: ${part.partName}`);
-            part.progress.forEach((category, catIndex) => {
-              console.log(`  Category ${catIndex + 1}: ${category.name}`);
-              category.processes.forEach((process, procIndex) => {
-                console.log(`    Process ${procIndex + 1}: ${process.name} - Completed: ${process.completed}`);
-                if (process.children) {
-                  process.children.forEach((child, childIndex) => {
-                    console.log(`      Child ${childIndex + 1}: ${child.name} - Completed: ${child.completed}`);
-                  });
-                }
-              });
-            });
-          });
-          
-          setParts(mappedParts)
-          
-          // Save to localStorage as backup
-          saveToLocalStorage(mappedParts)
-          
-        } else {
-          // Try to load from localStorage if backend has no data
-          const localData = loadFromLocalStorage()
-          if (localData) {
-            console.log('Using data from localStorage as fallback')
-            setParts(localData)
-          } else {
-            setParts([])
+          let mappedParts = partsArray.map(mapBackendPartToFrontend)
+          // Jika URL punya partId, ambil detail lengkap part tsb dari endpoint khusus
+          if (partId) {
+            try {
+              const detailRes = await getPartWithProgress(partId)
+              const detailData = detailRes?.data || detailRes?.data?.data || null
+              if (detailData) {
+                const detailed = mapBackendPartToFrontend(detailData)
+                // Prefill Progress Tooling nilai overall dan trials agar overall langsung sesuai backend
+                try {
+                  for (const category of detailed.progress) {
+                    for (const proc of category.processes) {
+                      if (proc.children && proc.children.length > 0) {
+                        for (const child of proc.children) {
+                          if (child.name === 'Progress Tooling') {
+                            const overall = (child as any)?.toolingDetail?.overallProgress
+                            if (typeof overall === 'number') {
+                              setProgressToolingDetailProgress(Math.round(Math.max(0, Math.min(100, overall))))
+                              setToolingDetailBySubProcessId(prev => ({
+                                ...prev,
+                                [child.id]: { ...(prev[child.id] || {}), ...(child as any).toolingDetail }
+                              }))
+                            }
+                            // Prefetch trials dari backend
+                            if (isValidUuid(detailed.id) && isValidUuid(category.id) && isValidUuid(child.id)) {
+                              try {
+                                const trialRes = await getProgressToolingTrials({ partId: detailed.id, categoryId: category.id, processId: child.id })
+                                const arr = trialRes?.data || trialRes?.trials || []
+                                if (Array.isArray(arr) && arr.length > 0) {
+                                  setToolingDetailBySubProcessId(prev => ({
+                                    ...prev,
+                                    [child.id]: { ...(prev[child.id] || {}), trials: arr.map((t: any) => ({
+                                      index: t.index,
+                                      name: t.name,
+                                      completed: !!t.completed,
+                                      weight: t.weight,
+                                      notes: t.notes || null
+                                    })) }
+                                  }))
+                                }
+                              } catch {}
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                } catch {}
+                // Merge ke list
+                mappedParts = mappedParts.map(p => p.id === detailed.id ? detailed : p)
+              }
+            } catch (e) {
+              console.warn('getPartWithProgress failed, fallback to list data')
+            }
           }
+          setParts(mappedParts)
+          saveToLocalStorage(mappedParts)
+        } else {
+          const localData = loadFromLocalStorage()
+          if (localData) setParts(localData)
+          else setParts([])
         }
       } catch (error: any) {
-        console.error('Gagal memuat data parts dari backend:', error.message)
-        if (error.response) {
-          console.error('Status:', error.response.status)
-          console.error('Response data:', error.response.data)
-        }
-        
-        // Try to load from localStorage if backend fails
+        console.error('Gagal memuat data parts dari backend:', error?.message)
         const localData = loadFromLocalStorage()
-        if (localData) {
-          console.log('Using data from localStorage as fallback due to backend error')
-          setParts(localData)
-        } else {
-          setParts([])
-        }
+        if (localData) setParts(localData)
+        else setParts([])
       }
     }
     fetchParts()
   }, [])
+
+  // Prefetch evidence from backend with limited concurrency to avoid resource errors
+  useEffect(() => {
+    const prefetchAllEvidence = async () => {
+      if (!selectedPart) return
+      try {
+        const tasks: Array<{categoryId: string; processId: string; subProcessId: string | null; targetId: string}> = []
+        for (const category of selectedPart.progress) {
+          for (const proc of category.processes) {
+            if (isValidUuid(proc.id)) {
+              tasks.push({ categoryId: category.id, processId: proc.id, subProcessId: null, targetId: proc.id })
+            }
+            if (proc.children && proc.children.length > 0) {
+              for (const child of proc.children) {
+                if (isValidUuid(child.id)) {
+                  tasks.push({ categoryId: category.id, processId: proc.id, subProcessId: child.id, targetId: child.id })
+                }
+              }
+            }
+          }
+        }
+
+        // Batasi maksimal 5 request bersamaan
+        const maxConcurrent = 5
+        let index = 0
+        const worker = async () => {
+          while (index < tasks.length) {
+            const current = tasks[index++]
+            try {
+              const res: any = await getProcessEvidence(current.targetId)
+              const list = res?.data || res?.evidence || []
+              if (Array.isArray(list) && list.length > 0) {
+                handleEvidenceUpdate(selectedPart.id, current.categoryId, current.processId, current.subProcessId, list)
+              }
+            } catch {}
+            // Small delay to yield UI thread
+            await new Promise(r => setTimeout(r, 10))
+          }
+        }
+
+        const workers = Array.from({ length: Math.min(maxConcurrent, tasks.length) }, () => worker())
+        await Promise.all(workers)
+      } catch {}
+    }
+    prefetchAllEvidence()
+  }, [selectedPart])
+
+  // Inline delete evidence handler (for both process & sub-process)
+  const handleInlineDeleteEvidence = async (
+    partId: string,
+    categoryId: string,
+    processId: string,
+    subProcessId: string | null,
+    evidenceId: string
+  ) => {
+    try {
+      try { await deleteEvidence(evidenceId) } catch {}
+
+      // Ambil list evidence saat ini dari state
+      let currentList: Evidence[] = []
+      const part = parts.find(p => p.id === partId)
+      const category = part?.progress.find(c => c.id === categoryId)
+      const proc = category?.processes.find(p => p.id === processId)
+      if (subProcessId) {
+        const child = proc?.children?.find(c => c.id === subProcessId)
+        currentList = child?.evidence || []
+      } else {
+        currentList = proc?.evidence || []
+      }
+
+      const updated = currentList.filter(e => e.id !== evidenceId)
+      handleEvidenceUpdate(partId, categoryId, processId, subProcessId, updated)
+    } catch (error) {
+      console.error('Error deleting evidence inline:', error)
+    }
+  }
 
   // Find selected part based on partId from URL
   useEffect(() => {
@@ -1267,99 +1417,24 @@ export default function ManageProgres() {
 
   // Auto-update process completion when sub-processes change
   useEffect(() => {
-    if (selectedPart) {
-      const updatedParts = parts.map(part => {
-        if (part.id === selectedPart.id) {
-          return {
-            ...part,
-            progress: part.progress.map(category => ({
-              ...category,
-              processes: category.processes.map(process => {
-                const updatedProcess = updateProcessCompletion(process)
-                
-                // Check if process was just auto-completed
-                if (updatedProcess.completed && process.children && process.children.length > 0) {
-                  const wasCompletedBefore = process.completed
-                  const allChildrenCompleted = process.children.every(child => child.completed)
-                  
-                  if (!wasCompletedBefore && allChildrenCompleted) {
-                    // Show notification for auto-complete
-                    setAutoCompleteNotification({
-                      show: true,
-                      processName: process.name
-                    })
-                    
-                    // Auto-hide notification after 3 seconds
-                    setTimeout(() => {
-                      setAutoCompleteNotification({ show: false, processName: "" })
-                    }, 3000)
-                  }
-                }
-                
-                return updatedProcess
-              })
-            }))
-          }
-        }
-        return part
-      })
-      
-      // Only update if there are actual changes
-      const hasChanges = JSON.stringify(updatedParts) !== JSON.stringify(parts)
-      if (hasChanges) {
-        setParts(updatedParts)
-        setSelectedPart(updatedParts.find(p => p.id === selectedPart.id) || null)
-        
-        // TODO: Send update to backend API
-        // For now, we'll just refresh the data to ensure consistency
-        setTimeout(() => {
-          refreshPartsData()
-        }, 1000)
-      }
-    }
+    // Auto-checklist dinonaktifkan: tidak melakukan perubahan otomatis pada completed flag
   }, [selectedPart, parts])
 
   // Helper function untuk Progress Tooling yang hanya bisa auto-complete
   const isProgressToolingAutoCompleted = (process: Process): boolean => {
-    if (!process.children || process.children.length === 0) return false;
-    
-    // Cari Progress Tooling sub-process
-    const progressToolingChild = process.children.find(child => child.name === "Progress Tooling");
-    if (!progressToolingChild) return false;
-    
-    return progressToolingChild.completed;
+    // Auto checklist dinonaktifkan
+    return false;
   }
 
   // Helper function to check if process was auto-completed
   const isProcessAutoCompleted = (process: Process): boolean => {
-    return process.completed && process.children && process.children.length > 0 && 
-           process.children.every(child => child.completed)
+    // Auto checklist dinonaktifkan
+    return false;
   }
 
   // Helper function to check and update process completion based on sub-processes
   const updateProcessCompletion = (process: Process): Process => {
-    if (process.children && process.children.length > 0) {
-      // Hitung progress berdasarkan sub-process
-      let totalSubProcesses = process.children.length;
-      let completedSubProcesses = 0;
-      
-      process.children.forEach(child => {
-        if (child.name === "Progress Tooling") {
-          // Progress Tooling menggunakan progress detail
-          completedSubProcesses += (progressToolingDetailProgress / 100);
-        } else if (child.completed) {
-          completedSubProcesses += 1;
-        }
-      });
-      
-      // Auto-complete jika semua sub-process selesai
-      const allCompleted = completedSubProcesses >= totalSubProcesses;
-      
-      return {
-        ...process,
-        completed: allCompleted
-      }
-    }
+    // Non-aktifkan auto-checklist: tidak pernah mengubah flag completed secara otomatis
     return process
   }
 
@@ -2026,6 +2101,40 @@ export default function ManageProgres() {
                                   </Button>
                                 </div>
 
+                                {/* Inline Evidence - Process level */}
+                                {Array.isArray(process.evidence) && process.evidence.length > 0 && (
+                                  <div className="mb-3 p-2 bg-gray-800/40 rounded-lg border border-gray-700/40">
+                                    <div className="text-xs text-gray-300 mb-1">Evidence ({process.evidence.length})</div>
+                                    <div className="flex flex-col gap-1">
+                                      {process.evidence.map((ev) => (
+                                        <div key={ev.id} className="bg-gray-800/60 hover:bg-gray-800/80 rounded-md px-2 py-2 border border-gray-700/50 flex items-center justify-between">
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            {ev.type === 'image' ? (
+                                              <Image className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                            ) : (
+                                              <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
+                                            )}
+                                            <div className="min-w-0">
+                                              <div className="text-xs text-white truncate">{ev.name}</div>
+                                              <div className="text-[10px] text-gray-400">{new Date(ev.uploadedAt).toLocaleDateString()}</div>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            {ev.url && (
+                                              <Button size="sm" variant="ghost" className="p-1 text-blue-400 hover:text-white" onClick={() => window.open(ev.url, '_blank')}>
+                                                <Download className="w-3 h-3" />
+                                              </Button>
+                                            )}
+                                            <Button size="sm" variant="ghost" className="p-1 text-red-400 hover:text-white" onClick={() => handleInlineDeleteEvidence(selectedPart.id, progressCategory.id, process.id, null, ev.id)}>
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
                                 {/* Progress bar for this process */}
                                 <div className="mb-3">
                                   <Progress 
@@ -2078,7 +2187,7 @@ export default function ManageProgres() {
                                           <div className="flex items-center space-x-2 flex-1 min-w-0">
                                             <Checkbox
                                               id={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
-                                              checked={child.name === "Progress Tooling" ? progressToolingDetailProgress === 100 : child.completed}
+                                              checked={child.name === "Progress Tooling" ? getToolingOverallFromChild(child) === 100 : child.completed}
                                               onCheckedChange={() => {
                                                 if (child.name === "Progress Tooling") {
                                                   // Progress Tooling tidak bisa di-toggle manual
@@ -2102,10 +2211,10 @@ export default function ManageProgres() {
                                               {child.name}
                                                 {child.name === "Progress Tooling" && (
                                                   <span className="ml-2 text-xs text-blue-400 font-normal">
-                                                    {progressToolingDetailProgress === 100 ? "(Completed)" : `(Overall Progress: ${progressToolingDetailProgress}%)`}
+                                                    {getToolingOverallFromChild(child) === 100 ? "(Completed)" : `(Overall Progress: ${getToolingOverallFromChild(child)}%)`}
                                                   </span>
                                                 )}
-                                                {child.name === "Progress Tooling" && progressToolingDetailProgress === 100 && (
+                                                {child.name === "Progress Tooling" && getToolingOverallFromChild(child) === 100 && (
                                                   <div className="inline-block ml-2" title="Sub-process completed">
                                                     <svg 
                                                       className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
@@ -2195,6 +2304,40 @@ export default function ManageProgres() {
                                           </div>
                                           </div>
                                               
+                                              {/* Inline Evidence - Sub-process level */}
+                                              {Array.isArray(child.evidence) && child.evidence.length > 0 && (
+                                                <div className="mb-2 p-2 bg-gray-800/40 rounded-lg border border-gray-700/40">
+                                                  <div className="text-xs text-gray-300 mb-1">Evidence ({child.evidence.length})</div>
+                                                  <div className="flex flex-col gap-1">
+                                                    {child.evidence.map((ev) => (
+                                                      <div key={ev.id} className="bg-gray-800/60 hover:bg-gray-800/80 rounded-md px-2 py-2 border border-gray-700/50 flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                          {ev.type === 'image' ? (
+                                                            <Image className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                                          ) : (
+                                                            <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
+                                                          )}
+                                                          <div className="min-w-0">
+                                                            <div className="text-xs text-white truncate">{ev.name}</div>
+                                                            <div className="text-[10px] text-gray-400">{new Date(ev.uploadedAt).toLocaleDateString()}</div>
+                                                          </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                          {ev.url && (
+                                                            <Button size="sm" variant="ghost" className="p-1 text-blue-400 hover:text-white" onClick={() => window.open(ev.url, '_blank')}>
+                                                              <Download className="w-3 h-3" />
+                                                            </Button>
+                                                          )}
+                                                          <Button size="sm" variant="ghost" className="p-1 text-red-400 hover:text-white" onClick={() => handleInlineDeleteEvidence(selectedPart.id, progressCategory.id, process.id, child.id, ev.id)}>
+                                                            <Trash2 className="w-3 h-3" />
+                                                          </Button>
+                                                        </div>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
+
                                               {/* Sub-process Notes */}
                                               {child.notes && (
                                                 <div className="p-2 bg-gray-800/30 rounded border border-gray-700/20">
@@ -2236,28 +2379,7 @@ export default function ManageProgres() {
                                   </div>
                                 )}
 
-                                    {/* Process Evidence Summary */}
-                                    {process.evidence && process.evidence.length > 0 && (
-                                      <div className="mt-3 p-3 bg-gray-800/30 rounded-lg border border-gray-700/20">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <Upload className="w-4 h-4 text-green-400" />
-                                          <span className="text-sm font-medium text-gray-300">Evidence ({process.evidence.length})</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                          {process.evidence.map((evidence) => (
-                                            <div key={evidence.id} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded border border-gray-600/20">
-                                              {evidence.type === 'image' ? (
-                                                <Image className="w-4 h-4 text-blue-400" />
-                                              ) : (
-                                                <FileText className="w-4 h-4 text-green-400" />
-                                              )}
-                                              <span className="text-xs text-gray-400 truncate">{evidence.name}</span>
-                                              <span className="text-xs text-gray-500">({new Date(evidence.uploadedAt).toLocaleDateString()})</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
+
                               </div>
                             )
                           })}
@@ -2340,6 +2462,10 @@ export default function ManageProgres() {
         processName={evidenceModal.processName}
         evidence={evidenceModal.evidence}
         onEvidenceChange={evidenceModal.onEvidenceChange}
+        processId={evidenceModal.processId}
+        subProcessId={evidenceModal.subProcessId}
+        partId={selectedPart?.id}
+        categoryId={evidenceModal.categoryId}
       />
 
       {/* Image Modal */}

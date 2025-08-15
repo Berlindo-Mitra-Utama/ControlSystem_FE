@@ -1231,6 +1231,37 @@ export const getProgressToolingDetail = async (
   }
 };
 
+// Progress Tooling Trials (optional granular storage per trial)
+export const getProgressToolingTrials = async (
+  params: { partId: string; categoryId: string; processId: string },
+) => {
+  try {
+    const { partId, categoryId, processId } = params;
+    const response = await api.get(
+      `/progress-detail/tooling-trials/${partId}/${categoryId}/${processId}`,
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const upsertProgressToolingTrials = async (
+  params: { partId: string; categoryId: string; processId: string },
+  trials: Array<{ index: number; name: string; completed: boolean; weight: number; notes?: string }>,
+) => {
+  try {
+    const { partId, categoryId, processId } = params;
+    const response = await api.put(
+      `/progress-detail/tooling-trials/${partId}/${categoryId}/${processId}`,
+      { trials },
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Progress Detail (persist per category/process/subprocess state & notes)
 export const updateProgressDetail = async (
   params: {
@@ -1264,12 +1295,40 @@ export const uploadEvidence = async (
     type: "image" | "file";
     url: string;
     size?: number;
+    partId?: string;
+    categoryId?: string;
+    subProcessId?: string;
   },
 ) => {
   try {
+    // Buat FormData untuk mengirim file
+    const formData = new FormData();
+    
+    // Tambahkan data evidence
+    formData.append('name', evidenceData.name);
+    formData.append('type', evidenceData.type);
+    formData.append('url', evidenceData.url);
+    if (evidenceData.size) formData.append('size', evidenceData.size.toString());
+    if (evidenceData.partId) formData.append('partId', evidenceData.partId);
+    if (evidenceData.categoryId) formData.append('categoryId', evidenceData.categoryId);
+    if (evidenceData.subProcessId) formData.append('subProcessId', evidenceData.subProcessId);
+    
+    // Tambahkan file jika ada
+    if (evidenceData.url.startsWith('data:')) {
+      // Konversi base64 ke blob
+      const response = await fetch(evidenceData.url);
+      const blob = await response.blob();
+      formData.append('evidence', blob, evidenceData.name);
+    }
+    
     const response = await api.post(
-      `/manage-progress/processes/${processId}/evidence`,
-      evidenceData,
+      `/progress-tracker/processes/${processId}/evidence`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
     );
     return response.data;
   } catch (error) {
@@ -1280,8 +1339,17 @@ export const uploadEvidence = async (
 export const deleteEvidence = async (evidenceId: string) => {
   try {
     const response = await api.delete(
-      `/manage-progress/evidence/${evidenceId}`,
+      `/progress-tracker/evidence/${evidenceId}`,
     );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getProcessEvidence = async (processId: string) => {
+  try {
+    const response = await api.get(`/progress-tracker/processes/${processId}/evidence`);
     return response.data;
   } catch (error) {
     throw error;
