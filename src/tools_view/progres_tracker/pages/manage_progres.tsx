@@ -1733,147 +1733,274 @@ export default function ManageProgres() {
         <div className="space-y-6 sm:space-y-8">
           {selectedPart ? (
             <Card key={selectedPart.id} className={`${uiColors.bg.card} ${uiColors.border.primary} shadow-lg`}>
-              <CardHeader className="pb-3 sm:pb-4">
-                <div className="flex flex-col lg:flex-row justify-between items-start gap-4 w-full">
-                  <div className="flex-1 min-w-0 w-full">
-                    
-                    {/* Part Image and Details Container */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-row gap-4 mb-4 items-stretch w-full">
-                      {/* Part Image */}
-                      {selectedPart.partImageUrl && selectedPart.partImageUrl.trim() !== '' && (isValidBase64Image(selectedPart.partImageUrl) || selectedPart.partImageUrl.startsWith('http')) && (
-                        <div className="flex-shrink-0 mx-auto lg:mx-0 h-full w-full lg:w-auto">
-                          <div className="relative w-full max-w-[220px] h-40 md:h-48 lg:w-48 lg:h-full bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-lg overflow-hidden border border-gray-600/30 cursor-pointer hover:scale-105 transition-transform duration-200 mx-auto"
-                               onClick={() => setImageModal({
-                                 isOpen: true,
-                                 imageUrl: selectedPart.partImageUrl!,
-                                 partName: selectedPart.partName
-                               })}>
-                            <img
-                              src={selectedPart.partImageUrl}
-                              alt={selectedPart.partName}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                if (fallback) fallback.classList.remove('hidden');
-                              }}
-                              onLoad={(e) => {
-                                const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                if (fallback) fallback.classList.add('hidden');
-                              }}
-                              {...(selectedPart.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
-                            />
-                            <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400 hidden">
-                              <Image className="w-8 h-8" />
-                    </div>
-                            <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <div className="text-white text-sm font-medium">Click to view full size</div>
-                  </div>
-                      </div>
-                          <p className="text-xs text-gray-400 mt-1 text-center lg:hidden">Click image to view full size</p>
-                    </div>
-                      )}
+              <CardHeader className="pb-4 sm:pb-5">
+                {/* Modern Header Layout */}
+                <div className="relative">
+                  {/* Background Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-cyan-500/5 rounded-2xl border border-gray-700/30 backdrop-blur-sm"></div>
+                  
+                  {/* Content Container */}
+                  <div className="relative p-4 sm:p-6">
+                    {/* Mobile Layout: Image at top, then info & buttons */}
+                    <div className="flex flex-col gap-4 mb-4">
                       
-                      {/* Part Details */}
-                      <div className="flex-1 min-w-0 w-full">
-                        <div className="w-full max-w-full space-y-4 p-5 md:p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/40 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.01] hover:border-gray-600/60">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 group">
-                            <span className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} min-w-[130px] bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent drop-shadow-sm`}>Part Name:</span>
-                            <span className={`text-lg sm:text-xl font-semibold ${uiColors.text.secondary} break-words tracking-wide group-hover:text-white transition-colors duration-200`}>{selectedPart.partName}</span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 group">
-                            <span className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} min-w-[130px] bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm`}>Part Number:</span>
-                            <span className={`text-lg sm:text-xl font-semibold ${uiColors.text.secondary} break-words tracking-wide font-mono bg-gray-800/50 px-3 py-1 rounded-lg border border-gray-700/50 group-hover:border-green-400/50 group-hover:bg-gray-700/50 transition-all duration-200`}>{selectedPart.partNumber}</span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 group">
-                            <span className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} min-w-[130px] bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow-sm`}>Customer:</span>
-                            <span className={`text-lg sm:text-xl font-semibold ${uiColors.text.secondary} break-words tracking-wide group-hover:text-white transition-colors duration-200`}>{selectedPart.customer}</span>
+                      {/* Part Image - Always at top on mobile */}
+                      {selectedPart.partImageUrl && selectedPart.partImageUrl.trim() !== '' && (isValidBase64Image(selectedPart.partImageUrl) || selectedPart.partImageUrl.startsWith('http')) && (
+                        <div className="flex-shrink-0 w-full flex justify-center lg:hidden">
+                          <div className="relative group">
+                            <div className="w-48 h-48 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-xl overflow-hidden border-2 border-gray-600/30 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-blue-500/50 hover:shadow-xl"
+                                 onClick={() => setImageModal({
+                                   isOpen: true,
+                                   imageUrl: selectedPart.partImageUrl!,
+                                   partName: selectedPart.partName
+                                 })}>
+                              <img
+                                src={selectedPart.partImageUrl}
+                                alt={selectedPart.partName}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                  const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                  if (fallback) fallback.classList.remove('hidden');
+                                }}
+                                onLoad={(e) => {
+                                  const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                  if (fallback) fallback.classList.add('hidden');
+                                }}
+                                {...(selectedPart.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
+                              />
+                              <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400 hidden">
+                                <Image className="w-12 h-12" />
+                              </div>
+                              
+                              {/* Hover Overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3">
+                                <div className="text-white text-sm font-medium bg-black/50 px-3 py-2 rounded-lg backdrop-blur-sm">
+                                  Click to view full size
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Image Badge */}
+                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                              <Image className="w-3 h-3 text-white" />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {/* Pie chart on the right of details */}
-                      {(() => {
-                        const percent = calculateOverallProgressWithDetail(selectedPart)
-                        const r = 42
-                        const stroke = 10
-                        const c = 2 * Math.PI * r
-                        const offset = c * (1 - percent / 100)
-                        return (
-                          <div className="hidden lg:flex items-center justify-center pl-2 pr-4">
-                            <div className="relative w-28 h-28">
-                              <svg viewBox="0 0 100 100" className="w-28 h-28">
-                                <defs>
-                                  <linearGradient id="overallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#60a5fa" />
-                                    <stop offset="100%" stopColor="#a78bfa" />
-                                  </linearGradient>
-                                </defs>
-                                <circle cx="50" cy="50" r={r} stroke="rgba(255,255,255,0.15)" strokeWidth={stroke} fill="none" />
-                                <circle cx="50" cy="50" r={r} stroke="url(#overallGrad)" strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset} />
-                              </svg>
-                              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <div className={`text-xl font-bold ${uiColors.text.primary}`}>{percent}%</div>
-                                <div className={`text-[10px] ${uiColors.text.tertiary}`}>Overall</div>
+                      )}
+                      
+                      {/* Content Row: Info & Actions */}
+                      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full">
+                        
+                        {/* Left Side: Part Information */}
+                        <div className="flex-1 min-w-0 w-full">
+                          {/* Part Details & Progress */}
+                          <div className="space-y-4">
+                            
+                            {/* Part Details Card */}
+                            <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 rounded-xl border border-gray-700/40 backdrop-blur-sm shadow-lg p-4">
+                              <h3 className="text-base font-semibold text-gray-200 mb-3 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                Part Information
+                              </h3>
+                              
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Part Name */}
+                                <div className="space-y-1">
+                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Part Name</label>
+                                  <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/30">
+                                    <span className="text-base font-semibold text-white break-words">{selectedPart.partName}</span>
+                                  </div>
+                                </div>
+                                
+                                {/* Part Number */}
+                                <div className="space-y-1">
+                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Part Number</label>
+                                  <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/30">
+                                    <span className="text-base font-mono font-semibold text-green-400 break-words">{selectedPart.partNumber}</span>
+                                  </div>
+                                </div>
+                                
+                                {/* Customer */}
+                                <div className="space-y-1 sm:col-span-2">
+                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Customer</label>
+                                  <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/30">
+                                    <span className="text-base font-semibold text-orange-400 break-words">{selectedPart.customer}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Progress Overview Card */}
+                            <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20 backdrop-blur-sm p-4">
+                              <h3 className="text-base font-semibold text-blue-200 mb-3 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                Progress Overview
+                              </h3>
+                              
+                              <div className="flex items-center justify-between">
+                                {/* Progress Stats */}
+                                <div className="space-y-1">
+                                  <div className="text-xl font-bold text-white">
+                                    {calculateOverallProgressWithDetail(selectedPart)}%
+                                  </div>
+                                  <div className="text-xs text-blue-300">Overall Progress</div>
+                                </div>
+                                
+                                {/* Progress Circle */}
+                                <div className="relative">
+                                  {(() => {
+                                    const percent = calculateOverallProgressWithDetail(selectedPart)
+                                    const r = 35
+                                    const stroke = 6
+                                    const c = 2 * Math.PI * r
+                                    const offset = c * (1 - percent / 100)
+                                    return (
+                                      <div className="relative w-20 h-20">
+                                        <svg viewBox="0 0 100 100" className="w-20 h-20 transform -rotate-90">
+                                          <defs>
+                                            <linearGradient id="overallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                              <stop offset="0%" stopColor="#60a5fa" />
+                                              <stop offset="100%" stopColor="#a78bfa" />
+                                            </linearGradient>
+                                          </defs>
+                                          <circle cx="50" cy="50" r={r} stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} fill="none" />
+                                          <circle 
+                                            cx="50" cy="50" r={r} 
+                                            stroke="url(#overallGrad)" 
+                                            strokeWidth={stroke} 
+                                            fill="none" 
+                                            strokeLinecap="round" 
+                                            strokeDasharray={c} 
+                                            strokeDashoffset={offset}
+                                            className="transition-all duration-1000 ease-out"
+                                          />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <div className="text-lg font-bold text-white">{percent}%</div>
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        )
-                      })()}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-stretch sm:items-end gap-3 w-full lg:w-auto">
-                    <div className="flex flex-col gap-2 w-full sm:w-auto">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setPartModal({
-                            isOpen: true,
-                            type: "edit",
-                            partId: selectedPart.id,
-                            part: selectedPart,
-                          })
-                        }
-                        className={`${uiColors.text.secondary} hover:${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-9 sm:h-8`}
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">Edit Part</span>
-                        <span className="sm:hidden">Edit</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={saveAllProgressToBackend}
-                        disabled={isSaving}
-                        className={`${uiColors.text.accent} hover:${uiColors.bg.secondary} ${uiColors.border.accent} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-9 sm:h-8`}
-                      >
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m4-4H8" />
-                        </svg>
-                        <span className="hidden sm:inline">{isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save*' : 'Save'}</span>
-                        <span className="sm:hidden">{isSaving ? '...' : 'Save'}</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setDeleteDialog({
-                            isOpen: true,
-                            type: "part",
-                            partId: selectedPart.id,
-                            name: selectedPart.partName,
-                          })
-                        }
-                        className={`${uiColors.text.error} hover:${uiColors.bg.secondary} ${uiColors.border.error} ${uiColors.bg.tertiary} text-xs px-2 py-1 h-9 sm:h-8`}
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">Delete Part</span>
-                        <span className="sm:hidden">Delete</span>
-                      </Button>
+                        </div>
+                        
+                        {/* Right Side: Action Buttons */}
+                        <div className="flex flex-col items-stretch xl:items-end gap-3 w-full xl:w-auto">
+                          
+                          {/* Desktop Part Image - Hidden on mobile */}
+                          {selectedPart.partImageUrl && selectedPart.partImageUrl.trim() !== '' && (isValidBase64Image(selectedPart.partImageUrl) || selectedPart.partImageUrl.startsWith('http')) && (
+                            <div className="hidden xl:block flex-shrink-0">
+                              <div className="relative group">
+                                <div className="w-40 h-40 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-xl overflow-hidden border-2 border-gray-600/30 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-blue-500/50 hover:shadow-xl"
+                                     onClick={() => setImageModal({
+                                       isOpen: true,
+                                       imageUrl: selectedPart.partImageUrl!,
+                                       partName: selectedPart.partName
+                                     })}>
+                                  <img
+                                    src={selectedPart.partImageUrl}
+                                    alt={selectedPart.partName}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                      if (fallback) fallback.classList.remove('hidden');
+                                    }}
+                                    onLoad={(e) => {
+                                      const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                      if (fallback) fallback.classList.add('hidden');
+                                    }}
+                                    {...(selectedPart.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
+                                  />
+                                  <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400 hidden">
+                                    <Image className="w-8 h-8" />
+                                  </div>
+                                  
+                                  {/* Hover Overlay */}
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-2">
+                                    <div className="text-white text-xs font-medium bg-black/50 px-3 py-1 rounded-lg backdrop-blur-sm">
+                                      Click to view full size
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Image Badge */}
+                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                                  <Image className="w-2.5 h-2.5 text-white" />
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-400 mt-1 text-left">Click image to view full size</p>
+                            </div>
+                          )}
+                          
+                          {/* Action Buttons */}
+                          <div className="flex flex-col gap-2 w-full xl:w-32">
+                            {/* Edit Part Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setPartModal({
+                                  isOpen: true,
+                                  type: "edit",
+                                  partId: selectedPart.id,
+                                  part: selectedPart,
+                                })
+                              }
+                              className={`w-full h-10 ${uiColors.text.secondary} hover:${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.bg.tertiary} text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-md border-2`}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              <span className="hidden sm:inline">Edit Part</span>
+                              <span className="sm:hidden">Edit</span>
+                            </Button>
+                            
+                            {/* Save Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={saveAllProgressToBackend}
+                              disabled={isSaving}
+                              className={`w-full h-10 ${uiColors.text.accent} hover:${uiColors.bg.secondary} ${uiColors.border.accent} ${uiColors.bg.tertiary} text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-md border-2 ${
+                                hasUnsavedChanges ? 'ring-2 ring-blue-400/50 shadow-lg bg-blue-500/10' : ''
+                              }`}
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m4-4H8" />
+                              </svg>
+                              <span className="hidden sm:inline">
+                                {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save*' : 'Save'}
+                              </span>
+                              <span className="sm:hidden">{isSaving ? '...' : 'Save'}</span>
+                          </Button>
+                            
+                            {/* Delete Part Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setDeleteDialog({
+                                  isOpen: true,
+                                  type: "part",
+                                  partId: selectedPart.id,
+                                  name: selectedPart.partName,
+                                })
+                              }
+                              className={`w-full h-10 ${uiColors.text.error} hover:${uiColors.bg.secondary} ${uiColors.border.error} ${uiColors.bg.tertiary} text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-md border-2 hover:bg-red-500/10`}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              <span className="hidden sm:inline">Delete Part</span>
+                              <span className="sm:hidden">Delete</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                
               </CardHeader>
 
               <CardContent>
