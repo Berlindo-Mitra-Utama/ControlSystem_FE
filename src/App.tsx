@@ -13,7 +13,6 @@ import WeldingLayout from "./tools_view/welding_kalkulator/layouts/WeldingLayout
 // Pages
 import Dashboard from "./tools_view/planning_system/pages/Dashboard";
 import Scheduler from "./tools_view/planning_system/pages/SchedulerPage";
-import SavedSchedules from "./tools_view/planning_system/pages/SavedSchedulesPage";
 import AllCharts from "./tools_view/planning_system/pages/AllChartsPage";
 import HitungCoil from "./tools_view/hitung_koil/pages/hitungcoil";
 import LandingPage from "./main_view/pages/LandingPage";
@@ -56,7 +55,7 @@ function App() {
               >
                 <Route index element={<Dashboard />} />
                 <Route path="scheduler" element={<Scheduler />} />
-                <Route path="saved" element={<SavedSchedules />} />
+                {/* Removed SavedSchedules route (not used) */}
                 <Route path="allcharts" element={<AllCharts />} />
               </Route>
 

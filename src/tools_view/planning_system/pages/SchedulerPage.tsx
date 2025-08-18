@@ -657,6 +657,7 @@ const SchedulerPage: React.FC = () => {
         console.log("📋 Schedules yang diproses:", schedules);
 
         if (schedules && schedules.length > 0) {
+          console.log("🔄 Converting schedules from backend:", schedules);
           // Konversi data dari backend ke format frontend
           const convertedSchedules = schedules.map((item: any) => {
             const monthIndex = item.productionMonth
@@ -686,7 +687,109 @@ const SchedulerPage: React.FC = () => {
                 manpowers: item.manpowers || [],
                 partImageUrl: item.partImageUrl || undefined,
               },
-              schedule: item.dailyProductions || [],
+              // Map dailyProductions dari backend ke struktur frontend dengan debugging
+              schedule: (() => {
+                console.log(
+                  `🔍 Processing dailyProductions for ${partName}:`,
+                  item.dailyProductions,
+                );
+
+                if (
+                  !item.dailyProductions ||
+                  !Array.isArray(item.dailyProductions) ||
+                  item.dailyProductions.length === 0
+                ) {
+                  console.log(
+                    `⚠️ No dailyProductions found for ${partName}, trying to regenerate from form data`,
+                  );
+
+                  // Coba regenerate schedule dari form data jika ada
+                  if (item.timePerPcs && item.partName) {
+                    try {
+                      const formData = {
+                        part: item.partName,
+                        customer: item.customerName,
+                        timePerPcs: item.timePerPcs,
+                        stock: item.currentStock || 332,
+                        planningHour: item.planningHour || 274,
+                        overtimeHour: item.overtimeHour || 119,
+                        planningPcs: item.planningPcs || 3838,
+                        overtimePcs: item.overtimePcs || 1672,
+                        isManualPlanningPcs: item.isManualPlanningPcs || false,
+                        manpowers: item.manpowers || [],
+                      };
+
+                      const regeneratedSchedule = generateScheduleFromForm(
+                        formData,
+                        [],
+                      );
+                      console.log(
+                        `✅ Regenerated ${regeneratedSchedule.length} schedule items for ${partName}`,
+                      );
+                      return regeneratedSchedule;
+                    } catch (regenerateError) {
+                      console.error(
+                        `❌ Failed to regenerate schedule for ${partName}:`,
+                        regenerateError,
+                      );
+                      return [];
+                    }
+                  }
+
+                  return [];
+                }
+
+                const mappedSchedule = item.dailyProductions.map(
+                  (dp: any, index: number) => {
+                    console.log(`📅 Mapping dailyProduction ${index}:`, dp);
+
+                    // Handle different date formats
+                    let day = 1;
+                    try {
+                      if (dp.productionDate) {
+                        const date = new Date(dp.productionDate);
+                        if (!isNaN(date.getTime())) {
+                          day = date.getDate();
+                        } else {
+                          // Try parsing as day number directly
+                          day = parseInt(dp.productionDate) || 1;
+                        }
+                      } else if (dp.day) {
+                        day = parseInt(dp.day) || 1;
+                      }
+                    } catch (e) {
+                      console.error(
+                        `Error parsing date for dailyProduction ${index}:`,
+                        e,
+                      );
+                      day = index + 1; // Fallback to index + 1
+                    }
+
+                    return {
+                      id: `${dp.productionDate || dp.day || day}-${dp.shift || 1}`,
+                      day: day,
+                      shift: String(dp.shift || 1),
+                      time:
+                        (dp.shift || 1) === 1 ? "07:30-16:30" : "19:30-04:30",
+                      type: "Produksi",
+                      pcs: dp.actualProduction || dp.pcs || 0,
+                      planningPcs: dp.planningProduction || dp.planningPcs || 0,
+                      overtimePcs: dp.overtime || dp.overtimePcs || 0,
+                      delivery: dp.deliveryPlan || dp.delivery || 0,
+                      status: dp.status || "Normal",
+                      notes: dp.notes || "",
+                      jamProduksiAktual:
+                        dp.actualProductionHours || dp.jamProduksiAktual || 0,
+                    };
+                  },
+                );
+
+                console.log(
+                  `✅ Mapped schedule for ${partName}:`,
+                  mappedSchedule,
+                );
+                return mappedSchedule;
+              })(),
               childParts: item.childParts || [],
               productInfo: {
                 partName: partName,
@@ -709,9 +812,10 @@ const SchedulerPage: React.FC = () => {
           localStorage.setItem("savedSchedules", JSON.stringify(deduped));
 
           console.log(
-            "Saved schedules berhasil dimuat dari database:",
+            "✅ Saved schedules berhasil dimuat dari database:",
             convertedSchedules,
           );
+          console.log("📊 Final savedSchedules state:", deduped);
         }
       } catch (error) {
         console.error("Error loading saved schedules:", error);
@@ -720,13 +824,51 @@ const SchedulerPage: React.FC = () => {
         if (localData) {
           try {
             const parsedData = JSON.parse(localData);
-            setSavedSchedules(parsedData);
             console.log(
-              "Fallback: Loaded saved schedules from localStorage:",
+              "🔄 Fallback: Loaded saved schedules from localStorage:",
               parsedData,
             );
+
+            // Validasi dan perbaiki data dari localStorage jika perlu
+            const validatedData = parsedData.map((item: any) => {
+              if (
+                !item.schedule ||
+                !Array.isArray(item.schedule) ||
+                item.schedule.length === 0
+              ) {
+                console.warn(
+                  `⚠️ Schedule data empty for ${item.form?.part}, trying to regenerate...`,
+                );
+                // Coba regenerate schedule dari form data jika ada
+                if (item.form) {
+                  try {
+                    const regeneratedSchedule = generateScheduleFromForm(
+                      item.form,
+                      [],
+                    );
+                    return {
+                      ...item,
+                      schedule: regeneratedSchedule,
+                    };
+                  } catch (regenerateError) {
+                    console.error(
+                      `❌ Failed to regenerate schedule for ${item.form.part}:`,
+                      regenerateError,
+                    );
+                    return item;
+                  }
+                }
+              }
+              return item;
+            });
+
+            setSavedSchedules(validatedData);
+            console.log(
+              "✅ Fallback: Validated and set saved schedules:",
+              validatedData,
+            );
           } catch (parseError) {
-            console.error("Error parsing localStorage data:", parseError);
+            console.error("❌ Error parsing localStorage data:", parseError);
           }
         }
       }
@@ -1505,7 +1647,7 @@ const SchedulerPage: React.FC = () => {
               return undefined;
             })();
 
-      // Simpan juga ke SavedSchedulesPage
+      // Simpan juga ke savedSchedules state
       const newSchedule = {
         id:
           response.id?.toString() ||
@@ -1660,7 +1802,7 @@ const SchedulerPage: React.FC = () => {
         setHasUnsavedChildPartChanges(false);
         setChildPartChanges(new Set());
       } else {
-        // Tambah jadwal baru ke SavedSchedulesPage
+        // Tambah jadwal baru ke savedSchedules state
         const updatedSchedules = [...savedSchedules, newSchedule];
         setSavedSchedules(updatedSchedules);
         localStorage.setItem(
@@ -1834,7 +1976,7 @@ const SchedulerPage: React.FC = () => {
     }
   };
 
-  // Edit Part handlers (same behavior as SavedSchedulesPage)
+  // Edit Part handlers (sama dengan behavior sebelumnya)
   const handleSavePartEdit = () => {
     if (!editingPartName.trim() || !editingPartCustomer.trim()) return;
     const schedulesToUpdate = savedSchedules.filter(
@@ -2187,7 +2329,7 @@ const SchedulerPage: React.FC = () => {
   const days =
     schedule.length > 0 ? Math.max(...schedule.map((s) => s.day)) : 30;
 
-  // Styled parts list (samakan dengan SavedSchedulesPage)
+  // Styled parts list
   const parts = React.useMemo(() => {
     const uniqueParts = new Map<
       string,
@@ -2262,16 +2404,35 @@ const SchedulerPage: React.FC = () => {
   }, [savedSchedules]);
 
   // Flag untuk menyembunyikan section Saved saat sedang menampilkan dashboard produksi
-  const isViewingSchedule = schedule && schedule.length > 0;
+  const isViewingSchedule =
+    schedule && Array.isArray(schedule) && schedule.length > 0;
 
   const getSchedulesByPart = (partName: string) =>
     savedSchedules.filter((s) => s.form.part === partName);
 
   const handleShowSchedule = (saved: SavedSchedule) => {
     try {
+      console.log("🎯 handleShowSchedule called with:", saved);
+      console.log("📋 Schedule data:", saved.schedule);
+
       // Paksa apply state lokal supaya bisa tampil lagi meski memilih schedule yang sama
       setForm(saved.form);
-      setScheduleWithTracking(saved.schedule || []);
+
+      // Pastikan schedule data valid
+      const scheduleData = saved.schedule || [];
+      console.log("📊 Processed schedule data:", scheduleData);
+
+      if (scheduleData.length === 0) {
+        console.warn("⚠️ Schedule data is empty, cannot display table");
+        console.log("🔍 Saved object:", saved);
+        showAlert(
+          "Data jadwal kosong. Ini mungkin karena:\n1. Data belum tersimpan dengan benar ke database\n2. Ada masalah dengan koneksi ke server\n\nSilakan coba generate ulang jadwal atau hubungi administrator.",
+          "Peringatan",
+        );
+        return;
+      }
+
+      setScheduleWithTracking(scheduleData);
       setSelectedPart(saved.form?.part || null);
 
       // Update product info
@@ -2300,11 +2461,129 @@ const SchedulerPage: React.FC = () => {
       // Simpan juga ke context (gunakan objek baru agar perubahan terdeteksi)
       loadSchedule({ ...saved });
 
-      // Scroll ke tabel
+      // Scroll ke tabel dengan delay lebih lama untuk memastikan state ter-update
       setTimeout(() => {
         const el = document.getElementById("schedule-table-section");
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 0);
+        if (el) {
+          console.log("🎯 Scrolling to schedule table");
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          console.warn("⚠️ Schedule table element not found");
+        }
+      }, 100);
+
+      console.log("✅ handleShowSchedule completed successfully");
+    } catch (error) {
+      console.error("❌ Error in handleShowSchedule:", error);
+      showAlert("Gagal menampilkan jadwal", "Error");
+    }
+  };
+
+  // Handler untuk kembali ke card dengan konfirmasi simpan
+  const handleBackToCards = async () => {
+    // Cek apakah ada schedule yang belum disimpan
+    if (schedule && schedule.length > 0 && form) {
+      const isConfirmed = window.confirm(
+        "Jadwal produksi belum disimpan. Apakah Anda ingin menyimpan jadwal ini terlebih dahulu sebelum kembali ke daftar card?",
+      );
+
+      if (isConfirmed) {
+        try {
+          console.log(
+            "💾 User memilih untuk menyimpan jadwal sebelum kembali ke card",
+          );
+
+          // Simpan ke backend
+          const scheduleData = {
+            partName: form.part,
+            customer: form.customer,
+            month: selectedMonth || new Date().getMonth(),
+            year: selectedYear || new Date().getFullYear(),
+            initialStock: form.stock,
+            timePerPcs: form.timePerPcs,
+            scheduleName: `${form.part} - ${MONTHS[selectedMonth || new Date().getMonth()]} ${selectedYear || new Date().getFullYear()}`,
+            productionData: schedule,
+            lastSavedBy: { id: 1, nama: "User", role: "user", nip: "000000" },
+          };
+
+          // Convert schedule data untuk backend
+          const productionDataForBackend = schedule.map((item) => ({
+            day: item.day,
+            shift: item.shift,
+            planningPcs: item.planningPcs || 0,
+            delivery: item.delivery || 0,
+            overtimePcs: item.overtimePcs || 0,
+            hasilProduksi: item.pcs || 0,
+            jamProduksiAktual: item.jamProduksiAktual || 0,
+            manpowerIds: item.manpowerIds || [],
+            status: item.status || "Normal",
+            notes: item.notes || "",
+          }));
+
+          const scheduleDataForBackend = {
+            ...scheduleData,
+            productionData: productionDataForBackend,
+          };
+
+          const response = await ProductionService.createProductionSchedule(
+            scheduleDataForBackend,
+          );
+          console.log("✅ Schedule berhasil disimpan ke backend:", response);
+
+          // Update savedSchedules state
+          const newSchedule = {
+            id: makeScheduleId(
+              form.part,
+              selectedMonth || new Date().getMonth(),
+              selectedYear || new Date().getFullYear(),
+            ),
+            backendId: response.data.productPlanning.id,
+            name: scheduleData.scheduleName,
+            date: new Date().toISOString(),
+            form: form,
+            schedule: schedule,
+            childParts: [],
+            productInfo: {
+              partName: form.part,
+              customer: form.customer,
+              lastSavedBy: { nama: "User", role: "user" },
+              lastSavedAt: new Date().toISOString(),
+            },
+          };
+
+          setSavedSchedules((prev) => {
+            const filtered = prev.filter((s) => s.id !== newSchedule.id);
+            return [...filtered, newSchedule];
+          });
+
+          // Simpan ke localStorage juga
+          const updatedSchedules = savedSchedules.filter(
+            (s) => s.id !== newSchedule.id,
+          );
+          updatedSchedules.push(newSchedule);
+          localStorage.setItem(
+            "savedSchedules",
+            JSON.stringify(updatedSchedules),
+          );
+
+          showAlert("Jadwal berhasil disimpan!", "Sukses");
+        } catch (error) {
+          console.error("❌ Error saving schedule:", error);
+          showAlert("Gagal menyimpan jadwal. Silakan coba lagi.", "Error");
+          return; // Jangan kembali ke card jika gagal simpan
+        }
+      }
+    }
+
+    // Reset state dan kembali ke card view
+    setScheduleWithTracking([]);
+    setSelectedPart(null);
+    setProductInfo(null);
+    setSelectedMonth(null);
+    setSelectedYear(null);
+
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {}
   };
 
@@ -2391,284 +2670,294 @@ const SchedulerPage: React.FC = () => {
       {/* SchedulerPage main content */}
       <div className="w-full max-w-none mx-auto px-2 sm:px-4 lg:px-6">
         {/* Saved section integrated */}
-        {savedSchedules.length > 0 && !isViewingSchedule && (
-          <div className="mb-8">
-            {!selectedPart ? (
-              <div>
-                <div className="flex items-center justify-end mb-2 sm:mb-3 max-w-7xl mx-auto">
-                  <button
-                    onClick={() => {
-                      resetFormAndSchedule();
-                      setShowProductionForm(true);
-                    }}
-                    className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all text-sm font-medium"
-                    title="Tambah jadwal"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Tambah Jadwal</span>
-                  </button>
-                </div>
-                <div className="max-w-7xl mx-auto w-full">
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-6 shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2">
-                      {parts.map((p) => (
-                        <div
-                          key={p.name}
-                          onClick={() => setSelectedPart(p.name)}
-                          className={`group relative ${uiColors.bg.secondary} border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
-                          style={{ minHeight: "150px" }}
-                        >
-                          <div className="col-span-5 md:col-span-5 relative">
-                            {p.imageUrl ? (
-                              <img
-                                src={p.imageUrl}
-                                alt={p.name}
-                                className="absolute inset-0 w-full h-full object-cover object-center"
-                              />
-                            ) : (
-                              <div
-                                className={`absolute inset-0 ${p.bgColor} flex items-center justify-center`}
-                              >
-                                <Package className="w-10 h-10 text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between">
-                            <div className="flex items-start justify-between">
-                              <div className="min-w-0">
+        {savedSchedules.length > 0 &&
+          !isViewingSchedule &&
+          (console.log(
+            "🎨 Rendering saved schedules overview, isViewingSchedule:",
+            isViewingSchedule,
+            "schedule length:",
+            schedule?.length,
+          ),
+          (
+            <div className="mb-8">
+              {!selectedPart ? (
+                <div>
+                  <div className="flex items-center justify-end mb-2 sm:mb-3 max-w-7xl mx-auto">
+                    <button
+                      onClick={() => {
+                        resetFormAndSchedule();
+                        setShowProductionForm(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all text-sm font-medium"
+                      title="Tambah jadwal"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Tambah Jadwal</span>
+                    </button>
+                  </div>
+                  <div className="max-w-7xl mx-auto w-full">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-6 shadow-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2">
+                        {parts.map((p) => (
+                          <div
+                            key={p.name}
+                            onClick={() => setSelectedPart(p.name)}
+                            className={`group relative ${uiColors.bg.secondary} border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
+                            style={{ minHeight: "150px" }}
+                          >
+                            <div className="col-span-5 md:col-span-5 relative">
+                              {p.imageUrl ? (
+                                <img
+                                  src={p.imageUrl}
+                                  alt={p.name}
+                                  className="absolute inset-0 w-full h-full object-cover object-center"
+                                />
+                              ) : (
                                 <div
-                                  className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} truncate`}
+                                  className={`absolute inset-0 ${p.bgColor} flex items-center justify-center`}
                                 >
-                                  {p.name}
+                                  <Package className="w-10 h-10 text-white" />
                                 </div>
-                                <div
-                                  className={`${uiColors.text.tertiary} text-sm truncate mt-0.5`}
-                                >
-                                  {p.customer}
-                                </div>
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingPartId(p.name);
-                                  setEditingPartName(p.name);
-                                  setEditingPartCustomer(p.customer);
-                                  setShowEditPartModal(true);
-                                }}
-                                className="p-2.5 rounded-full bg-white hover:bg-gray-50 text-gray-700 shadow-lg border border-gray-200 transition-all duration-200 hover:scale-110"
-                                title="Edit part"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
+                              )}
                             </div>
-                            <div>
-                              <p
-                                className={`${uiColors.text.tertiary} text-xs mb-3`}
-                              >
-                                {p.description}
-                              </p>
-                              <div
-                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white bg-gradient-to-r ${p.color} text-xs font-semibold shadow-md`}
-                              >
-                                <Calendar className="w-4 h-4" />
-                                {getSchedulesByPart(p.name).length} jadwal
-                                tersimpan
+                            <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between">
+                              <div className="flex items-start justify-between">
+                                <div className="min-w-0">
+                                  <div
+                                    className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} truncate`}
+                                  >
+                                    {p.name}
+                                  </div>
+                                  <div
+                                    className={`${uiColors.text.tertiary} text-sm truncate mt-0.5`}
+                                  >
+                                    {p.customer}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingPartId(p.name);
+                                    setEditingPartName(p.name);
+                                    setEditingPartCustomer(p.customer);
+                                    setShowEditPartModal(true);
+                                  }}
+                                  className="p-2.5 rounded-full bg-white hover:bg-gray-50 text-gray-700 shadow-lg border border-gray-200 transition-all duration-200 hover:scale-110"
+                                  title="Edit part"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div>
+                                <p
+                                  className={`${uiColors.text.tertiary} text-xs mb-3`}
+                                >
+                                  {p.description}
+                                </p>
+                                <div
+                                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white bg-gradient-to-r ${p.color} text-xs font-semibold shadow-md`}
+                                >
+                                  <Calendar className="w-4 h-4" />
+                                  {getSchedulesByPart(p.name).length} jadwal
+                                  tersimpan
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {showEditPartModal && (
-                  <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={handleCancelPartEdit}
-                  >
+                  {showEditPartModal && (
                     <div
-                      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
-                      onClick={(e) => e.stopPropagation()}
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                      onClick={handleCancelPartEdit}
                     >
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-500/10 rounded-lg">
-                            <Edit3 className="w-5 h-5 text-blue-500" />
+                      <div
+                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/10 rounded-lg">
+                              <Edit3 className="w-5 h-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                                Edit Part
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Ubah nama part dan customer
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleCancelPartEdit}
+                            className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                              Nama Part
+                            </label>
+                            <input
+                              type="text"
+                              value={editingPartName}
+                              onChange={(e) =>
+                                setEditingPartName(e.target.value)
+                              }
+                              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                              placeholder="Masukkan nama part"
+                              autoFocus
+                            />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                              Edit Part
-                            </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Ubah nama part dan customer
-                            </p>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                              Nama Customer
+                            </label>
+                            <input
+                              type="text"
+                              value={editingPartCustomer}
+                              onChange={(e) =>
+                                setEditingPartCustomer(e.target.value)
+                              }
+                              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                              placeholder="Masukkan nama customer"
+                            />
+                          </div>
+                          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                            <strong>Tips:</strong> Tekan Enter untuk simpan, Esc
+                            untuk batal
                           </div>
                         </div>
-                        <button
-                          onClick={handleCancelPartEdit}
-                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                            Nama Part
-                          </label>
-                          <input
-                            type="text"
-                            value={editingPartName}
-                            onChange={(e) => setEditingPartName(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
-                            placeholder="Masukkan nama part"
-                            autoFocus
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                            Nama Customer
-                          </label>
-                          <input
-                            type="text"
-                            value={editingPartCustomer}
-                            onChange={(e) =>
-                              setEditingPartCustomer(e.target.value)
-                            }
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
-                            placeholder="Masukkan nama customer"
-                          />
-                        </div>
-                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
-                          <strong>Tips:</strong> Tekan Enter untuk simpan, Esc
-                          untuk batal
+                        <div className="flex gap-3 mt-6">
+                          <button
+                            onClick={handleCancelPartEdit}
+                            className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            onClick={handleSavePartEdit}
+                            className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105"
+                          >
+                            Simpan
+                          </button>
                         </div>
                       </div>
-                      <div className="flex gap-3 mt-6">
-                        <button
-                          onClick={handleCancelPartEdit}
-                          className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105"
-                        >
-                          Batal
-                        </button>
-                        <button
-                          onClick={handleSavePartEdit}
-                          className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105"
-                        >
-                          Simpan
-                        </button>
-                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div>
-                <div className="mb-6 p-6 bg-white border border-gray-200 rounded-2xl flex items-center gap-4 shadow-lg">
-                  <button
-                    onClick={() => setSelectedPart(null)}
-                    className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                  <div className="p-3 bg-blue-500/10 rounded-xl">
-                    <Package className="w-6 h-6 text-blue-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xl font-bold text-gray-900 truncate mb-1">
-                      {selectedPart}
-                    </div>
-                    <div className="text-base text-gray-600 truncate">
-                      {parts.find((p) => p.name === selectedPart)?.customer}
-                    </div>
-                  </div>
-                  <div className="px-4 py-3 bg-white border border-gray-200 rounded-xl text-center shadow-md">
-                    <div className="text-sm text-gray-500 mb-1">
-                      Total Schedules
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {getSchedulesByPart(selectedPart).length}
-                    </div>
-                  </div>
+                  )}
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {getSchedulesByPart(selectedPart).map((s) => (
-                    <div
-                      key={s.id}
-                      className="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:scale-105"
+              ) : (
+                <div>
+                  <div className="mb-6 p-6 bg-white border border-gray-200 rounded-2xl flex items-center gap-4 shadow-lg">
+                    <button
+                      onClick={() => setSelectedPart(null)}
+                      className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200 hover:scale-105"
                     >
-                      <div className="min-w-0">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-blue-500/10 rounded-xl">
-                              <Calendar className="w-6 h-6 text-blue-500" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-gray-900 text-lg mb-1">
-                                {s.name}
-                              </div>
-                              <div className="text-sm text-gray-600 flex items-center gap-1">
-                                <Clock className="w-4 h-4" /> Dibuat:{" "}
-                                {new Date(s.date).toLocaleString("id-ID")}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="p-1.5 bg-green-500/10 rounded-full">
-                            <CheckCircle className="w-5 h-5 text-green-500" />
-                          </div>
-                        </div>
-
-                        <div className="mb-6 space-y-3">
-                          <div className="flex items-center gap-3 text-sm text-gray-700">
-                            <Package className="w-5 h-5 text-blue-500" />
-                            <span>
-                              <span className="font-semibold">Part:</span>{" "}
-                              {s.form.part}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm text-gray-700">
-                            <Cog className="w-5 h-5 text-purple-500" />
-                            <span>
-                              <span className="font-semibold">Customer:</span>{" "}
-                              {s.form.customer}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleShowSchedule(s)}
-                            className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 shadow-md"
-                          >
-                            <Eye className="w-4 h-4" /> Tampilkan
-                          </button>
-                          <button
-                            onClick={() => handleDownloadExcel(s)}
-                            className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 shadow-md"
-                            title="Download Excel"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleDeleteScheduleFromDatabase(s.id)
-                            }
-                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 shadow-md"
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div className="p-3 bg-blue-500/10 rounded-xl">
+                      <Package className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xl font-bold text-gray-900 truncate mb-1">
+                        {selectedPart}
+                      </div>
+                      <div className="text-base text-gray-600 truncate">
+                        {parts.find((p) => p.name === selectedPart)?.customer}
                       </div>
                     </div>
-                  ))}
+                    <div className="px-4 py-3 bg-white border border-gray-200 rounded-xl text-center shadow-md">
+                      <div className="text-sm text-gray-500 mb-1">
+                        Total Schedules
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        {getSchedulesByPart(selectedPart).length}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {getSchedulesByPart(selectedPart).map((s) => (
+                      <div
+                        key={s.id}
+                        className="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:scale-105"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2.5 bg-blue-500/10 rounded-xl">
+                                <Calendar className="w-6 h-6 text-blue-500" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-gray-900 text-lg mb-1">
+                                  {s.name}
+                                </div>
+                                <div className="text-sm text-gray-600 flex items-center gap-1">
+                                  <Clock className="w-4 h-4" /> Dibuat:{" "}
+                                  {new Date(s.date).toLocaleString("id-ID")}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="p-1.5 bg-green-500/10 rounded-full">
+                              <CheckCircle className="w-5 h-5 text-green-500" />
+                            </div>
+                          </div>
+
+                          <div className="mb-6 space-y-3">
+                            <div className="flex items-center gap-3 text-sm text-gray-700">
+                              <Package className="w-5 h-5 text-blue-500" />
+                              <span>
+                                <span className="font-semibold">Part:</span>{" "}
+                                {s.form.part}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-gray-700">
+                              <Cog className="w-5 h-5 text-purple-500" />
+                              <span>
+                                <span className="font-semibold">Customer:</span>{" "}
+                                {s.form.customer}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleShowSchedule(s)}
+                              className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 shadow-md"
+                            >
+                              <Eye className="w-4 h-4" /> Tampilkan
+                            </button>
+                            <button
+                              onClick={() => handleDownloadExcel(s)}
+                              className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 shadow-md"
+                              title="Download Excel"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteScheduleFromDatabase(s.id)
+                              }
+                              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 shadow-md"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          ))}
 
         {/* Main content below */}
         {/* ...existing code... */}
@@ -2928,12 +3217,7 @@ const SchedulerPage: React.FC = () => {
                 <div className="flex flex-row items-center gap-2 sm:gap-4">
                   {/* Tombol Kembali ke Card */}
                   <button
-                    onClick={() => {
-                      setSchedule([]);
-                      try {
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      } catch {}
-                    }}
+                    onClick={handleBackToCards}
                     className="px-5 py-2.5 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 text-sm flex items-center gap-2 shadow-md"
                   >
                     <svg
