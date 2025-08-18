@@ -167,7 +167,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           .replace(/\s+/g, "-")
           .toLowerCase();
 
-      // Simpan ke SavedSchedulesPage
+      // Simpan ke state saved schedules
       const newSchedule = {
         id: scheduleId,
         name: `${MONTHS[selectedMonth]} ${selectedYear}`,
