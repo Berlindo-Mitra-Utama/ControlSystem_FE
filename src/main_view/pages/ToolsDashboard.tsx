@@ -5,9 +5,7 @@ import { Button } from "@heroui/react"
 import {
   Calendar,
   BarChart3,
-  Settings,
   Users,
-  TrendingUp,
   Wrench,
   Lock,
   Unlock,
@@ -344,19 +342,6 @@ export default function ToolsDashboard() {
     },
     // Management Tools
     {
-      id: "analytics",
-      title: "Analytics",
-      description: "Analisis performa dan trend produksi dengan business intelligence dashboard",
-      icon: TrendingUp,
-      gradient: "from-red-500 to-pink-500",
-      hoverGradient: "from-red-600 to-pink-600",
-      category: "management",
-      badge: "Management",
-      requiresLogin: true,
-      badgeColor: "bg-red-500/10 text-red-400 border-red-500/20",
-      maintenance: true,
-    },
-    {
       id: "usermanagement",
       title: "User Management",
       description: "Kelola akses pengguna sistem",
@@ -368,19 +353,6 @@ export default function ToolsDashboard() {
       requiresLogin: true,
       badgeColor: "bg-red-500/10 text-red-400 border-red-500/20",
       maintenance: false,
-    },
-    {
-      id: "systemconfig",
-      title: "System Config",
-      description: "Konfigurasi dan maintenance sistem dengan advanced settings dan backup management",
-      icon: Settings,
-      gradient: "from-yellow-500 to-orange-500",
-      hoverGradient: "from-yellow-600 to-orange-600",
-      category: "management",
-      badge: "Admin Only",
-      requiresLogin: true,
-      badgeColor: "bg-red-500/10 text-red-400 border-red-500/20",
-      maintenance: true,
     },
   ]
 
