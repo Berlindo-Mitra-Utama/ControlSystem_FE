@@ -8,6 +8,7 @@ import {
 } from "../../../../services/API_Services";
 import Modal from "../ui/Modal";
 import { generateScheduleFromForm } from "../../utils/scheduleCalcUtils";
+import { useNotification } from "../../../../hooks/useNotification";
 
 // Singkatan bulan untuk dropdown
 const MONTH_ABBREVIATIONS = [
@@ -69,6 +70,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   onSuccess,
 }) => {
   const { theme } = useTheme();
+  const { showAlert, showSuccess, showError, notification, hideNotification } =
+    useNotification();
   const {
     savedSchedules,
     setSavedSchedules,
@@ -115,11 +118,12 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       currentStock: form.stock || 0,
     };
 
-    // Cek apakah jadwal sudah ada untuk part, bulan, dan tahun yang sama
+    // Cek apakah jadwal sudah ada untuk part, customer, bulan, dan tahun yang sama
     const existingSchedule = checkExistingSchedule(
       form.part.trim(),
       selectedMonth,
       selectedYear,
+      form.customer.trim(),
     );
 
     if (existingSchedule) {
@@ -141,15 +145,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     setIsSaving(true);
 
     try {
-      // Cek apakah jadwal sudah ada untuk part, bulan, dan tahun yang sama
+      // Cek apakah jadwal sudah ada untuk part, customer, bulan, dan tahun yang sama
       const existingSchedule = checkExistingSchedule(
         form.part.trim(),
         selectedMonth,
         selectedYear,
+        form.customer.trim(),
       );
 
-      // Simpan ke backend menggunakan API service
-      await PlanningSystemService.createProductPlanning(planningData);
+      // Simpan ke backend menggunakan upsert agar tidak membuat duplikasi
+      await PlanningSystemService.upsertProductPlanning(planningData);
 
       // Generate schedule untuk disimpan ke Saved Schedules (bukan langsung tampil dashboard)
       const generatedSchedule = generateScheduleFromForm(
@@ -161,9 +166,9 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         [],
       );
 
-      // Buat ID yang konsisten berdasarkan part, bulan, dan tahun
+      // Buat ID yang konsisten berdasarkan part, customer, bulan, dan tahun
       const scheduleId =
-        `${planningData.partName}-${selectedMonth}-${selectedYear}`
+        `${planningData.partName}-${planningData.customerName}-${selectedMonth}-${selectedYear}`
           .replace(/\s+/g, "-")
           .toLowerCase();
 
@@ -212,10 +217,11 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       });
 
       if (onSuccess) onSuccess("Jadwal berhasil digenerate!");
-      if (onClose) onClose();
+      // Tidak langsung tutup modal, biarkan user melihat jadwal di card view dulu
+      // if (onClose) onClose();
     } catch (error) {
       console.error("Error saving to backend:", error);
-      alert("Gagal menyimpan data ke database. Silakan coba lagi.");
+      showError("Gagal menyimpan data ke database. Silakan coba lagi.");
     } finally {
       setIsSaving(false);
     }
@@ -242,13 +248,13 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     if (file) {
       // Validasi ukuran file (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert("Ukuran file terlalu besar. Maksimal 5MB.");
+        showAlert("Ukuran file terlalu besar. Maksimal 5MB.", "Peringatan");
         return;
       }
 
       // Validasi tipe file
       if (!file.type.startsWith("image/")) {
-        alert("File harus berupa gambar.");
+        showAlert("File harus berupa gambar.", "Peringatan");
         return;
       }
 
@@ -881,6 +887,19 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
             </p>
           </div>
         </div>
+      </Modal>
+
+      {/* Notification Modal */}
+      <Modal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        type={notification.type}
+        onConfirm={notification.onConfirm}
+        confirmText={notification.confirmText}
+        cancelText={notification.cancelText}
+      >
+        {notification.message}
       </Modal>
     </div>
   );

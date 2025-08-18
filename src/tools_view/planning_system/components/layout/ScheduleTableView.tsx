@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
+import { ScheduleItem } from "../../types/scheduleTypes";
 import { useTheme } from "../../../contexts/ThemeContext";
 import {
   formatValidDate,
@@ -40,7 +40,6 @@ import {
   Activity,
   Plus,
   Trash2,
-  XCircle,
 } from "lucide-react";
 
 interface ScheduleTableViewProps {
@@ -207,10 +206,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
   // Calculate total jam produksi (cycle time) with manpower consideration
   const outputPerHour = calculateOutputPerHour(timePerPcs, []);
-  const totalJamProduksi = formatJamProduksi(
-    totals.hasilProduksi,
-    outputPerHour,
-  );
   const totalPlanningJam = formatJamProduksi(totals.planningPcs, outputPerHour);
   const totalOvertimeJam = formatJamProduksi(totals.overtimePcs, outputPerHour);
 
