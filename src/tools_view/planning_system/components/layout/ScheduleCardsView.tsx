@@ -36,48 +36,6 @@ import {
   Zap,
 } from "lucide-react";
 
-// Komponen Toast Notification
-const ToastNotification = ({
-  message,
-  type,
-  isVisible,
-  onClose,
-}: {
-  message: string;
-  type: "success" | "error";
-  isVisible: boolean;
-  onClose: () => void;
-}) => {
-  useEffect(() => {
-    if (isVisible) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 3000); // Auto close setelah 3 detik
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, onClose]);
-
-  if (!isVisible) return null;
-
-  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
-  const icon = type === "success" ? "✓" : "✕";
-
-  return (
-    <div
-      className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3`}
-    >
-      <span className="text-lg font-bold">{icon}</span>
-      <span className="font-medium">{message}</span>
-      <button
-        onClick={onClose}
-        className="ml-4 text-white/80 hover:text-white text-lg font-bold"
-      >
-        ×
-      </button>
-    </div>
-  );
-};
-
 interface ScheduleCardsViewProps {
   schedule: ScheduleItem[];
   setEditForm: React.Dispatch<React.SetStateAction<Partial<ScheduleItem>>>;
@@ -278,16 +236,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   const [manpowerError, setManpowerError] = useState<string>("");
   // State untuk notifikasi sukses manpower
   const [manpowerSuccess, setManpowerSuccess] = useState<string>("");
-  // State untuk toast notification
-  const [toastNotification, setToastNotification] = useState<{
-    message: string;
-    type: "success" | "error";
-    isVisible: boolean;
-  }>({
-    message: "",
-    type: "success",
-    isVisible: false,
-  });
+
   // Ref for measuring the longest manpower name
   const manpowerListRef = useRef<HTMLUListElement>(null);
   const [modalMinWidth, setModalMinWidth] = useState<string | undefined>(
@@ -342,7 +291,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
       // Tampilkan notifikasi sukses
       setManpowerError(""); // Clear any previous errors
-      showToast(`${newManpower.trim()} berhasil ditambahkan!`, "success");
+      console.log(`${newManpower.trim()} berhasil ditambahkan!`);
 
       // Clear input field
       setNewManpower("");
@@ -364,14 +313,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
       // Tampilkan error yang sesuai
       if (error.message && error.message.includes("ERR_CONNECTION_REFUSED")) {
-        showToast("Server tidak tersedia, data disimpan lokal", "error");
+        console.log("Server tidak tersedia, data disimpan lokal");
       } else if (error.message && error.message.includes("Token tidak ada")) {
-        showToast(
-          "Silakan login terlebih dahulu, data disimpan lokal",
-          "error",
-        );
+        console.log("Silakan login terlebih dahulu, data disimpan lokal");
       } else {
-        showToast("Gagal menyimpan ke database, data disimpan lokal", "error");
+        console.log("Gagal menyimpan ke database, data disimpan lokal");
       }
     }
   };
@@ -386,7 +332,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
       setManpowerList(manpowerResponse || []);
 
       // Tampilkan notifikasi sukses
-      showToast("Manpower berhasil dihapus!", "success");
+      console.log("Manpower berhasil dihapus!");
     } catch (error) {
       console.error("Error removing manpower:", error);
 
@@ -395,11 +341,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
       // Tampilkan error yang sesuai
       if (error.message && error.message.includes("ERR_CONNECTION_REFUSED")) {
-        showToast("Server tidak tersedia, data dihapus lokal", "error");
+        console.log("Server tidak tersedia, data dihapus lokal");
       } else if (error.message && error.message.includes("Token tidak ada")) {
-        showToast("Silakan login terlebih dahulu, data dihapus lokal", "error");
+        console.log("Silakan login terlebih dahulu, data dihapus lokal");
       } else {
-        showToast("Gagal menghapus dari database, data dihapus lokal", "error");
+        console.log("Gagal menghapus dari database, data dihapus lokal");
       }
     }
   };
@@ -425,23 +371,6 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
         }));
       }
     }
-  };
-
-  // Fungsi untuk menampilkan toast notification
-  const showToast = (message: string, type: "success" | "error") => {
-    setToastNotification({
-      message,
-      type,
-      isVisible: true,
-    });
-  };
-
-  // Fungsi untuk menutup toast notification
-  const closeToast = () => {
-    setToastNotification((prev) => ({
-      ...prev,
-      isVisible: false,
-    }));
   };
 
   return (
@@ -630,12 +559,6 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
           </div>
         </div>
         {/* MODAL MANPOWER */}
-        <ToastNotification
-          message={toastNotification.message}
-          type={toastNotification.type}
-          isVisible={toastNotification.isVisible}
-          onClose={closeToast}
-        />
         {showManpowerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div
