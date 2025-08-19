@@ -1651,4 +1651,25 @@ export const RencanaChildPartService = {
   },
 };
 
+// Service untuk chat
+export const ChatService = {
+  // Chat completion dengan AI
+  chatCompletion: async (payload: {
+    messages: Array<{ role: string; content: string }>;
+    model?: string;
+  }): Promise<any> => {
+    try {
+      const response = await api.post("/chat", payload);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan jawaban dari AI",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+};
+
 export default api;
