@@ -11,7 +11,7 @@ import { MONTHS } from "../utils/scheduleDateUtils";
 
 export interface SavedSchedule {
   id: string;
-  backendId?: number;
+  backendId?: number; // ID dari database backend
   name: string;
   date: string;
   form: any;
@@ -39,6 +39,7 @@ interface ScheduleContextType {
     partName: string,
     month: number,
     year: number,
+    customerName?: string,
   ) => SavedSchedule | null;
   updateSchedule: (id: string, updatedSchedule: SavedSchedule) => void;
   saveSchedulesToStorage: (schedules: SavedSchedule[]) => void;
@@ -99,9 +100,18 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
               const year = parseInt(yearMatch[1]);
 
               if (monthIndex !== -1 && year) {
-                const newId = `${partName}-${monthIndex}-${year}`
-                  .replace(/\s+/g, "-")
-                  .toLowerCase();
+                // Gunakan customer jika tersedia, jika tidak gunakan format lama
+                const customerName =
+                  schedule.form?.customer ||
+                  schedule.productInfo?.customer ||
+                  "";
+                const newId = customerName
+                  ? `${partName}-${customerName}-${monthIndex}-${year}`
+                      .replace(/\s+/g, "-")
+                      .toLowerCase()
+                  : `${partName}-${monthIndex}-${year}`
+                      .replace(/\s+/g, "-")
+                      .toLowerCase();
                 return { ...schedule, id: newId };
               }
             }
@@ -131,16 +141,19 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
     localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
   };
 
-  // Fungsi untuk mengecek jadwal yang sudah ada berdasarkan part, bulan, dan tahun
+  // Fungsi untuk mengecek jadwal yang sudah ada berdasarkan part, customer, bulan, dan tahun
   const checkExistingSchedule = (
     partName: string,
     month: number,
     year: number,
+    customerName?: string,
   ): SavedSchedule | null => {
-    // Buat ID yang konsisten berdasarkan part, bulan, dan tahun
-    const scheduleId = `${partName}-${month}-${year}`
-      .replace(/\s+/g, "-")
-      .toLowerCase();
+    // Buat ID yang konsisten berdasarkan part, customer, bulan, dan tahun
+    const scheduleId = customerName
+      ? `${partName}-${customerName}-${month}-${year}`
+          .replace(/\s+/g, "-")
+          .toLowerCase()
+      : `${partName}-${month}-${year}`.replace(/\s+/g, "-").toLowerCase();
 
     const existingSchedule = savedSchedules.find((schedule) => {
       return schedule.id === scheduleId;

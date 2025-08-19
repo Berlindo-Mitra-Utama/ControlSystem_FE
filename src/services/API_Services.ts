@@ -382,6 +382,24 @@ export const PlanningSystemService = {
     }
   },
 
+  // Upsert data perencanaan produksi berdasarkan kombinasi part/customer/bulan/tahun
+  upsertProductPlanning: async (
+    data: ProductPlanningData,
+  ): Promise<ProductPlanningDetailResponse> => {
+    try {
+      const response = await api.post("/planning-system/upsert", data);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message ||
+            "Gagal membuat/memperbarui data perencanaan produksi",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
   // Memperbarui data perencanaan produksi berdasarkan ID
   updateProductPlanning: async (
     id: number,
@@ -658,6 +676,64 @@ export const ProductionService = {
   },
 
   /**
+   * Update data produksi harian berdasarkan schedule ID
+   * @param {number} scheduleId - ID schedule produksi
+   * @param {Array} productionData - Array data produksi harian yang diupdate
+   * @returns {Promise<Object>} Response dari API
+   */
+  updateDailyProductionBySchedule: async (
+    scheduleId: number,
+    productionData: any[],
+  ): Promise<any> => {
+    try {
+      console.log(
+        "Updating daily production for schedule:",
+        scheduleId,
+        productionData,
+      );
+
+      // Konversi data produksi ke format yang diharapkan backend
+      const convertedData = productionData.map((item: any) => {
+        const y = item.year;
+        const m = item.month || 1;
+        const d = item.day;
+        const yyyy = String(y).padStart(4, "0");
+        const mm = String(m).padStart(2, "0");
+        const dd = String(d).padStart(2, "0");
+        const dateOnly = `${yyyy}-${mm}-${dd}`;
+
+        return {
+          productPlanningId: scheduleId,
+          productionDate: dateOnly,
+          shift: parseInt(item.shift),
+          planningProduction: item.planningPcs || 0,
+          deliveryPlan: item.delivery || 0,
+          overtime: item.overtimePcs || 0,
+          actualProduction: item.pcs || 0,
+          actualProductionHours: item.jamProduksiAktual || 0,
+          manpower: item.manpowerIds?.length || 0,
+          status: item.status || "Normal",
+          notes: item.notes || "",
+        };
+      });
+
+      // Gunakan upsert untuk setiap item
+      const updatePromises = convertedData.map(async (data) => {
+        return await api.post("/daily-production/upsert", data);
+      });
+
+      const responses = await Promise.all(updatePromises);
+      return responses.map((response) => response.data);
+    } catch (error) {
+      console.error("Error updating daily production:", error);
+      throw new Error(
+        error.response?.data?.message ||
+          "Gagal mengupdate data produksi harian",
+      );
+    }
+  },
+
+  /**
    * Utility function untuk mengkonversi data dari frontend ke format backend
    * @param {Object} scheduleData - Data schedule dari frontend
    * @returns {Object} Data yang sudah dikonversi
@@ -722,13 +798,14 @@ export const ProductionService = {
     const result = {
       partName: form.part,
       customer: form.customer,
-      month: selectedMonth || new Date().getMonth() + 1,
-      year: selectedYear || new Date().getFullYear(),
+      // selectedMonth adalah 0-11; backend mengharapkan 1-12
+      month: (selectedMonth ?? new Date().getMonth()) + 1,
+      year: selectedYear ?? new Date().getFullYear(),
       initialStock: form.stock || 0,
       timePerPcs: form.timePerPcs || 257,
       scheduleName,
       productionData,
-      lastSavedBy: currentUser, // Tambahkan informasi user yang terakhir kali saved
+      lastSavedBy: currentUser,
     };
 
     console.log("Data yang akan dikirim ke backend:", result);
@@ -1129,12 +1206,15 @@ export const getPartById = async (partId: string) => {
 };
 
 // Update part
-export const updatePart = async (partId: string, partData: {
-  partName: string;
-  partNumber: string;
-  customer: string;
-  partImage?: File;
-}) => {
+export const updatePart = async (
+  partId: string,
+  partData: {
+    partName: string;
+    partNumber: string;
+    customer: string;
+    partImage?: File;
+  },
+) => {
   try {
     const formData = new FormData();
     formData.append("partName", partData.partName);
@@ -1145,11 +1225,15 @@ export const updatePart = async (partId: string, partData: {
       formData.append("partImage", partData.partImage);
     }
 
-    const response = await api.put(`/progress-tracker/parts/${partId}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
+    const response = await api.put(
+      `/progress-tracker/parts/${partId}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       },
-    });
+    );
     return response.data;
   } catch (error) {
     throw error;
@@ -1171,9 +1255,12 @@ export const updateProcessCompletion = async (
   completed: boolean,
 ) => {
   try {
-    const response = await api.put(`/progress-tracker/processes/${processId}/completion`, {
-      completed,
-    });
+    const response = await api.put(
+      `/progress-tracker/processes/${processId}/completion`,
+      {
+        completed,
+      },
+    );
     return response.data;
   } catch (error) {
     throw error;
@@ -1201,7 +1288,12 @@ export const updateProcess = async (
 
 // Progress Tooling Detail APIs (persist granular data of tooling progress)
 export const updateProgressToolingDetail = async (
-  params: { partId: string; categoryId: string; processId: string; subProcessId: string },
+  params: {
+    partId: string;
+    categoryId: string;
+    processId: string;
+    subProcessId: string;
+  },
   toolingData: any,
 ) => {
   try {
@@ -1217,9 +1309,12 @@ export const updateProgressToolingDetail = async (
   }
 };
 
-export const getProgressToolingDetail = async (
-  params: { partId: string; categoryId: string; processId: string; subProcessId: string },
-) => {
+export const getProgressToolingDetail = async (params: {
+  partId: string;
+  categoryId: string;
+  processId: string;
+  subProcessId: string;
+}) => {
   try {
     const { processId } = params;
     // Backend hanya butuh processId untuk mencari tooling detail
@@ -1233,9 +1328,11 @@ export const getProgressToolingDetail = async (
 };
 
 // Progress Tooling Trials (optional granular storage per trial)
-export const getProgressToolingTrials = async (
-  params: { partId: string; categoryId: string; processId: string },
-) => {
+export const getProgressToolingTrials = async (params: {
+  partId: string;
+  categoryId: string;
+  processId: string;
+}) => {
   try {
     const { partId, categoryId, processId } = params;
     const response = await api.get(
@@ -1249,7 +1346,13 @@ export const getProgressToolingTrials = async (
 
 export const upsertProgressToolingTrials = async (
   params: { partId: string; categoryId: string; processId: string },
-  trials: Array<{ index: number; name: string; completed: boolean; weight: number; notes?: string }>,
+  trials: Array<{
+    index: number;
+    name: string;
+    completed: boolean;
+    weight: number;
+    notes?: string;
+  }>,
 ) => {
   try {
     const { partId, categoryId, processId } = params;
@@ -1274,7 +1377,7 @@ export const updateProgressDetail = async (
   payload: {
     completed: boolean;
     notes?: string;
-  }
+  },
 ) => {
   try {
     const { partId, categoryId, processId, subProcessId } = params;
@@ -1305,33 +1408,35 @@ export const uploadEvidence = async (
   try {
     // Buat FormData untuk mengirim file
     const formData = new FormData();
-    
+
     // Tambahkan data evidence
-    formData.append('name', evidenceData.name);
-    formData.append('type', evidenceData.type);
-    formData.append('url', evidenceData.url);
-    if (evidenceData.size) formData.append('size', evidenceData.size.toString());
-    if (evidenceData.notes) formData.append('notes', evidenceData.notes);
-    if (evidenceData.partId) formData.append('partId', evidenceData.partId);
-    if (evidenceData.categoryId) formData.append('categoryId', evidenceData.categoryId);
-    if (evidenceData.subProcessId) formData.append('subProcessId', evidenceData.subProcessId);
-    
+    formData.append("name", evidenceData.name);
+    formData.append("type", evidenceData.type);
+    formData.append("url", evidenceData.url);
+    if (evidenceData.size)
+      formData.append("size", evidenceData.size.toString());
+    if (evidenceData.partId) formData.append("partId", evidenceData.partId);
+    if (evidenceData.categoryId)
+      formData.append("categoryId", evidenceData.categoryId);
+    if (evidenceData.subProcessId)
+      formData.append("subProcessId", evidenceData.subProcessId);
+
     // Tambahkan file jika ada
-    if (evidenceData.url.startsWith('data:')) {
+    if (evidenceData.url.startsWith("data:")) {
       // Konversi base64 ke blob
       const response = await fetch(evidenceData.url);
       const blob = await response.blob();
-      formData.append('evidence', blob, evidenceData.name);
+      formData.append("evidence", blob, evidenceData.name);
     }
-    
+
     const response = await api.post(
       `/progress-tracker/processes/${processId}/evidence`,
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -1352,7 +1457,9 @@ export const deleteEvidence = async (evidenceId: string) => {
 
 export const getProcessEvidence = async (processId: string) => {
   try {
-    const response = await api.get(`/progress-tracker/processes/${processId}/evidence`);
+    const response = await api.get(
+      `/progress-tracker/processes/${processId}/evidence`,
+    );
     return response.data;
   } catch (error) {
     throw error;

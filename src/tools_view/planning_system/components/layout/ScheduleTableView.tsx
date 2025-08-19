@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ScheduleItem, ScheduleTableProps } from "../../types/scheduleTypes";
+import { ScheduleItem } from "../../types/scheduleTypes";
 import { useTheme } from "../../../contexts/ThemeContext";
 import {
   formatValidDate,
@@ -23,6 +23,7 @@ import { getRowDataConfig } from "../../utils/scheduleDataUtils";
 import ManpowerDropdown from "./ManpowerDropdown";
 import EditableCell from "./EditableCell";
 import { ManpowerService } from "../../../../services/API_Services";
+
 import {
   Clock,
   Package,
@@ -39,50 +40,7 @@ import {
   Activity,
   Plus,
   Trash2,
-  XCircle,
 } from "lucide-react";
-
-// Komponen Toast Notification
-const ToastNotification = ({
-  message,
-  type,
-  isVisible,
-  onClose,
-}: {
-  message: string;
-  type: "success" | "error";
-  isVisible: boolean;
-  onClose: () => void;
-}) => {
-  useEffect(() => {
-    if (isVisible) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 3000); // Auto close setelah 3 detik
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, onClose]);
-
-  if (!isVisible) return null;
-
-  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
-  const icon = type === "success" ? "✓" : "✕";
-
-  return (
-    <div
-      className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3`}
-    >
-      <span className="text-lg font-bold">{icon}</span>
-      <span className="font-medium">{message}</span>
-      <button
-        onClick={onClose}
-        className="ml-4 text-white/80 hover:text-white text-lg font-bold"
-      >
-        ×
-      </button>
-    </div>
-  );
-};
 
 interface ScheduleTableViewProps {
   validGroupedRows: { day: number; rows: ScheduleItem[] }[];
@@ -147,16 +105,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const [manpowerError, setManpowerError] = useState<string>("");
   // State untuk notifikasi sukses manpower
   const [manpowerSuccess, setManpowerSuccess] = useState<string>("");
-  // State untuk toast notification
-  const [toastNotification, setToastNotification] = useState<{
-    message: string;
-    type: "success" | "error";
-    isVisible: boolean;
-  }>({
-    message: "",
-    type: "success",
-    isVisible: false,
-  });
+
   // Ref untuk modal manpower
   const manpowerModalRef = useRef<HTMLDivElement>(null);
 
@@ -257,10 +206,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
   // Calculate total jam produksi (cycle time) with manpower consideration
   const outputPerHour = calculateOutputPerHour(timePerPcs, []);
-  const totalJamProduksi = formatJamProduksi(
-    totals.hasilProduksi,
-    outputPerHour,
-  );
   const totalPlanningJam = formatJamProduksi(totals.planningPcs, outputPerHour);
   const totalOvertimeJam = formatJamProduksi(totals.overtimePcs, outputPerHour);
 
@@ -364,33 +309,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     }
   }
 
-  // Fungsi untuk menampilkan toast notification
-  const showToast = (message: string, type: "success" | "error") => {
-    setToastNotification({
-      message,
-      type,
-      isVisible: true,
-    });
-  };
-
-  // Fungsi untuk menutup toast notification
-  const closeToast = () => {
-    setToastNotification((prev) => ({
-      ...prev,
-      isVisible: false,
-    }));
-  };
-
   return (
     <div className="space-y-6">
-      {/* Toast Notification */}
-      <ToastNotification
-        message={toastNotification.message}
-        type={toastNotification.type}
-        isVisible={toastNotification.isVisible}
-        onClose={closeToast}
-      />
-
       {/* Informasi Produk */}
       {productInfo &&
         (productInfo.partName ||
@@ -621,9 +541,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
                       // Tampilkan notifikasi sukses
                       setManpowerError(""); // Clear any previous errors
-                      showToast(
+                      console.log(
                         `${newManpower.trim()} berhasil ditambahkan!`,
-                        "success",
                       );
 
                       // Clear input field
@@ -649,22 +568,19 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                         error.message &&
                         error.message.includes("ERR_CONNECTION_REFUSED")
                       ) {
-                        showToast(
+                        console.log(
                           "Server tidak tersedia, data disimpan lokal",
-                          "error",
                         );
                       } else if (
                         error.message &&
                         error.message.includes("Token tidak ada")
                       ) {
-                        showToast(
+                        console.log(
                           "Silakan login terlebih dahulu, data disimpan lokal",
-                          "error",
                         );
                       } else {
-                        showToast(
+                        console.log(
                           "Gagal menyimpan ke database, data disimpan lokal",
-                          "error",
                         );
                       }
                     }
@@ -703,7 +619,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           setManpowerList(manpowerResponse || []);
 
                           // Tampilkan notifikasi sukses
-                          showToast("Manpower berhasil dihapus!", "success");
+                          console.log("Manpower berhasil dihapus!");
                         } catch (error) {
                           console.error("Error removing manpower:", error);
 
@@ -715,22 +631,19 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             error.message &&
                             error.message.includes("ERR_CONNECTION_REFUSED")
                           ) {
-                            showToast(
+                            console.log(
                               "Server tidak tersedia, data dihapus lokal",
-                              "error",
                             );
                           } else if (
                             error.message &&
                             error.message.includes("Token tidak ada")
                           ) {
-                            showToast(
+                            console.log(
                               "Silakan login terlebih dahulu, data dihapus lokal",
-                              "error",
                             );
                           } else {
-                            showToast(
+                            console.log(
                               "Gagal menghapus dari database, data dihapus lokal",
-                              "error",
                             );
                           }
                         }
@@ -788,7 +701,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           >
             {/* Header */}
             <div
-              className={`h-24 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.border.secondary}`}
+              className={`h-24 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.border.secondary} bg-opacity-90`}
             >
               <div
                 className={`${uiColors.text.primary} font-bold text-lg text-center px-4`}
@@ -799,14 +712,22 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
             {/* Rows */}
             <div className="space-y-0">
-              {filteredRows.map((row, index) => (
-                <div
-                  key={row.key}
-                  className={`h-16 flex items-center justify-center px-4 ${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.text.primary} font-semibold text-sm text-center leading-tight`}
-                >
-                  <div className="whitespace-pre-line">{row.label}</div>
-                </div>
-              ))}
+              {filteredRows.map((row, index) => {
+                // Gunakan utils untuk mendapatkan warna baris dengan dark theme support
+                const { rowBgColor, textColor } = getRowColorConfig(
+                  row.key,
+                  theme === "dark",
+                );
+
+                return (
+                  <div
+                    key={row.key}
+                    className={`h-16 flex items-center justify-center px-4 ${rowBgColor} ${uiColors.border.secondary} ${textColor} font-semibold text-sm text-center leading-tight bg-opacity-90`}
+                  >
+                    <div className="whitespace-pre-line">{row.label}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -816,7 +737,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           >
             {/* Header */}
             <div
-              className={`h-24 flex items-center justify-center ${uiColors.bg.secondary} ${uiColors.border.secondary}`}
+              className={`h-24 flex items-center justify-center ${uiColors.bg.tertiary} ${uiColors.border.secondary} bg-opacity-90`}
             >
               <div
                 className={`${uiColors.text.primary} font-bold text-lg text-center px-4`}
@@ -933,10 +854,10 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       </div>
                       {/* Shift Headers */}
                       <div className="grid grid-cols-2 gap-1 mt-2">
-                        <div className="bg-blue-500/20 text-blue-700 text-sm py-1 rounded font-semibold">
+                        <div className="bg-blue-600 text-white text-xs py-1 rounded font-semibold">
                           SHIFT 1
                         </div>
-                        <div className="bg-purple-500/20 text-purple-700 text-sm py-1 rounded font-semibold">
+                        <div className="bg-purple-600 text-white text-xs py-1 rounded font-semibold">
                           SHIFT 2
                         </div>
                       </div>
@@ -980,7 +901,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       return (
                         <div
                           key={row.key}
-                          className={`h-16 grid grid-cols-2 gap-1 ${uiColors.border.secondary} ${rowBgColor}`}
+                          className={`h-16 grid grid-cols-2 gap-0 ${uiColors.border.secondary} ${rowBgColor}`}
                         >
                           <div
                             className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
