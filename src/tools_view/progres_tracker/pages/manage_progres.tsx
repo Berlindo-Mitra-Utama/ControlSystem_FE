@@ -25,6 +25,14 @@ import { ProcessCard } from "../components/ProcessCard"
 import { EvidenceModal } from "../components/EvidenceModal"
 import { getProcessEvidence, deleteEvidence } from "../../../services/API_Services"
 
+// Import light mode components
+import { ManageProgressHeader } from "../components/ManageProgressHeader"
+import { ProgressOverviewCard } from "../components/ProgressOverviewCard"
+import { SaveButton } from "../components/SaveButton"
+import { ImageModal } from "../components/ImageModal"
+import { CategoryCard } from "../components/CategoryCard"
+import { useTheme } from '../../../contexts/ThemeContext'
+
 // Types and Interfaces
 interface Evidence {
   id: string
@@ -179,135 +187,141 @@ const createComprehensiveProgressStructure = (): ProgressCategory[] => {
   return [
     {
       id: generateId(),
-      name: "Drawing Part",
-        processes: [
-          {
-            id: generateId(),
-            name: "Drawing Part",
-            completed: false,
+      name: "1. Drawing Part",
+      processes: [
+        {
+          id: generateId(),
+          name: "Drawing Part",
+          completed: false,
           notes: "",
-            children: [
-              {
-                id: generateId(),
-                name: "Comp/Assy",
-                completed: false,
+          children: [
+            {
+              id: generateId(),
+              name: "Comp/Assy",
+              completed: false,
               notes: "",
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "Child Part",
-                completed: false,
+              evidence: []
+            },
+            {
+              id: generateId(),
+              name: "Child Part",
+              completed: false,
               notes: "",
-                evidence: []
-              }
-            ],
-            evidence: []
+              evidence: []
+            }
+          ],
+          evidence: []
         }
       ]
-          },
+    },
     {
       id: generateId(),
-      name: "Documentation",
+      name: "2. SPK",
       processes: [
-          {
-            id: generateId(),
-            name: "Surat Perintah Kerja (SPK)",
-            completed: false,
+        {
+          id: generateId(),
+          name: "Surat Perintah Kerja (SPK)",
+          completed: false,
           notes: "",
-            evidence: []
-          },
-          {
-            id: generateId(),
-            name: "Master Schedule",
-            completed: false,
-          notes: "",
-            evidence: []
+          evidence: []
         }
       ]
-          },
-          {
-            id: generateId(),
-      name: "PPAP (Production Part Approval Process)",
+    },
+    {
+      id: generateId(),
+      name: "3. Master Schedule",
       processes: [
-              {
-                id: generateId(),
+        {
+          id: generateId(),
+          name: "Master Schedule",
+          completed: false,
+          notes: "",
+          evidence: []
+        }
+      ]
+    },
+    {
+      id: generateId(),
+      name: "4. PPAP (Production Part Approval Process)",
+      processes: [
+        {
+          id: generateId(),
           name: "Product Review",
-                completed: false,
+          completed: false,
           notes: "",
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "Engineering Change Document",
-                completed: false,
+          evidence: []
+        },
+        {
+          id: generateId(),
+          name: "Engineering Change Document",
+          completed: false,
           notes: "",
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "Engineering Approval",
-                completed: false,
+          evidence: []
+        },
+        {
+          id: generateId(),
+          name: "Engineering Approval",
+          completed: false,
           notes: "",
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "Process Flow Diagram",
-                completed: false,
+          evidence: []
+        },
+        {
+          id: generateId(),
+          name: "Process Flow Diagram",
+          completed: false,
           notes: "",
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "FMEA",
-                completed: false,
+          evidence: []
+        },
+        {
+          id: generateId(),
+          name: "FMEA",
+          completed: false,
           notes: "",
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "Control Plan",
-                completed: false,
+          evidence: []
+        },
+        {
+          id: generateId(),
+          name: "Control Plan",
+          completed: false,
           notes: "",
-                children: [
-                  {
-                    id: generateId(),
-                    name: "QCPC",
-                    completed: false,
+          children: [
+            {
+              id: generateId(),
+              name: "QCPC",
+              completed: false,
               notes: "",
-                    evidence: []
-                  },
-                  {
-                    id: generateId(),
+              evidence: []
+            },
+            {
+              id: generateId(),
               name: "Part Insp. Standar",
-                    completed: false,
+              completed: false,
               notes: "",
-                    evidence: []
-                  },
-                  {
-                    id: generateId(),
-                    name: "Check Sheet",
-                    completed: false,
+              evidence: []
+            },
+            {
+              id: generateId(),
+              name: "Check Sheet",
+              completed: false,
               notes: "",
-                    evidence: []
-                  }
-                ],
-                evidence: []
-              },
-              {
-                id: generateId(),
+              evidence: []
+            }
+          ],
+          evidence: []
+        },
+        {
+          id: generateId(),
           name: "Measurement System Analyst (MSA)",
-                completed: false,
+          completed: false,
           notes: "",
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "Dimensional Result",
-                completed: false,
+          evidence: []
+        },
+        {
+          id: generateId(),
+          name: "Dimensional Result",
+          completed: false,
           notes: "",
-                children: [
+          children: [
             {
               id: generateId(),
               name: "ISIR",
@@ -315,89 +329,89 @@ const createComprehensiveProgressStructure = (): ProgressCategory[] => {
               notes: "",
               evidence: []
             },
-                  {
-                    id: generateId(),
-                    name: "Check Sheet",
-                    completed: false,
-              notes: "",
-                    evidence: []
-                  }
-                ],
-                evidence: []
-              },
-              {
-                id: generateId(),
-          name: "Material and Performance Test Result",
-                completed: false,
-          notes: "",
-                children: [
-                  {
-                    id: generateId(),
-              name: "MillSheet",
-                    completed: false,
-              notes: "",
-                    evidence: []
-                  }
-            // Custom tests can be added manually by user using the "Add Sub" button
-                ],
-                evidence: []
-              },
-              {
-                id: generateId(),
-                name: "Sample Production Part",
-                completed: false,
-          notes: "",
-                evidence: []
-              }
-            ]
-      },
-              {
-      id: generateId(),
-      name: "Tooling",
-          processes: [
             {
               id: generateId(),
-              name: "Tooling",
+              name: "Check Sheet",
               completed: false,
-          notes: "",
-              children: [
-                {
-                  id: generateId(),
-                  name: "Master Schedule Tooling",
-                  completed: false,
               notes: "",
-                  evidence: []
-                },
-                {
-                  id: generateId(),
-              name: "Trial Tooling Report",
-                  completed: false,
-              notes: "",
-                  evidence: []
-                },
-                {
-                  id: generateId(),
-                  name: "Progress Tooling",
-                  completed: false,
-              notes: "",
-                  evidence: []
-                }
-              ],
               evidence: []
             }
-      ]
+          ],
+          evidence: []
         },
-              {
-      id: generateId(),
-      name: "Final Approval",
-          processes: [
+        {
+          id: generateId(),
+          name: "Material and Performance Test Result",
+          completed: false,
+          notes: "",
+          children: [
             {
               id: generateId(),
-          name: "Approval",
+              name: "MillSheet",
               completed: false,
-          notes: "",
+              notes: "",
               evidence: []
             }
+            // Custom tests can be added manually by user using the "Add Sub" button
+          ],
+          evidence: []
+        },
+        {
+          id: generateId(),
+          name: "Sample Production Part",
+          completed: false,
+          notes: "",
+          evidence: []
+        }
+      ]
+    },
+    {
+      id: generateId(),
+      name: "5. Tooling",
+      processes: [
+        {
+          id: generateId(),
+          name: "Tooling",
+          completed: false,
+          notes: "",
+          children: [
+            {
+              id: generateId(),
+              name: "Master Schedule Tooling",
+              completed: false,
+              notes: "",
+              evidence: []
+            },
+            {
+              id: generateId(),
+              name: "Trial Tooling Report",
+              completed: false,
+              notes: "",
+              evidence: []
+            },
+            {
+              id: generateId(),
+              name: "Progress Tooling",
+              completed: false,
+              notes: "",
+              evidence: []
+            }
+          ],
+          evidence: []
+        }
+      ]
+    },
+    {
+      id: generateId(),
+      name: "6. Approval",
+      processes: [
+        {
+          id: generateId(),
+          name: "Approval",
+          completed: false,
+          notes: "",
+          evidence: []
+        }
       ]
     }
   ]
@@ -598,8 +612,40 @@ export default function ManageProgres() {
   const [selectedPart, setSelectedPart] = useState<Part | null>(null)
   const [showDetailedProcesses, setShowDetailedProcesses] = useState(false)
   const navigate = useNavigate()
+  const { isDarkMode } = useTheme()
 
-  const uiColors = getUIColors("dark")
+  // Dynamic UI colors based on theme
+  const uiColors = {
+    bg: {
+      primary: isDarkMode ? 'bg-gray-900' : 'bg-gray-50',
+      card: isDarkMode ? 'bg-gray-800' : 'bg-white',
+      secondary: isDarkMode ? 'bg-gray-700' : 'bg-gray-50',
+      tertiary: isDarkMode ? 'bg-gray-600' : 'bg-gray-100'
+    },
+    border: {
+      primary: isDarkMode ? 'border-gray-700' : 'border-gray-300',
+      secondary: isDarkMode ? 'border-gray-600' : 'border-gray-200',
+      tertiary: isDarkMode ? 'border-gray-500' : 'border-gray-100',
+      accent: isDarkMode ? 'border-blue-500' : 'border-blue-600',
+      error: isDarkMode ? 'border-red-500' : 'border-red-600'
+    },
+    text: {
+      primary: isDarkMode ? 'text-white' : 'text-gray-900',
+      secondary: isDarkMode ? 'text-gray-300' : 'text-gray-700',
+      tertiary: isDarkMode ? 'text-gray-400' : 'text-gray-600',
+      accent: isDarkMode ? 'text-blue-400' : 'text-blue-600',
+      error: isDarkMode ? 'text-red-400' : 'text-red-600'
+    },
+    button: {
+      primary: {
+        bg: isDarkMode ? 'bg-blue-600' : 'bg-blue-500',
+        hover: isDarkMode ? 'hover:bg-blue-700' : 'hover:bg-blue-600',
+        text: 'text-white',
+        border: isDarkMode ? 'border-blue-600' : 'border-blue-500'
+      }
+    }
+  }
+
   const [partModal, setPartModal] = useState<{
     isOpen: boolean
     type: "add" | "edit"
@@ -919,7 +965,20 @@ export default function ManageProgres() {
                   updates.push(apiUpdateProcessCompletion(child.id, childCompleted))
                   // Persist granular tooling detail/progress additionally if available
                   if (isValidUuid(selectedPart.id) && isValidUuid(category.id) && isValidUuid(process.id)) {
-                    const fullDetail = toolingDetailBySubProcessId[child.id] || { overallProgress: progressToolingDetailProgress }
+                    const fullDetail = toolingDetailBySubProcessId[child.id] || { 
+                      overallProgress: parseFloat(progressToolingDetailProgress.toString()),
+                      designToolingCompleted: false,
+                      machining1Completed: false,
+                      machining2Completed: false,
+                      machining3Completed: false,
+                      assyCompleted: false,
+                      approvalCompleted: false,
+                      rawMaterialActual: null,
+                      rawMaterialPlanned: null,
+                      trialCount: 1,
+                      trialsCompleted: []
+                    }
+                    console.log('Saving tooling detail for child:', child.id, fullDetail);
                     detailSaves.push(
                       apiUpdateProgressToolingDetail({
                         partId: selectedPart.id,
@@ -930,6 +989,7 @@ export default function ManageProgres() {
                     )
                     // Simpan trial granular jika tersedia
                     if (Array.isArray((fullDetail as any).trials) && (fullDetail as any).trials.length > 0) {
+                      console.log('Saving tooling trials:', (fullDetail as any).trials);
                       detailSaves.push(
                         upsertProgressToolingTrials({
                           partId: selectedPart.id,
@@ -1311,16 +1371,16 @@ export default function ManageProgres() {
       if (subProcessId) {
         const child = proc?.children?.find(c => c.id === subProcessId)
         currentList = child?.evidence || []
-      } else {
+        } else {
         currentList = proc?.evidence || []
-      }
+        }
 
       const updated = currentList.filter(e => e.id !== evidenceId)
       handleEvidenceUpdate(partId, categoryId, processId, subProcessId, updated)
     } catch (error) {
       console.error('Error deleting evidence inline:', error)
+      }
     }
-  }
 
   // Find selected part based on partId from URL
   useEffect(() => {
@@ -1584,12 +1644,12 @@ export default function ManageProgres() {
   }
 
   // Handle part form save
-  const handlePartSave = async (partData: { partName: string; partNumber: string; customer: string }) => {
+  const handlePartSave = async (partData: { partName: string; partNumber: string; customer: string; partImage?: File }) => {
     const { partId, type } = partModal
 
     try {
       if (type === "edit" && partId) {
-        // Update existing part via backend API
+        // Update existing part via backend API with image upload
         await updatePart(partId, partData);
         console.log("Data part berhasil diupdate via backend");
       } else {
@@ -1699,682 +1759,257 @@ export default function ManageProgres() {
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="w-full sm:w-auto">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
-              <Link to="/progress">
-                <Button
-                  variant="outline"
-                  className={`mr-0 sm:mr-4 mb-2 sm:mb-0 w-full sm:w-auto ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} bg-transparent`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="m15 18-6-6 6-6"/></svg>
-                  <span className="hidden sm:inline">Back to Dashboard</span>
-                  <span className="sm:hidden">Back</span>
-                </Button>
-              </Link>
-              <div className="flex-1 min-w-0">
-                <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold ${uiColors.text.primary} break-words text-center sm:text-left`}>Manage Progress</h1>
-                <p className={`${uiColors.text.tertiary} text-sm sm:text-base mt-1 text-center sm:text-left`}>Update process completion status for all parts</p>
-                <div className="mt-2 hidden sm:flex items-center space-x-2 text-xs text-blue-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Processes auto-complete when all sub-processes are finished • Green checkmark indicates completed items • Progress Tooling auto-completes when overall progress reaches 100%</span>
-                </div>
-                <div className="mt-2 flex sm:hidden items-center justify-center text-[11px] text-blue-400">
-                  <span>Tips: Processes auto-complete when all sub-processes are done</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ManageProgressHeader
+          showDetailedProcesses={showDetailedProcesses}
+          onToggleDetailedProcesses={() => setShowDetailedProcesses(!showDetailedProcesses)}
+        />
 
         {/* Parts List */}
         <div className="space-y-6 sm:space-y-8">
           {selectedPart ? (
-            <Card key={selectedPart.id} className={`${uiColors.bg.card} ${uiColors.border.primary} shadow-lg`}>
-              <CardHeader className="pb-4 sm:pb-5">
-                {/* Modern Header Layout */}
-                <div className="relative">
-                  {/* Background Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-cyan-500/5 rounded-2xl border border-gray-700/30 backdrop-blur-sm"></div>
-                  
-                  {/* Content Container */}
-                  <div className="relative p-4 sm:p-6">
-                    {/* Mobile Layout: Image at top, then info & buttons */}
-                    <div className="flex flex-col gap-4 mb-4">
-                      
-                      {/* Part Image - Always at top on mobile */}
-                      {selectedPart.partImageUrl && selectedPart.partImageUrl.trim() !== '' && (isValidBase64Image(selectedPart.partImageUrl) || selectedPart.partImageUrl.startsWith('http')) && (
-                        <div className="flex-shrink-0 w-full flex justify-center lg:hidden">
-                          <div className="relative group">
-                            <div className="w-48 h-48 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-xl overflow-hidden border-2 border-gray-600/30 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-blue-500/50 hover:shadow-xl"
-                                 onClick={() => setImageModal({
-                                   isOpen: true,
-                                   imageUrl: selectedPart.partImageUrl!,
-                                   partName: selectedPart.partName
-                                 })}>
-                              <img
-                                src={selectedPart.partImageUrl}
-                                alt={selectedPart.partName}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                  const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                  if (fallback) fallback.classList.remove('hidden');
-                                }}
-                                onLoad={(e) => {
-                                  const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                  if (fallback) fallback.classList.add('hidden');
-                                }}
-                                {...(selectedPart.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
-                              />
-                              <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400 hidden">
-                                <Image className="w-12 h-12" />
-                              </div>
-                              
-                              {/* Hover Overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3">
-                                <div className="text-white text-sm font-medium bg-black/50 px-3 py-2 rounded-lg backdrop-blur-sm">
-                                  Click to view full size
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Image Badge */}
-                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                              <Image className="w-3 h-3 text-white" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Content Row: Info & Actions */}
-                      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full">
-                        
-                        {/* Left Side: Part Information */}
-                        <div className="flex-1 min-w-0 w-full">
-                          {/* Part Details & Progress */}
-                          <div className="space-y-4">
-                            
-                            {/* Part Details Card */}
-                            <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 rounded-xl border border-gray-700/40 backdrop-blur-sm shadow-lg p-4">
-                              <h3 className="text-base font-semibold text-gray-200 mb-3 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                Part Information
-                              </h3>
-                              
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {/* Part Name */}
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Part Name</label>
-                                  <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/30">
-                                    <span className="text-base font-semibold text-white break-words">{selectedPart.partName}</span>
-                                  </div>
-                                </div>
-                                
-                                {/* Part Number */}
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Part Number</label>
-                                  <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/30">
-                                    <span className="text-base font-mono font-semibold text-green-400 break-words">{selectedPart.partNumber}</span>
-                                  </div>
-                                </div>
-                                
-                                {/* Customer */}
-                                <div className="space-y-1 sm:col-span-2">
-                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Customer</label>
-                                  <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/30">
-                                    <span className="text-base font-semibold text-orange-400 break-words">{selectedPart.customer}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Progress Overview Card */}
-                            <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20 backdrop-blur-sm p-4">
-                              <h3 className="text-base font-semibold text-blue-200 mb-3 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                Progress Overview
-                              </h3>
-                              
-                              <div className="flex items-center justify-between">
-                                {/* Progress Stats */}
-                                <div className="space-y-1">
-                                  <div className="text-xl font-bold text-white">
-                                    {calculateOverallProgressWithDetail(selectedPart)}%
-                                  </div>
-                                  <div className="text-xs text-blue-300">Overall Progress</div>
-                                </div>
-                                
-                                {/* Progress Circle */}
-                                <div className="relative">
-                                  {(() => {
-                                    const percent = calculateOverallProgressWithDetail(selectedPart)
-                                    const r = 35
-                                    const stroke = 6
-                                    const c = 2 * Math.PI * r
-                                    const offset = c * (1 - percent / 100)
-                                    return (
-                                      <div className="relative w-20 h-20">
-                                        <svg viewBox="0 0 100 100" className="w-20 h-20 transform -rotate-90">
-                                          <defs>
-                                            <linearGradient id="overallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                              <stop offset="0%" stopColor="#60a5fa" />
-                                              <stop offset="100%" stopColor="#a78bfa" />
-                                            </linearGradient>
-                                          </defs>
-                                          <circle cx="50" cy="50" r={r} stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} fill="none" />
-                                          <circle 
-                                            cx="50" cy="50" r={r} 
-                                            stroke="url(#overallGrad)" 
-                                            strokeWidth={stroke} 
-                                            fill="none" 
-                                            strokeLinecap="round" 
-                                            strokeDasharray={c} 
-                                            strokeDashoffset={offset}
-                                            className="transition-all duration-1000 ease-out"
-                                          />
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          <div className="text-lg font-bold text-white">{percent}%</div>
-                                        </div>
-                                      </div>
-                                    )
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Right Side: Action Buttons */}
-                        <div className="flex flex-col items-stretch xl:items-end gap-3 w-full xl:w-auto">
-                          
-                          {/* Desktop Part Image - Hidden on mobile */}
-                          {selectedPart.partImageUrl && selectedPart.partImageUrl.trim() !== '' && (isValidBase64Image(selectedPart.partImageUrl) || selectedPart.partImageUrl.startsWith('http')) && (
-                            <div className="hidden xl:block flex-shrink-0">
-                              <div className="relative group">
-                                <div className="w-40 h-40 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-xl overflow-hidden border-2 border-gray-600/30 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-blue-500/50 hover:shadow-xl"
-                                     onClick={() => setImageModal({
-                                       isOpen: true,
-                                       imageUrl: selectedPart.partImageUrl!,
-                                       partName: selectedPart.partName
-                                     })}>
-                                  <img
-                                    src={selectedPart.partImageUrl}
-                                    alt={selectedPart.partName}
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = "none";
-                                      const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                      if (fallback) fallback.classList.remove('hidden');
-                                    }}
-                                    onLoad={(e) => {
-                                      const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                      if (fallback) fallback.classList.add('hidden');
-                                    }}
-                                    {...(selectedPart.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
-                                  />
-                                  <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400 hidden">
-                                    <Image className="w-8 h-8" />
-                                  </div>
-                                  
-                                  {/* Hover Overlay */}
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-2">
-                                    <div className="text-white text-xs font-medium bg-black/50 px-3 py-1 rounded-lg backdrop-blur-sm">
-                                      Click to view full size
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {/* Image Badge */}
-                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                                  <Image className="w-2.5 h-2.5 text-white" />
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-400 mt-1 text-left">Click image to view full size</p>
-                            </div>
-                          )}
-                          
-                          {/* Action Buttons */}
-                          <div className="flex flex-col gap-2 w-full xl:w-32">
-                            {/* Edit Part Button */}
+            <div className="space-y-6">
+              {/* Progress Overview Card */}
+              <ProgressOverviewCard
+                part={selectedPart}
+                onEditPart={() => setPartModal({
+                  isOpen: true,
+                  type: "edit",
+                  partId: selectedPart.id,
+                  part: selectedPart,
+                })}
+                onDeletePart={() => setDeleteDialog({
+                  isOpen: true,
+                  type: "part",
+                  partId: selectedPart.id,
+                  name: selectedPart.partName,
+                })}
+                onViewImage={() => setImageModal({
+                  isOpen: true,
+                  imageUrl: selectedPart.partImageUrl || '',
+                  partName: selectedPart.partName
+                })}
+                calculateOverallProgress={calculateOverallProgressWithDetail}
+                saveButton={
+                  <SaveButton
+                    onClick={saveAllProgressToBackend}
+                    isSaving={isSaving}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                  />
+                }
+              />
+
+              {/* View Details Button - Full width below overview card */}
+              <div className="w-full">
+                <Button
+                  onClick={() => {
+                    setShowDetailedProcesses(!showDetailedProcesses);
+                    if (!showDetailedProcesses) {
+                      setTimeout(() => {
+                        const detailedSection = document.querySelector('[data-section="detailed-processes"]');
+                        if (detailedSection) detailedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 100);
+                    }
+                  }}
+                  size="sm"
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white border-transparent shadow-md hover:shadow-lg transition-all duration-200 py-5"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <span className="hidden sm:inline">
+                    {showDetailedProcesses ? "Hide Details" : "View Details"}
+                  </span>
+                  <span className="sm:hidden">
+                    {showDetailedProcesses ? "Hide" : "View"}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 ml-2 transition-transform duration-200 ${showDetailedProcesses ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </Button>
+              </div>
+
+              {/* Detailed process section */}
+              {showDetailedProcesses && (
+                <div className="space-y-4 sm:space-y-6" data-section="detailed-processes">
+                  {selectedPart.progress.map((progressCategory) => {
+                    return (
+                      <Card key={progressCategory.id} className={`${uiColors.bg.tertiary} ${uiColors.border.secondary} shadow-md`}>
+                        <CardHeader className="pb-3">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <CardTitle className={`text-base sm:text-lg ${uiColors.text.primary}`}>{progressCategory.name}</CardTitle>
                             <Button
                               size="sm"
-                              variant="outline"
                               onClick={() =>
-                                setPartModal({
+                                setProcessModal({
                                   isOpen: true,
-                                  type: "edit",
+                                  type: "add",
+                                  isSubProcess: false,
                                   partId: selectedPart.id,
-                                  part: selectedPart,
+                                  categoryId: progressCategory.id,
                                 })
                               }
-                              className={`w-full h-10 ${uiColors.text.secondary} hover:${uiColors.bg.secondary} ${uiColors.border.secondary} ${uiColors.bg.tertiary} text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-md border-2`}
+                              className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white border-transparent shadow-md hover:shadow-lg transition-all duration-200"
                             >
-                              <Edit className="w-4 h-4 mr-2" />
-                              <span className="hidden sm:inline">Edit Part</span>
-                              <span className="sm:hidden">Edit</span>
-                            </Button>
-                            
-                            {/* Save Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={saveAllProgressToBackend}
-                              disabled={isSaving}
-                              className={`w-full h-10 ${uiColors.text.accent} hover:${uiColors.bg.secondary} ${uiColors.border.accent} ${uiColors.bg.tertiary} text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-md border-2 ${
-                                hasUnsavedChanges ? 'ring-2 ring-blue-400/50 shadow-lg bg-blue-500/10' : ''
-                              }`}
-                            >
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m4-4H8" />
-                              </svg>
-                              <span className="hidden sm:inline">
-                                {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save*' : 'Save'}
-                              </span>
-                              <span className="sm:hidden">{isSaving ? '...' : 'Save'}</span>
-                          </Button>
-                            
-                            {/* Delete Part Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                setDeleteDialog({
-                                  isOpen: true,
-                                  type: "part",
-                                  partId: selectedPart.id,
-                                  name: selectedPart.partName,
-                                })
-                              }
-                              className={`w-full h-10 ${uiColors.text.error} hover:${uiColors.bg.secondary} ${uiColors.border.error} ${uiColors.bg.tertiary} text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-md border-2 hover:bg-red-500/10`}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              <span className="hidden sm:inline">Delete Part</span>
-                              <span className="sm:hidden">Delete</span>
+                              <Plus className="w-4 h-4 mr-1" />
+                              <span className="hidden sm:inline">Add Process</span>
+                              <span className="sm:hidden">Add</span>
                             </Button>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
+                        </CardHeader>
 
-              <CardContent>
-                {/* Overall Progress Summary with Toggle Button */}
-                <div className="mb-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
-                    <h3 className={`text-base sm:text-lg font-semibold ${uiColors.text.primary}`}>Process Summary</h3>
-                     <div className="flex flex-col items-end gap-2">
-                       {/* View All Process Detail Toggle Button */}
-                    <Button
-                        onClick={() => {
-                           // Toggle hanya visibilitas; jangan mengganti struktur/ID dari backend
-                           setShowDetailedProcesses(!showDetailedProcesses);
-                           if (!showDetailedProcesses) {
-                             setTimeout(() => {
-                               const detailedSection = document.querySelector('[data-section="detailed-processes"]');
-                               if (detailedSection) detailedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                             }, 100);
-                           }
-                         }}
-                      variant="outline"
-                      size="sm"
-                      className={`w-full sm:w-auto ${uiColors.button.primary.bg} hover:${uiColors.button.primary.hover} ${uiColors.button.primary.text} ${uiColors.button.primary.border}`}
-                    >
-                         <svg
-                           className="w-4 h-4 mr-2"
-                           fill="none"
-                           stroke="currentColor"
-                           viewBox="0 0 24 24"
-                         >
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                         </svg>
-                         <span className="hidden sm:inline">
-                           {showDetailedProcesses ? "Hide Process Details" : "View All Process Detail"}
-                         </span>
-                         <span className="sm:hidden">
-                           {showDetailedProcesses ? "Hide" : "View All"}
-                         </span>
-                      <svg
-                        className={`w-4 h-4 ml-2 transition-transform duration-200 ${showDetailedProcesses ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </Button>
-                     </div>
-                  </div>
-                </div>
-
-                {/* When hidden, we render nothing below header */}
-                {!showDetailedProcesses && null}
-
-                {/* Category Cards with Process Dropdowns - Conditionally show detailed processes */}
-                {showDetailedProcesses && (
-                  <div className="space-y-4 sm:space-y-6" data-section="detailed-processes">
-                    {selectedPart.progress.map((progressCategory) => {
-                      return (
-                    <Card key={progressCategory.id} className={`${uiColors.bg.tertiary} ${uiColors.border.secondary} shadow-md`}>
-                      <CardHeader className="pb-3">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                          <CardTitle className={`text-base sm:text-lg ${uiColors.text.primary}`}>{progressCategory.name}</CardTitle>
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              setProcessModal({
-                                isOpen: true,
-                                type: "add",
-                                isSubProcess: false,
-                                partId: selectedPart.id,
-                                categoryId: progressCategory.id,
-                              })
-                            }
-                            className={`w-full sm:w-auto ${uiColors.button.primary.bg} hover:${uiColors.button.primary.hover} ${uiColors.button.primary.text}`}
-                          >
-                            <Plus className="w-4 h-4 mr-1" />
-                            <span className="hidden sm:inline">Add Process</span>
-                            <span className="sm:hidden">Add</span>
-                          </Button>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent>
-                        <div className="space-y-3 sm:space-y-4">
-                          {progressCategory.processes.map((process) => {
-                            const processProgress = calculateProcessProgressWithDetail(process)
-                            const progressColors = getProgressColor(processProgress)
-                            return (
-                              <div key={process.id} className={`${uiColors.bg.secondary} rounded-lg p-3 sm:p-4 w-full border ${uiColors.border.tertiary} shadow-sm`}>
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
-                                    <Checkbox
-                                      id={`${selectedPart.id}-${progressCategory.id}-${process.id}`}
-                                      checked={process.completed}
-                                      onCheckedChange={() => toggleProcess(selectedPart.id, progressCategory.id, process.id)}
-                                      className={uiColors.border.tertiary}
-                                    />
-                                    <label
-                                      htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}`}
-                                      className={`font-medium cursor-pointer flex-1 break-words ${uiColors.text.primary}`}
-                                    >
-                                      {process.name}
-                                      {process.completed && (
-                                        <div className="inline-block ml-2" title="Process completed">
-                                          <svg 
-                                            className="w-4 h-4 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
-                                            fill="none" 
-                                            stroke="currentColor" 
-                                            viewBox="0 0 24 24"
-                                          >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                          </svg>
-                                        </div>
-                                      )}
-                                      {isProcessAutoCompleted(process) && (
-                                        <span className="ml-2 text-xs text-blue-400 font-normal">
-                                          (Auto-completed)
-                                        </span>
-                                      )}
-                                    </label>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      key={`${process.id}-badge-${progressToolingDetailProgress}`}
-                                      variant="outline"
-                                      className={`text-xs ${progressColors.color} ${progressColors.textColor} border-current`}
-                                    >
-                                      {processProgress}%
-                                    </Badge>
-                                    {process.children && process.children.length > 0 && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-gray-600 text-gray-300 border-gray-500"
+                        <CardContent>
+                          <div className="space-y-3 sm:space-y-4">
+                            {progressCategory.processes.map((process) => {
+                              const processProgress = calculateProcessProgressWithDetail(process)
+                              const progressColors = getProgressColor(processProgress)
+                              return (
+                                <div key={process.id} className={`${uiColors.bg.secondary} rounded-lg p-3 sm:p-4 w-full border ${uiColors.border.tertiary} shadow-sm`}>
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                      <Checkbox
+                                        id={`${selectedPart.id}-${progressCategory.id}-${process.id}`}
+                                        checked={process.completed}
+                                        onCheckedChange={() => toggleProcess(selectedPart.id, progressCategory.id, process.id)}
+                                        className={uiColors.border.tertiary}
+                                      />
+                                      <label
+                                        htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}`}
+                                        className={`font-medium cursor-pointer flex-1 break-words ${uiColors.text.primary}`}
                                       >
-                                        {process.children.filter(child => child.completed).length}/{process.children.length} sub
-                                      </Badge>
-                                    )}
-                                    {isProcessAutoCompleted(process) && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-blue-600 text-white border-blue-500"
-                                      >
-                                        Auto
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Navigation buttons above progress */}
-                                <div className="flex flex-wrap items-center gap-1 mb-3">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      setProcessModal({
-                                        isOpen: true,
-                                        type: "edit",
-                                        isSubProcess: false,
-                                        partId: selectedPart.id,
-                                        categoryId: progressCategory.id,
-                                        processId: process.id,
-                                        process,
-                                      })
-                                    }
-                                    className={`${uiColors.text.secondary} hover:${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
-                                  >
-                                    <Edit className="w-3 h-3 mr-1" />
-                                    <span className="hidden sm:inline">Edit</span>
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      setProcessModal({
-                                        isOpen: true,
-                                        type: "add",
-                                        isSubProcess: true,
-                                        partId: selectedPart.id,
-                                        categoryId: progressCategory.id,
-                                        processId: process.id,
-                                      })
-                                    }
-                                    className={`${uiColors.text.secondary} hover:${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
-                                  >
-                                    <Plus className="w-3 h-3 mr-1" />
-                                    <span className="hidden sm:inline">Add Sub</span>
-                                    <span className="sm:hidden">Sub</span>
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      setEvidenceModalWithCallback({
-                                        isOpen: true,
-                                        processId: process.id,
-                                        processName: process.name,
-                                        evidence: process.evidence || [],
-                                        categoryId: progressCategory.id,
-                                      })
-                                    }
-                                    className={`${uiColors.text.accent} hover:${uiColors.bg.tertiary} ${uiColors.border.accent} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
-                                  >
-                                    <Upload className="w-3 h-3 mr-1" />
-                                    <span className="hidden sm:inline">Evidence ({process.evidence?.length || 0})</span>
-                                    <span className="sm:hidden">({process.evidence?.length || 0})</span>
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      setDeleteDialog({
-                                        isOpen: true,
-                                        type: "process",
-                                        partId: selectedPart.id,
-                                        categoryId: progressCategory.id,
-                                        processId: process.id,
-                                        name: process.name,
-                                      })
-                                    }
-                                    className={`${uiColors.text.error} hover:${uiColors.bg.tertiary} ${uiColors.border.error} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
-                                  >
-                                    <Trash2 className="w-3 h-3 mr-1" />
-                                    <span className="hidden sm:inline">Delete</span>
-                                  </Button>
-                                </div>
-
-                                {/* Inline Evidence - Process level */}
-                                {Array.isArray(process.evidence) && process.evidence.length > 0 && (
-                                  <div className="mb-3 p-2 bg-gray-800/40 rounded-lg border border-gray-700/40">
-                                    <div className="text-xs text-gray-300 mb-1">Evidence ({process.evidence.length})</div>
-                                    <div className="flex flex-col gap-1">
-                                      {process.evidence.map((ev) => (
-                                        <div key={ev.id} className="bg-gray-800/60 hover:bg-gray-800/80 rounded-md px-2 py-2 border border-gray-700/50 flex items-center justify-between">
-                                          <div className="flex items-center gap-2 min-w-0">
-                                            {ev.type === 'image' ? (
-                                              <Image className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                                            ) : (
-                                              <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
-                                            )}
-                                            <div className="min-w-0">
-                                              <div className="text-xs text-white truncate">{ev.name}</div>
-                                              <div className="text-[10px] text-gray-400">{new Date(ev.uploadedAt).toLocaleDateString()}</div>
-                                            </div>
+                                        {process.name}
+                                        {process.completed && (
+                                          <div className="inline-block ml-2" title="Process completed">
+                                            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
                                           </div>
-                                          <div className="flex items-center gap-1">
-                                            {ev.url && (
-                                              <Button size="sm" variant="ghost" className="p-1 text-blue-400 hover:text-white" onClick={() => window.open(ev.url, '_blank')}>
-                                                <Download className="w-3 h-3" />
-                                              </Button>
-                                            )}
-                                            <Button size="sm" variant="ghost" className="p-1 text-red-400 hover:text-white" onClick={() => handleInlineDeleteEvidence(selectedPart.id, progressCategory.id, process.id, null, ev.id)}>
-                                              <Trash2 className="w-3 h-3" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      ))}
+                                        )}
+                                      </label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className={`text-xs ${progressColors.color} ${progressColors.textColor} border-current`}>
+                                        {processProgress}%
+                                      </Badge>
+                                      {process.children && process.children.length > 0 && (
+                                        <Badge variant="outline" className="text-xs bg-gray-600 text-gray-300 border-gray-500">
+                                          {process.children.filter(child => child.completed).length}/{process.children.length} sub
+                                        </Badge>
+                                      )}
                                     </div>
                                   </div>
-                                )}
 
-                                {/* Progress bar for this process */}
-                                <div className="mb-3">
-                                  <Progress 
-                                    key={`${process.id}-${progressToolingDetailProgress}`}
-                                    value={processProgress} 
-                                    className={`h-2 ${uiColors.bg.secondary}`} 
-                                  />
-                                  {process.name === "Tooling" && (
-                                    <div className="mt-1 text-xs text-blue-400">
-                                      Progress includes Progress Tooling detail: {progressToolingDetailProgress}%
+                                  <div className="mb-3">
+                                    <Progress key={`${process.id}-${progressToolingDetailProgress}`} value={processProgress} className={`h-2 ${uiColors.bg.secondary}`} />
+                                  </div>
+
+                                  {/* Process Action Buttons */}
+                                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                                    <Button size="sm" onClick={() => setProcessModal({
+                                      isOpen: true,
+                                      type: "edit",
+                                      isSubProcess: false,
+                                      partId: selectedPart.id,
+                                      categoryId: progressCategory.id,
+                                      processId: process.id,
+                                      process: process,
+                                    })} className="bg-blue-500 hover:bg-blue-600 text-white border-transparent text-xs px-3 py-1 h-8 shadow-sm hover:shadow-md transition-all duration-200">
+                                      <Edit className="w-3 h-3 mr-1" />
+                                      <span className="hidden sm:inline">Edit</span>
+                                    </Button>
+                                    
+                                    <Button size="sm" onClick={() => setEvidenceModalWithCallback({
+                                      isOpen: true,
+                                      processId: process.id,
+                                      processName: process.name,
+                                      evidence: process.evidence || [],
+                                      categoryId: progressCategory.id,
+                                    })} className="bg-green-500 hover:bg-green-600 text-white border-transparent text-xs px-3 py-1 h-8 shadow-sm hover:shadow-md transition-all duration-200">
+                                      <Upload className="w-3 h-3 mr-1" />
+                                      <span className="hidden sm:inline">Evidence ({process.evidence?.length || 0})</span>
+                                    </Button>
+                                    
+                                    <Button size="sm" onClick={() => setDeleteDialog({
+                                      isOpen: true,
+                                      type: "process",
+                                      partId: selectedPart.id,
+                                      categoryId: progressCategory.id,
+                                      processId: process.id,
+                                      name: process.name,
+                                    })} className="bg-red-500 hover:bg-red-600 text-white border-transparent text-xs px-3 py-1 h-8 shadow-sm hover:shadow-md transition-all duration-200">
+                                      <Trash2 className="w-3 h-3 mr-1" />
+                                      <span className="hidden sm:inline">Delete</span>
+                                    </Button>
+                                  </div>
+
+                                  {/* Add Sub-Process Button - Show prominently if no sub-processes exist */}
+                                  {(!process.children || process.children.length === 0) && (
+                                    <div className="mb-3">
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => setProcessModal({
+                                          isOpen: true,
+                                          type: "add",
+                                          isSubProcess: true,
+                                          partId: selectedPart.id,
+                                          categoryId: progressCategory.id,
+                                          processId: process.id,
+                                        })} 
+                                        className="w-full bg-purple-500 hover:bg-purple-600 text-white border-transparent text-sm py-2 shadow-md hover:shadow-lg transition-all duration-200"
+                                      >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        <span>Add Sub-Process to "{process.name}"</span>
+                                      </Button>
                                     </div>
                                   )}
-                                </div>
 
-                                    {/* Process Notes */}
-                                    {process.notes && (
-                                      <div className="mb-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <FileText className="w-4 h-4 text-blue-400" />
-                                          <span className="text-sm font-medium text-gray-300">Notes</span>
-                                        </div>
-                                        <p className="text-sm text-gray-400">{process.notes}</p>
+                                  {process.children && process.children.length > 0 && (
+                                    <div className="mt-3">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <Button variant="outline" size="sm" className={`justify-between ${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} cursor-default`}>
+                                          <span className="text-sm">Sub-Processes ({process.children.length})</span>
+                                        </Button>
+                                        <Button 
+                                          size="sm" 
+                                          onClick={() => setProcessModal({
+                                            isOpen: true,
+                                            type: "add",
+                                            isSubProcess: true,
+                                            partId: selectedPart.id,
+                                            categoryId: progressCategory.id,
+                                            processId: process.id,
+                                          })} 
+                                          className="bg-purple-500 hover:bg-purple-600 text-white border-transparent text-xs px-3 py-1 h-7 shadow-sm hover:shadow-md transition-all duration-200"
+                                        >
+                                          <Plus className="w-3 h-3 mr-1" />
+                                          <span>Add More</span>
+                                        </Button>
                                       </div>
-                                    )}
-
-                                {/* Child Processes - Now as Collapsible Section */}
-                                {process.children && process.children.length > 0 && (
-                                  <div className="mt-3">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                          className={`w-full justify-between ${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.text.secondary} hover:${uiColors.bg.secondary} cursor-default`}
-                                    >
-                                      <span className="text-sm">Sub-Processes ({process.children.length})</span>
-                                      <svg
-                                        id={`chevron-${process.id}`}
-                                            className={`w-4 h-4 transition-transform duration-200 ${showDetailedProcesses ? 'rotate-180' : ''}`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                      </svg>
-                                    </Button>
-                                        <div id={`subprocess-${process.id}`} className={`mt-2 space-y-2 ${showDetailedProcesses ? '' : 'hidden'}`}>
-                                      {process.children.map((child) => (
-                                        <div key={child.id} className={`flex flex-col p-2 ${uiColors.bg.card} rounded border ${uiColors.border.tertiary} gap-2`}>
-                                          {/* First row: Label and Action buttons */}
-                                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                          <div className="flex items-center space-x-2 flex-1 min-w-0">
-                                            <Checkbox
-                                              id={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
-                                              checked={child.name === "Progress Tooling" ? getToolingOverallFromChild(child) === 100 : child.completed}
-                                              onCheckedChange={() => {
-                                                if (child.name === "Progress Tooling") {
-                                                  // Progress Tooling tidak bisa di-toggle manual
-                                                  return;
-                                                }
-                                                toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id);
-                                              }}
-                                                className={`${uiColors.border.tertiary} ${
-                                                  child.name === "Progress Tooling" ? "opacity-50 cursor-not-allowed" : ""
-                                                }`}
-                                                disabled={child.name === "Progress Tooling"}
-                                            />
-                                            <label
-                                              htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
-                                              className={`text-sm cursor-pointer flex-1 break-words ${
-                                                  child.name === "Progress Tooling" 
-                                                    ? `${uiColors.text.secondary} opacity-60 cursor-not-allowed` 
-                                                    : uiColors.text.secondary
-                                              }`}
-                                            >
-                                              {child.name}
-                                                {child.name === "Progress Tooling" && (
-                                                  <span className="ml-2 text-xs text-blue-400 font-normal">
-                                                    {getToolingOverallFromChild(child) === 100 ? "(Completed)" : `(Overall Progress: ${getToolingOverallFromChild(child)}%)`}
-                                                  </span>
-                                                )}
-                                                {child.name === "Progress Tooling" && getToolingOverallFromChild(child) === 100 && (
-                                                  <div className="inline-block ml-2" title="Sub-process completed">
-                                                    <svg 
-                                                      className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
-                                                      fill="none" 
-                                                      stroke="currentColor" 
-                                                      viewBox="0 0 24 24"
-                                                    >
-                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                  </div>
-                                                )}
-                                                {child.name !== "Progress Tooling" && child.completed && (
-                                                  <div className="inline-block ml-2" title="Sub-process completed">
-                                                    <svg 
-                                                      className="w-3 h-3 text-green-500 transform transition-all duration-300 ease-out scale-100 hover:scale-110 hover:text-green-400" 
-                                                      fill="none" 
-                                                      stroke="currentColor" 
-                                                      viewBox="0 0 24 24"
-                                                    >
-                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                  </div>
-                                                )}
-                                            </label>
-                                          </div>
-                                            
-                                            {/* Action buttons */}
-                                          <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto">
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              onClick={() =>
-                                                setProcessModal({
+                                      <div className={`mt-2 space-y-2 ${showDetailedProcesses ? '' : 'hidden'}`}>
+                                        {process.children.map((child) => (
+                                          <div key={child.id} className={`flex flex-col p-2 ${uiColors.bg.card} rounded border ${uiColors.border.tertiary} gap-2`}>
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                                <Checkbox
+                                                  id={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`}
+                                                  checked={child.name === "Progress Tooling" ? getToolingOverallFromChild(child) === 100 : child.completed}
+                                                  onCheckedChange={() => {
+                                                    if (child.name === "Progress Tooling") return;
+                                                    toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id);
+                                                  }}
+                                                  className={uiColors.border.tertiary}
+                                                  disabled={child.name === "Progress Tooling"}
+                                                />
+                                                <label htmlFor={`${selectedPart.id}-${progressCategory.id}-${process.id}-${child.id}`} className={`text-sm ${uiColors.text.secondary}`}>
+                                                  {child.name}
+                                                </label>
+                                              </div>
+                                              <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto">
+                                                <Button size="sm" onClick={() => setProcessModal({
                                                   isOpen: true,
                                                   type: "edit",
                                                   isSubProcess: true,
@@ -2383,37 +2018,22 @@ export default function ManageProgres() {
                                                   processId: process.id,
                                                   subProcessId: child.id,
                                                   process: child,
-                                                })
-                                              }
-                                              className={`${uiColors.text.secondary} hover:${uiColors.bg.tertiary} ${uiColors.border.secondary} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
-                                            >
-                                              <Edit className="w-3 h-3 mr-1" />
-                                              <span className="hidden sm:inline">Edit</span>
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              onClick={() =>
-                                                  setEvidenceModalWithCallback({
+                                                })} className="bg-blue-500 hover:bg-blue-600 text-white border-transparent text-xs px-2 py-1 h-7 shadow-sm hover:shadow-md transition-all duration-200">
+                                                  <Edit className="w-3 h-3 mr-1" />
+                                                  <span className="hidden sm:inline">Edit</span>
+                                                </Button>
+                                                <Button size="sm" onClick={() => setEvidenceModalWithCallback({
                                                   isOpen: true,
                                                   processId: process.id,
                                                   subProcessId: child.id,
                                                   processName: child.name,
                                                   evidence: child.evidence || [],
-                                                    categoryId: progressCategory.id,
-                                                })
-                                              }
-                                              className={`${uiColors.text.accent} hover:${uiColors.bg.tertiary} ${uiColors.border.accent} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
-                                            >
-                                              <Upload className="w-3 h-3 mr-1" />
-                                              <span className="hidden sm:inline">Evidence ({child.evidence?.length || 0})</span>
-                                              <span className="sm:hidden">({child.evidence?.length || 0})</span>
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              onClick={() =>
-                                                setDeleteDialog({
+                                                  categoryId: progressCategory.id,
+                                                })} className="bg-green-500 hover:bg-green-600 text-white border-transparent text-xs px-2 py-1 h-7 shadow-sm hover:shadow-md transition-all duration-200">
+                                                  <Upload className="w-3 h-3 mr-1" />
+                                                  <span className="hidden sm:inline">Evidence ({child.evidence?.length || 0})</span>
+                                                </Button>
+                                                <Button size="sm" onClick={() => setDeleteDialog({
                                                   isOpen: true,
                                                   type: "subprocess",
                                                   partId: selectedPart.id,
@@ -2421,104 +2041,55 @@ export default function ManageProgres() {
                                                   processId: process.id,
                                                   subProcessId: child.id,
                                                   name: child.name,
-                                                })
-                                              }
-                                              className={`${uiColors.text.error} hover:${uiColors.bg.tertiary} ${uiColors.border.error} ${uiColors.bg.card} text-xs px-2 py-1 h-7`}
-                                            >
-                                              <Trash2 className="w-3 h-3 mr-1" />
-                                              <span className="hidden sm:inline">Delete</span>
-                                            </Button>
-                                          </div>
-                                          </div>
-                                              
-                                              {/* Inline Evidence - Sub-process level */}
-                                              {Array.isArray(child.evidence) && child.evidence.length > 0 && (
-                                                <div className="mb-2 p-2 bg-gray-800/40 rounded-lg border border-gray-700/40">
-                                                  <div className="text-xs text-gray-300 mb-1">Evidence ({child.evidence.length})</div>
-                                                  <div className="flex flex-col gap-1">
-                                                    {child.evidence.map((ev) => (
-                                                      <div key={ev.id} className="bg-gray-800/60 hover:bg-gray-800/80 rounded-md px-2 py-2 border border-gray-700/50 flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                          {ev.type === 'image' ? (
-                                                            <Image className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                                                          ) : (
-                                                            <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
-                                                          )}
-                                                          <div className="min-w-0">
-                                                            <div className="text-xs text-white truncate">{ev.name}</div>
-                                                            <div className="text-[10px] text-gray-400">{new Date(ev.uploadedAt).toLocaleDateString()}</div>
-                                                          </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                          {ev.url && (
-                                                            <Button size="sm" variant="ghost" className="p-1 text-blue-400 hover:text-white" onClick={() => window.open(ev.url, '_blank')}>
-                                                              <Download className="w-3 h-3" />
-                                                            </Button>
-                                                          )}
-                                                          <Button size="sm" variant="ghost" className="p-1 text-red-400 hover:text-white" onClick={() => handleInlineDeleteEvidence(selectedPart.id, progressCategory.id, process.id, child.id, ev.id)}>
-                                                            <Trash2 className="w-3 h-3" />
-                                                          </Button>
-                                                        </div>
-                                                      </div>
-                                                    ))}
-                                                  </div>
-                                                </div>
-                                              )}
-
-                                              {/* Sub-process Notes */}
-                                              {child.notes && (
-                                                <div className="p-2 bg-gray-800/30 rounded border border-gray-700/20">
-                                                  <div className="flex items-center gap-2 mb-1">
-                                                    <FileText className="w-3 h-3 text-blue-400" />
-                                                    <span className="text-xs font-medium text-gray-400">Notes</span>
-                                                  </div>
-                                                  <p className="text-xs text-gray-500">{child.notes}</p>
-                                                </div>
-                                              )}
-                                          
-                                          {/* Second row: Progress Tooling Dropdown (only for Progress Tooling) */}
-                                          {child.name === "Progress Tooling" && (
-                                            <div className="w-full mt-2">
-                                              <ProgressToolingDropdown 
-                                                progressToolingChild={child}
-                                                partId={selectedPart.id}
-                                                categoryId={progressCategory.id}
-                                                processId={child.id}
-                                                subProcessId={child.id}
-                                                onProgressToolingComplete={(completed) => {
-                                                  if (completed) {
-                                                    // Auto-complete the Progress Tooling sub-process
-                                                    toggleProcess(selectedPart.id, progressCategory.id, process.id, child.id);
-                                                  }
-                                                }}
-                                                onProgressUpdate={(progress) => {
-                                                  setProgressToolingDetailProgress(progress);
-                                                }}
-                                                onDetailChange={(detail) => {
-                                                  setToolingDetailBySubProcessId(prev => ({ ...prev, [child.id]: detail }))
-                                                }}
-                                              />
+                                                })} className="bg-red-500 hover:bg-red-600 text-white border-transparent text-xs px-2 py-1 h-7 shadow-sm hover:shadow-md transition-all duration-200">
+                                                  <Trash2 className="w-3 h-3 mr-1" />
+                                                  <span className="hidden sm:inline">Delete</span>
+                                                </Button>
+                                              </div>
                                             </div>
-                                          )}
-                                        </div>
-                                      ))}
+                                            
+                                            {/* Progress Tooling Detail Table */}
+                                            {child.name === "Progress Tooling" && (
+                                              <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <ProgressToolingDropdown
+                                                  progressToolingChild={child}
+                                                  partId={selectedPart.id}
+                                                  categoryId={progressCategory.id}
+                                                  processId={process.id}
+                                                  subProcessId={child.id}
+                                                  onProgressUpdate={(progress) => {
+                                                    setProgressToolingDetailProgress(progress)
+                                                    setHasUnsavedChanges(true)
+                                                  }}
+                                                  onDetailChange={(detail) => {
+                                                    console.log('Received detail from ProgressToolingDropdown:', detail);
+                                                    setToolingDetailBySubProcessId(prev => ({
+                                                      ...prev,
+                                                      [child.id]: detail
+                                                    }))
+                                                    setHasUnsavedChanges(true)
+                                                  }}
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-
-
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                      )
-                    })}
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
-                )}
-              </CardContent>
-            </Card>
+              )}
+
+
+            </div>
           ) : (
             <div className="text-center py-8 sm:py-12">
               <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -2596,50 +2167,12 @@ export default function ManageProgres() {
       />
 
       {/* Image Modal */}
-      <Dialog open={imageModal.isOpen} onOpenChange={() => setImageModal({ ...imageModal, isOpen: false })}>
-        <DialogContent className="max-w-4xl w-[95vw] sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-4 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                <Image className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              {imageModal.partName} - Part Image
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex justify-center items-center p-4">
-            <div className="relative max-w-full max-h-[70vh] overflow-hidden rounded-lg">
-              <img
-                src={imageModal.imageUrl}
-                alt={imageModal.partName}
-                className="max-w-full max-h-[70vh] object-contain rounded-lg"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback-full');
-                  if (fallback) fallback.classList.remove('hidden');
-                }}
-                {...(imageModal.imageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
-              />
-              <div className="image-fallback-full absolute inset-0 flex items-center justify-center text-gray-400 hidden">
-                <div className="text-center">
-                  <Image className="w-16 h-16 mx-auto mb-4" />
-                  <p className="text-lg">Failed to load image</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setImageModal({ ...imageModal, isOpen: false })}
-              className="border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50 transition-all duration-200"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ImageModal
+        isOpen={imageModal.isOpen}
+        onClose={() => setImageModal({ ...imageModal, isOpen: false })}
+        imageUrl={imageModal.imageUrl}
+        partName={imageModal.partName}
+      />
     </div>
   );
 }

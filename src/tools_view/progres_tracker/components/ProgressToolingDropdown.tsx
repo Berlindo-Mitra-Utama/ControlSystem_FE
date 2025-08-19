@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { getProgressToolingDetail, getProgressToolingTrials } from "../../../services/API_Services";
+import { getProgressToolingDetail, getProgressToolingTrials, upsertProgressToolingTrials } from "../../../services/API_Services";
+import { useTheme } from '../../../contexts/ThemeContext';
 
 interface Material {
   name: string;
@@ -30,10 +31,39 @@ interface ProgressToolingDropdownProps {
 }
 
 export function ProgressToolingDropdown({ progressToolingChild, onProgressToolingComplete, onProgressUpdate, partId, categoryId, processId, subProcessId, onDetailChange }: ProgressToolingDropdownProps) {
+  const { isDarkMode } = useTheme();
   const [open, setOpen] = React.useState(false);
   const initialDetail = (progressToolingChild as any)?.toolingDetail || null;
   const [initialized, setInitialized] = React.useState<boolean>(!!(initialDetail && typeof initialDetail.overallProgress === 'number'));
   const cacheKey = React.useMemo(() => `tooling-detail-${partId}-${categoryId}-${processId}-${subProcessId}`, [partId, categoryId, processId, subProcessId]);
+
+  // Dynamic UI colors based on theme
+  const uiColors = {
+    bg: {
+      primary: isDarkMode ? 'bg-gray-700' : 'bg-white',
+      secondary: isDarkMode ? 'bg-gray-800' : 'bg-gray-50',
+      tertiary: isDarkMode ? 'bg-gray-900' : 'bg-gray-100',
+      card: isDarkMode ? 'bg-gray-800' : 'bg-white',
+      hover: isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-50'
+    },
+    border: {
+      primary: isDarkMode ? 'border-gray-600' : 'border-gray-300',
+      secondary: isDarkMode ? 'border-gray-700' : 'border-gray-200',
+      tertiary: isDarkMode ? 'border-gray-800' : 'border-gray-100'
+    },
+    text: {
+      primary: isDarkMode ? 'text-white' : 'text-gray-900',
+      secondary: isDarkMode ? 'text-gray-200' : 'text-gray-700',
+      tertiary: isDarkMode ? 'text-gray-300' : 'text-gray-600',
+      muted: isDarkMode ? 'text-gray-400' : 'text-gray-500'
+    },
+    input: {
+      bg: isDarkMode ? 'bg-gray-700' : 'bg-white',
+      border: isDarkMode ? 'border-gray-600' : 'border-gray-300',
+      text: isDarkMode ? 'text-white' : 'text-gray-900',
+      focus: isDarkMode ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-blue-500 focus:border-blue-500'
+    }
+  };
 
   const loadFromCache = React.useCallback(() => {
     try {
@@ -84,21 +114,60 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
   const calculateTrialProgress = () => {
     if (trials.length === 0) return 0;
     const completedTrials = trials.filter(trial => trial.completed).length;
-    return Math.round((completedTrials / trials.length) * 100);
+    const progress = Math.round((completedTrials / trials.length) * 100);
+    console.log('Trial progress calculation:', { 
+      totalTrials: trials.length, 
+      completedTrials, 
+      progress,
+      trials: trials.map(t => ({ name: t.name, completed: t.completed }))
+    });
+    return progress;
   };
 
   // Update trial count and redistribute weights
-  const updateTrialCount = (count: number | null) => {
-    setTrialCount(count || 1);
-    const newTrials = [];
-    for (let i = 1; i <= (count || 1); i++) {
-      newTrials.push({
-        name: `Trial ${i}`,
-        completed: false,
-        weight: Math.round(20 / (count || 1)) // Distribute 20% weight equally
-      });
+  const updateTrialCount = async (count: number | null) => {
+    const newCount = count || 1;
+    setTrialCount(newCount);
+    
+    // Only create new trials if we don't have any existing trials
+    if (trials.length === 0) {
+      const newTrials = [];
+      for (let i = 1; i <= newCount; i++) {
+        newTrials.push({
+          name: `Trial ${i}`,
+          completed: false,
+          weight: Math.round(20 / newCount) // Distribute 20% weight equally
+        });
+      }
+      setTrials(newTrials);
+    } else {
+      // If we have existing trials, just adjust the count and preserve existing data
+      if (newCount > trials.length) {
+        // Add new trials if count increased
+        const additionalTrials = [];
+        for (let i = trials.length + 1; i <= newCount; i++) {
+          additionalTrials.push({
+            name: `Trial ${i}`,
+            completed: false,
+            weight: Math.round(20 / newCount)
+          });
+        }
+        setTrials([...trials, ...additionalTrials]);
+      } else if (newCount < trials.length) {
+        // Remove excess trials if count decreased
+        setTrials(trials.slice(0, newCount));
+      }
+      
+      // Recalculate weights for all trials
+      const updatedTrials = trials.slice(0, newCount).map(trial => ({
+        ...trial,
+        weight: Math.round(20 / newCount)
+      }));
+      setTrials(updatedTrials);
     }
-    setTrials(newTrials);
+    
+    // Save trials directly to database after updating count
+    await saveTrialsToDatabase();
   };
 
   // Handle checkbox change
@@ -107,9 +176,14 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
       ...prev,
       [processName]: !prev[processName]
     }));
+    // Notify parent of changes
+    if (onDetailChange) {
+      const payload = buildDetailPayload();
+      onDetailChange(payload);
+    }
   };
 
-  const rows = [
+  const rows = React.useMemo(() => [
     { 
       name: "Design Tooling", 
       weight: 10, 
@@ -155,7 +229,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
     { 
       name: "Trial", 
       weight: 20, 
-      completed: false,
+      completed: calculateTrialProgress() === 100,
       progress: calculateTrialProgress(),
       type: "trial"
     },
@@ -166,7 +240,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
       progress: processStates["Approval"] ? 100 : 0,
       type: "checkbox"
     }
-  ];
+  ], [processStates, materials, trials, calculateMaterialProgress, calculateTrialProgress]);
 
   const totalProgress = rows.reduce((sum, row) => {
     return sum + (row.progress * row.weight / 100);
@@ -174,24 +248,101 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
   const overallProgress = initialized && typeof initialDetail?.overallProgress === 'number'
     ? Math.max(0, Math.min(100, Math.round(Number(initialDetail.overallProgress))))
     : Math.round(totalProgress);
+  
+  // Debug logging for progress calculation
+  React.useEffect(() => {
+    if (initialized) {
+      console.log('Progress calculation debug:', {
+        rows: rows.map(r => ({ name: r.name, progress: r.progress, weight: r.weight })),
+        totalProgress,
+        overallProgress,
+        trials: trials.map(t => ({ name: t.name, completed: t.completed, weight: t.weight }))
+      });
+    }
+  }, [rows, totalProgress, overallProgress, trials, initialized]);
 
   // Build payload to persist
   const buildDetailPayload = React.useCallback(() => {
-    return {
-      designToolingCompleted: processStates["Design Tooling"],
-      rawMaterialActual: materials[0]?.actual ?? null,
-      rawMaterialPlanned: materials[0]?.planned ?? null,
-      machining1Completed: processStates["Machining 1"],
-      machining2Completed: processStates["Machining 2"],
-      machining3Completed: processStates["Machining 3"],
-      assyCompleted: processStates["Assy"],
-      trialCount: trialCount || 1,
-      trialsCompleted: (trials || []).map(t => ({ completed: !!t.completed })),
-      trials: (trials || []).map((t, idx) => ({ index: idx + 1, name: t.name, completed: !!t.completed, weight: typeof t.weight === 'number' ? t.weight : 0 })),
-      approvalCompleted: processStates["Approval"],
-      overallProgress: overallProgress,
+    const payload = {
+      designToolingCompleted: !!processStates["Design Tooling"],
+      rawMaterialActual: materials[0]?.actual ? parseInt(materials[0].actual.toString()) : null,
+      rawMaterialPlanned: materials[0]?.planned ? parseInt(materials[0].planned.toString()) : null,
+      machining1Completed: !!processStates["Machining 1"],
+      machining2Completed: !!processStates["Machining 2"],
+      machining3Completed: !!processStates["Machining 3"],
+      assyCompleted: !!processStates["Assy"],
+      trialCount: parseInt((trialCount || 1).toString()),
+      approvalCompleted: !!processStates["Approval"],
+      overallProgress: parseFloat(overallProgress.toString())
     };
-  }, [materials, processStates, trials, trialCount, overallProgress]);
+    
+    console.log('Built tooling detail payload:', payload);
+    return payload;
+  }, [materials, processStates, trialCount, overallProgress]);
+
+  // Build trials payload for pt_progress_tooling_trials table
+  const buildTrialsPayload = React.useCallback(() => {
+    const trialsPayload = (trials || []).map((trial, index) => ({
+      index: index + 1,
+      name: trial.name,
+      completed: !!trial.completed,
+      weight: trial.weight,
+      notes: null
+    }));
+    
+    console.log('Built trials payload:', trialsPayload);
+    return trialsPayload;
+  }, [trials]);
+
+  // Save trials data directly to pt_progress_tooling_trials table
+  const saveTrialsToDatabase = React.useCallback(async () => {
+    try {
+      console.log('Saving trials to database:', { partId, categoryId, processId });
+      const trialsPayload = buildTrialsPayload();
+      
+      if (trialsPayload.length > 0) {
+        const response = await upsertProgressToolingTrials(
+          { partId, categoryId, processId },
+          trialsPayload
+        );
+        console.log('Trials saved successfully:', response);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error saving trials to database:', error);
+      return false;
+    }
+  }, [partId, categoryId, processId, buildTrialsPayload]);
+
+  // Load trials data from database
+  const loadTrialsFromDatabase = React.useCallback(async () => {
+    try {
+      console.log('Loading trials from database:', { partId, categoryId, processId });
+      const trialRes = await getProgressToolingTrials({ partId, categoryId, processId });
+      const arr = trialRes?.data || trialRes?.trials || [];
+      
+      if (Array.isArray(arr) && arr.length > 0) {
+        console.log('Trials loaded from database:', arr);
+        const sorted = [...arr].sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
+        
+        // Set trial count and trials from database
+        setTrialCount(sorted.length);
+        const newTrials = sorted.map((t: any) => ({
+          name: t.name || `Trial ${t.index}`,
+          completed: !!t.completed,
+          weight: typeof t.weight === 'number' ? t.weight : Math.round(20 / sorted.length)
+        }));
+        setTrials(newTrials);
+        console.log('Trials set to state from database:', newTrials);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error loading trials from database:', error);
+      return false;
+    }
+  }, [partId, categoryId, processId]);
 
   // Effect untuk auto-complete ketika overall progress mencapai 100%
   React.useEffect(() => {
@@ -207,6 +358,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
     }
     if (onDetailChange) {
       const payload = buildDetailPayload();
+      console.log('Sending detail payload to parent:', payload);
       onDetailChange(payload);
       // Cache locally untuk mencegah reset saat backend belum simpan detail
       try { localStorage.setItem(cacheKey, JSON.stringify(payload)); } catch {}
@@ -217,18 +369,52 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
   React.useEffect(() => {
     const loadDetail = async () => {
       try {
-        // Coba minimal (by processId) lalu fallback dengan route lengkap untuk kompatibilitas
-        let res = await getProgressToolingDetail({ partId, categoryId, processId, subProcessId });
-        if (!res?.success && processId) {
-          res = await getProgressToolingDetail({ partId: '', categoryId: '', processId, subProcessId: '' } as any);
+        console.log('Loading tooling detail for:', { partId, categoryId, processId, subProcessId });
+        
+        // Load all data in parallel for better performance
+        const [detailRes, trialsRes] = await Promise.allSettled([
+          getProgressToolingDetail({ partId, categoryId, processId, subProcessId }),
+          getProgressToolingTrials({ partId, categoryId, processId })
+        ]);
+        
+        console.log('Detail response:', detailRes);
+        console.log('Trials response:', trialsRes);
+        
+        // Process tooling detail
+        let d = null;
+        if (detailRes.status === 'fulfilled' && detailRes.value?.success && detailRes.value?.data) {
+          d = detailRes.value.data;
+        } else if (processId) {
+          // Try fallback with processId only
+          try {
+            const fallbackRes = await getProgressToolingDetail({ partId: '', categoryId: '', processId, subProcessId: '' } as any);
+            if (fallbackRes?.success && fallbackRes?.data) {
+              d = fallbackRes.data;
+            }
+          } catch (fallbackErr) {
+            console.log('Fallback detail loading failed:', fallbackErr);
+          }
         }
-        let d = res?.success && res.data ? res.data : null;
+        
         if (!d) {
           // Fallback ke cache lokal jika backend belum punya data
+          console.log('No backend data, trying cache');
           d = loadFromCache();
+          console.log('Cache data:', d);
         }
+        
+        // Process trials data
+        let trialsData = [];
+        if (trialsRes.status === 'fulfilled' && trialsRes.value?.data) {
+          trialsData = trialsRes.value.data;
+        } else if (trialsRes.status === 'fulfilled' && trialsRes.value?.trials) {
+          trialsData = trialsRes.value.trials;
+        }
+        
+        console.log('Trials data from API:', trialsData);
+        
         if (d) {
-          const d = res.data;
+          console.log('Setting process states with data:', d);
           setProcessStates(prev => ({
             ...prev,
             "Design Tooling": !!d.designToolingCompleted,
@@ -238,35 +424,54 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
             "Assy": !!d.assyCompleted,
             "Approval": !!d.approvalCompleted,
           }));
+          
+          console.log('Setting materials with data:', d.rawMaterialActual, d.rawMaterialPlanned);
           setMaterials([{ name: materials[0].name, unit: materials[0].unit, actual: d.rawMaterialActual ?? null, planned: d.rawMaterialPlanned ?? null }]);
-          const count = d.trialCount || 1;
-          updateTrialCount(count);
-          if (Array.isArray(d.trialsCompleted) && d.trialsCompleted.length > 0) {
+          
+          // Handle trials data
+          if (Array.isArray(trialsData) && trialsData.length > 0) {
+            console.log('Setting trials from API data:', trialsData);
+            const sorted = [...trialsData].sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
+            
+            setTrialCount(sorted.length);
+            const newTrials = sorted.map((t: any) => ({
+              name: t.name || `Trial ${t.index}`,
+              completed: !!t.completed,
+              weight: typeof t.weight === 'number' ? t.weight : Math.round(20 / sorted.length)
+            }));
+            setTrials(newTrials);
+            console.log('Trials loaded from API and set to state:', newTrials);
+          } else if (Array.isArray(d.trialsCompleted) && d.trialsCompleted.length > 0) {
+            // Fallback to trialsCompleted from detail
+            console.log('Setting trials from trialsCompleted fallback:', d.trialsCompleted);
+            const count = d.trialCount || 1;
+            setTrialCount(count);
             const newTrials = [] as Trial[];
             for (let i = 0; i < count; i++) {
-              newTrials.push({ name: `Trial ${i + 1}`, completed: !!d.trialsCompleted[i]?.completed, weight: Math.round(20 / count) });
+              newTrials.push({ 
+                name: `Trial ${i + 1}`, 
+                completed: !!d.trialsCompleted[i]?.completed, 
+                weight: Math.round(20 / count) 
+              });
             }
             setTrials(newTrials);
+          } else {
+            // Default trial setup
+            const count = d.trialCount || 1;
+            setTrialCount(count);
+            const defaultTrials = Array.from({ length: count }, (_, i) => ({
+              name: `Trial ${i + 1}`,
+              completed: false,
+              weight: Math.round(20 / count)
+            }));
+            setTrials(defaultTrials);
           }
-          // Muat daftar trials rinci jika tersedia (nama, weight per trial)
-          try {
-            const trialRes = await getProgressToolingTrials({ partId, categoryId, processId });
-            const arr = trialRes?.data || trialRes?.trials || [];
-            if (Array.isArray(arr) && arr.length > 0) {
-              // Gunakan data trial tabel sebagai sumber utama
-              const sorted = [...arr].sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
-              updateTrialCount(sorted.length);
-              initialTrials = sorted.map((t: any) => ({
-                name: t.name || `Trial ${t.index}`,
-                completed: !!t.completed,
-                weight: typeof t.weight === 'number' ? t.weight : Math.round(20 / sorted.length)
-              }));
-              setTrials(initialTrials);
-            }
-          } catch {}
+          
+          console.log('Setting initialized to true');
           setInitialized(true);
         }
       } catch (err) {
+        console.log('Error loading detail from backend:', err);
         // Backend gagal: coba cache lokal
         const d = loadFromCache();
         if (d) {
@@ -280,14 +485,26 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
             "Approval": !!d.approvalCompleted,
           }));
           setMaterials([{ name: materials[0].name, unit: materials[0].unit, actual: d.rawMaterialActual ?? null, planned: d.rawMaterialPlanned ?? null }]);
+          
           const count = d.trialCount || 1;
-          updateTrialCount(count);
+          setTrialCount(count);
           if (Array.isArray(d.trialsCompleted) && d.trialsCompleted.length > 0) {
             const newTrials = [] as Trial[];
             for (let i = 0; i < count; i++) {
-              newTrials.push({ name: `Trial ${i + 1}`, completed: !!d.trialsCompleted[i]?.completed, weight: Math.round(20 / count) });
+              newTrials.push({ 
+                name: `Trial ${i + 1}`, 
+                completed: !!d.trialsCompleted[i]?.completed, 
+                weight: Math.round(20 / count) 
+              });
             }
             setTrials(newTrials);
+          } else {
+            const defaultTrials = Array.from({ length: count }, (_, i) => ({
+              name: `Trial ${i + 1}`,
+              completed: false,
+              weight: Math.round(20 / count)
+            }));
+            setTrials(defaultTrials);
           }
           setInitialized(true);
         }
@@ -297,10 +514,52 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partId, categoryId, processId, subProcessId, loadFromCache]);
 
+  // Force refresh when component receives new data from parent (only on initial load)
+  React.useEffect(() => {
+    const refreshFromParent = async () => {
+      if (initialized && progressToolingChild?.toolingDetail && !open) {
+        console.log('Received new tooling detail from parent on initial load, refreshing UI');
+        const detail = progressToolingChild.toolingDetail;
+        setProcessStates(prev => ({
+          ...prev,
+          "Design Tooling": !!detail.designToolingCompleted,
+          "Machining 1": !!detail.machining1Completed,
+          "Machining 2": !!detail.machining2Completed,
+          "Machining 3": !!detail.machining3Completed,
+          "Assy": !!detail.assyCompleted,
+          "Approval": !!detail.approvalCompleted,
+        }));
+        setMaterials([{ name: materials[0].name, unit: materials[0].unit, actual: detail.rawMaterialActual ?? null, planned: detail.rawMaterialPlanned ?? null }]);
+        const count = detail.trialCount || 1;
+        // Don't override trials if we already have them loaded from database
+        if (trials.length === 0) {
+          await updateTrialCount(count);
+          if (Array.isArray(detail.trialsCompleted) && detail.trialsCompleted.length > 0) {
+            const newTrials = [] as Trial[];
+            for (let i = 0; i < count; i++) {
+              newTrials.push({ name: `Trial ${i + 1}`, completed: !!detail.trialsCompleted[i]?.completed, weight: Math.round(20 / count) });
+            }
+            setTrials(newTrials);
+          }
+        }
+      }
+    };
+    refreshFromParent();
+  }, [progressToolingChild?.toolingDetail, initialized, materials, open]);
+
+  // Data is now loaded upfront, no need to refresh on dropdown open
+  // But we can add a debug log to show when dropdown opens
+  React.useEffect(() => {
+    if (open && initialized) {
+      console.log('Dropdown opened, current trial data:', trials);
+      console.log('Current trial count:', trialCount);
+    }
+  }, [open, initialized, trials, trialCount]);
+
   return (
     <div className="w-full mt-2">
       <button
-        className="w-full flex items-center justify-between p-3 bg-gray-700 border border-gray-600 rounded-lg text-white hover:bg-gray-600 transition-colors"
+        className={`w-full flex items-center justify-between p-3 ${uiColors.bg.primary} border ${uiColors.border.primary} rounded-lg ${uiColors.text.primary} ${uiColors.bg.hover} transition-colors`}
         onClick={() => setOpen((v) => !v)}
         type="button"
       >
@@ -316,14 +575,14 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
       </button>
       {open && (
         <div className="w-full mt-2">
-          <div className="bg-gray-900 border border-gray-700 rounded shadow-lg p-3 sm:p-6 w-full">
+          <div className={`${uiColors.bg.tertiary} border ${uiColors.border.secondary} rounded shadow-lg p-3 sm:p-6 w-full`}>
             {/* Overall Progress */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg border border-gray-600">
+            <div className={`mb-6 p-4 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-700' : 'bg-gradient-to-r from-blue-50 to-indigo-50'} rounded-lg border ${uiColors.border.primary}`}>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-                <span className="text-white font-semibold text-sm sm:text-base">Overall Progress</span>
-                <span className="text-blue-400 font-bold text-lg sm:text-xl">{overallProgress}%</span>
+                <span className={`${uiColors.text.primary} font-semibold text-sm sm:text-base`}>Overall Progress</span>
+                <span className="text-blue-600 font-bold text-lg sm:text-xl">{overallProgress}%</span>
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-3 sm:h-4 overflow-hidden">
+              <div className={`w-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-3 sm:h-4 overflow-hidden`}>
                 <div
                   className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 sm:h-4 rounded-full transition-all duration-500 ease-out shadow-lg"
                   style={{ width: `${overallProgress}%` }}
@@ -332,7 +591,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
               
               {/* Auto-complete Status berdasarkan Overall Progress */}
               {overallProgress === 100 && (
-                <div className="mt-3 p-2 bg-blue-600 text-white rounded text-xs">
+                <div className={`mt-3 p-2 ${isDarkMode ? 'bg-blue-600 text-white' : 'bg-green-100 text-green-800 border border-green-200'} rounded text-xs`}>
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -342,7 +601,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                 </div>
               )}
               {overallProgress < 100 && overallProgress > 0 && (
-                <div className="mt-3 p-2 bg-gray-600 text-white rounded text-xs">
+                <div className={`mt-3 p-2 ${isDarkMode ? 'bg-gray-600 text-white' : 'bg-blue-100 text-blue-800 border border-blue-200'} rounded text-xs`}>
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -355,9 +614,9 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
 
             {/* Process Table */}
             <div className="overflow-x-auto mb-6">
-              <table className="w-full text-xs sm:text-sm text-left text-gray-200">
+              <table className={`w-full text-xs sm:text-sm text-left ${uiColors.text.secondary}`}>
                 <thead>
-                  <tr className="border-b border-gray-700 bg-gray-800">
+                  <tr className={`border-b ${uiColors.border.secondary} ${uiColors.bg.secondary}`}>
                     <th className="py-3 px-2 sm:px-3 font-semibold">Status</th>
                     <th className="py-3 px-2 sm:px-3 font-semibold">Process</th>
                     <th className="py-3 px-2 sm:px-3 font-semibold">Weight</th>
@@ -366,14 +625,14 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                 </thead>
                 <tbody>
                   {rows.map((row, idx) => (
-                    <tr key={idx} className="border-b border-gray-800 last:border-0 hover:bg-gray-800 transition-colors">
+                    <tr key={idx} className={`border-b ${uiColors.border.tertiary} last:border-0 ${uiColors.bg.hover} transition-colors`}>
                       <td className="py-3 px-2 sm:px-3">
                         {row.type === "checkbox" && (
                           <input
                             type="checkbox"
                             checked={row.completed}
                             onChange={() => handleProcessCheckbox(row.name)}
-                            className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer transition-all duration-200 hover:scale-110"
+                            className={`w-4 h-4 sm:w-5 sm:h-5 text-blue-600 ${uiColors.input.bg} ${uiColors.input.border} rounded focus:ring-blue-500 focus:ring-2 cursor-pointer transition-all duration-200 hover:scale-110`}
                           />
                         )}
                         {row.type === "material" && (
@@ -405,13 +664,13 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                         )}
                       </td>
                       <td className="py-3 px-2 sm:px-3 text-xs sm:text-sm">
-                        <span className="bg-gray-700 px-2 py-1 rounded text-xs font-medium">
+                        <span className={`${uiColors.bg.primary} px-2 py-1 rounded text-xs font-medium ${uiColors.text.primary}`}>
                           {row.weight}%
                         </span>
                       </td>
                       <td className="py-3 px-2 sm:px-3">
                         <div className="flex items-center space-x-2">
-                          <div className="w-16 sm:w-20 bg-gray-700 rounded-full h-2 sm:h-3 overflow-hidden">
+                          <div className={`w-16 sm:w-20 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 sm:h-3 overflow-hidden`}>
                             <div 
                               className={`h-2 sm:h-3 rounded-full transition-all duration-500 ease-out ${
                                 row.progress === 100 ? 'bg-green-500' : 'bg-blue-500'
@@ -420,7 +679,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                             ></div>
                           </div>
                           <span className={`text-xs font-medium ${
-                            row.progress === 100 ? 'text-green-400' : 'text-gray-300'
+                            row.progress === 100 ? 'text-green-600' : uiColors.text.tertiary
                           }`}>
                             {row.progress}%
                           </span>
@@ -435,75 +694,127 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
             {/* Material Management and Trial Management - Side by Side */}
             <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Material Management */}
-              <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-                <h4 className="text-white font-semibold mb-4 text-sm sm:text-base flex items-center">
-                  <span className="text-green-400 mr-2">●</span>
+              <div className={`p-4 ${uiColors.bg.card} rounded-lg border ${uiColors.border.secondary}`}>
+                <h4 className={`${uiColors.text.primary} font-semibold mb-4 text-sm sm:text-base flex items-center`}>
+                  <span className="text-green-500 mr-2">●</span>
                   Raw Material Tracking
                 </h4>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                  <span className="text-gray-300 text-xs sm:text-sm font-medium">Material:</span>
+                  <span className={`${uiColors.text.tertiary} text-xs sm:text-sm font-medium`}>Material:</span>
                   <div className="flex items-center space-x-3">
                     <input
                       type="number"
-                      value={materials[0]?.actual || ''}
+                      value={materials[0]?.actual ?? ''}
                       onChange={(e) => {
+                        const value = e.target.value;
                         const newMaterials = [...materials];
-                        newMaterials[0].actual = e.target.value === '' ? null : parseInt(e.target.value);
+                        newMaterials[0] = {
+                          ...newMaterials[0],
+                          actual: value === '' ? null : (isNaN(parseInt(value)) ? null : parseInt(value))
+                        };
                         setMaterials(newMaterials);
+                        // Notify parent of changes
+                        if (onDetailChange) {
+                          const payload = buildDetailPayload();
+                          onDetailChange(payload);
+                        }
                       }}
-                      className="w-20 sm:w-24 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      className={`w-20 sm:w-24 px-3 py-2 ${uiColors.input.bg} border ${uiColors.input.border} rounded ${uiColors.input.text} text-xs sm:text-sm ${uiColors.input.focus} transition-all duration-200`}
                       placeholder="0"
+                      min="0"
                     />
-                    <span className="text-gray-400 text-xs sm:text-sm font-medium">/</span>
+                    <span className={`${uiColors.text.muted} text-xs sm:text-sm font-medium`}>/</span>
                     <input
                       type="number"
-                      value={materials[0]?.planned || ''}
+                      value={materials[0]?.planned ?? ''}
                       onChange={(e) => {
+                        const value = e.target.value;
                         const newMaterials = [...materials];
-                        newMaterials[0].planned = e.target.value === '' ? null : parseInt(e.target.value);
+                        newMaterials[0] = {
+                          ...newMaterials[0],
+                          planned: value === '' ? null : (isNaN(parseInt(value)) ? null : parseInt(value))
+                        };
                         setMaterials(newMaterials);
+                        // Notify parent of changes
+                        if (onDetailChange) {
+                          const payload = buildDetailPayload();
+                          onDetailChange(payload);
+                        }
                       }}
-                      className="w-20 sm:w-24 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      className={`w-20 sm:w-24 px-3 py-2 ${uiColors.input.bg} border ${uiColors.input.border} rounded ${uiColors.input.text} text-xs sm:text-sm ${uiColors.input.focus} transition-all duration-200`}
                       placeholder="0"
+                      min="0"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Trial Management */}
-              <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+              <div className={`p-4 ${uiColors.bg.card} rounded-lg border ${uiColors.border.secondary}`}>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
-                  <h4 className="text-white font-semibold text-sm sm:text-base flex items-center">
-                    <span className="text-yellow-400 mr-2">●</span>
+                  <h4 className={`${uiColors.text.primary} font-semibold text-sm sm:text-base flex items-center`}>
+                    <span className="text-yellow-500 mr-2">●</span>
                     Trial Management
                   </h4>
                   <div className="flex items-center space-x-3">
-                    <span className="text-gray-300 text-xs sm:text-sm font-medium">Trial Count:</span>
+                    <span className={`${uiColors.text.tertiary} text-xs sm:text-sm font-medium`}>Trial Count:</span>
                     <input
                       type="number"
                       min="1"
                       max="10"
-                      value={trialCount || ''}
-                      onChange={(e) => updateTrialCount(e.target.value === '' ? null : parseInt(e.target.value))}
-                      className="w-16 sm:w-20 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      value={trialCount ?? ''}
+                      onChange={async (e) => {
+                        const value = e.target.value;
+                        const newCount = value === '' ? null : (isNaN(parseInt(value)) ? null : parseInt(value));
+                        if (newCount !== null && newCount >= 1 && newCount <= 10) {
+                          updateTrialCount(newCount);
+                          // Save trials directly to database
+                          await saveTrialsToDatabase();
+                          // Notify parent of changes
+                          if (onDetailChange) {
+                            const payload = buildDetailPayload();
+                            onDetailChange(payload);
+                          }
+                        }
+                      }}
+                      className={`w-16 sm:w-20 px-3 py-2 ${uiColors.input.bg} border ${uiColors.input.border} rounded ${uiColors.input.text} text-xs sm:text-sm ${uiColors.input.focus} transition-all duration-200`}
                     />
+                    <button
+                      onClick={async () => {
+                        console.log('Manual refresh of trial data requested');
+                        await loadTrialsFromDatabase();
+                      }}
+                      className={`px-3 py-2 ${uiColors.bg.primary} border ${uiColors.border.primary} rounded ${uiColors.text.primary} text-xs font-medium hover:${uiColors.bg.hover} transition-colors`}
+                      title="Refresh trial data from database"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
                 <div className="space-y-2">
                   {trials.map((trial, idx) => (
-                    <div key={idx} className="flex items-center space-x-3 p-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors">
+                    <div key={idx} className={`flex items-center space-x-3 p-2 ${uiColors.bg.primary} rounded ${uiColors.bg.hover} transition-colors`}>
                       <input
                         type="checkbox"
                         checked={trial.completed}
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const newTrials = [...trials];
                           newTrials[idx].completed = e.target.checked;
                           setTrials(newTrials);
+                          // Save trials directly to database
+                          await saveTrialsToDatabase();
+                          // Notify parent of changes
+                          if (onDetailChange) {
+                            const payload = buildDetailPayload();
+                            onDetailChange(payload);
+                          }
                         }}
-                        className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer transition-all duration-200 hover:scale-110"
+                        className={`w-4 h-4 sm:w-5 sm:h-5 text-blue-600 ${uiColors.input.bg} ${uiColors.input.border} rounded focus:ring-blue-500 focus:ring-2 cursor-pointer transition-all duration-200 hover:scale-110`}
                       />
-                      <span className={`text-gray-300 text-xs sm:text-sm font-medium ${
-                        trial.completed ? 'text-green-400' : ''
+                      <span className={`${uiColors.text.tertiary} text-xs sm:text-sm font-medium ${
+                        trial.completed ? 'text-green-600' : ''
                       }`}>
                         {trial.name}
                       </span>
@@ -519,7 +830,7 @@ export function ProgressToolingDropdown({ progressToolingChild, onProgressToolin
                           </svg>
                         </div>
                       )}
-                      <span className="text-gray-400 text-xs sm:text-sm font-medium">({trial.weight}%)</span>
+                      <span className={`${uiColors.text.muted} text-xs sm:text-sm font-medium`}>({trial.weight}%)</span>
                     </div>
                   ))}
                 </div>

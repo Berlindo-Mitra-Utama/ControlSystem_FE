@@ -1,314 +1,288 @@
 "use client";
 
-import React, { useState } from "react";
-import { uploadEvidence, deleteEvidence, getProcessEvidence } from "../../../services/API_Services";
-import { Button } from "./button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
-import { Upload, FileText, Image, Download, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog'
+import { Button } from './button'
+import { Input } from './input'
+import { Label } from './label'
+import { Textarea } from './textarea'
+import { Badge } from './badge'
+import { Upload, FileText, Image, Download, Trash2, Plus, X } from 'lucide-react'
 
 interface Evidence {
-  id: string;
-  name: string;
-  type: 'image' | 'file';
-  url: string;
-  uploadedAt: string;
-  size?: number;
+  id: string
+  name: string
+  type: 'image' | 'file'
+  url: string
+  uploadedAt: string
+  size?: number
+  notes?: string
 }
 
 interface EvidenceModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  evidence: Evidence[];
-  onEvidenceChange: (evidence: Evidence[]) => void;
-  processName: string;
-  processId?: string;
-  subProcessId?: string;
-  partId?: string;
-  categoryId?: string;
+  isOpen: boolean
+  onClose: () => void
+  processName: string
+  evidence: Evidence[]
+  onEvidenceChange: (evidence: Evidence[]) => void
+  processId?: string
+  subProcessId?: string
+  partId?: string
+  categoryId?: string
 }
 
-export function EvidenceModal({ isOpen, onClose, evidence, onEvidenceChange, processName, processId, subProcessId, partId, categoryId }: EvidenceModalProps) {
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
-  const [currentEvidence, setCurrentEvidence] = useState<Evidence[]>(evidence);
+export function EvidenceModal({
+  isOpen,
+  onClose,
+  processName,
+  evidence,
+  onEvidenceChange,
+  processId,
+  subProcessId,
+  partId,
+  categoryId
+}: EvidenceModalProps) {
+  const [newEvidence, setNewEvidence] = useState({
+    name: '',
+    type: 'file' as 'image' | 'file',
+    notes: ''
+  })
 
-  // Load evidence from database when modal opens
-  React.useEffect(() => {
-    if (isOpen) {
-      const loadEvidence = async () => {
-        try {
-          const targetProcessId = subProcessId || processId;
-          if (targetProcessId) {
-            const res = await getProcessEvidence(targetProcessId);
-            const list = res?.data || res?.evidence || [];
-            if (Array.isArray(list)) {
-              setCurrentEvidence(list);
-              onEvidenceChange(list);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to load evidence:', error);
-        }
-      };
-      loadEvidence();
-    }
-  }, [isOpen, processId, subProcessId, onEvidenceChange]);
+  const [isAdding, setIsAdding] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
-  const generateId = (): string => {
-    return Math.random().toString(36).substr(2, 9);
-  };
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    // Validasi ukuran file (maksimal 10MB per file)
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    for (let i = 0; i < files.length; i++) {
-      if (files[i].size > maxFileSize) {
-        alert(`File "${files[i].name}" terlalu besar. Maksimal ukuran file adalah 10MB.`);
-        event.target.value = '';
-        return;
-      }
+    // Check if evidence name is provided
+    if (!newEvidence.name.trim()) {
+      alert('Please enter evidence name first')
+      return
     }
 
-    setUploading(true);
-    setUploadProgress(0);
-    setUploadingFiles(Array.from(files).map(f => f.name));
-
-    try {
-      const newEvidence: Evidence[] = [];
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileId = generateId();
-        const targetProcessId = subProcessId || processId || "";
-        
-        // Simulate upload progress visual
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
-            const newProgress = prev + (100 / files.length);
-            if (newProgress >= 100) {
-              clearInterval(progressInterval);
-              return 100;
-            }
-            return newProgress;
-          });
-        }, 100);
-        try {
-          const base64 = await fileToBase64(file);
-          const payload = {
-            name: file.name,
-            type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
-            url: base64,
-            size: file.size
-          };
-          let createdId: string | undefined = undefined;
-          if (targetProcessId) {
-            try {
-              // Tambahkan data tambahan untuk tabel baru
-              const enhancedPayload = {
-                ...payload,
-                partId,
-                categoryId,
-                subProcessId: subProcessId || null
-              };
-              const resp = await uploadEvidence(targetProcessId, enhancedPayload);
-              createdId = resp?.data?.id || resp?.data?.evidenceId || resp?.id || undefined;
-            } catch (err) {
-              console.error('Upload evidence to backend failed:', err);
-            }
-          }
-          const evidenceItem: Evidence = {
-            id: createdId || fileId,
-            name: file.name,
-            type: payload.type,
-            url: payload.url,
-            uploadedAt: new Date().toISOString(),
-            size: file.size
-          };
-          newEvidence.push(evidenceItem);
-        } finally {
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
+    setUploading(true)
+    
+    // Simulate file upload process
+    setTimeout(() => {
+      const file = files[0]
+      const evidenceItem: Evidence = {
+        id: Date.now().toString(),
+        name: newEvidence.name.trim(), // Use custom evidence name from user
+        type: file.type.startsWith('image/') ? 'image' : 'file',
+        url: URL.createObjectURL(file), // Create blob URL for preview
+        uploadedAt: new Date().toISOString(),
+        size: file.size,
+        notes: newEvidence.notes.trim() || undefined
       }
 
-      const updatedEvidence = [...currentEvidence, ...newEvidence];
-      setCurrentEvidence(updatedEvidence);
-      onEvidenceChange(updatedEvidence);
-    } catch (error) {
-      console.error('Error uploading files:', error);
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
-      setUploadingFiles([]);
-    }
-  };
+      onEvidenceChange([...evidence, evidenceItem])
+      setNewEvidence({ name: '', type: 'file', notes: '' })
+      setIsAdding(false)
+      setUploading(false)
+      
+      // Reset file input
+      event.target.value = ''
+    }, 1000)
+  }
 
-  const handleDeleteEvidence = async (evidenceId: string) => {
-    try {
-      // Hapus dari backend bila mungkin
-      try { await deleteEvidence(evidenceId); } catch {}
-      const evidenceToDelete = currentEvidence.find(e => e.id === evidenceId);
-      if (evidenceToDelete && evidenceToDelete.url?.startsWith('blob:')) {
-        URL.revokeObjectURL(evidenceToDelete.url);
-      }
-      const updatedEvidence = currentEvidence.filter(e => e.id !== evidenceId);
-      setCurrentEvidence(updatedEvidence);
-      onEvidenceChange(updatedEvidence);
-    } catch (err) {
-      console.error('Delete evidence failed:', err);
-    }
-  };
+  const handleRemoveEvidence = (id: string) => {
+    onEvidenceChange(evidence.filter(item => item.id !== id))
+  }
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return 'Unknown size';
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-  };
+  const getFileIcon = (type: string) => {
+    if (type === 'image') {
+      return <Image className="w-4 h-4 text-blue-500" />
+    }
+    return <FileText className="w-4 h-4 text-green-500" />
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white w-[92vw] max-w-sm sm:max-w-md lg:max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl mx-auto">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl text-white">Evidence for {processName}</DialogTitle>
+      <DialogContent className="bg-white border-2 border-gray-200 shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Upload className="w-5 h-5 text-blue-500" />
+            Evidence for {processName}
+          </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          {/* Upload Section */}
-          <div className="border border-gray-600 rounded-lg p-3 sm:p-4 bg-gray-700">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-white">Upload Evidence</h3>
-              <div className="flex items-center space-x-2 w-full sm:w-auto">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="evidence-upload"
-                  disabled={uploading}
-                />
-                <label
-                  htmlFor="evidence-upload"
-                  className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg cursor-pointer transition-colors w-full sm:w-auto ${
-                    uploading
-                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  <Upload className="w-4 h-4" />
-                  <span className="text-sm sm:text-base">{uploading ? 'Uploading...' : 'Upload Files'}</span>
-                </label>
-              </div>
+        <div className="flex flex-col h-full">
+          {/* Add New Evidence Section */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-800">Add New Evidence</h3>
+              <Button
+                onClick={() => setIsAdding(!isAdding)}
+                className="bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-200 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                {isAdding ? <X className="w-4 h-4 mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
+                {isAdding ? 'Cancel' : 'Add Evidence'}
+              </Button>
             </div>
             
-            {/* Upload Progress Bar */}
-            {uploading && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs sm:text-sm text-gray-400">
-                    Uploading {uploadingFiles.length} file(s)...
-                  </span>
-                  <span className="text-xs sm:text-sm font-medium text-blue-400">
-                    {Math.round(uploadProgress)}%
-                  </span>
+            {isAdding && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="evidenceName" className="text-sm font-medium text-gray-700">
+                      Evidence Name *
+                    </Label>
+                    <Input
+                      id="evidenceName"
+                      value={newEvidence.name}
+                      onChange={(e) => setNewEvidence(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter evidence name"
+                      className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label htmlFor="evidenceType" className="text-sm font-medium text-gray-700">
+                      Type *
+                    </Label>
+                    <select
+                      id="evidenceType"
+                      value={newEvidence.type}
+                      onChange={(e) => setNewEvidence(prev => ({ ...prev, type: e.target.value as 'image' | 'file' }))}
+                      className="w-full border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md px-3 py-2 transition-all duration-200"
+                    >
+                      <option value="file">File</option>
+                      <option value="image">Image</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-gray-600 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-500 transition-all duration-300 ease-out"
-                    style={{ width: `${uploadProgress}%` }}
+                
+                <div className="space-y-1">
+                  <Label htmlFor="evidenceNotes" className="text-sm font-medium text-gray-700">
+                    Notes
+                  </Label>
+                  <Textarea
+                    id="evidenceNotes"
+                    value={newEvidence.notes}
+                    onChange={(e) => setNewEvidence(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Add any additional notes..."
+                    className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[60px]"
                   />
                 </div>
-                {uploadingFiles.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-xs text-gray-500 mb-1">Files being uploaded:</p>
-                    <div className="space-y-1">
-                      {uploadingFiles.map((fileName, index) => (
-                        <div key={index} className="text-xs text-gray-400 flex items-center">
-                          <div className={`w-2 h-2 rounded-full mr-2 ${
-                            (index + 1) * (100 / uploadingFiles.length) <= uploadProgress 
-                              ? 'bg-green-500' 
-                              : 'bg-gray-500'
-                          }`} />
-                          <span className="truncate">{fileName}</span>
-                        </div>
-                      ))}
-                    </div>
+                
+                <div className="space-y-1">
+                  <Label htmlFor="fileUpload" className="text-sm font-medium text-gray-700">
+                    Upload File *
+                  </Label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="file"
+                      id="fileUpload"
+                      accept={newEvidence.type === 'image' ? 'image/*' : '*'}
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    <label
+                      htmlFor="fileUpload"
+                      className={`flex items-center justify-center px-4 py-2 rounded-md cursor-pointer transition-all duration-200 border-2 ${
+                        uploading
+                          ? 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
+                          : 'bg-blue-500 hover:bg-blue-600 text-white border-blue-400 hover:border-blue-500 shadow-md hover:shadow-lg'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploading ? 'Uploading...' : 'Choose File'}
+                    </label>
+                    <span className="text-sm text-gray-500">
+                      {uploading ? 'Please wait...' : 'Click to select file'}
+                    </span>
                   </div>
-                )}
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setIsAdding(false)}
+                    disabled={uploading}
+                    className="bg-green-500 hover:bg-green-600 text-white border-2 border-green-400 shadow-md hover:shadow-lg transition-all duration-200 px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {uploading ? 'Uploading...' : 'Add Evidence'}
+                  </Button>
+                </div>
               </div>
             )}
-            
-            <p className="text-xs sm:text-sm text-gray-400">
-              Supported formats: Images (JPG, PNG, GIF), Documents (PDF, DOC, DOCX, XLS, XLSX), Text files
-              <br />
-              <span className="text-yellow-400">Maximum file size: 10MB per file</span>
-            </p>
           </div>
-
+          
           {/* Evidence List */}
-                      {currentEvidence.length > 0 && (
-              <div className="border border-gray-600 rounded-lg p-3 sm:p-4 bg-gray-700">
-                <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Uploaded Evidence ({currentEvidence.length})</h3>
-                <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                  {currentEvidence.map((item) => (
-                  <div key={item.id} className="bg-gray-600 rounded-lg p-3 border border-gray-500 shadow-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                        {item.type === 'image' ? (
-                          <Image className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 flex-shrink-0" />
-                        ) : (
-                          <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm font-medium text-white truncate">{item.name}</p>
-                          <p className="text-xs text-gray-400">
-                            {formatFileSize(item.size)} • {new Date(item.uploadedAt).toLocaleDateString()}
-                          </p>
+          <div className="flex-1 overflow-y-auto">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Current Evidence ({evidence.length})</h3>
+            
+            {evidence.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                <p className="text-lg font-medium">No evidence added yet</p>
+                <p className="text-sm">Click "Add Evidence" to get started</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {evidence.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border-2 border-gray-200">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      {getFileIcon(item.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{item.name}</p>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Badge variant="outline" className="text-xs">
+                            {item.type === 'image' ? 'Image' : 'File'}
+                          </Badge>
+                          <span>{formatFileSize(item.size || 0)}</span>
+                          <span>•</span>
+                          <span>{new Date(item.uploadedAt).toLocaleDateString()}</span>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                        {item.url && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(item.url, '_blank')}
-                            className="text-blue-400 hover:text-white p-1 sm:p-2"
-                          >
-                            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </Button>
+                        {item.notes && (
+                          <p className="text-sm text-gray-500 mt-1 italic">"{item.notes}"</p>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteEvidence(item.id)}
-                          className="text-red-400 hover:text-white transition-transform duration-150 p-1 sm:p-2"
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
                       </div>
                     </div>
                     
-                    {/* No image preview as requested; textual description only */}
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(item.url, '_blank')}
+                        className="bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-400 shadow-sm hover:shadow-md transition-all duration-200 px-2 py-1 text-xs"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleRemoveEvidence(item.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white border-2 border-red-400 shadow-sm hover:shadow-md transition-all duration-200 px-2 py-1 text-xs"
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          
+          {/* Footer */}
+          <div className="flex justify-end pt-4 border-t-2 border-gray-200">
+            <Button
+              onClick={onClose}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-300 shadow-md hover:shadow-lg transition-all duration-200 px-6 py-2 rounded-md font-medium"
+            >
+              Close
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 } 

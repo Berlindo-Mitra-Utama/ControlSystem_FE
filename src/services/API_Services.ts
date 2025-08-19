@@ -1297,10 +1297,10 @@ export const updateProgressToolingDetail = async (
   toolingData: any,
 ) => {
   try {
-    const { partId, categoryId, processId, subProcessId } = params;
-    // Backend saat ini cukup mengidentifikasi detail berdasar processId (child Progress Tooling)
+    const { processId } = params;
+    // Backend hanya butuh processId untuk update tooling detail
     const response = await api.put(
-      `/progress-detail/tooling-detail/${partId}/${categoryId}/${processId}/${subProcessId}`,
+      `/progress-detail/tooling-detail/${processId}`,
       toolingData,
     );
     return response.data;
@@ -1316,9 +1316,10 @@ export const getProgressToolingDetail = async (params: {
   subProcessId: string;
 }) => {
   try {
-    const { partId, categoryId, processId, subProcessId } = params;
+    const { processId } = params;
+    // Backend hanya butuh processId untuk mencari tooling detail
     const response = await api.get(
-      `/progress-detail/tooling-detail/${partId}/${categoryId}/${processId}/${subProcessId}`,
+      `/progress-detail/tooling-detail/${processId}`,
     );
     return response.data;
   } catch (error) {
@@ -1398,6 +1399,7 @@ export const uploadEvidence = async (
     type: "image" | "file";
     url: string;
     size?: number;
+    notes?: string;
     partId?: string;
     categoryId?: string;
     subProcessId?: string;

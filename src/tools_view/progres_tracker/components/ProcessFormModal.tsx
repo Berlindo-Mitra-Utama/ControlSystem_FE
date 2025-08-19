@@ -1,128 +1,136 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button } from "./button";
-import { Input } from "./input";
-import { Textarea } from "./textarea";
-import { Label } from "./label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
-import { X, Save } from "lucide-react";
-
-interface Process {
-  id: string;
-  name: string;
-  completed: boolean;
-  notes?: string;
-  children?: Process[];
-  evidence?: any[];
-}
+import React, { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog'
+import { Button } from './button'
+import { Input } from './input'
+import { Label } from './label'
+import { Textarea } from './textarea'
+import { Checkbox } from './checkbox'
+import { Save, X, Plus, Edit } from 'lucide-react'
 
 interface ProcessFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (processData: { name: string; notes?: string; completed: boolean }) => void;
-  process?: Process | null;
-  title: string;
-  isSubProcess?: boolean;
+  isOpen: boolean
+  onClose: () => void
+  onSave: (data: { name: string; notes?: string; completed: boolean }) => void
+  process?: any
+  title: string
+  isSubProcess: boolean
 }
 
-export function ProcessFormModal({ isOpen, onClose, onSave, process, title, isSubProcess = false }: ProcessFormModalProps) {
-  const [name, setName] = useState(process?.name || "");
-  const [notes, setNotes] = useState(process?.notes || "");
-  const [completed, setCompleted] = useState(process?.completed || false);
+export function ProcessFormModal({
+  isOpen,
+  onClose,
+  onSave,
+  process,
+  title,
+  isSubProcess
+}: ProcessFormModalProps) {
+  const [formData, setFormData] = useState({
+    name: '',
+    notes: '',
+    completed: false
+  })
 
-  const handleSave = () => {
-    if (!name.trim()) return;
+  useEffect(() => {
+    if (process) {
+      setFormData({
+        name: process.name || '',
+        notes: process.notes || '',
+        completed: process.completed || false
+      })
+    } else {
+      setFormData({
+        name: '',
+        notes: '',
+        completed: false
+      })
+    }
+  }, [process, isOpen])
 
-    onSave({
-      name: name.trim(),
-      notes: notes.trim() || undefined,
-      completed,
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSave(formData)
+    onClose()
+  }
 
-    // Reset form
-    setName("");
-    setNotes("");
-    setCompleted(false);
-    onClose();
-  };
-
-  const handleClose = () => {
-    // Reset form
-    setName(process?.name || "");
-    setNotes(process?.notes || "");
-    setCompleted(process?.completed || false);
-    onClose();
-  };
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[92vw] max-w-sm sm:max-w-md bg-gray-800 border-gray-700 text-white mx-auto">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-bold text-white">{title}</DialogTitle>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-white border-2 border-gray-200 shadow-2xl max-w-md">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            {process ? <Edit className="w-5 h-5 text-blue-500" /> : <Plus className="w-5 h-5 text-green-500" />}
+            {title}
+          </DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="name" className="text-sm font-medium text-gray-300">
-              {isSubProcess ? "Sub-Process" : "Process"} Name
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="processName" className="text-sm font-medium text-gray-700">
+              {isSubProcess ? 'Sub-Process' : 'Process'} Name *
             </Label>
             <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={`Enter ${isSubProcess ? "sub-process" : "process"} name`}
-              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              id="processName"
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              required
+              className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+              placeholder={`Enter ${isSubProcess ? 'sub-process' : 'process'} name`}
             />
           </div>
-
-          <div>
-            <Label htmlFor="notes" className="text-sm font-medium text-gray-300">
-              Notes (Optional)
+          
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+              Notes
             </Label>
             <Textarea
               id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Enter notes or description"
-              rows={3}
-              className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              value={formData.notes}
+              onChange={(e) => handleInputChange('notes', e.target.value)}
+              className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px]"
+              placeholder="Add any additional notes..."
             />
           </div>
-
+          
           <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
+            <Checkbox
               id="completed"
-              checked={completed}
-              onChange={(e) => setCompleted(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+              checked={formData.completed}
+              onCheckedChange={(checked) => handleInputChange('completed', checked as boolean)}
+              className="border-2 border-gray-300 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
             />
-            <Label htmlFor="completed" className="text-sm font-medium text-gray-300">
+            <Label htmlFor="completed" className="text-sm font-medium text-gray-700 cursor-pointer">
               Mark as completed
             </Label>
           </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
-          <Button
-            onClick={handleClose}
-            variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent w-full sm:w-auto"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!name.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save
-          </Button>
-        </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-300 shadow-md hover:shadow-lg transition-all duration-200 px-4 py-2 rounded-md font-medium"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-200 px-4 py-2 rounded-md font-medium"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 } 
