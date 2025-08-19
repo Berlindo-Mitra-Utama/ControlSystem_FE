@@ -1,81 +1,88 @@
 "use client";
 
-import React from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "./alert-dialog";
-import { AlertTriangle } from "lucide-react";
+import React from 'react'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './alert-dialog'
+import { Trash2, AlertTriangle } from 'lucide-react'
 
 interface DeleteConfirmationDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  type: "process" | "subprocess" | "part";
-  name?: string;
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  type: "process" | "subprocess" | "part"
+  name?: string
 }
 
-export function DeleteConfirmationDialog({ isOpen, onClose, onConfirm, type, name }: DeleteConfirmationDialogProps) {
-  const getTypeText = () => {
+export function DeleteConfirmationDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  type,
+  name
+}: DeleteConfirmationDialogProps) {
+  const getTypeInfo = () => {
     switch (type) {
       case "part":
-        return "part";
+        return {
+          title: "Delete Part",
+          description: `Are you sure you want to delete "${name}"? This action cannot be undone and will remove all associated progress data.`,
+          confirmText: "Delete Part",
+          icon: <Trash2 className="w-5 h-5 text-red-500" />
+        }
       case "process":
-        return "process";
+        return {
+          title: "Delete Process",
+          description: `Are you sure you want to delete "${name}"? This will remove the process and all its sub-processes.`,
+          confirmText: "Delete Process",
+          icon: <Trash2 className="w-5 h-5 text-red-500" />
+        }
       case "subprocess":
-        return "sub-process";
+        return {
+          title: "Delete Sub-Process",
+          description: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+          confirmText: "Delete Sub-Process",
+          icon: <Trash2 className="w-5 h-5 text-red-500" />
+        }
       default:
-        return "item";
+        return {
+          title: "Delete Item",
+          description: "Are you sure you want to delete this item? This action cannot be undone.",
+          confirmText: "Delete",
+          icon: <Trash2 className="w-5 h-5 text-red-500" />
+        }
     }
-  };
+  }
 
-  const getWarningText = () => {
-    switch (type) {
-      case "process":
-        return " This will also delete all its sub-processes.";
-      case "part":
-        return " This will also delete all its processes and sub-processes.";
-      default:
-        return "";
-    }
-  };
+  const typeInfo = getTypeInfo()
 
   return (
-    <AlertDialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
-      <AlertDialogContent className="bg-gray-800 border-gray-700 text-white w-[92vw] max-w-sm sm:max-w-md mx-auto">
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent className="bg-white border-2 border-gray-200 shadow-2xl max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2 text-red-400 text-base sm:text-lg">
-            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
-            Confirm Deletion
+          <AlertDialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-yellow-500" />
+            {typeInfo.title}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-gray-300 text-sm sm:text-base">
-            Are you sure you want to delete the {getTypeText()} "{name}"?
-            {getWarningText()}
-            This action cannot be undone.
+          <AlertDialogDescription className="text-gray-600 mt-2">
+            {typeInfo.description}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
-          <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto">
+        
+        <AlertDialogFooter className="gap-3">
+          <AlertDialogCancel 
+            onClick={onClose}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-300 shadow-md hover:shadow-lg transition-all duration-200 px-4 py-2 rounded-md font-medium"
+          >
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto">
-            Delete
+          <AlertDialogAction 
+            onClick={onConfirm}
+            className="bg-red-500 hover:bg-red-600 text-white border-2 border-red-400 shadow-md hover:shadow-lg transition-all duration-200 px-4 py-2 rounded-md font-medium"
+          >
+            {typeInfo.icon}
+            <span className="ml-2">{typeInfo.confirmText}</span>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 } 

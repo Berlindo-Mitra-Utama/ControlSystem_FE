@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./main_view/contexts/AuthContext";
 import { ScheduleProvider } from "./tools_view/planning_system/contexts/ScheduleContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import PlanningSystemLayout from "./tools_view/planning_system/layouts/PlanningSystemLayout";
 
 // Layouts
@@ -35,86 +36,88 @@ function App() {
   return (
     <AuthProvider>
       <ScheduleProvider>
-        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-          <div className="flex-1">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/tools" element={<ToolsDashboard />} />
-              <Route path="/login" element={<LoginPage />} />
+        <ThemeProvider>
+          <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+            <div className="flex-1">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/tools" element={<ToolsDashboard />} />
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* Protected Routes - Dashboard */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <PlanningSystemLayout>
-                      <DashboardLayout />
-                    </PlanningSystemLayout>
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="scheduler" element={<Scheduler />} />
-                <Route path="saved" element={<SavedSchedules />} />
-                <Route path="allcharts" element={<AllCharts />} />
-              </Route>
+                {/* Protected Routes - Dashboard */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <PlanningSystemLayout>
+                        <DashboardLayout />
+                      </PlanningSystemLayout>
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="scheduler" element={<Scheduler />} />
+                  <Route path="saved" element={<SavedSchedules />} />
+                  <Route path="allcharts" element={<AllCharts />} />
+                </Route>
 
-              {/* Protected Routes - Progress Tracker */}
-              <Route
-                path="/progress"
-                element={
-                  <ProtectedRoute>
-                    <DashboardProgres />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/progress/manage_progres/:partId"
-                element={
-                  <ProtectedRoute>
-                    <ManageProgres />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Routes - Progress Tracker */}
+                <Route
+                  path="/progress"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardProgres />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/progress/manage_progres/:partId"
+                  element={
+                    <ProtectedRoute>
+                      <ManageProgres />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Public Tools - Hitung Coil */}
-              <Route path="/hitungcoil" element={<HitungCoilLayout />}>
-                <Route index element={<HitungCoil />} />
-              </Route>
+                {/* Public Tools - Hitung Coil */}
+                <Route path="/hitungcoil" element={<HitungCoilLayout />}>
+                  <Route index element={<HitungCoil />} />
+                </Route>
 
-              {/* Public Tools - Electricity Calculator */}
-              <Route path="/electricity" element={<ElectricityLayout />}>
-                <Route index element={<ElectricityPage />} />
-              </Route>
+                {/* Public Tools - Electricity Calculator */}
+                <Route path="/electricity" element={<ElectricityLayout />}>
+                  <Route index element={<ElectricityPage />} />
+                </Route>
 
-              {/* Public Tools - Welding Calculator */}
-              <Route path="/welding" element={<WeldingLayout />}>
-                <Route index element={<WeldingCalculator />} />
-              </Route>
+                {/* Public Tools - Welding Calculator */}
+                <Route path="/welding" element={<WeldingLayout />}>
+                  <Route index element={<WeldingCalculator />} />
+                </Route>
 
-              {/* Admin Routes */}
-              <Route
-                path="/admin/user-management"
-                element={
-                  <ProtectedRoute>
-                    <UserManagementPage />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Admin Routes */}
+                <Route
+                  path="/admin/user-management"
+                  element={
+                    <ProtectedRoute>
+                      <UserManagementPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Work Standard */}
-              <Route
-                path="/work-standard"
-                element={
-                  <ProtectedRoute>
-                    <Component />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
+                {/* Work Standard */}
+                <Route
+                  path="/work-standard"
+                  element={
+                    <ProtectedRoute>
+                      <Component />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
           </div>
-        </div>
+        </ThemeProvider>
       </ScheduleProvider>
     </AuthProvider>
   );

@@ -13,8 +13,10 @@ import {
   DialogTitle,
 } from "../components/dialog";
 import { useAuth } from "../../../main_view/contexts/AuthContext";
+import { useTheme } from "../../../contexts/ThemeContext";
 import { getProgressColor } from "../../const/colors";
 import { getAllParts, createPart, deletePart } from '../../../services/API_Services';
+import ThemeToggle from '../../../components/ThemeToggle';
 
 // Helper function to generate unique IDs
 const generateId = (): string => {
@@ -43,6 +45,7 @@ const isValidBase64Image = (data: string): boolean => {
     return false;
   }
 };
+
 import {
   Package,
   CheckCircle2,
@@ -72,6 +75,8 @@ import {
   SortAsc,
   SortDesc,
   Trash2,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 // Types and Interfaces
@@ -136,6 +141,7 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
     partImage: null as File | null,
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { isDarkMode } = useTheme();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -184,17 +190,27 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[92vw] max-w-md sm:w-auto bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 text-white mx-auto">
+      <DialogContent className={`w-[92vw] max-w-md sm:w-auto mx-auto ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 text-white' 
+          : 'bg-gradient-to-br from-white to-gray-50 border-gray-300 text-gray-900'
+      }`}>
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+          <DialogTitle className={`text-lg sm:text-xl font-bold flex items-center gap-2 ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            <Plus className={`w-4 h-4 sm:w-5 sm:h-5 ${
+              isDarkMode ? 'text-blue-400' : 'text-blue-600'
+            }`} />
             Add New Part
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+            <label className={`block text-sm font-medium mb-1.5 sm:mb-2 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
               Part Name *
             </label>
             <input
@@ -203,14 +219,20 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
               onChange={(e) =>
                 setFormData({ ...formData, partName: e.target.value })
               }
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+              className={`w-full rounded-lg px-3 py-2 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base ${
+                isDarkMode 
+                  ? 'bg-gray-700 border border-gray-600 text-white' 
+                  : 'bg-white border border-gray-300 text-gray-900'
+              }`}
               placeholder="Enter part name"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+            <label className={`block text-sm font-medium mb-1.5 sm:mb-2 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
               Part Number *
             </label>
             <input
@@ -219,14 +241,20 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
               onChange={(e) =>
                 setFormData({ ...formData, partNumber: e.target.value })
               }
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+              className={`w-full rounded-lg px-3 py-2 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base ${
+                isDarkMode 
+                  ? 'bg-gray-700 border border-gray-600 text-white' 
+                  : 'bg-white border border-gray-300 text-gray-900'
+              }`}
               placeholder="Enter part number"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+            <label className={`block text-sm font-medium mb-1.5 sm:mb-2 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
               Customer *
             </label>
             <input
@@ -235,21 +263,31 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
               onChange={(e) =>
                 setFormData({ ...formData, customer: e.target.value })
               }
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+              className={`w-full rounded-lg px-3 py-2 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base ${
+                isDarkMode 
+                  ? 'bg-gray-700 border border-gray-600 text-white' 
+                  : 'bg-white border border-gray-300 text-gray-900'
+              }`}
               placeholder="Enter customer name"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+            <label className={`block text-sm font-medium mb-1.5 sm:mb-2 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
               Part Image (Optional)
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={handleFileChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base file:bg-gray-600 file:border-0 file:text-white file:px-3 file:py-1 file:rounded file:mr-3 file:text-sm"
+              className={`w-full rounded-lg px-3 py-2 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm sm:text-base ${
+                isDarkMode 
+                  ? 'bg-gray-700 border border-gray-600 text-white file:bg-gray-600 file:border-0 file:text-white' 
+                  : 'bg-white border border-gray-300 text-gray-900 file:bg-gray-100 file:border-gray-300 file:text-gray-700'
+              } file:px-3 file:py-1 file:rounded file:mr-3 file:text-sm`}
             />
             {imagePreview && (
               <div className="mt-2 space-y-2">
@@ -261,7 +299,9 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
                   />
                 </div>
                 {formData.partImage && (
-                  <div className="text-xs text-gray-400 text-center">
+                  <div className={`text-xs text-center ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
                     {formData.partImage.name} ({(formData.partImage.size / 1024 / 1024).toFixed(2)} MB)
                   </div>
                 )}
@@ -274,7 +314,11 @@ function AddPartModal({ isOpen, onClose, onAddPart }: AddPartModalProps) {
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 text-sm sm:text-base"
+              className={`flex-1 text-sm sm:text-base ${
+                isDarkMode 
+                  ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+              }`}
             >
               Cancel
             </Button>
@@ -374,6 +418,7 @@ export default function Dashboard() {
   const [showSortModal, setShowSortModal] = useState(false);
   const [partToDelete, setPartToDelete] = useState<Part | null>(null);
   const { user, handleLogout } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   // Fetch parts from backend on mount
@@ -657,9 +702,9 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900'}`}>
       {/* Header/Navigation Bar */}
-      <header className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm sticky top-0 z-40">
+      <header className={`border-b ${isDarkMode ? 'border-gray-800/50 bg-gray-900/30' : 'border-gray-200/50 bg-white/80'} backdrop-blur-sm sticky top-0 z-40`}>
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-4">
@@ -668,10 +713,10 @@ export default function Dashboard() {
                   <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  <h1 className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent' : 'bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent'}`}>
                     Progress Tracker
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-400">
+                  <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     Project To-Do List Manager
                   </p>
                 </div>
@@ -681,16 +726,24 @@ export default function Dashboard() {
             {/* User Info and Logout */}
             {user && (
               <div className="flex items-center gap-2 sm:gap-4">
-                <div className="hidden sm:flex items-center gap-2 bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-700/50">
-                  <User className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm text-gray-300">
+                {/* Theme Toggle Button */}
+                <ThemeToggle
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-transparent text-xs sm:text-sm"
+                  showText={false}
+                />
+                
+                <div className="hidden sm:flex items-center gap-2 bg-gray-100/80 dark:bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-300/50 dark:border-gray-700/50">
+                  <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
                     {user.nama || user.username}
                   </span>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-red-400 hover:border-red-500 bg-transparent flex items-center gap-1 sm:gap-2 text-xs sm:text-sm transition-colors duration-200"
+                  className="border-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500 bg-white dark:bg-transparent flex items-center gap-1 sm:gap-2 text-xs sm:text-sm transition-colors duration-200"
                   onClick={() => handleLogout()}
                 >
                   <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -709,10 +762,10 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-0 mb-8">
             <div className="flex items-center gap-4">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">
+                <h1 className={`text-3xl sm:text-4xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent' : 'bg-gradient-to-r from-gray-900 via-gray-700 to-gray-600 bg-clip-text text-transparent'}`}>
                   Engineering Project List
                 </h1>
-                <p className="text-sm sm:text-base text-gray-400 mt-1">
+                <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
                   Track and manage your engineering projects
                 </p>
               </div>
@@ -721,7 +774,7 @@ export default function Dashboard() {
 
           {/* Search Results Info - Modern Design */}
           {searchQuery && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl backdrop-blur-sm">
+            <div className={`mb-6 p-4 ${isDarkMode ? 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30' : 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50'} rounded-xl backdrop-blur-sm`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
@@ -729,56 +782,56 @@ export default function Dashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
-                  <span className="text-gray-200 font-medium">
+                  <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>
                     Showing {filteredParts.length} of {parts.length} parts
                   </span>
                 </div>
-                <span className="text-gray-400 font-medium">Search: "{searchQuery}"</span>
+                <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} font-medium`}>Search: "{searchQuery}"</span>
               </div>
             </div>
           )}
 
           {/* Summary Stats - Compact Design */}
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/30 rounded-xl p-4 mb-6">
+          <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/30' : 'bg-gradient-to-br from-white/80 to-gray-50/80 border border-gray-200/50'} rounded-xl p-4 mb-6`}>
             <div className="flex items-center gap-3 mb-4">
-              <h3 className="text-lg font-semibold text-white">Project Summary</h3>
+              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Summary</h3>
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+              <div className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700/30' : 'bg-white/80 border border-gray-200/50'} rounded-lg p-3`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm text-gray-300">Total Parts</span>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Total Parts</span>
                 </div>
                 <div className="text-xl font-bold text-blue-400">
                   {parts.length}
                 </div>
               </div>
               
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+              <div className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700/30' : 'bg-white/80 border border-gray-200/50'} rounded-lg p-3`}>
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle2 className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-gray-300">Completed</span>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Completed</span>
                 </div>
                 <div className="text-xl font-bold text-green-400">
                   {parts.filter((part) => getConsistentProgress(part) === 100).length}
                 </div>
               </div>
               
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+              <div className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700/30' : 'bg-white/80 border border-gray-200/50'} rounded-lg p-3`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Activity className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm text-gray-300">In Progress</span>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>In Progress</span>
                 </div>
                 <div className="text-xl font-bold text-yellow-400">
                   {parts.filter((part) => getConsistentProgress(part) > 0 && getConsistentProgress(part) < 100).length}
                 </div>
               </div>
               
-              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+              <div className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700/30' : 'bg-white/80 border border-gray-200/50'} rounded-lg p-3`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">Not Started</span>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Not Started</span>
                 </div>
                 <div className="text-xl font-bold text-gray-400">
                   {parts.filter((part) => getConsistentProgress(part) === 0).length}
@@ -819,7 +872,7 @@ export default function Dashboard() {
                       setSearchQuery("");
                     }
                   }}
-                  className="w-full bg-gray-800/50 border border-gray-600/50 rounded-xl pl-12 pr-12 py-3 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none text-base transition-all duration-300 hover:border-gray-500 backdrop-blur-sm"
+                  className={`w-full ${isDarkMode ? 'bg-gray-800/50 border border-gray-600/50 text-white placeholder-gray-400' : 'bg-white/80 border border-gray-300/50 text-gray-900 placeholder-gray-500'} rounded-xl pl-12 pr-12 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none text-base transition-all duration-300 hover:border-gray-500 backdrop-blur-sm`}
                   placeholder="Search parts, numbers, customers..."
                 />
                 {searchQuery && (
@@ -832,7 +885,7 @@ export default function Dashboard() {
                         setSearchQuery("");
                       }
                     }}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-300 transition-colors duration-200"
+                    className={`absolute inset-y-0 right-0 pr-4 flex items-center ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'} transition-colors duration-200`}
                   >
                     <svg
                       className="h-5 w-5"
@@ -899,7 +952,7 @@ export default function Dashboard() {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-gray-800/50 border border-gray-600/30 rounded-xl px-4 py-3 text-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300 hover:bg-gray-700/50 hover:border-gray-500/50 backdrop-blur-sm shadow-sm hover:shadow-md appearance-none pr-10"
+                    className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-600/30 text-white' : 'bg-white/80 border border-gray-300/50 text-gray-900'} rounded-xl px-4 py-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-300 hover:bg-gray-700/50 dark:hover:bg-gray-700/50 hover:border-gray-500/50 backdrop-blur-sm shadow-sm hover:shadow-md appearance-none pr-10`}
                   >
                     <option value="" disabled>Filter by</option>
                     <option value="newest">Terbaru</option>
@@ -910,7 +963,7 @@ export default function Dashboard() {
                     <option value="customer-desc">Customer Z-A</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-4 h-4 ${isDarkMode ? 'text-gray-400 group-hover:text-blue-400' : 'text-gray-500 group-hover:text-blue-600'} transition-colors duration-200`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
@@ -922,8 +975,8 @@ export default function Dashboard() {
           {/* Section Divider */}
           <div className="flex items-center gap-3 mb-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Project Parts</h2>
-              <p className="text-sm text-gray-400">Manage and track your engineering parts</p>
+              <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Parts</h2>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage and track your engineering parts</p>
             </div>
           </div>
 
@@ -938,14 +991,14 @@ export default function Dashboard() {
                 return (
                   <Card
                     key={part.id}
-                    className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 border border-gray-700/40 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg group backdrop-blur-sm"
+                    className={`${isDarkMode ? 'bg-gradient-to-br from-gray-800/90 to-gray-900/90 border border-gray-700/40' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border border-gray-200/40'} hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg group backdrop-blur-sm`}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <CardHeader className="pb-2">
                       {/* Compact Part Image */}
                       <div className="mb-3 flex justify-center">
                         <div className="relative w-full">
-                          <div className="w-full h-44 bg-gradient-to-br from-gray-700/60 to-gray-800/60 rounded-lg flex items-center justify-center overflow-hidden border border-gray-600/30">
+                          <div className={`w-full h-44 ${isDarkMode ? 'bg-gradient-to-br from-gray-700/60 to-gray-800/60 border border-gray-600/30' : 'bg-gradient-to-br from-gray-100/60 to-gray-200/60 border border-gray-300/30'} rounded-lg flex items-center justify-center overflow-hidden`}>
                             {part.partImageUrl && part.partImageUrl.trim() !== '' && (isValidBase64Image(part.partImageUrl) || part.partImageUrl.startsWith('http')) ? (
                               <img
                                 src={part.partImageUrl}
@@ -963,7 +1016,7 @@ export default function Dashboard() {
                                 {...(part.partImageUrl.startsWith('data:') ? {} : { crossOrigin: "anonymous" })}
                               />
                             ) : null}
-                            <div className="image-fallback absolute inset-0 flex items-center justify-center text-gray-400">
+                            <div className={`image-fallback absolute inset-0 flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                               <Image className="w-8 h-8" />
                             </div>
                           </div>
@@ -977,10 +1030,10 @@ export default function Dashboard() {
                             <Package className="w-3 h-3 text-white" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <CardTitle className="text-sm font-bold text-white line-clamp-1">
+                            <CardTitle className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>
                               {part.partName || '-'}
                             </CardTitle>
-                            <p className="text-xs text-gray-400">
+                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                               {part.partNumber || '-'}
                             </p>
                           </div>
@@ -1007,10 +1060,10 @@ export default function Dashboard() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
                             <Activity className="w-3 h-3 text-blue-400" />
-                            <span className="text-xs font-medium text-gray-300">Progress</span>
+                            <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Progress</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">
+                            <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                               {overallProgress}%
                             </span>
                             <div className={`w-2 h-2 rounded-full ${overallProgress === 100 ? "bg-green-400" : overallProgress >= 75 ? "bg-blue-400" : overallProgress >= 50 ? "bg-yellow-400" : overallProgress >= 25 ? "bg-purple-400" : "bg-gray-400"}`} />
@@ -1018,7 +1071,7 @@ export default function Dashboard() {
                         </div>
                         
                         {/* Compact Progress Bar */}
-                        <div className="w-full bg-gray-700/30 rounded-full h-1.5 overflow-hidden">
+                        <div className={`w-full ${isDarkMode ? 'bg-gray-700/30' : 'bg-gray-300/50'} rounded-full h-1.5 overflow-hidden`}>
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ease-out ${
                               overallProgress === 100 
@@ -1068,15 +1121,15 @@ export default function Dashboard() {
           {filteredParts.length === 0 && (
             <div className="text-center py-12 sm:py-16">
               <div className="relative">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-gray-700/50 to-gray-800/50 rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-gray-600/50">
-                  <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
+                <div className={`w-24 h-24 sm:w-32 sm:h-32 ${isDarkMode ? 'bg-gradient-to-br from-gray-700/50 to-gray-800/50 border border-gray-600/50' : 'bg-gradient-to-br from-gray-200/50 to-gray-300/50 border border-gray-400/50'} rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm`}>
+                  <Package className={`w-12 h-12 sm:w-16 sm:h-16 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </div>
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 opacity-0 hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-200 mb-3">
+              <h3 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} mb-3`}>
                 {searchQuery ? "No Parts Found" : "No Parts Added Yet"}
               </h3>
-              <p className="text-base sm:text-lg text-gray-400 mb-8 px-4 max-w-md mx-auto">
+              <p className={`text-base sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 px-4 max-w-md mx-auto`}>
                 {searchQuery
                   ? `No parts match your search for "${searchQuery}". Try a different search term.`
                   : "Start by adding your first part to create a project to-do list."}
@@ -1089,7 +1142,7 @@ export default function Dashboard() {
             <div className="mt-6 flex items-center justify-between gap-4">
               <Button
                 variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent flex items-center gap-2 px-3 py-2"
+                className={`${isDarkMode ? 'border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent' : 'border-gray-300 text-gray-700 hover:bg-gray-100 bg-white'} flex items-center gap-2 px-3 py-2`}
                 onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                 disabled={clampedPage === 0}
               >
@@ -1104,7 +1157,7 @@ export default function Dashboard() {
                     key={i}
                     onClick={() => setCurrentPage(i)}
                     className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      i === clampedPage ? 'bg-blue-500' : 'bg-gray-600 hover:bg-gray-500'
+                      i === clampedPage ? 'bg-blue-500' : isDarkMode ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-400 hover:bg-gray-500'
                     }`}
                     aria-label={`Page ${i + 1}`}
                   />
@@ -1113,7 +1166,7 @@ export default function Dashboard() {
 
               <Button
                 variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent flex items-center gap-2 px-3 py-2"
+                className={`${isDarkMode ? 'border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent' : 'border-gray-300 text-gray-700 hover:bg-gray-100 bg-white'} flex items-center gap-2 px-3 py-2`}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={clampedPage >= totalPages - 1}
               >
@@ -1132,11 +1185,17 @@ export default function Dashboard() {
         onAddPart={handleAddPart}
       />
 
-      {/* Delete Confirmation Modal - Improved UI */}
-  <Dialog open={showDeleteModal} onOpenChange={() => setShowDeleteModal(false)}>
-        <DialogContent className="w-[92vw] max-w-md sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-auto shadow-2xl">
+      {/* Delete Confirmation Modal - Improved UI with Light Mode */}
+      <Dialog open={showDeleteModal} onOpenChange={() => setShowDeleteModal(false)}>
+        <DialogContent className={`w-[92vw] max-w-md sm:w-auto mx-auto shadow-2xl ${
+          isDarkMode 
+            ? 'bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white' 
+            : 'bg-gradient-to-br from-white to-gray-50 border border-gray-300/50 text-gray-900'
+        }`}>
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <DialogTitle className={`text-lg sm:text-xl font-bold flex items-center gap-2 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
                 <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
@@ -1145,14 +1204,18 @@ export default function Dashboard() {
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/30">
-              <p className="text-gray-300">
-                Apakah Anda yakin ingin menghapus part <strong className="text-white">{partToDelete?.partName}</strong>?
+            <div className={`rounded-lg p-4 border ${
+              isDarkMode 
+                ? 'bg-gray-800/50 border-gray-700/30' 
+                : 'bg-gray-100/50 border-gray-200/50'
+            }`}>
+              <p className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                Apakah Anda yakin ingin menghapus part <strong className={isDarkMode ? 'text-white' : 'text-gray-900'}>{partToDelete?.partName}</strong>?
               </p>
             </div>
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-              <p className="text-sm text-red-300 flex items-center gap-2">
-                <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+              <p className="text-sm text-red-600 flex items-center gap-2">
+                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
                 Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait part ini.
               </p>
             </div>
@@ -1162,7 +1225,11 @@ export default function Dashboard() {
             <Button
               variant="outline"
               onClick={() => setShowDeleteModal(false)}
-              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50 transition-all duration-200"
+              className={`flex-1 transition-all duration-200 ${
+                isDarkMode 
+                  ? 'border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50' 
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-100 bg-white'
+              }`}
             >
               Batal
             </Button>
@@ -1176,11 +1243,17 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Sorting Modal for Mobile */}
-  <Dialog open={showSortModal} onOpenChange={() => setShowSortModal(false)}>
-        <DialogContent className="w-[92vw] max-w-sm sm:w-auto bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white mx-auto shadow-2xl">
+      {/* Sorting Modal for Mobile - Improved UI with Light Mode */}
+      <Dialog open={showSortModal} onOpenChange={() => setShowSortModal(false)}>
+        <DialogContent className={`w-[92vw] max-w-sm sm:w-auto mx-auto shadow-2xl ${
+          isDarkMode 
+            ? 'bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 text-white' 
+            : 'bg-gradient-to-br from-white to-gray-50 border border-gray-300/50 text-gray-900'
+        }`}>
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <DialogTitle className={`text-lg sm:text-xl font-bold flex items-center gap-2 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
@@ -1207,15 +1280,17 @@ export default function Dashboard() {
                 }}
                 className={`w-full p-4 rounded-xl border transition-all duration-200 text-left sort-option ${
                   sortBy === option.value
-                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-500/50 text-blue-300 sort-active"
-                    : "bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50 hover:border-gray-600/50"
+                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-500/50 text-blue-700 sort-active"
+                    : isDarkMode
+                      ? "bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50 hover:border-gray-600/50"
+                      : "bg-gray-50/50 border-gray-200/50 text-gray-700 hover:bg-gray-100/50 hover:border-gray-300/50"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">{option.icon}</span>
                   <span className="font-medium">{option.label}</span>
                   {sortBy === option.value && (
-                    <div className="ml-auto w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <div className="ml-auto w-2 h-2 bg-blue-500 rounded-full"></div>
                   )}
                 </div>
               </button>
@@ -1226,7 +1301,11 @@ export default function Dashboard() {
             <Button
               variant="outline"
               onClick={() => setShowSortModal(false)}
-              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50 transition-all duration-200"
+              className={`flex-1 transition-all duration-200 ${
+                isDarkMode 
+                  ? 'border-gray-600 text-gray-300 hover:bg-gray-800 bg-gray-900/50' 
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-100 bg-white'
+              }`}
             >
               Tutup
             </Button>
@@ -1235,6 +1314,11 @@ export default function Dashboard() {
       </Dialog>
 
              <style>{`
+         /* Dark mode support */
+         .dark {
+           color-scheme: dark;
+         }
+         
          @keyframes fade-in {
            from {
              opacity: 0;
