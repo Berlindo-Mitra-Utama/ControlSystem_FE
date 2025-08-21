@@ -304,7 +304,6 @@ const SchedulerPage: React.FC = () => {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [showChildPartModal, setShowChildPartModal] = useState(false);
   const [childParts, setChildParts] = useState<ChildPartData[]>([]);
-  const [childPartCarouselIdx, setChildPartCarouselIdx] = useState(0);
   const [childPartSearch, setChildPartSearch] = useState("");
   // Ganti childPartFilter menjadi array of string (nama part), 'all' untuk semua
   const [childPartFilter, setChildPartFilter] = useState<"all" | string[]>(
@@ -327,8 +326,7 @@ const SchedulerPage: React.FC = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState<boolean>(false);
   const [showPartFilterDropdown, setShowPartFilterDropdown] =
     useState<boolean>(false);
-  const [childPartCarouselPage, setChildPartCarouselPage] = useState(0);
-  const CHILD_PARTS_PER_PAGE = 2;
+
   const [editChildPartIdx, setEditChildPartIdx] = useState<number | null>(null);
   const [activeChildPartTableFilter, setActiveChildPartTableFilter] = useState<
     string[]
@@ -2814,7 +2812,6 @@ const SchedulerPage: React.FC = () => {
               // Hapus dari state lokal hanya jika berhasil hapus dari database
               console.log("📋 Langkah 3: Update state lokal...");
               setChildParts((prev) => prev.filter((_, i) => i !== idx));
-              setChildPartCarouselPage(0);
 
               // Set flag perubahan
               setHasUnsavedChanges(true);
@@ -2848,7 +2845,6 @@ const SchedulerPage: React.FC = () => {
               "⚠️ Child part tidak memiliki ID database, hapus dari state lokal saja",
             );
             setChildParts((prev) => prev.filter((_, i) => i !== idx));
-            setChildPartCarouselPage(0);
 
             // Set flag perubahan
             setHasUnsavedChanges(true);
@@ -3039,7 +3035,6 @@ const SchedulerPage: React.FC = () => {
   const handleConfirmDelete = () => {
     if (deleteTargetIndex !== null) {
       setChildParts((prev) => prev.filter((_, i) => i !== deleteTargetIndex));
-      setChildPartCarouselPage(0);
     }
     setShowDeleteConfirmModal(false);
     setDeleteTargetIndex(null);
@@ -4987,17 +4982,8 @@ const SchedulerPage: React.FC = () => {
                           .toLowerCase()
                           .includes(childPartSearch.toLowerCase()),
                     );
-                    // Pagination logic
-                    const totalPages = Math.ceil(
-                      filtered.length / CHILD_PARTS_PER_PAGE,
-                    );
-                    const page = Math.min(
-                      childPartCarouselPage,
-                      Math.max(0, totalPages - 1),
-                    );
-                    const startIdx = page * CHILD_PARTS_PER_PAGE;
-                    const endIdx = startIdx + CHILD_PARTS_PER_PAGE;
-                    const pageItems = filtered.slice(startIdx, endIdx);
+                    // Tampilkan semua child part tanpa pagination
+                    const allItems = filtered;
                     if (filtered.length === 0)
                       return (
                         <div className="grid grid-cols-1 gap-8">
@@ -5040,14 +5026,14 @@ const SchedulerPage: React.FC = () => {
                     return (
                       <>
                         <div
-                          className={`grid gap-8 ${viewMode === "cards" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
+                          className={`grid gap-8 ${viewMode === "cards" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
                         >
-                          {pageItems.map((cp, idx) => {
+                          {allItems.map((cp, idx) => {
                             const realIdx = childParts.findIndex(
                               (c) => c === cp,
                             );
                             const commonProps = {
-                              key: startIdx + idx,
+                              key: idx,
                               partName: cp.partName,
                               customerName: cp.customerName,
                               initialStock: cp.stock,
@@ -5055,7 +5041,6 @@ const SchedulerPage: React.FC = () => {
                               schedule: schedule,
                               onDelete: () => {
                                 handleDeleteChildPart(realIdx);
-                                setChildPartCarouselPage(0);
                               },
                               inMaterial: cp.inMaterial,
                               onInMaterialChange: (val: any) => {
@@ -5103,7 +5088,6 @@ const SchedulerPage: React.FC = () => {
                                     className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-red-400 transition-all"
                                     onClick={() => {
                                       handleDeleteChildPart(realIdx);
-                                      setChildPartCarouselPage(0);
                                     }}
                                     type="button"
                                     title="Delete"
@@ -5134,48 +5118,6 @@ const SchedulerPage: React.FC = () => {
                             );
                           })}
                         </div>
-                        {/* Carousel navigation */}
-                        {totalPages > 1 && (
-                          <div className="flex justify-center items-center gap-2 mt-4">
-                            <button
-                              onClick={() =>
-                                setChildPartCarouselPage((i) =>
-                                  Math.max(0, i - 1),
-                                )
-                              }
-                              disabled={page === 0}
-                              className={`px-3 py-1 rounded-lg font-bold flex flex-col items-center text-xs transition-all duration-200 ${
-                                page === 0
-                                  ? "bg-slate-800 text-slate-400 cursor-not-allowed"
-                                  : "bg-slate-700 text-white hover:bg-slate-600"
-                              }`}
-                            >
-                              <span className="text-base">&#8592;</span>
-                              <span>Sebelumnya</span>
-                            </button>
-                            <div className="text-center font-bold text-base w-12">
-                              <span className="text-white">{page + 1}</span>{" "}
-                              <span className="text-slate-400">/</span>{" "}
-                              <span className="text-white">{totalPages}</span>
-                            </div>
-                            <button
-                              onClick={() =>
-                                setChildPartCarouselPage((i) =>
-                                  Math.min(totalPages - 1, i + 1),
-                                )
-                              }
-                              disabled={page === totalPages - 1}
-                              className={`px-3 py-1 rounded-lg font-bold flex flex-col items-center text-xs transition-all duration-200 ${
-                                page === totalPages - 1
-                                  ? "bg-slate-800 text-slate-400 cursor-not-allowed"
-                                  : "bg-blue-700 text-white hover:bg-blue-800"
-                              }`}
-                            >
-                              <span>Selanjutnya</span>
-                              <span className="text-base">&#8594;</span>
-                            </button>
-                          </div>
-                        )}
                       </>
                     );
                   })()}

@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
   User,
   Package,
   Layers,
@@ -41,8 +38,6 @@ interface ChildPartCardViewProps {
   onAktualInMaterialChange?: (val: (number | null)[][]) => void;
   renderHeaderAction?: React.ReactNode;
   activeFilter?: string[];
-  onDateSelect?: (date: Date | null) => void;
-  selectedDate?: Date | null;
 }
 
 // Helper untuk nama hari Indonesia
@@ -120,17 +115,6 @@ const Modal: React.FC<{
 const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
   const { uiColors } = useTheme();
 
-  // Set default date to 1st of current month if no date is selected
-  const getDefaultDate = () => {
-    const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), 1);
-  };
-
-  const [selectedDate, setSelectedDate] = useState<Date | null>(
-    props.selectedDate || getDefaultDate(),
-  );
-  const [currentDay, setCurrentDay] = useState(0);
-  const [showCalendar, setShowCalendar] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteScheduleModal, setShowDeleteScheduleModal] = useState(false);
   const [showEditPartModal, setShowEditPartModal] = useState(false);
@@ -379,316 +363,247 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
     return DAY_NAMES[(offset + day) % 7];
   };
 
-  // Get the day index from selected date
-  const getDayIndexFromDate = (date: Date | null) => {
-    if (!date) return 0;
-    const today = new Date();
-    const diffTime = date.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, Math.min(diffDays, props.days - 1));
-  };
-
-  // Navigation functions for carousel - now based on selected date
-  const goToNextDay = () => {
-    setLoading(true);
-    setTimeout(() => {
-      if (selectedDate) {
-        const nextDate = new Date(selectedDate);
-        nextDate.setDate(nextDate.getDate() + 1);
-        setSelectedDate(nextDate);
-      } else {
-        setCurrentDay((prev) => Math.min(prev + 1, props.days - 1));
-      }
-      setLoading(false);
-    }, 500);
-  };
-
-  const goToPrevDay = () => {
-    setLoading(true);
-    setTimeout(() => {
-      if (selectedDate) {
-        const prevDate = new Date(selectedDate);
-        prevDate.setDate(prevDate.getDate() - 1);
-        setSelectedDate(prevDate);
-      } else {
-        setCurrentDay((prev) => Math.max(prev - 1, 0));
-      }
-      setLoading(false);
-    }, 500);
-  };
-
-  // Get current display day
-  const getCurrentDisplayDay = () => {
-    if (selectedDate) {
-      return getDayIndexFromDate(selectedDate);
-    }
-    return currentDay;
-  };
-
-  // Calendar functions
-  const handleCalendarClick = () => {
-    setShowCalendar(!showCalendar);
-  };
-
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-  };
-
-  const handleSaveDate = () => {
-    if (props.onDateSelect) {
-      props.onDateSelect(selectedDate);
-    }
-    setShowCalendar(false);
-  };
-
-  const handleClearDate = () => {
-    setSelectedDate(getDefaultDate()); // Reset to default date instead of null
-    if (props.onDateSelect) {
-      props.onDateSelect(getDefaultDate());
-    }
-  };
-
-  // Generate calendar days for current month
-  const generateCalendarDays = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startDay = firstDay.getDay();
-
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startDay; i++) {
-      days.push(null);
-    }
-
-    // Add all days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(currentYear, currentMonth, day));
-    }
-
-    return days;
-  };
-
-  // Format date for display
-  const formatSelectedDate = (date: Date | null) => {
-    if (!date) return "Semua Hari";
-    return date.toLocaleDateString("id-ID", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   // Render baris sesuai filter
   const renderFilteredContent = () => {
-    const displayDay = getCurrentDisplayDay();
-
     // Jika tidak ada filter aktif, tampilkan semua konten
     if (!props.activeFilter || props.activeFilter.length === 0) {
       return (
         <>
-          {/* Carousel Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={goToPrevDay}
-              disabled={
-                selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0
-              }
-              className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-
-            <div className="text-center">
-              <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
-                {selectedDate
-                  ? formatSelectedDate(selectedDate)
-                  : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString("id-ID", { month: "long" })} ${new Date().getFullYear()}`}
-              </div>
+          {/* Header Info */}
+          <div className="text-center mb-6">
+            <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
+              Data Child Part - Semua Hari
             </div>
-
-            <button
-              onClick={goToNextDay}
-              disabled={
-                selectedDate
-                  ? selectedDate.getDate() >= 31
-                  : displayDay === props.days - 1
-              }
-              className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
           </div>
 
-          {/* In Material */}
+          {/* In Material - All Days */}
           <div className="space-y-4">
             <h3
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <Layers className="w-5 h-5 text-blue-400" />
-              Rencana In Material
+              Rencana In Material - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
+                  <div
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`rencana-shift1-day${displayDay}`}
-                    value={inMaterial[displayDay][0]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 0, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`rencana-shift2-day${displayDay}`}
-                    value={inMaterial[displayDay][1]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 1, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <InputCell
+                          key={`rencana-shift1-day${dayIdx}`}
+                          value={inMaterial[dayIdx][0]}
+                          onChange={(v) => handleInMaterialChange(dayIdx, 0, v)}
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <InputCell
+                          key={`rencana-shift2-day${dayIdx}`}
+                          value={inMaterial[dayIdx][1]}
+                          onChange={(v) => handleInMaterialChange(dayIdx, 1, v)}
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Aktual In Material */}
+          {/* Aktual In Material - All Days */}
           <div className="space-y-4 mt-6">
             <h3
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <Layers className="w-5 h-5 text-green-400" />
-              Aktual In Material
+              Aktual In Material - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
+                  <div
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`aktual-shift1-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][0]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 0, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`aktual-shift2-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][1]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 1, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <InputCell
+                          key={`aktual-shift1-day${dayIdx}`}
+                          value={aktualInMaterial[dayIdx][0]}
+                          onChange={(v) =>
+                            handleAktualInMaterialChange(dayIdx, 0, v)
+                          }
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <InputCell
+                          key={`aktual-shift2-day${dayIdx}`}
+                          value={aktualInMaterial[dayIdx][1]}
+                          onChange={(v) =>
+                            handleAktualInMaterialChange(dayIdx, 1, v)
+                          }
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Rencana Stock */}
+          {/* Rencana Stock - All Days */}
           <div className="space-y-4 mt-6">
             <h3
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <TrendingUp className="w-5 h-5 text-green-400" />
-              Rencana Stock (PCS)
+              Rencana Stock (PCS) - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
                   <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${rencanaStock[dayIdx * 2] < 0 ? "text-red-600 font-bold" : rencanaStock[dayIdx * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${rencanaStock[dayIdx * 2 + 1] < 0 ? "text-red-600 font-bold" : rencanaStock[dayIdx * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Aktual Stock */}
+          {/* Aktual Stock - All Days */}
           <div className="space-y-4 mt-6">
             <h3
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <TrendingDown className="w-5 h-5 text-red-400" />
-              Aktual Stock (PCS)
+              Aktual Stock (PCS) - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
                   <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${aktualStock[dayIdx * 2] < 0 ? "text-red-600 font-bold" : aktualStock[dayIdx * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${aktualStock[dayIdx * 2 + 1] < 0 ? "text-red-600 font-bold" : aktualStock[dayIdx * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -699,37 +614,11 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
     // Jika ada filter aktif, tampilkan konten sesuai filter yang dipilih
     return (
       <>
-        {/* Carousel Navigation */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={goToPrevDay}
-            disabled={
-              selectedDate ? selectedDate.getDate() <= 1 : displayDay === 0
-            }
-            className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <div className="text-center">
-            <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
-              {selectedDate
-                ? formatSelectedDate(selectedDate)
-                : `${getDayName(displayDay)}, ${displayDay + 1} ${new Date().toLocaleDateString("id-ID", { month: "long" })} ${new Date().getFullYear()}`}
-            </div>
+        {/* Header Info */}
+        <div className="text-center mb-6">
+          <div className={`text-lg font-medium ${uiColors.text.secondary}`}>
+            Data Child Part - Filter Aktif
           </div>
-
-          <button
-            onClick={goToNextDay}
-            disabled={
-              selectedDate
-                ? selectedDate.getDate() >= 31
-                : displayDay === props.days - 1
-            }
-            className={`p-2 ${uiColors.bg.secondary} hover:${uiColors.bg.tertiary} disabled:${uiColors.bg.primary} disabled:${uiColors.text.tertiary} ${uiColors.text.primary} rounded-lg transition-all disabled:cursor-not-allowed`}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Render konten sesuai filter yang dipilih */}
@@ -739,38 +628,54 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <Layers className="w-5 h-5 text-blue-400" />
-              Rencana In Material
+              Rencana In Material - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
+                  <div
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`rencana-shift1-day${displayDay}`}
-                    value={inMaterial[displayDay][0]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 0, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`rencana-shift2-day${displayDay}`}
-                    value={inMaterial[displayDay][1]}
-                    onChange={(v) => handleInMaterialChange(displayDay, 1, v)}
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
-                  />
-                </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <InputCell
+                          key={`rencana-shift1-day${dayIdx}`}
+                          value={inMaterial[dayIdx][0]}
+                          onChange={(v) => handleInMaterialChange(dayIdx, 0, v)}
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <InputCell
+                          key={`rencana-shift2-day${dayIdx}`}
+                          value={inMaterial[dayIdx][1]}
+                          onChange={(v) => handleInMaterialChange(dayIdx, 1, v)}
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -782,42 +687,58 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <Layers className="w-5 h-5 text-green-400" />
-              Aktual In Material
+              Aktual In Material - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
+                  <div
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    Shift 1
-                  </label>
-                  <InputCell
-                    key={`aktual-shift1-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][0]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 0, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <InputCell
-                    key={`aktual-shift2-day${displayDay}`}
-                    value={aktualInMaterial[displayDay][1]}
-                    onChange={(v) =>
-                      handleAktualInMaterialChange(displayDay, 1, v)
-                    }
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-base`}
-                  />
-                </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <InputCell
+                          key={`aktual-shift1-day${dayIdx}`}
+                          value={aktualInMaterial[dayIdx][0]}
+                          onChange={(v) =>
+                            handleAktualInMaterialChange(dayIdx, 0, v)
+                          }
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <InputCell
+                          key={`aktual-shift2-day${dayIdx}`}
+                          value={aktualInMaterial[dayIdx][1]}
+                          onChange={(v) =>
+                            handleAktualInMaterialChange(dayIdx, 1, v)
+                          }
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -829,36 +750,52 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <TrendingUp className="w-5 h-5 text-blue-400" />
-              Rencana Stock (PCS)
+              Rencana Stock (PCS) - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
                   <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    {rencanaStock[displayDay * 2]?.toFixed(0) || "0"}
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${rencanaStock[dayIdx * 2] < 0 ? "text-red-600 font-bold" : rencanaStock[dayIdx * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${rencanaStock[dayIdx * 2 + 1] < 0 ? "text-red-600 font-bold" : rencanaStock[dayIdx * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${rencanaStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : rencanaStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {rencanaStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -870,36 +807,52 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
               className={`text-lg font-semibold ${uiColors.text.primary} flex items-center gap-2`}
             >
               <TrendingDown className="w-5 h-5 text-red-400" />
-              Aktual Stock (PCS)
+              Aktual Stock (PCS) - Semua Hari
             </h3>
             <div
               className={`${uiColors.bg.secondary} rounded-lg p-6 ${uiColors.border.secondary}`}
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 1
-                  </label>
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                {Array.from({ length: props.days }, (_, dayIdx) => (
                   <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                    key={dayIdx}
+                    className="border-b border-gray-300 dark:border-gray-600 pb-4 last:border-b-0"
                   >
-                    {aktualStock[displayDay * 2]?.toFixed(0) || "0"}
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-sm font-medium ${uiColors.text.primary}`}
+                      >
+                        Hari {dayIdx + 1} ({getDayName(dayIdx)})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 1
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${aktualStock[dayIdx * 2] < 0 ? "text-red-600 font-bold" : aktualStock[dayIdx * 2] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs ${uiColors.text.tertiary} mb-1`}
+                        >
+                          Shift 2
+                        </label>
+                        <div
+                          className={`w-full px-3 py-2 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-sm ${aktualStock[dayIdx * 2 + 1] < 0 ? "text-red-600 font-bold" : aktualStock[dayIdx * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
+                        >
+                          {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs ${uiColors.text.tertiary} mb-2`}
-                  >
-                    Shift 2
-                  </label>
-                  <div
-                    className={`w-full px-4 py-3 rounded ${uiColors.bg.primary} ${uiColors.border.secondary} ${uiColors.text.primary} text-center text-base ${aktualStock[displayDay * 2 + 1] < 0 ? "text-red-600 font-bold" : aktualStock[displayDay * 2 + 1] > 0 ? "text-green-400 font-bold" : uiColors.text.primary}`}
-                  >
-                    {aktualStock[displayDay * 2 + 1]?.toFixed(0) || "0"}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1008,15 +961,6 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
                   <span className="text-sm font-medium">Hapus Jadwal</span>
                 </button>
               )}
-
-              {/* Calendar Button */}
-              <button
-                onClick={handleCalendarClick}
-                className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
-                title="Pilih Tanggal"
-              >
-                <Calendar className="w-4 h-4" />
-              </button>
             </div>
           </div>
 
@@ -1077,75 +1021,6 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
       <div className="bg-gray-200 dark:bg-gray-700 rounded-b-xl border border-gray-300 dark:border-gray-600 border-t-0">
         <div className="p-4 pt-2">{renderFilteredContent()}</div>
       </div>
-
-      {/* Calendar Modal */}
-      {showCalendar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Pilih Tanggal
-              </h3>
-              <button
-                onClick={() => setShowCalendar(false)}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl font-bold"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 mb-4">
-              {["M", "S", "S", "R", "K", "J", "S"].map((day, index) => (
-                <div
-                  key={index}
-                  className="text-center text-gray-600 dark:text-gray-400 text-sm font-medium p-2"
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: 31 }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    const newDate = new Date();
-                    newDate.setDate(i + 1);
-                    setSelectedDate(newDate);
-                    setShowCalendar(false);
-                  }}
-                  className={`p-2 text-sm rounded hover:bg-blue-100 dark:hover:bg-blue-700 transition-colors ${
-                    selectedDate && selectedDate.getDate() === i + 1
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => setShowCalendar(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold transition"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedDate(null);
-                  setShowCalendar(false);
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Edit Part Modal */}
       <ChildPart
