@@ -17,8 +17,6 @@ import { X } from "lucide-react";
 import {
   PlanningSystemService,
   ProductPlanningData,
-  ProductionService,
-  ProductInfo,
   ChildPartService,
   RencanaChildPartService,
 } from "../../../services/API_Services";
@@ -228,7 +226,7 @@ const SchedulerPage: React.FC = () => {
           .toLowerCase()
       : `${part}-${monthIndex}-${year}`.replace(/\s+/g, "-").toLowerCase();
   const navigate = useNavigate();
-  const { uiColors } = useTheme();
+  const { uiColors, theme } = useTheme();
   const {
     notification,
     hideNotification,
@@ -237,6 +235,20 @@ const SchedulerPage: React.FC = () => {
     showConfirm,
     showNotification,
   } = useNotification();
+
+  // Helper function untuk memformat image URL secara konsisten
+  const formatImageUrl = (imageData?: string, mimeType?: string): string => {
+    if (!imageData) return "";
+
+    // Jika sudah ada prefix data:, gunakan apa adanya
+    if (imageData.startsWith("data:")) {
+      return imageData;
+    }
+
+    // Jika tidak ada prefix, tambahkan prefix data: URL
+    const mime = mimeType || "image/jpeg";
+    return `data:${mime};base64,${imageData}`;
+  };
 
   // Inject CSS untuk animasi
   useEffect(() => {
@@ -257,10 +269,12 @@ const SchedulerPage: React.FC = () => {
     overtimePcs: 1672,
     isManualPlanningPcs: false,
     manpowers: [],
+    partImageUrl: "", // Tambahkan field untuk gambar part
   });
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [showProductionForm, setShowProductionForm] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [manpowerList, setManpowerList] = useState<
@@ -282,7 +296,7 @@ const SchedulerPage: React.FC = () => {
   const [tempSelectedYear, setTempSelectedYear] = useState(
     new Date().getFullYear(),
   );
-  const [showDropdown, setShowDropdown] = useState(false);
+  // Dropdown menu sudah dihapus, tidak perlu state ini lagi
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [showChildPartModal, setShowChildPartModal] = useState(false);
   const [childParts, setChildParts] = useState<ChildPartData[]>([]);
@@ -328,7 +342,19 @@ const SchedulerPage: React.FC = () => {
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
   const [editingPartName, setEditingPartName] = useState<string>("");
   const [editingPartCustomer, setEditingPartCustomer] = useState<string>("");
+  const [editingPartImage, setEditingPartImage] = useState<File | null>(null);
+  const [editingPartImagePreview, setEditingPartImagePreview] = useState<
+    string | null
+  >(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // State untuk tracking jadwal yang sedang diedit
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(
+    null,
+  );
+  const [editingScheduleBackendId, setEditingScheduleBackendId] = useState<
+    number | null
+  >(null);
 
   // Temporary filter states for selection before applying
   const [tempChildPartFilter, setTempChildPartFilter] = useState<
@@ -341,6 +367,7 @@ const SchedulerPage: React.FC = () => {
   const [productInfo, setProductInfo] = useState<{
     partName: string;
     customer: string;
+    partImageUrl?: string;
     lastSavedBy?: {
       nama: string;
       role: string;
@@ -349,6 +376,7 @@ const SchedulerPage: React.FC = () => {
   }>({
     partName: "",
     customer: "",
+    partImageUrl: "",
     lastSavedBy: undefined,
     lastSavedAt: undefined,
   });
@@ -373,20 +401,7 @@ const SchedulerPage: React.FC = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (showDropdown && !target.closest(".dropdown-container")) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showDropdown]);
+  // Dropdown menu sudah dihapus, tidak perlu useEffect ini lagi
 
   // Close part filter dropdown when clicking outside
   useEffect(() => {
@@ -447,6 +462,7 @@ const SchedulerPage: React.FC = () => {
         setProductInfo({
           partName: loadedSchedule.productInfo.partName || "",
           customer: loadedSchedule.productInfo.customer || "",
+          partImageUrl: loadedSchedule.productInfo.partImageUrl || "",
           lastSavedBy: loadedSchedule.productInfo.lastSavedBy,
           lastSavedAt: loadedSchedule.productInfo.lastSavedAt,
         });
@@ -455,6 +471,7 @@ const SchedulerPage: React.FC = () => {
         setProductInfo({
           partName: loadedSchedule.form.part || "",
           customer: loadedSchedule.form.customer || "",
+          partImageUrl: loadedSchedule.form.partImageUrl || "",
           lastSavedBy: undefined,
           lastSavedAt: undefined,
         });
@@ -482,10 +499,10 @@ const SchedulerPage: React.FC = () => {
     doUpdateCalculatedFields();
   }, [form.timePerPcs, form.planningHour, form.overtimeHour]);
 
-  // Update informasi produk ketika part atau customer berubah
+  // Update informasi produk ketika part, customer, atau gambar berubah
   useEffect(() => {
     updateProductInfo();
-  }, [form.part, form.customer]);
+  }, [form.part, form.customer, form.partImageUrl]);
 
   // Helper function untuk mendapatkan token dari localStorage
   const getAuthToken = () => {
@@ -524,6 +541,102 @@ const SchedulerPage: React.FC = () => {
       return null;
     }
   };
+
+  // Load data dari backend saat komponen dimount
+  useEffect(() => {
+    const loadDataFromBackend = async () => {
+      try {
+        console.log("🔄 Loading data from backend...");
+        // Cek apakah user sudah login
+        const token = getAuthToken();
+        if (!token) {
+          console.log("❌ User belum login, skip loading dari backend");
+          return;
+        }
+
+        // Load data planning system dari backend
+        const { PlanningSystemService } = await import(
+          "../../../services/API_Services"
+        );
+
+        try {
+          const response = await PlanningSystemService.getAllProductPlanning();
+          console.log("✅ Data loaded from backend:", response);
+
+          // Update savedSchedules dengan data dari backend
+          if (
+            response.productPlannings &&
+            response.productPlannings.length > 0
+          ) {
+            const backendSchedules = response.productPlannings.map(
+              (planning: any) => {
+                // Buat ID yang konsisten
+                const monthIndex = planning.productionMonth - 1; // Konversi dari 1-12 ke 0-11
+                const scheduleId =
+                  `${planning.partName}-${planning.customerName}-${monthIndex}-${planning.productionYear}`
+                    .replace(/\s+/g, "-")
+                    .toLowerCase();
+
+                return {
+                  id: scheduleId,
+                  backendId: planning.id,
+                  name: `${MONTHS[monthIndex]} ${planning.productionYear}`,
+                  date: planning.createdAt || new Date().toISOString(),
+                  form: {
+                    part: planning.partName,
+                    customer: planning.customerName,
+                    stock: planning.currentStock,
+                    timePerPcs: 257,
+                    partImageUrl: formatImageUrl(
+                      planning.partImageBase64,
+                      planning.partImageMimeType,
+                    ),
+                  },
+                  schedule: [], // Schedule akan di-load terpisah jika diperlukan
+                  productInfo: {
+                    partName: planning.partName,
+                    customer: planning.customerName,
+                    partImageUrl: formatImageUrl(
+                      planning.partImageBase64,
+                      planning.partImageMimeType,
+                    ),
+                    lastSavedBy: undefined,
+                    lastSavedAt: planning.updatedAt || planning.createdAt,
+                  },
+                };
+              },
+            );
+
+            // Update savedSchedules dengan data dari backend
+            setSavedSchedules((prev) => {
+              // Gabungkan data lokal dengan data backend, prioritaskan backend
+              const localSchedules = prev.filter((s) => !s.backendId);
+              const allSchedules = [...backendSchedules, ...localSchedules];
+
+              // Hapus duplikat berdasarkan ID
+              const uniqueSchedules = allSchedules.filter(
+                (schedule, index, self) =>
+                  index === self.findIndex((s) => s.id === schedule.id),
+              );
+
+              console.log(
+                "✅ Updated savedSchedules with backend data:",
+                uniqueSchedules,
+              );
+              return uniqueSchedules;
+            });
+          }
+        } catch (error) {
+          console.error("❌ Error loading data from backend:", error);
+          // Jika gagal load dari backend, gunakan data lokal saja
+        }
+      } catch (error) {
+        console.error("❌ Error in loadDataFromBackend:", error);
+      }
+    };
+
+    loadDataFromBackend();
+  }, []);
 
   // Load manpowerList saat komponen dimount
   useEffect(() => {
@@ -645,6 +758,55 @@ const SchedulerPage: React.FC = () => {
 
     loadChildParts();
   }, []);
+
+  // Fungsi untuk membersihkan duplikasi di savedSchedules
+  const cleanDuplicateSchedules = (schedules: any[]) => {
+    const uniqueSchedules = schedules.filter((schedule, index, self) => {
+      // Cari berdasarkan kombinasi part, customer, bulan, tahun
+      const scheduleKey = `${schedule.form?.part || schedule.productInfo?.partName || ""}-${schedule.form?.customer || schedule.productInfo?.customer || ""}-${schedule.name}`;
+
+      const firstIndex = self.findIndex((s) => {
+        const sKey = `${s.form?.part || s.productInfo?.partName || ""}-${s.form?.customer || s.productInfo?.customer || ""}-${s.name}`;
+        return sKey === scheduleKey;
+      });
+
+      // Jika ini adalah index pertama, pertahankan
+      if (index === firstIndex) {
+        return true;
+      }
+
+      // Jika ada backendId, prioritaskan yang memiliki backendId
+      const currentHasBackendId = schedule.backendId !== undefined;
+      const firstHasBackendId = self[firstIndex]?.backendId !== undefined;
+
+      if (currentHasBackendId && !firstHasBackendId) {
+        // Ganti yang pertama dengan yang memiliki backendId
+        self[firstIndex] = schedule;
+        return false;
+      }
+
+      return false;
+    });
+
+    console.log(
+      `🧹 Cleaned duplicate schedules: ${schedules.length} -> ${uniqueSchedules.length}`,
+    );
+    return uniqueSchedules;
+  };
+
+  // Monitor perubahan pada savedSchedules untuk debugging
+  useEffect(() => {
+    console.log("📊 savedSchedules state changed:", {
+      count: savedSchedules.length,
+      schedules: savedSchedules.map((s) => ({
+        id: s.id,
+        name: s.name,
+        part: s.form?.part || s.productInfo?.partName,
+        customer: s.form?.customer || s.productInfo?.customer,
+        backendId: s.backendId,
+      })),
+    });
+  }, [savedSchedules]);
 
   // Load saved schedules dari backend saat komponen dimount
   useEffect(() => {
@@ -835,19 +997,19 @@ const SchedulerPage: React.FC = () => {
           });
 
           // Update savedSchedules state
-          // Dedupe berdasarkan ID konsisten
-          const deduped = convertedSchedules.filter(
-            (s: any, idx: number, arr: any[]) =>
-              idx === arr.findIndex((x: any) => x.id === s.id),
+          // Gunakan fungsi cleanDuplicateSchedules untuk membersihkan duplikasi
+          const cleanedSchedules = cleanDuplicateSchedules(convertedSchedules);
+          setSavedSchedules(cleanedSchedules);
+          localStorage.setItem(
+            "savedSchedules",
+            JSON.stringify(cleanedSchedules),
           );
-          setSavedSchedules(deduped);
-          localStorage.setItem("savedSchedules", JSON.stringify(deduped));
 
           console.log(
             "✅ Saved schedules berhasil dimuat dari database:",
             convertedSchedules,
           );
-          console.log("📊 Final savedSchedules state:", deduped);
+          console.log("📊 Final savedSchedules state:", cleanedSchedules);
         }
       } catch (error) {
         console.error("Error loading saved schedules:", error);
@@ -894,10 +1056,12 @@ const SchedulerPage: React.FC = () => {
               return item;
             });
 
-            setSavedSchedules(validatedData);
+            // Bersihkan duplikasi juga untuk data fallback
+            const cleanedFallbackData = cleanDuplicateSchedules(validatedData);
+            setSavedSchedules(cleanedFallbackData);
             console.log(
-              "✅ Fallback: Validated and set saved schedules:",
-              validatedData,
+              "✅ Fallback: Validated, cleaned, and set saved schedules:",
+              cleanedFallbackData,
             );
           } catch (parseError) {
             console.error("❌ Error parsing localStorage data:", parseError);
@@ -979,12 +1143,25 @@ const SchedulerPage: React.FC = () => {
 
   // Fungsi untuk mengupdate informasi produk
   const updateProductInfo = () => {
-    setProductInfo({
+    const newProductInfo = {
       partName: form.part || "",
       customer: form.customer || "",
+      partImageUrl: form.partImageUrl || productInfo.partImageUrl || "",
       lastSavedBy: productInfo?.lastSavedBy, // Pertahankan lastSavedBy yang sudah ada
       lastSavedAt: productInfo?.lastSavedAt, // Pertahankan lastSavedAt yang sudah ada
-    });
+    };
+
+    setProductInfo(newProductInfo);
+
+    // Log untuk debugging gambar
+    if (newProductInfo.partImageUrl) {
+      console.log("✅ Updated productInfo with image:", {
+        partName: newProductInfo.partName,
+        customer: newProductInfo.customer,
+        hasImage: !!newProductInfo.partImageUrl,
+        imageLength: newProductInfo.partImageUrl.length,
+      });
+    }
   };
 
   // Handler untuk manpowers (add/remove)
@@ -1187,10 +1364,13 @@ const SchedulerPage: React.FC = () => {
             },
           }));
 
-          setSavedSchedules(convertedSchedules);
+          // Bersihkan duplikasi sebelum set state
+          const cleanedGeneratedSchedules =
+            cleanDuplicateSchedules(convertedSchedules);
+          setSavedSchedules(cleanedGeneratedSchedules);
           localStorage.setItem(
             "savedSchedules",
-            JSON.stringify(convertedSchedules),
+            JSON.stringify(cleanedGeneratedSchedules),
           );
         }
       }
@@ -1200,9 +1380,14 @@ const SchedulerPage: React.FC = () => {
       // Reset flag karena jadwal sudah tersimpan ke database
       setIsNewlyGeneratedSchedule(false);
 
-      // Setelah generate berhasil, tampilkan jadwal produksi (card view) dulu
-      // Tidak langsung ke dashboard produksi
-      setSelectedPart(form.part);
+      // Setelah generate berhasil, untuk mode create saja yang masuk dashboard
+      // Mode edit tetap di card view
+      if (!isEditMode) {
+        setSelectedPart(form.part);
+        console.log("✅ Mode create: Masuk ke dashboard produksi");
+      } else {
+        console.log("✅ Mode edit: Tetap di card view, tidak masuk dashboard");
+      }
       setShowProductionForm(false);
     } catch (error) {
       console.error("Error auto-saving after generate:", error);
@@ -1496,6 +1681,14 @@ const SchedulerPage: React.FC = () => {
     // Update informasi produk sebelum menyimpan
     updateProductInfo();
 
+    // Log untuk debugging gambar
+    console.log("💾 saveScheduleFromDashboard: Form data with image:", {
+      part: form.part,
+      customer: form.customer,
+      hasImage: !!form.partImageUrl,
+      imageLength: form.partImageUrl?.length || 0,
+    });
+
     // selectedMonth adalah 0-11 untuk UI; backend butuh 1-12 saat konversi
     const currentMonth = selectedMonth;
     const currentYear = selectedYear;
@@ -1509,8 +1702,25 @@ const SchedulerPage: React.FC = () => {
       form.customer,
     );
 
+    console.log("🔍 Dashboard: Checking existing schedule:", {
+      part: form.part,
+      customer: form.customer,
+      month: currentMonth,
+      year: currentYear,
+      existingSchedule: existingSchedule
+        ? {
+            id: existingSchedule.id,
+            backendId: existingSchedule.backendId,
+            name: existingSchedule.name,
+          }
+        : null,
+    });
+
     if (existingSchedule && existingSchedule.backendId) {
       // Langsung timpa tanpa konfirmasi karena ini dari dashboard
+      console.log(
+        `🔄 Dashboard: Updating existing schedule with backendId ${existingSchedule.backendId}`,
+      );
       await performSaveSchedule(
         currentMonth,
         currentYear,
@@ -1519,6 +1729,7 @@ const SchedulerPage: React.FC = () => {
       );
     } else {
       // Buat jadwal baru
+      console.log("🆕 Dashboard: Creating new schedule");
       await performSaveSchedule(currentMonth, currentYear, scheduleName);
     }
   };
@@ -1535,6 +1746,17 @@ const SchedulerPage: React.FC = () => {
     // Update informasi produk sebelum menyimpan
     updateProductInfo();
 
+    // Log untuk debugging gambar
+    console.log("💾 saveSchedule: Form data with image:", {
+      part: form.part,
+      customer: form.customer,
+      hasImage: !!form.partImageUrl,
+      imageLength: form.partImageUrl?.length || 0,
+      isEditMode,
+      editingScheduleId,
+      editingScheduleBackendId,
+    });
+
     // Gunakan parameter override jika ada, atau gunakan state yang ada
     const currentMonth =
       monthOverride !== undefined ? monthOverride : selectedMonth;
@@ -1543,7 +1765,65 @@ const SchedulerPage: React.FC = () => {
 
     const scheduleName = `${MONTHS[currentMonth]} ${currentYear}`;
 
-    // Cek apakah sudah ada jadwal untuk part, customer, bulan, dan tahun yang sama
+    // Jika mode edit, gunakan ID jadwal yang sedang diedit
+    if (isEditMode && editingScheduleBackendId) {
+      console.log(
+        "🔄 Edit mode: Updating existing schedule with backendId:",
+        editingScheduleBackendId,
+        "editingScheduleId:",
+        editingScheduleId,
+        "new month:",
+        scheduleName,
+        "current form part:",
+        form.part,
+        "current form customer:",
+        form.customer,
+      );
+
+      // Pastikan form data sudah benar
+      if (form.part && form.customer) {
+        console.log(
+          "✅ Edit mode: Form data lengkap, memanggil performSaveSchedule",
+        );
+        await performSaveSchedule(
+          currentMonth,
+          currentYear,
+          scheduleName,
+          editingScheduleBackendId,
+        );
+        console.log(
+          "✅ Edit mode: performSaveSchedule selesai, return untuk keluar",
+        );
+        return; // Pastikan return di sini
+      } else {
+        console.error("❌ Form data tidak lengkap untuk edit mode");
+        showAlert(
+          "Data part dan customer harus diisi untuk edit mode",
+          "Error",
+        );
+        return;
+      }
+    }
+
+    // Mode create: Cek apakah sudah ada jadwal untuk part, customer, bulan, dan tahun yang sama
+    console.log("🔍 Mode create: Checking for existing schedule...");
+    console.log(
+      "🔍 Mode create: isEditMode =",
+      isEditMode,
+      "editingScheduleBackendId =",
+      editingScheduleBackendId,
+    );
+
+    // Jika masih dalam edit mode, seharusnya tidak sampai ke sini
+    if (isEditMode) {
+      console.error(
+        "❌ ERROR: Masih dalam edit mode tapi sampai ke logic create!",
+      );
+      console.error("❌ editingScheduleId:", editingScheduleId);
+      console.error("❌ editingScheduleBackendId:", editingScheduleBackendId);
+      return; // Keluar dari function
+    }
+
     const existingSchedule = checkExistingSchedule(
       form.part,
       currentMonth,
@@ -1551,7 +1831,22 @@ const SchedulerPage: React.FC = () => {
       form.customer,
     );
 
+    console.log("🔍 Checking existing schedule:", {
+      part: form.part,
+      customer: form.customer,
+      month: currentMonth,
+      year: currentYear,
+      existingSchedule: existingSchedule
+        ? {
+            id: existingSchedule.id,
+            backendId: existingSchedule.backendId,
+            name: existingSchedule.name,
+          }
+        : null,
+    });
+
     if (existingSchedule && existingSchedule.backendId) {
+      console.log("🔍 Found existing schedule, asking for confirmation...");
       // Buat pesan konfirmasi yang sederhana
       const confirmationMessage = `Apakah Anda yakin ingin menimpa jadwal yang sudah tersimpan?\n\nJadwal untuk ${form.part} - ${scheduleName} sudah ada dan akan diganti dengan data yang baru.`;
 
@@ -1560,6 +1855,7 @@ const SchedulerPage: React.FC = () => {
         confirmationMessage,
         async () => {
           // User memilih untuk menimpa
+          console.log("✅ User confirmed overwrite, proceeding with update...");
           await performSaveSchedule(
             currentMonth,
             currentYear,
@@ -1573,7 +1869,7 @@ const SchedulerPage: React.FC = () => {
       );
     } else {
       // Tidak ada jadwal yang sama, langsung simpan
-
+      console.log("🆕 No existing schedule found, creating new one...");
       await performSaveSchedule(currentMonth, currentYear, scheduleName);
     }
   };
@@ -1665,10 +1961,27 @@ const SchedulerPage: React.FC = () => {
       try {
         if (existingId) {
           console.log(`Mencoba update schedule dengan ID: ${existingId}`);
-          // Update jadwal yang sudah ada menggunakan updateProductionSchedule
-          response = await ProductionService.updateProductionSchedule(
+
+          // Import PlanningSystemService untuk update yang benar
+          const { PlanningSystemService } = await import(
+            "../../../services/API_Services"
+          );
+
+          // Update jadwal yang sudah ada menggunakan updateProductPlanning
+          response = await PlanningSystemService.updateProductPlanning(
             existingId,
-            backendData,
+            {
+              partName: backendData.partName,
+              customerName: backendData.customer,
+              productionMonth: backendData.month, // backendData.month bukan productionMonth
+              productionYear: backendData.year, // backendData.year bukan productionYear
+              currentStock: backendData.initialStock || 0, // backendData.initialStock bukan currentStock
+              // partImageBase64 dan partImageMimeType tidak ada di backendData, gunakan dari form
+              partImageBase64: form.partImageUrl
+                ? form.partImageUrl.split(",")[1]
+                : undefined,
+              partImageMimeType: form.partImageUrl ? "image/jpeg" : undefined,
+            },
           );
           console.log(`Schedule berhasil diupdate dengan ID: ${existingId}`);
         } else {
@@ -1717,7 +2030,9 @@ const SchedulerPage: React.FC = () => {
       const apiWrapper = (response && (response as any).data) || response || {};
       const apiData =
         (apiWrapper && (apiWrapper as any).data) || apiWrapper || {};
-      const productPlanningId = apiData?.productPlanning?.id ?? null;
+
+      // Untuk PlanningSystemService, response langsung berisi productPlanning
+      const productPlanningId = apiData?.id ?? response?.id ?? existingId;
       const serverSucceeded = !!productPlanningId;
 
       // Tentukan lastSavedBy berdasarkan logika di atas
@@ -1753,6 +2068,7 @@ const SchedulerPage: React.FC = () => {
         productInfo: {
           partName: form.part,
           customer: form.customer,
+          partImageUrl: form.partImageUrl || productInfo.partImageUrl || "",
           lastSavedBy: lastSavedBy,
           lastSavedAt: shouldUpdateLastSavedBy
             ? new Date().toISOString()
@@ -1912,57 +2228,161 @@ const SchedulerPage: React.FC = () => {
         console.log(
           `Updating schedule with ID: ${finalId} (original: ${existingId}, response: ${response.productPlanning?.id || response.id})`,
         );
+
+        // Update schedule di context
         updateSchedule(finalId, newSchedule);
 
-        // Update localStorage juga - hindari duplikasi
-        const existingIndex = savedSchedules.findIndex((s) => s.id === finalId);
-        let updatedSchedules;
-        if (existingIndex !== -1) {
-          // Update jadwal yang sudah ada
-          updatedSchedules = [...savedSchedules];
-          updatedSchedules[existingIndex] = newSchedule;
+        // Jika mode edit, update berdasarkan editingScheduleId
+        if (isEditMode && editingScheduleId) {
+          console.log(
+            "🔄 Edit mode: Updating schedule based on editingScheduleId:",
+            editingScheduleId,
+          );
+          console.log(
+            "🔄 Current savedSchedules:",
+            savedSchedules.map((s) => ({
+              id: s.id,
+              name: s.name,
+              backendId: s.backendId,
+            })),
+          );
+
+          // Cari dan update schedule di savedSchedules berdasarkan editingScheduleId
+          const existingIndex = savedSchedules.findIndex(
+            (s) => s.id === editingScheduleId,
+          );
+
+          console.log("🔄 Found schedule at index:", existingIndex);
+
+          if (existingIndex !== -1) {
+            // Update jadwal yang sudah ada dengan data baru
+            const updatedSchedules = [...savedSchedules];
+            const oldSchedule = updatedSchedules[existingIndex];
+            updatedSchedules[existingIndex] = {
+              ...newSchedule,
+              id: editingScheduleId, // Pertahankan ID asli
+              backendId: existingId, // Update backendId
+              name: scheduleName, // Update nama jadwal sesuai bulan baru
+            };
+
+            console.log(`✅ Updated existing schedule:`, {
+              oldName: oldSchedule.name,
+              newName: scheduleName,
+              oldId: oldSchedule.id,
+              newId: editingScheduleId,
+              index: existingIndex,
+            });
+            setSavedSchedules(updatedSchedules);
+
+            // Reset edit mode dan tracking setelah berhasil update
+            setIsEditMode(false);
+            setEditingScheduleId(null);
+            setEditingScheduleBackendId(null);
+
+            console.log("🔄 Edit mode reset after successful update");
+
+            // Tampilkan pesan sukses
+            showSuccess("Jadwal berhasil diupdate!");
+
+            // PASTIKAN tidak set selectedPart untuk edit mode - tetap di card view
+            console.log(
+              "🚫 Edit mode: selectedPart TIDAK diset, tetap di card view",
+            );
+
+            // Reset form dan schedule untuk kembali ke card view
+            resetFormAndSchedule();
+
+            return; // Langsung return, tidak lanjut ke logic create
+          } else {
+            console.warn(
+              "⚠️ Schedule dengan editingScheduleId tidak ditemukan:",
+              editingScheduleId,
+            );
+            console.warn(
+              "⚠️ Available schedule IDs:",
+              savedSchedules.map((s) => s.id),
+            );
+          }
         } else {
-          // Tambah jadwal baru jika tidak ditemukan
-          updatedSchedules = [...savedSchedules, newSchedule];
+          // Mode create: Cari dan update schedule di savedSchedules berdasarkan backendId atau ID yang konsisten
+          const existingIndex = savedSchedules.findIndex(
+            (s) =>
+              s.backendId === existingId ||
+              s.id === existingId.toString() ||
+              s.id === finalId,
+          );
+
+          let updatedSchedules;
+          if (existingIndex !== -1) {
+            // Update jadwal yang sudah ada dengan data baru
+            updatedSchedules = [...savedSchedules];
+            updatedSchedules[existingIndex] = {
+              ...newSchedule,
+              id: finalId, // Pastikan ID konsisten
+              backendId: existingId, // Pertahankan backendId yang asli
+            };
+            console.log(
+              `✅ Updated existing schedule at index ${existingIndex} with ID ${finalId}`,
+            );
+          } else {
+            // Jika tidak ditemukan, tambahkan sebagai jadwal baru
+            updatedSchedules = [
+              ...savedSchedules,
+              {
+                ...newSchedule,
+                id: finalId,
+                backendId: existingId,
+              },
+            ];
+            console.log(
+              `✅ Added new schedule with ID ${finalId} and backendId ${existingId}`,
+            );
+          }
+
+          // Bersihkan duplikasi sebelum set state
+          const cleanedUpdatedSchedules =
+            cleanDuplicateSchedules(updatedSchedules);
+          setSavedSchedules(cleanedUpdatedSchedules);
+
+          showSuccess("Jadwal berhasil diperbarui!");
+
+          // Reset semua state perubahan setelah berhasil update
+          setHasScheduleChanges(false);
+          setHasUnsavedChildPartChanges(false);
+          setChildPartChanges(new Set());
+          setHasUnsavedChanges(false);
+          setIsNewlyGeneratedSchedule(false); // Reset flag karena ini jadwal yang sudah tersimpan
         }
-        setSavedSchedules(updatedSchedules);
-        localStorage.setItem(
-          "savedSchedules",
-          JSON.stringify(updatedSchedules),
-        );
-
-        showSuccess("Jadwal berhasil diperbarui!");
-
-        // Reset semua state perubahan setelah berhasil update
-        setHasScheduleChanges(false);
-        setHasUnsavedChildPartChanges(false);
-        setChildPartChanges(new Set());
-        setHasUnsavedChanges(false);
-        setIsNewlyGeneratedSchedule(false); // Reset flag karena ini jadwal yang sudah tersimpan
       } else {
-        // Tambah jadwal baru ke savedSchedules state - hindari duplikasi
+        // Tambah jadwal baru ke state - hindari duplikasi
         const existingIndex = savedSchedules.findIndex(
-          (s) => s.id === newSchedule.id,
+          (s) =>
+            s.id === newSchedule.id ||
+            (s.form.part === newSchedule.form.part &&
+              s.form.customer === newSchedule.form.customer &&
+              s.name === newSchedule.name),
         );
+
         let updatedSchedules;
         if (existingIndex !== -1) {
           // Update jadwal yang sudah ada
           updatedSchedules = [...savedSchedules];
           updatedSchedules[existingIndex] = newSchedule;
+          console.log(`✅ Updated existing schedule at index ${existingIndex}`);
         } else {
           // Tambah jadwal baru
           updatedSchedules = [...savedSchedules, newSchedule];
+          console.log(`✅ Added new schedule to savedSchedules`);
         }
-        setSavedSchedules(updatedSchedules);
-        localStorage.setItem(
-          "savedSchedules",
-          JSON.stringify(updatedSchedules),
-        );
 
-        // Pesan sukses yang lebih informatif
+        // Bersihkan duplikasi sebelum set state
+        const cleanedNewSchedules = cleanDuplicateSchedules(updatedSchedules);
+        setSavedSchedules(cleanedNewSchedules);
+
+        // Pesan sukses sederhana
         const successMessage = serverSucceeded
-          ? "Schedule berhasil disimpan ke database dan Saved Schedules!"
-          : "Schedule berhasil disimpan ke Saved Schedules (server tidak tersedia)";
+          ? "Schedule berhasil disimpan ke database!"
+          : "Server tidak tersedia. Data lokal diperbarui.";
         showSuccess(successMessage);
       }
 
@@ -2021,11 +2441,21 @@ const SchedulerPage: React.FC = () => {
       overtimePcs: 1672,
       isManualPlanningPcs: false,
       manpowers: [],
+      partImageUrl: "", // Reset gambar part
     });
     setSchedule([]); // Gunakan setSchedule langsung untuk reset yang bersih
     setSelectedMonth(new Date().getMonth());
     setSelectedYear(new Date().getFullYear());
     setIsNewlyGeneratedSchedule(false); // Reset flag jadwal baru
+
+    // Reset productInfo juga
+    setProductInfo({
+      partName: "",
+      customer: "",
+      partImageUrl: "",
+      lastSavedBy: undefined,
+      lastSavedAt: undefined,
+    });
   };
 
   // Handler untuk generate tabel child part
@@ -2141,25 +2571,75 @@ const SchedulerPage: React.FC = () => {
   };
 
   // Edit Part handlers (sama dengan behavior sebelumnya)
-  const handleSavePartEdit = () => {
+  const handleSavePartEdit = async () => {
     if (!editingPartName.trim() || !editingPartCustomer.trim()) return;
-    const schedulesToUpdate = savedSchedules.filter(
-      (s) => s.form.part === editingPartId,
-    );
-    schedulesToUpdate.forEach((schedule) => {
-      const updatedSchedule = {
-        ...schedule,
-        form: {
-          ...schedule.form,
-          part: editingPartName.trim(),
-          customer: editingPartCustomer.trim(),
-        },
-      };
-      updateSchedule(schedule.id, updatedSchedule);
-    });
-    setShowEditPartModal(false);
-    setEditingPartId(null);
-    showSuccess("Berhasil menyimpan perubahan part dan customer!");
+
+    try {
+      const schedulesToUpdate = savedSchedules.filter(
+        (s) => s.form.part === editingPartId,
+      );
+
+      // Update schedules dengan data baru
+      schedulesToUpdate.forEach((schedule) => {
+        const updatedSchedule = {
+          ...schedule,
+          form: {
+            ...schedule.form,
+            part: editingPartName.trim(),
+            customer: editingPartCustomer.trim(),
+            partImageUrl:
+              editingPartImagePreview || schedule.form.partImageUrl || "",
+          },
+        };
+        updateSchedule(schedule.id, updatedSchedule);
+      });
+
+      // Jika ada gambar baru, update ke backend
+      if (editingPartImage && editingPartImagePreview) {
+        try {
+          const { PlanningSystemService } = await import(
+            "../../../services/API_Services"
+          );
+
+          // Cari schedule yang memiliki backendId
+          const scheduleWithBackend = schedulesToUpdate.find(
+            (s) => s.backendId,
+          );
+          if (scheduleWithBackend?.backendId) {
+            // Update product planning dengan gambar baru
+            const planningData = {
+              partName: editingPartName.trim(),
+              customerName: editingPartCustomer.trim(),
+              productionMonth: new Date().getMonth() + 1,
+              productionYear: new Date().getFullYear(),
+              currentStock: scheduleWithBackend.form.stock || 0,
+              partImageBase64: editingPartImagePreview.includes(",")
+                ? editingPartImagePreview.split(",")[1]
+                : editingPartImagePreview,
+              partImageMimeType: editingPartImage.type || "image/jpeg",
+            };
+
+            await PlanningSystemService.upsertProductPlanning(planningData);
+            console.log("✅ Part image updated in backend");
+          }
+        } catch (error) {
+          console.error("❌ Error updating part image in backend:", error);
+          showAlert(
+            "Gambar berhasil diupdate lokal, tetapi gagal disimpan ke database",
+            "Peringatan",
+          );
+        }
+      }
+
+      setShowEditPartModal(false);
+      setEditingPartId(null);
+      setEditingPartImage(null);
+      setEditingPartImagePreview(null);
+      showSuccess("Berhasil menyimpan perubahan part, customer, dan gambar!");
+    } catch (error) {
+      console.error("Error saving part edit:", error);
+      showAlert("Gagal menyimpan perubahan", "Error");
+    }
   };
 
   const handleCancelPartEdit = () => {
@@ -2167,6 +2647,55 @@ const SchedulerPage: React.FC = () => {
     setEditingPartId(null);
     setEditingPartName("");
     setEditingPartCustomer("");
+    setEditingPartImage(null);
+    setEditingPartImagePreview(null);
+  };
+
+  // Handler untuk upload gambar pada edit part
+  const handleEditPartImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validasi ukuran file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert("Ukuran file terlalu besar. Maksimal 5MB.", "Peringatan");
+        return;
+      }
+
+      // Validasi tipe file
+      if (!file.type.startsWith("image/")) {
+        showAlert("File harus berupa gambar.", "Peringatan");
+        return;
+      }
+
+      setEditingPartImage(file);
+
+      // Preview gambar dan konversi ke base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setEditingPartImagePreview(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handler untuk hapus gambar pada edit part
+  const handleRemoveEditPartImage = () => {
+    setEditingPartImage(null);
+    setEditingPartImagePreview(null);
+  };
+
+  // Keyboard event handler untuk modal edit part
+  const handleEditPartKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSavePartEdit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelPartEdit();
+    }
   };
 
   // Handler untuk menghapus child part berdasarkan index
@@ -2623,7 +3152,24 @@ const SchedulerPage: React.FC = () => {
 
   // Flag untuk menyembunyikan section Saved saat sedang menampilkan dashboard produksi
   const isViewingSchedule =
-    schedule && Array.isArray(schedule) && schedule.length > 0 && selectedPart;
+    schedule &&
+    Array.isArray(schedule) &&
+    schedule.length > 0 &&
+    selectedPart &&
+    !isEditMode;
+
+  console.log("🔍 isViewingSchedule check:", {
+    hasSchedule: !!schedule,
+    scheduleLength: schedule?.length || 0,
+    selectedPart,
+    isEditMode,
+    isViewingSchedule,
+    message: isEditMode
+      ? "EDIT MODE: Tetap di card view"
+      : selectedPart
+        ? "CREATE MODE: Masuk ke dashboard"
+        : "NO PART: Di card view",
+  });
 
   const getSchedulesByPart = (partName: string, customerName?: string) => {
     if (customerName) {
@@ -2637,7 +3183,65 @@ const SchedulerPage: React.FC = () => {
     }
   };
 
-  const handleShowSchedule = (saved: SavedSchedule) => {
+  const handleEditSchedule = async (saved: SavedSchedule) => {
+    try {
+      console.log("🎯 handleEditSchedule called with:", saved);
+
+      // Set form data dari jadwal yang dipilih
+      setForm(saved.form);
+
+      // Set schedule data
+      setSchedule(saved.schedule || []);
+
+      // Set product info
+      if (saved.productInfo) {
+        setProductInfo({
+          partName: saved.productInfo.partName || saved.form.part || "",
+          customer: saved.productInfo.customer || saved.form.customer || "",
+          partImageUrl:
+            saved.productInfo.partImageUrl || saved.form.partImageUrl || "",
+          lastSavedBy: saved.productInfo.lastSavedBy,
+          lastSavedAt: saved.productInfo.lastSavedAt,
+        });
+      } else {
+        setProductInfo({
+          partName: saved.form.part || "",
+          customer: saved.form.customer || "",
+          partImageUrl: saved.form.partImageUrl || "",
+          lastSavedBy: undefined,
+          lastSavedAt: undefined,
+        });
+      }
+
+      // Set tracking jadwal yang sedang diedit
+      setEditingScheduleId(saved.id);
+      setEditingScheduleBackendId(saved.backendId || null);
+
+      // PASTIKAN tidak set selectedPart untuk edit mode - supaya tidak masuk ke dashboard
+      // setSelectedPart(saved.form?.part || null);
+      console.log("🚫 Edit mode: selectedPart TIDAK diset, tetap di card view");
+
+      // Set mode edit dan buka modal form
+      setIsEditMode(true);
+      setShowProductionForm(true);
+
+      console.log(
+        "✅ handleEditSchedule: Form edit dibuka dengan data jadwal yang dipilih",
+        {
+          scheduleId: saved.id,
+          backendId: saved.backendId,
+          isEditMode: true,
+          selectedPart: "TIDAK DISET (tetap di card view)",
+          currentSelectedPart: selectedPart,
+        },
+      );
+    } catch (error) {
+      console.error("❌ Error in handleEditSchedule:", error);
+      showAlert("Gagal membuka form edit. Silakan coba lagi.", "Error");
+    }
+  };
+
+  const handleShowSchedule = async (saved: SavedSchedule) => {
     try {
       console.log("🎯 handleShowSchedule called with:", saved);
       console.log("📋 Schedule data:", saved.schedule);
@@ -2671,6 +3275,7 @@ const SchedulerPage: React.FC = () => {
       console.log(
         "✅ handleShowSchedule: Flag perubahan di-reset untuk schedule yang sudah tersimpan",
       );
+      console.log("📊 Current savedSchedules count:", savedSchedules.length);
       setSelectedPart(saved.form?.part || null);
 
       // Update product info
@@ -2678,6 +3283,8 @@ const SchedulerPage: React.FC = () => {
         setProductInfo({
           partName: saved.productInfo.partName || saved.form.part || "",
           customer: saved.productInfo.customer || saved.form.customer || "",
+          partImageUrl:
+            saved.productInfo.partImageUrl || saved.form.partImageUrl || "",
           lastSavedBy: saved.productInfo.lastSavedBy,
           lastSavedAt: saved.productInfo.lastSavedAt,
         });
@@ -2685,9 +3292,58 @@ const SchedulerPage: React.FC = () => {
         setProductInfo({
           partName: saved.form.part || "",
           customer: saved.form.customer || "",
+          partImageUrl: saved.form.partImageUrl || "",
           lastSavedBy: undefined,
           lastSavedAt: undefined,
         });
+      }
+
+      // Jika ada backendId, coba load data lengkap dari backend untuk mendapatkan gambar
+      if (saved.backendId) {
+        try {
+          const { PlanningSystemService } = await import(
+            "../../../services/API_Services"
+          );
+          const response = await PlanningSystemService.getProductPlanningById(
+            saved.backendId,
+          );
+
+          if (response.productPlanning) {
+            const planning = response.productPlanning;
+
+            // Update form dengan data dari backend
+            setForm((prev) => ({
+              ...prev,
+              part: planning.partName,
+              customer: planning.customerName,
+              stock: planning.currentStock,
+              timePerPcs: 257,
+              partImageUrl: formatImageUrl(
+                planning.partImageBase64,
+                planning.partImageMimeType,
+              ),
+            }));
+
+            // Update productInfo dengan gambar dari backend
+            setProductInfo((prev) => ({
+              ...prev,
+              partImageUrl: planning.partImageBase64
+                ? formatImageUrl(
+                    planning.partImageBase64,
+                    planning.partImageMimeType,
+                  )
+                : prev.partImageUrl,
+            }));
+
+            console.log(
+              "✅ Loaded complete data from backend for ID:",
+              saved.backendId,
+            );
+          }
+        } catch (error) {
+          console.error("❌ Error loading complete data from backend:", error);
+          // Jika gagal, gunakan data lokal saja
+        }
       }
 
       // Parse bulan & tahun dari nama schedule (contoh: "Agustus 2025")
@@ -2697,7 +3353,37 @@ const SchedulerPage: React.FC = () => {
       if (yearMatch && yearMatch[1]) setSelectedYear(parseInt(yearMatch[1]));
 
       // Simpan juga ke context (gunakan objek baru agar perubahan terdeteksi)
-      loadSchedule({ ...saved });
+      // Pastikan tidak ada duplikasi dengan memeriksa existing schedule
+      const existingScheduleInContext = savedSchedules.find(
+        (s) =>
+          s.backendId === saved.backendId ||
+          (s.form.part === saved.form.part &&
+            s.form.customer === saved.form.customer &&
+            s.name === saved.name),
+      );
+
+      if (!existingScheduleInContext) {
+        const scheduleWithImage = {
+          ...saved,
+          productInfo: {
+            ...saved.productInfo,
+            partImageUrl:
+              saved.productInfo?.partImageUrl || saved.form.partImageUrl || "",
+          },
+        };
+        loadSchedule(scheduleWithImage);
+      } else {
+        // Update existing schedule di context
+        const updatedSchedule = {
+          ...saved,
+          productInfo: {
+            ...saved.productInfo,
+            partImageUrl:
+              saved.productInfo?.partImageUrl || saved.form.partImageUrl || "",
+          },
+        };
+        updateSchedule(existingScheduleInContext.id, updatedSchedule);
+      }
 
       // Scroll ke tabel dengan delay lebih lama untuk memastikan state ter-update
       setTimeout(() => {
@@ -2759,8 +3445,25 @@ const SchedulerPage: React.FC = () => {
               form.customer,
             );
 
+            console.log("🔍 BackToCards: Checking existing schedule:", {
+              part: form.part,
+              customer: form.customer,
+              month: currentMonth,
+              year: currentYear,
+              existingSchedule: existingSchedule
+                ? {
+                    id: existingSchedule.id,
+                    backendId: existingSchedule.backendId,
+                    name: existingSchedule.name,
+                  }
+                : null,
+            });
+
             if (existingSchedule && existingSchedule.backendId) {
               // Timpa jadwal yang sudah ada
+              console.log(
+                `🔄 BackToCards: Updating existing schedule with backendId ${existingSchedule.backendId}`,
+              );
               await performSaveSchedule(
                 currentMonth,
                 currentYear,
@@ -2769,6 +3472,7 @@ const SchedulerPage: React.FC = () => {
               );
             } else {
               // Buat jadwal baru
+              console.log("🆕 BackToCards: Creating new schedule");
               await performSaveSchedule(
                 currentMonth,
                 currentYear,
@@ -2801,11 +3505,14 @@ const SchedulerPage: React.FC = () => {
 
   // Fungsi helper untuk reset state dan kembali ke card view
   const resetToCardView = () => {
+    console.log("🔄 resetToCardView: Resetting all states...");
+
     // Reset semua state untuk kembali ke tampilan awal
     resetFormAndSchedule();
     setSelectedPart(null);
     setSelectedCustomer(null);
     setShowProductionForm(false);
+    setIsEditMode(false);
     setHasUnsavedChanges(false);
     setHasScheduleChanges(false);
     setHasUnsavedChildPartChanges(false);
@@ -2816,11 +3523,15 @@ const SchedulerPage: React.FC = () => {
     setProductInfo({
       partName: "",
       customer: "",
+      partImageUrl: "",
       lastSavedBy: undefined,
       lastSavedAt: undefined,
     });
     setSelectedMonth(new Date().getMonth());
     setSelectedYear(new Date().getFullYear());
+
+    // Pastikan tidak ada schedule yang sedang aktif
+    console.log("✅ All states reset successfully");
 
     // Scroll ke atas untuk menampilkan menu jadwal
     try {
@@ -2992,6 +3703,7 @@ const SchedulerPage: React.FC = () => {
                     <button
                       onClick={() => {
                         resetFormAndSchedule();
+                        setIsEditMode(false);
                         setShowProductionForm(true);
                       }}
                       className={`px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg flex items-center gap-2`}
@@ -3014,7 +3726,7 @@ const SchedulerPage: React.FC = () => {
                   </div>
 
                   <div
-                    className={`${uiColors.bg.secondary} ${uiColors.border.secondary} rounded-2xl p-4 sm:p-6 shadow-sm`}
+                    className={`${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} ${uiColors.border.secondary} rounded-2xl p-4 sm:p-6 shadow-sm`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2">
                       {parts.map((p) => (
@@ -3024,7 +3736,7 @@ const SchedulerPage: React.FC = () => {
                             setSelectedPart(p.name);
                             setSelectedCustomer(p.customer);
                           }}
-                          className={`group relative ${uiColors.bg.secondary} border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
+                          className={`group relative bg-gray-800 border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
                           style={{ minHeight: "150px" }}
                         >
                           <div className="col-span-5 md:col-span-5 relative">
@@ -3042,11 +3754,11 @@ const SchedulerPage: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between">
+                          <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between bg-gray-800">
                             <div className="flex items-start justify-between">
                               <div className="min-w-0">
                                 <div
-                                  className={`text-lg sm:text-xl font-bold ${uiColors.text.primary} truncate`}
+                                  className={`text-lg sm:text-xl font-bold text-white truncate`}
                                 >
                                   {p.name} - {p.customer}
                                 </div>
@@ -3057,9 +3769,14 @@ const SchedulerPage: React.FC = () => {
                                   setEditingPartId(p.name);
                                   setEditingPartName(p.name);
                                   setEditingPartCustomer(p.customer);
+                                  // Set gambar yang sudah ada jika ada
+                                  setEditingPartImagePreview(
+                                    p.imageUrl || null,
+                                  );
+                                  setEditingPartImage(null);
                                   setShowEditPartModal(true);
                                 }}
-                                className={`p-2.5 rounded-full ${uiColors.bg.tertiary} hover:${uiColors.bg.primary} ${uiColors.text.secondary} shadow-lg ${uiColors.border.secondary} transition-all duration-200 hover:scale-110`}
+                                className={`p-2.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 shadow-lg border border-gray-600 transition-all duration-200 hover:scale-110`}
                                 title="Edit part"
                               >
                                 <Edit3 className="w-4 h-4" />
@@ -3090,9 +3807,11 @@ const SchedulerPage: React.FC = () => {
                   <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
                     onClick={handleCancelPartEdit}
+                    onKeyDown={handleEditPartKeyDown}
+                    tabIndex={-1}
                   >
                     <div
-                      className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
+                      className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-between mb-6">
@@ -3105,7 +3824,7 @@ const SchedulerPage: React.FC = () => {
                               Edit Part
                             </h3>
                             <p className="text-sm text-gray-300">
-                              Ubah nama part dan customer
+                              Ubah nama part, customer, dan gambar
                             </p>
                           </div>
                         </div>
@@ -3125,6 +3844,7 @@ const SchedulerPage: React.FC = () => {
                             type="text"
                             value={editingPartName}
                             onChange={(e) => setEditingPartName(e.target.value)}
+                            onKeyDown={handleEditPartKeyDown}
                             className="w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
                             placeholder="Masukkan nama part"
                             autoFocus
@@ -3140,13 +3860,89 @@ const SchedulerPage: React.FC = () => {
                             onChange={(e) =>
                               setEditingPartCustomer(e.target.value)
                             }
+                            onKeyDown={handleEditPartKeyDown}
                             className="w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
                             placeholder="Masukkan nama customer"
                           />
                         </div>
+
+                        {/* Part Image Upload Section */}
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">
+                            Gambar Part
+                          </label>
+                          <div className="space-y-3">
+                            {editingPartImagePreview ? (
+                              <div className="relative">
+                                <img
+                                  src={editingPartImagePreview}
+                                  alt="Part preview"
+                                  className="w-full h-32 object-cover rounded-lg border border-gray-600"
+                                />
+                                <button
+                                  onClick={handleRemoveEditPartImage}
+                                  className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors shadow-lg"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="border-2 border-dashed border-gray-600 bg-gray-800/40 rounded-lg p-4 text-center">
+                                <svg
+                                  className="w-8 h-8 mx-auto text-gray-400 mb-2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                  />
+                                </svg>
+                                <p className="text-sm text-gray-400">
+                                  Belum ada gambar part
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Upload gambar untuk part ini
+                                </p>
+                              </div>
+                            )}
+
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleEditPartImageUpload}
+                              className="hidden"
+                              id="edit-part-image-upload"
+                            />
+                            <label
+                              htmlFor="edit-part-image-upload"
+                              className={`block w-full px-4 py-3 text-center bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold rounded-lg cursor-pointer transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                            >
+                              {editingPartImagePreview
+                                ? "Ubah Gambar"
+                                : "Upload Gambar"}
+                            </label>
+                          </div>
+                        </div>
+
                         <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-gray-300">
                           <strong>Tips:</strong> Tekan Enter untuk simpan, Esc
-                          untuk batal
+                          untuk batal. Gambar akan otomatis tersimpan.
                         </div>
                       </div>
                       <div className="flex gap-3 mt-6">
@@ -3170,14 +3966,14 @@ const SchedulerPage: React.FC = () => {
             ) : (
               <div>
                 <div
-                  className={`mb-6 p-6 ${uiColors.bg.secondary} ${uiColors.border.secondary} rounded-2xl flex items-center gap-4 shadow-lg`}
+                  className={`mb-6 p-6 ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} ${uiColors.border.secondary} rounded-2xl flex items-center gap-4 shadow-lg`}
                 >
                   <button
                     onClick={() => {
                       setSelectedPart(null);
                       setSelectedCustomer(null);
                     }}
-                    className={`p-2.5 ${uiColors.bg.tertiary} hover:${uiColors.bg.primary} rounded-lg transition-all duration-200 hover:scale-105`}
+                    className={`p-2.5 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} hover:${theme === "dark" ? "bg-gray-600" : "bg-gray-300"} rounded-lg transition-all duration-200 hover:scale-105`}
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
@@ -3192,7 +3988,7 @@ const SchedulerPage: React.FC = () => {
                     </div>
                   </div>
                   <div
-                    className={`px-4 py-3 ${uiColors.bg.tertiary} ${uiColors.border.secondary} rounded-xl text-center shadow-md`}
+                    className={`px-4 py-3 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} ${uiColors.border.secondary} rounded-xl text-center shadow-md`}
                   >
                     <div className={`text-sm ${uiColors.text.tertiary} mb-1`}>
                       Total Schedules
@@ -3213,7 +4009,7 @@ const SchedulerPage: React.FC = () => {
                     (s) => (
                       <div
                         key={s.id}
-                        className={`group ${uiColors.bg.secondary} ${uiColors.border.secondary} rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:scale-105`}
+                        className={`group ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} ${uiColors.border.secondary} rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:scale-105`}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center justify-between mb-4">
@@ -3235,9 +4031,13 @@ const SchedulerPage: React.FC = () => {
                                 </div>
                               </div>
                             </div>
-                            <div className="p-1.5 bg-green-500/10 rounded-full">
-                              <CheckCircle className="w-5 h-5 text-green-500" />
-                            </div>
+                            <button
+                              onClick={() => handleEditSchedule(s)}
+                              className="p-1.5 bg-orange-500/10 hover:bg-orange-500/20 rounded-full transition-all duration-200 hover:scale-110"
+                              title="Edit Jadwal"
+                            >
+                              <Edit3 className="w-5 h-5 text-orange-500" />
+                            </button>
                           </div>
 
                           <div className="mb-6 space-y-3">
@@ -3302,7 +4102,15 @@ const SchedulerPage: React.FC = () => {
         {showProductionForm && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
-            onClick={() => setShowProductionForm(false)}
+            onClick={() => {
+              setShowProductionForm(false);
+              // Reset edit mode dan tracking jika modal ditutup
+              if (isEditMode) {
+                setIsEditMode(false);
+                setEditingScheduleId(null);
+                setEditingScheduleBackendId(null);
+              }
+            }}
           >
             <div
               className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl relative border border-gray-800 animate-fadeInUp overflow-y-auto"
@@ -3311,7 +4119,15 @@ const SchedulerPage: React.FC = () => {
             >
               <button
                 className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-red-400 text-xl sm:text-2xl font-bold z-10"
-                onClick={() => setShowProductionForm(false)}
+                onClick={() => {
+                  setShowProductionForm(false);
+                  // Reset edit mode dan tracking jika modal ditutup
+                  if (isEditMode) {
+                    setIsEditMode(false);
+                    setEditingScheduleId(null);
+                    setEditingScheduleBackendId(null);
+                  }
+                }}
                 aria-label="Tutup"
               >
                 ×
@@ -3323,11 +4139,39 @@ const SchedulerPage: React.FC = () => {
                 handleChange={handleChange}
                 isGenerating={isGenerating}
                 generateSchedule={async () => {
-                  // Generate dan auto-save, lalu tutup modal
-                  await generateSchedule();
-                  setShowProductionForm(false);
-                  // Tidak reset form, biarkan user melihat jadwal di card view dulu
-                  // resetFormAndSchedule();
+                  if (isEditMode) {
+                    // Mode edit: Update jadwal yang sudah ada
+                    console.log(
+                      "🔄 Edit mode: Memanggil saveSchedule untuk update jadwal",
+                    );
+                    try {
+                      await saveSchedule();
+                      setShowProductionForm(false);
+                      setIsEditMode(false);
+                      // Reset tracking edit
+                      setEditingScheduleId(null);
+                      setEditingScheduleBackendId(null);
+                      // Jangan masuk ke dashboard, tetap di card view
+                      console.log(
+                        "✅ Edit mode: Jadwal berhasil diupdate, tetap di card view",
+                      );
+                      showSuccess("Jadwal berhasil diupdate!");
+                    } catch (error) {
+                      console.error("Error updating schedule:", error);
+                      showAlert("Gagal mengupdate jadwal", "Error");
+                    }
+                  } else {
+                    // Mode create: Generate jadwal baru
+                    console.log(
+                      "🆕 Create mode: Memanggil generateSchedule untuk jadwal baru",
+                    );
+                    await generateSchedule();
+                    setShowProductionForm(false);
+                    setIsEditMode(false);
+                    // Untuk mode create, set selectedPart untuk masuk ke dashboard
+                    setSelectedPart(form.part);
+                    console.log("✅ Create mode: Masuk ke dashboard produksi");
+                  }
                 }}
                 saveSchedule={saveSchedule}
                 selectedMonth={selectedMonth}
@@ -3336,11 +4180,32 @@ const SchedulerPage: React.FC = () => {
                 setSelectedYear={setSelectedYear}
                 onSaveToBackend={handleSaveToBackend}
                 onSuccess={(msg) => {
-                  showSuccess(msg || "Jadwal berhasil digenerate!");
+                  showSuccess(
+                    msg ||
+                      (isEditMode
+                        ? "Perubahan berhasil disimpan!"
+                        : "Jadwal berhasil digenerate!"),
+                  );
                   setShowProductionForm(false);
-                  // Tidak reset form, biarkan user melihat jadwal di card view dulu
-                  // resetFormAndSchedule();
+                  setIsEditMode(false);
+
+                  if (isEditMode) {
+                    // Mode edit: Reset tracking edit dan tetap di card view
+                    setEditingScheduleId(null);
+                    setEditingScheduleBackendId(null);
+                    console.log(
+                      "✅ Edit mode onSuccess: Reset tracking, tetap di card view",
+                    );
+                    // Jangan reset form, biarkan user melihat perubahan di card view
+                  } else {
+                    // Mode create: Masuk ke dashboard
+                    setSelectedPart(form.part);
+                    console.log(
+                      "✅ Create mode onSuccess: Masuk ke dashboard produksi",
+                    );
+                  }
                 }}
+                isEditMode={isEditMode}
               />
             </div>
           </div>
@@ -3496,7 +4361,7 @@ const SchedulerPage: React.FC = () => {
           ) : (
             <div className="flex flex-col items-center justify-center h-[400px] sm:h-[500px] px-4 overflow-hidden">
               <div
-                className={`${uiColors.bg.secondary} ${uiColors.border.secondary} rounded-3xl p-12 sm:p-16 shadow-xl max-w-lg w-full text-center`}
+                className={`${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} ${uiColors.border.secondary} rounded-3xl p-12 sm:p-16 shadow-xl max-w-lg w-full text-center`}
               >
                 <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center shadow-lg">
                   <svg
@@ -3527,6 +4392,7 @@ const SchedulerPage: React.FC = () => {
                 <button
                   onClick={() => {
                     resetFormAndSchedule();
+                    setIsEditMode(false);
                     setShowProductionForm(true);
                   }}
                   className="px-8 sm:px-10 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl font-semibold text-base sm:text-lg flex items-center gap-2 mx-auto"
@@ -3553,7 +4419,7 @@ const SchedulerPage: React.FC = () => {
           <div id="schedule-table-section">
             {/* Dashboard Produksi Header dengan gradasi full */}
             <div
-              className={`${uiColors.bg.tertiary} px-6 sm:px-10 py-6 sm:py-8 rounded-t-3xl ${uiColors.border.primary}`}
+              className={`${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} px-6 sm:px-10 py-6 sm:py-8 rounded-t-3xl ${uiColors.border.primary}`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                 <div className="flex items-center gap-4">
@@ -3594,12 +4460,6 @@ const SchedulerPage: React.FC = () => {
 
                 {/* Combined Controls */}
                 <div className="flex flex-row items-center gap-2 sm:gap-4">
-                  {/* View Mode Toggle */}
-                  <ViewModeToggle
-                    currentView={viewMode}
-                    onViewChange={setViewMode}
-                  />
-
                   {/* Search */}
                   <div className="relative flex-1 sm:flex-none">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -3646,208 +4506,39 @@ const SchedulerPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Dropdown Menu */}
-                  <div className="relative dropdown-container">
-                    <button
-                      onClick={() => setShowDropdown(!showDropdown)}
-                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 text-sm shadow-lg hover:scale-105"
+                  {/* View Mode Toggle */}
+                  <ViewModeToggle
+                    currentView={viewMode}
+                    onViewChange={setViewMode}
+                  />
+
+                  {/* Tombol Simpan Jadwal */}
+                  <button
+                    onClick={handleSaveClick}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg flex items-center gap-2"
+                    title="Simpan jadwal ke database"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">Menu</span>
-                      <svg
-                        className={`w-5 h-5 transition-transform ${
-                          showDropdown ? "rotate-180" : ""
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
-
-                    {/* Dropdown Content */}
-                    {showDropdown && (
-                      <div
-                        className="absolute right-0 mt-2 w-72 sm:w-80 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 border border-slate-600 rounded-xl shadow-2xl z-50 overflow-y-auto custom-scrollbar"
-                        style={{ overflowX: "hidden" }}
-                      >
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-3 border-b border-slate-600">
-                          <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-                            <svg
-                              className="w-4 h-4 text-blue-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                              />
-                            </svg>
-                            Menu Utama
-                          </h3>
-                        </div>
-
-                        {/* Menu Items */}
-                        <div
-                          className="py-2 max-h-96 overflow-y-auto custom-scrollbar"
-                          style={{ overflowX: "hidden" }}
-                        >
-                          {/* Simpan Jadwal */}
-                          <div className="relative group menu-item-hover">
-                            <button
-                              onClick={() => {
-                                handleSaveClick();
-                                setShowDropdown(false);
-                                setActiveSubmenu(null);
-                              }}
-                              className="w-full text-left px-4 py-3 text-white hover:bg-gradient-to-r hover:from-green-600/20 hover:to-emerald-600/20 transition-all duration-200 flex items-center gap-3 text-sm group-hover:translate-x-1 relative overflow-hidden group/submenu"
-                              title="Simpan jadwal ke database"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 to-emerald-600/0 group-hover/submenu:from-green-600/10 group-hover/submenu:to-emerald-600/10 transition-all duration-300"></div>
-                              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <svg
-                                  className="w-4 h-4 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                                  />
-                                </svg>
-                              </div>
-                              <div className="flex-1">
-                                <span className="font-medium">
-                                  Simpan Jadwal
-                                </span>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                  Simpan jadwal ke database
-                                </p>
-                              </div>
-                            </button>
-                          </div>
-
-                          {/* Edit Form */}
-                          <div className="relative group menu-item-hover">
-                            <button
-                              onClick={() => {
-                                setShowProductionForm(true);
-                                setShowDropdown(false);
-                                setActiveSubmenu(null);
-                              }}
-                              className="w-full text-left px-4 py-3 text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 transition-all duration-200 flex items-center gap-3 text-sm group-hover:translate-x-1 relative overflow-hidden group/submenu"
-                              title="Edit form produksi yang sudah ada"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/0 to-orange-600/0 group-hover/submenu:from-yellow-600/10 group-hover/submenu:to-orange-600/10 transition-all duration-300"></div>
-                              <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <svg
-                                  className="w-4 h-4 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                  />
-                                </svg>
-                              </div>
-                              <div className="flex-1">
-                                <span className="font-medium">Edit Form</span>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                  Edit form produksi
-                                </p>
-                              </div>
-                            </button>
-                          </div>
-
-                          {/* Export Section */}
-                          <div className="relative group menu-item-hover">
-                            {/* Download Excel Langsung (bukan submenu) */}
-                            <div className="relative group menu-item-hover">
-                              <button
-                                onClick={() => {
-                                  const event = new CustomEvent(
-                                    "downloadExcel",
-                                  );
-                                  window.dispatchEvent(event);
-                                  setShowDropdown(false);
-                                  setActiveSubmenu(null);
-                                }}
-                                className="w-full text-left px-4 py-3 text-white hover:bg-gradient-to-r hover:from-green-600/20 hover:to-emerald-600/20 transition-all duration-200 flex items-center gap-3 text-sm group-hover:translate-x-1 relative overflow-hidden group/submenu"
-                                title="Download jadwal dalam format Excel"
-                              >
-                                <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 to-emerald-600/0 group-hover/submenu:from-green-600/10 group-hover/submenu:to-emerald-600/10 transition-all duration-300"></div>
-                                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <svg
-                                    className="w-4 h-4 text-white"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                    />
-                                  </svg>
-                                </div>
-                                <div className="flex-1">
-                                  <span className="font-medium">
-                                    Download Excel
-                                  </span>
-                                  <p className="text-xs text-slate-400 mt-0.5">
-                                    Ekspor ke format Excel
-                                  </p>
-                                </div>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-2 border-t border-slate-600">
-                          <p className="text-xs text-slate-400 text-center">
-                            Berlindo Production System
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                      />
+                    </svg>
+                    Simpan Jadwal
+                  </button>
                 </div>
               </div>
             </div>
 
             <div
-              className={`${uiColors.bg.secondary} ${uiColors.border.primary} rounded-b-3xl`}
+              className={`${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} ${uiColors.border.primary} rounded-b-3xl`}
             >
               <ScheduleTable
                 schedule={schedule}

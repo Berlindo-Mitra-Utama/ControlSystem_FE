@@ -55,6 +55,7 @@ interface ScheduleCardsViewProps {
   productInfo?: {
     partName?: string;
     customer?: string;
+    partImageUrl?: string;
     lastSavedBy?: {
       nama: string;
       role: string;
@@ -79,6 +80,20 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   productInfo,
 }) => {
   const { uiColors, theme } = useTheme();
+
+  // Helper function untuk memformat image URL secara konsisten
+  const formatImageUrl = (imageData?: string, mimeType?: string): string => {
+    if (!imageData) return "";
+
+    // Jika sudah ada prefix data:, gunakan apa adanya
+    if (imageData.startsWith("data:")) {
+      return imageData;
+    }
+
+    // Jika tidak ada prefix, tambahkan prefix data: URL
+    const mime = mimeType || "image/jpeg";
+    return `data:${mime};base64,${imageData}`;
+  };
 
   // State untuk loading popup
   const [isLoading, setIsLoading] = useState(false);
@@ -486,6 +501,56 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Tampilkan gambar part jika ada */}
+            {productInfo.partImageUrl && (
+              <div className="mt-4 flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4 text-orange-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className={`text-sm ${uiColors.text.secondary}`}>
+                    <span className="font-semibold text-orange-400">
+                      Gambar Part:
+                    </span>
+                  </span>
+                </div>
+                <div className="relative group">
+                  <img
+                    src={formatImageUrl(productInfo.partImageUrl)}
+                    alt="Part image"
+                    className="w-16 h-16 object-cover rounded-lg border border-gray-300 cursor-pointer transition-transform hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

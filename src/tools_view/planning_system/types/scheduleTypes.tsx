@@ -54,6 +54,7 @@ export interface ScheduleTableProps {
   productInfo?: {
     partName?: string;
     customer?: string;
+    partImageUrl?: string;
     lastSavedBy?: {
       nama: string;
       role: string;

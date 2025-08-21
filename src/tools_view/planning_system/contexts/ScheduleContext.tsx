@@ -20,6 +20,7 @@ export interface SavedSchedule {
   productInfo?: {
     partName?: string;
     customer?: string;
+    partImageUrl?: string;
     lastSavedBy?: {
       nama: string;
       role: string;
@@ -132,6 +133,13 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
   }, []);
 
   const loadSchedule = (savedSchedule: SavedSchedule) => {
+    // Pastikan partImageUrl tersimpan dengan benar
+    if (savedSchedule.productInfo?.partImageUrl) {
+      console.log(
+        "✅ Loading schedule with image:",
+        savedSchedule.productInfo.partImageUrl,
+      );
+    }
     setLoadedSchedule(savedSchedule);
   };
 
@@ -155,9 +163,53 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
           .toLowerCase()
       : `${partName}-${month}-${year}`.replace(/\s+/g, "-").toLowerCase();
 
-    const existingSchedule = savedSchedules.find((schedule) => {
+    // Cari berdasarkan ID yang konsisten
+    let existingSchedule = savedSchedules.find((schedule) => {
       return schedule.id === scheduleId;
     });
+
+    // Jika tidak ditemukan berdasarkan ID, cari berdasarkan part, customer, bulan, dan tahun
+    if (!existingSchedule) {
+      existingSchedule = savedSchedules.find((schedule) => {
+        const schedulePart =
+          schedule.form?.part || schedule.productInfo?.partName || "";
+        const scheduleCustomer =
+          schedule.form?.customer || schedule.productInfo?.customer || "";
+
+        // Parse bulan dan tahun dari nama schedule
+        const monthMatch = schedule.name.match(
+          /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)/i,
+        );
+        const yearMatch = schedule.name.match(/(\d{4})/);
+
+        if (monthMatch && yearMatch) {
+          const scheduleMonthIndex = [
+            "Januari",
+            "Februari",
+            "Maret",
+            "April",
+            "Mei",
+            "Juni",
+            "Juli",
+            "Agustus",
+            "September",
+            "Oktober",
+            "November",
+            "Desember",
+          ].findIndex((m) => m.toLowerCase() === monthMatch[1].toLowerCase());
+          const scheduleYear = parseInt(yearMatch[1]);
+
+          return (
+            schedulePart === partName &&
+            scheduleCustomer === (customerName || "") &&
+            scheduleMonthIndex === month &&
+            scheduleYear === year
+          );
+        }
+
+        return false;
+      });
+    }
 
     return existingSchedule || null;
   };
@@ -169,10 +221,29 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
     );
     setSavedSchedules(updatedSchedules);
     localStorage.setItem("savedSchedules", JSON.stringify(updatedSchedules));
+
+    // Log untuk debugging gambar
+    if (updatedSchedule.productInfo?.partImageUrl) {
+      console.log(
+        "✅ Updated schedule with image:",
+        updatedSchedule.productInfo.partImageUrl,
+      );
+    }
   };
 
   // Fungsi untuk menyimpan jadwal ke localStorage
   const saveSchedulesToStorage = (schedules: SavedSchedule[]) => {
+    // Log untuk debugging gambar
+    schedules.forEach((schedule) => {
+      if (schedule.productInfo?.partImageUrl) {
+        console.log("💾 Saving schedule with image to localStorage:", {
+          id: schedule.id,
+          partImageUrl:
+            schedule.productInfo.partImageUrl.substring(0, 50) + "...",
+        });
+      }
+    });
+
     localStorage.setItem("savedSchedules", JSON.stringify(schedules));
   };
 

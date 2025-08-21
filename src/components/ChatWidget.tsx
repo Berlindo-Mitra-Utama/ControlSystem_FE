@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChatService } from "../services/API_Services";
 import { MessageCircle, X, Send, User, Bot } from "lucide-react";
 
+// Catatan: Chat ini khusus membantu Planning System (jadwal, upsert, daily production). Tidak ada konsep Saved Schedules.
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const ChatWidget: React.FC = () => {
@@ -74,21 +76,29 @@ const ChatWidget: React.FC = () => {
     try {
       const payload = {
         messages: next.map((m) => ({ role: m.role, content: m.content })),
-        model: "deepseek/deepseek-chat-v3-0324:free",
+        model: "openai/gpt-oss-20b:free",
       };
 
+      // Tidak ada timeout - biarkan AI merespon sesuai kemampuannya
       const res = await ChatService.chatCompletion(payload);
+
       const content = res?.data?.message?.content || "Maaf, tidak ada jawaban.";
       setMessages((prev) => [...prev, { role: "assistant", content }]);
 
       // Scroll to bottom after AI response
       setTimeout(scrollToBottom, 100);
     } catch (e: any) {
+      let errorMessage = "Maaf, terjadi kesalahan.";
+
+      if (e?.message) {
+        errorMessage = `Error: ${e.message}`;
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: `Error: ${e?.message || "gagal memuat jawaban"}`,
+          content: errorMessage,
         },
       ]);
       setTimeout(scrollToBottom, 100);
@@ -256,16 +266,21 @@ const ChatWidget: React.FC = () => {
                 {loading && (
                   <div className="flex justify-start">
                     <div className="bg-white dark:bg-gray-700 px-3 py-2 rounded-xl border border-gray-200/50 dark:border-gray-600/50">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                        <div
-                          className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.1s" }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.2s" }}
-                        ></div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                          <div
+                            className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.1s" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.2s" }}
+                          ></div>
+                        </div>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          AI sedang berpikir...
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -308,6 +323,7 @@ const ChatWidget: React.FC = () => {
                     "Cara tambah jadwal bulanan",
                     "Kenapa data duplikat saat simpan?",
                     "Cara update produksi harian",
+                    "Siapa yang membuat sistem ini?",
                   ].map((q) => (
                     <button
                       key={q}

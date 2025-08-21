@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-// const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
+//const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
 const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
@@ -149,6 +149,8 @@ export interface ProductPlanningData {
   productionMonth: number;
   productionYear: number;
   currentStock: number;
+  partImageBase64?: string;
+  partImageMimeType?: string;
   createdAt?: string;
   updatedAt?: string;
 }

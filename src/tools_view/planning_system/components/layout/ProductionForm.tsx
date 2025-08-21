@@ -51,6 +51,7 @@ interface ProductionFormProps {
   onSaveToBackend?: (data: ProductPlanningData) => Promise<void>;
   onClose?: () => void;
   onSuccess?: (message?: string) => void;
+  isEditMode?: boolean;
 }
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
@@ -68,6 +69,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   onSaveToBackend,
   onClose,
   onSuccess,
+  isEditMode = false,
 }) => {
   const { theme } = useTheme();
   const { showAlert, showSuccess, showError, notification, hideNotification } =
@@ -91,46 +93,74 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
 
   // Handler untuk generate schedule dengan bulan & tahun dan auto save ke database
   const handleGenerateSchedule = async () => {
-    // Validasi form
-    const newErrors: { part?: string; customer?: string } = {};
+    // Validasi form hanya jika bukan mode edit
+    if (!isEditMode) {
+      const newErrors: { part?: string; customer?: string } = {};
 
-    if (!form.part.trim()) {
-      newErrors.part = "Part name harus diisi";
+      if (!form.part.trim()) {
+        newErrors.part = "Part name harus diisi";
+      }
+
+      if (!form.customer.trim()) {
+        newErrors.customer = "Customer name harus diisi";
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+      }
+
+      setErrors({});
     }
-
-    if (!form.customer.trim()) {
-      newErrors.customer = "Customer name harus diisi";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
 
     // Persiapkan data untuk backend
     const planningData: ProductPlanningData = {
       partName: form.part.trim(),
       customerName: form.customer.trim(),
-      productionMonth: selectedMonth + 1, // Konversi ke format 1-12
+      productionMonth: selectedMonth + 1,
       productionYear: selectedYear,
       currentStock: form.stock || 0,
+      // Tambahkan gambar jika ada (hanya untuk mode create)
+      ...(!isEditMode &&
+        partImagePreview && {
+          partImageBase64: partImagePreview.includes(",")
+            ? partImagePreview.split(",")[1]
+            : partImagePreview,
+          partImageMimeType: (form.partImage as File)?.type || "image/jpeg",
+        }),
     };
 
-    // Cek apakah jadwal sudah ada untuk part, customer, bulan, dan tahun yang sama
-    const existingSchedule = checkExistingSchedule(
-      form.part.trim(),
-      selectedMonth,
-      selectedYear,
-      form.customer.trim(),
-    );
+    // Validasi ukuran gambar sebelum dikirim (hanya untuk mode create)
+    if (!isEditMode && planningData.partImageBase64) {
+      const base64Size = Math.ceil(
+        (planningData.partImageBase64.length * 3) / 4,
+      );
+      const maxSize = 5 * 1024 * 1024;
 
-    if (existingSchedule) {
-      // Tampilkan modal konfirmasi
-      setPendingScheduleData(planningData);
-      setShowConfirmationModal(true);
-      return;
+      if (base64Size > maxSize) {
+        showAlert(
+          `Ukuran gambar terlalu besar (${Math.round((base64Size / 1024 / 1024) * 100) / 100}MB). Maksimal 5MB.`,
+          "Peringatan",
+        );
+        return;
+      }
+    }
+
+    // Cek apakah jadwal sudah ada untuk part, customer, bulan, dan tahun yang sama (hanya untuk mode create)
+    if (!isEditMode) {
+      const existingSchedule = checkExistingSchedule(
+        form.part.trim(),
+        selectedMonth,
+        selectedYear,
+        form.customer.trim(),
+      );
+
+      if (existingSchedule) {
+        // Tampilkan modal konfirmasi
+        setPendingScheduleData(planningData);
+        setShowConfirmationModal(true);
+        return;
+      }
     }
 
     // Jika tidak ada jadwal yang sama, langsung proses
@@ -156,72 +186,79 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       // Simpan ke backend menggunakan upsert agar tidak membuat duplikasi
       await PlanningSystemService.upsertProductPlanning(planningData);
 
-      // Generate schedule untuk disimpan ke Saved Schedules (bukan langsung tampil dashboard)
-      const generatedSchedule = generateScheduleFromForm(
+      // Log untuk debugging
+      console.log(
+        `${isEditMode ? "Updating" : "Saving"} planning data with image:`,
         {
-          ...form,
-          stock: planningData.currentStock,
-          timePerPcs: form.timePerPcs || 257,
+          partName: planningData.partName,
+          customerName: planningData.customerName,
+          hasImage: !!planningData.partImageBase64,
+          imageSize: planningData.partImageBase64?.length || 0,
+          mimeType: planningData.partImageMimeType,
         },
-        [],
       );
 
-      // Buat ID yang konsisten berdasarkan part, customer, bulan, dan tahun
+      // Buat ID yang konsisten berdasarkan part, customer, bulan, dan tahun (hanya untuk referensi lokal)
       const scheduleId =
         `${planningData.partName}-${planningData.customerName}-${selectedMonth}-${selectedYear}`
           .replace(/\s+/g, "-")
           .toLowerCase();
 
-      // Simpan ke state saved schedules
-      const newSchedule = {
-        id: scheduleId,
-        name: `${MONTHS[selectedMonth]} ${selectedYear}`,
-        date: new Date().toISOString(),
-        form: {
-          part: planningData.partName,
-          customer: planningData.customerName,
-          stock: planningData.currentStock,
-          timePerPcs: 257, // Default value
-          initialStock: planningData.currentStock,
-          partImageUrl: partImagePreview || (form as any).partImageUrl || null,
-        },
-        schedule: generatedSchedule,
-        productInfo: {
-          partName: planningData.partName,
-          customer: planningData.customerName,
-          lastSavedBy: undefined, // Untuk jadwal baru, tidak ada lastSavedBy
-          lastSavedAt: new Date().toISOString(),
-        },
-      };
-
-      // Update saved schedules - timpa jadwal lama jika ada, atau tambah baru
-      setSavedSchedules((prev) => {
-        // Cari jadwal yang sudah ada dengan ID yang sama
-        const existingIndex = prev.findIndex(
-          (schedule) => schedule.id === scheduleId,
+      // Update savedSchedules hanya untuk mode create
+      if (!isEditMode) {
+        const generatedSchedule = generateScheduleFromForm(
+          {
+            ...form,
+            stock: planningData.currentStock,
+            timePerPcs: form.timePerPcs || 257,
+          },
+          [],
         );
 
-        let updatedSchedules;
-        if (existingIndex !== -1) {
-          // Timpa jadwal yang sudah ada
-          updatedSchedules = [...prev];
-          updatedSchedules[existingIndex] = newSchedule;
-        } else {
-          // Tambah jadwal baru
-          updatedSchedules = [...prev, newSchedule];
-        }
+        const newSchedule = {
+          id: scheduleId,
+          name: `${MONTHS[selectedMonth]} ${selectedYear}`,
+          date: new Date().toISOString(),
+          form: {
+            part: planningData.partName,
+            customer: planningData.customerName,
+            stock: planningData.currentStock,
+            timePerPcs: 257,
+            initialStock: planningData.currentStock,
+            partImageUrl:
+              partImagePreview || (form as any).partImageUrl || null,
+          },
+          schedule: generatedSchedule,
+          productInfo: {
+            partName: planningData.partName,
+            customer: planningData.customerName,
+            lastSavedBy: undefined,
+            lastSavedAt: new Date().toISOString(),
+          },
+        };
 
-        // Simpan ke localStorage
-        saveSchedulesToStorage(updatedSchedules);
-        return updatedSchedules;
-      });
+        setSavedSchedules((prev) => {
+          const existingIndex = prev.findIndex((s) => s.id === scheduleId);
+          const updated =
+            existingIndex !== -1 ? [...prev] : [...prev, newSchedule];
+          if (existingIndex !== -1) updated[existingIndex] = newSchedule;
+          return updated;
+        });
+      }
 
-      if (onSuccess) onSuccess("Jadwal berhasil digenerate!");
+      if (onSuccess)
+        onSuccess(
+          isEditMode
+            ? "Perubahan berhasil disimpan!"
+            : "Jadwal berhasil digenerate!",
+        );
       // Tidak langsung tutup modal, biarkan user melihat jadwal di card view dulu
-      // if (onClose) onClose();
     } catch (error) {
       console.error("Error saving to backend:", error);
-      showError("Gagal menyimpan data ke database. Silakan coba lagi.");
+      showAlert(
+        "Gagal menyimpan data ke database. Silakan coba lagi.",
+        "Error",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -232,7 +269,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     if (pendingScheduleData) {
       await processScheduleGeneration(pendingScheduleData);
       setPendingScheduleData(null);
-      setShowConfirmationModal(false); // Tutup modal konfirmasi
+      setShowConfirmationModal(false);
     }
   };
 
@@ -263,10 +300,21 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         target: { name: "partImage", value: file },
       } as unknown as React.ChangeEvent<HTMLInputElement>);
 
-      // Preview gambar
+      // Preview gambar dan konversi ke base64 dengan ukuran optimal
       const reader = new FileReader();
       reader.onload = (e) => {
-        setPartImagePreview(e.target?.result as string);
+        const result = e.target?.result as string;
+        setPartImagePreview(result);
+
+        // Log untuk debugging
+        console.log("Image uploaded:", {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          base64Length: result.length,
+          estimatedSizeMB:
+            Math.round(((result.length * 3) / 4 / 1024 / 1024) * 100) / 100,
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -323,14 +371,31 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     },
     button: {
       primary:
-        "bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700",
+        "bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-green-700",
       secondary:
         theme === "dark"
           ? "bg-gray-700 hover:bg-gray-600"
           : "bg-gray-200 hover:bg-gray-300",
       danger:
         "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800",
+      upload: partImagePreview
+        ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+        : "bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700",
     },
+  };
+
+  // Helper function untuk memformat image URL
+  const formatImageUrl = (imageData?: string, mimeType?: string): string => {
+    if (!imageData) return "";
+
+    // Jika sudah ada prefix data:, gunakan apa adanya
+    if (imageData.startsWith("data:")) {
+      return imageData;
+    }
+
+    // Jika tidak ada prefix, tambahkan prefix data: URL
+    const mime = mimeType || "image/jpeg";
+    return `data:${mime};base64,${imageData}`;
   };
 
   // Professional Production Period Selector
@@ -505,10 +570,14 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <h2
                 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}
               >
-                Production Configuration
+                {isEditMode
+                  ? "Edit Production Schedule"
+                  : "Production Configuration"}
               </h2>
               <p className={`${colors.text.secondary} text-xs sm:text-sm`}>
-                Configure your manufacturing parameters
+                {isEditMode
+                  ? "Update your production schedule parameters"
+                  : "Configure your manufacturing parameters"}
               </p>
             </div>
           </div>
@@ -516,18 +585,20 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       </div>
 
       <div
-        className={`${theme === "dark" ? "bg-transparent" : "bg-white"} p-4 sm:p-6 space-y-4 sm:space-y-6 rounded-b-3xl`}
+        className={`${theme === "dark" ? "bg-transparent" : "bg-white"} p-4 space-y-4 rounded-b-3xl`}
       >
-        {/* 2x2 Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Top Left - Production Period */}
+        {/* Grid Layout - Different for Edit Mode vs Create Mode */}
+        <div
+          className={`grid gap-4 ${isEditMode ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 lg:grid-cols-2"}`}
+        >
+          {/* Production Period - Always Visible */}
           <div
-            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4 relative z-10`}
+            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl p-3 relative z-10 ${isEditMode ? "sm:col-span-1" : ""}`}
           >
-            <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
                 <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  className="w-3 h-3 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -540,31 +611,31 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   />
                 </svg>
               </div>
-              <h3
-                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
-              >
+              <h3 className={`text-sm font-semibold ${colors.text.primary}`}>
                 Production Period
               </h3>
             </div>
 
             <div className="space-y-1">
               <label
-                className={`block text-sm font-medium ${colors.text.secondary}`}
+                className={`block text-xs font-medium ${colors.text.secondary}`}
               >
                 Select Month & Year
               </label>
-              <ProductionPeriodSelector />
+              <div className="w-full max-w-48">
+                <ProductionPeriodSelector />
+              </div>
             </div>
           </div>
 
-          {/* Top Right - Production Targets */}
+          {/* Production Targets - Always Visible */}
           <div
-            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4`}
+            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl p-3 ${isEditMode ? "sm:col-span-1" : ""}`}
           >
-            <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
                 <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  className="w-3 h-3 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -577,20 +648,18 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   />
                 </svg>
               </div>
-              <h3
-                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
-              >
+              <h3 className={`text-sm font-semibold ${colors.text.primary}`}>
                 Production Targets
               </h3>
             </div>
 
             <div className="space-y-1">
               <label
-                className={`block text-sm font-medium ${colors.text.secondary}`}
+                className={`block text-xs font-medium ${colors.text.secondary}`}
               >
                 Current Stock
               </label>
-              <div className="relative">
+              <div className="relative w-full max-w-32">
                 <input
                   type="number"
                   name="stock"
@@ -598,67 +667,27 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   onChange={handleChange}
                   min="0"
                   placeholder="0"
-                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 pr-6 sm:pr-8 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                  className={`w-full px-3 py-2 pr-8 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
                 />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <span className={`text-sm font-medium ${colors.text.muted}`}>
                     PCS
                   </span>
                 </div>
               </div>
-              <p className={`text-sm ${colors.text.muted} mt-1`}>
-                Current inventory available
-              </p>
             </div>
           </div>
 
-          {/* Bottom Left - Product Information */}
-          <div
-            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4 relative z-0`}
-          >
-            <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                  />
-                </svg>
-              </div>
-              <h3
-                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
+          {/* Product Information - Only visible in Create Mode */}
+          {!isEditMode && (
+            <>
+              <div
+                className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl p-4 relative z-0`}
               >
-                Product Information
-              </h3>
-            </div>
-
-            <div className="space-y-2 sm:space-y-3">
-              <div className="space-y-1">
-                <label
-                  className={`block text-sm font-medium ${colors.text.secondary}`}
-                >
-                  Part Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name="part"
-                    value={form.part}
-                    onChange={handleChange}
-                    placeholder="Enter part name"
-                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.part ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
-                    required
-                  />
-                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400"
+                      className="w-4 h-4 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -667,37 +696,106 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                       />
                     </svg>
                   </div>
+                  <h3
+                    className={`text-base font-semibold ${colors.text.primary}`}
+                  >
+                    Product Information
+                  </h3>
                 </div>
-                {errors.part && (
-                  <p className={`text-xs ${colors.text.error} mt-1`}>
-                    {errors.part}
-                  </p>
-                )}
+
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label
+                      className={`block text-sm font-medium ${colors.text.secondary}`}
+                    >
+                      Part Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="part"
+                        value={form.part}
+                        onChange={handleChange}
+                        placeholder="Enter part name"
+                        className={`w-full px-4 py-3 ${colors.input.bg} border ${errors.part ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                        required
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                    {errors.part && (
+                      <p className={`text-sm ${colors.text.error}`}>
+                        {errors.part}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      className={`block text-sm font-medium ${colors.text.secondary}`}
+                    >
+                      Customer Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="customer"
+                        value={form.customer}
+                        onChange={handleChange}
+                        placeholder="Enter customer name"
+                        className={`w-full px-4 py-3 ${colors.input.bg} border ${errors.customer ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                        required
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                    {errors.customer && (
+                      <p className={`text-sm ${colors.text.error}`}>
+                        {errors.customer}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label
-                  className={`block text-sm font-medium ${colors.text.secondary}`}
-                >
-                  Customer Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name="customer"
-                    value={form.customer}
-                    onChange={handleChange}
-                    placeholder="Enter customer name"
-                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${colors.input.bg} border ${errors.customer ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
-                    required
-                  />
-                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+              {/* Part Image Upload - Only visible in Create Mode */}
+              <div
+                className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl p-4`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400"
+                      className="w-4 h-4 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -706,137 +804,113 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
                   </div>
-                </div>
-                {errors.customer && (
-                  <p className={`text-xs ${colors.text.error} mt-1`}>
-                    {errors.customer}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Right - Part Image Upload */}
-          <div
-            className={`${colors.bg.card} border ${colors.border.secondary} rounded-xl sm:rounded-2xl p-3 sm:p-4`}
-          >
-            <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <h3
-                className={`text-sm sm:text-base font-semibold ${colors.text.primary}`}
-              >
-                Part Image
-              </h3>
-            </div>
-
-            <div className="space-y-3">
-              {partImagePreview ? (
-                <div className="relative">
-                  <img
-                    src={partImagePreview}
-                    alt="Part preview"
-                    className="w-full h-24 object-cover rounded-lg border border-gray-300"
-                  />
-                  <button
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                  <h3
+                    className={`text-base font-semibold ${colors.text.primary}`}
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
+                    Part Image (Optional)
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+                  {partImagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={partImagePreview}
+                        alt="Part preview"
+                        className="w-full h-24 object-cover rounded-lg border border-gray-300"
                       />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div
-                  className={`${
-                    theme === "dark"
-                      ? "border-gray-600 bg-gray-800/40"
-                      : "border-gray-300 bg-gray-50"
-                  } border-2 border-dashed rounded-lg p-5 text-center transition-all`}
-                >
-                  <svg
-                    className="w-8 h-8 mx-auto text-gray-400 mb-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  <p className={`text-sm ${colors.text.muted}`}>
-                    Upload part image (optional)
-                  </p>
-                  <p className={`text-xs ${colors.text.muted} mt-1`}>
-                    Max 5MB, JPG/PNG
-                  </p>
-                </div>
-              )}
+                      <button
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className={`${
+                        theme === "dark"
+                          ? "border-gray-600 bg-gray-800/40"
+                          : "border-gray-300 bg-gray-50"
+                      } border-2 border-dashed rounded-lg p-4 text-center transition-all`}
+                    >
+                      <svg
+                        className="w-8 h-8 mx-auto text-gray-400 mb-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className={`text-sm ${colors.text.muted}`}>
+                        Upload part image (optional)
+                      </p>
+                      <p className={`text-xs ${colors.text.muted} mt-1`}>
+                        Max 5MB, JPG/PNG/GIF/WebP
+                      </p>
+                    </div>
+                  )}
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                id="part-image-upload"
-              />
-              <label
-                htmlFor="part-image-upload"
-                className={`block w-full px-4 py-3 text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg cursor-pointer transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              >
-                {partImagePreview ? "Change Image" : "Upload Image"}
-              </label>
-            </div>
-          </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="part-image-upload"
+                  />
+                  <label
+                    htmlFor="part-image-upload"
+                    className={`block w-full px-4 py-3 text-center ${colors.button.upload} text-white text-sm font-semibold rounded-lg cursor-pointer transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  >
+                    {partImagePreview ? "Change Image" : "Pilih Gambar"}
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Generate Button - Full Width Below Grid */}
+        {/* Action Button - Different for Edit Mode vs Create Mode */}
         <div className="pt-2">
           <button
-            onClick={handleGenerateSchedule}
+            onClick={
+              isEditMode ? handleGenerateSchedule : handleGenerateSchedule
+            }
             disabled={isGenerating || isSaving}
-            className={`w-full px-6 sm:px-8 py-3 sm:py-4 ${colors.button.primary} text-white font-bold text-sm sm:text-base rounded-lg sm:rounded-xl focus:ring-4 focus:ring-blue-300/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-xl`}
+            className={`w-full px-6 py-3 ${isEditMode ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" : colors.button.primary} text-white font-bold text-sm rounded-lg focus:ring-4 focus:ring-emerald-300/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl`}
           >
             {isGenerating || isSaving ? (
               <>
-                <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Membuat Jadwal...</span>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>
+                  {isEditMode ? "Menyimpan Perubahan..." : "Membuat Jadwal..."}
+                </span>
               </>
             ) : (
               <>
                 <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -845,10 +919,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    d={
+                      isEditMode
+                        ? "M5 13l4 4L19 7"
+                        : "M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    }
                   />
                 </svg>
-                <span>Generate Jadwal</span>
+                <span>
+                  {isEditMode ? "Simpan Perubahan" : "Generate Jadwal"}
+                </span>
               </>
             )}
           </button>
