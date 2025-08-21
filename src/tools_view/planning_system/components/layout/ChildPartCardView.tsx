@@ -9,9 +9,11 @@ import {
   TrendingUp,
   TrendingDown,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { memo } from "react";
 import { useTheme } from "../../../contexts/ThemeContext";
+import ChildPart from "./ChildPart";
 
 interface ScheduleItem {
   id: string;
@@ -31,6 +33,8 @@ interface ChildPartCardViewProps {
   schedule: ScheduleItem[];
   onDelete?: () => void;
   onEdit?: () => void;
+  onEditSchedule?: () => void;
+  onDeleteSchedule?: () => void;
   inMaterial?: (number | null)[][];
   onInMaterialChange?: (val: (number | null)[][]) => void;
   aktualInMaterial?: (number | null)[][];
@@ -128,6 +132,8 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
   const [currentDay, setCurrentDay] = useState(0);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteScheduleModal, setShowDeleteScheduleModal] = useState(false);
+  const [showEditPartModal, setShowEditPartModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
@@ -906,10 +912,52 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
   const handleDeleteConfirm = async () => {
     setShowDeleteModal(false);
     if (props.onDelete) {
-      // Panggil onDelete yang sudah ada (akan menghapus dari database dan state)
       props.onDelete();
     }
   };
+
+  const handleEditSchedule = () => {
+    if (props.onEditSchedule) {
+      props.onEditSchedule();
+    }
+  };
+
+  const handleDeleteSchedule = () => {
+    setShowDeleteScheduleModal(true);
+  };
+
+  const handleEditPart = () => {
+    setShowEditPartModal(true);
+  };
+
+  const handleEditPartSubmit = (data: {
+    partName: string;
+    customerName: string;
+    stock: number | null;
+  }) => {
+    if (props.onEdit) {
+      props.onEdit();
+    }
+    setShowEditPartModal(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // This useEffect is no longer needed as the dropdown is removed
+      // if (showScheduleActions) {
+      //   const target = event.target as Element;
+      //   if (!target.closest(".schedule-actions-dropdown")) {
+      //     setShowScheduleActions(false);
+      //   }
+      // }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []); // Removed showScheduleActions from dependency array
 
   return (
     <div className="mt-6">
@@ -927,6 +975,40 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
 
             {/* Action Buttons - Sticky to top-right */}
             <div className="flex gap-2 items-center flex-shrink-0">
+              {/* Edit Part Button */}
+              <button
+                onClick={handleEditPart}
+                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all flex items-center gap-2"
+                title="Edit Part"
+              >
+                <Edit className="w-4 h-4" />
+                <span className="text-sm font-medium">Edit</span>
+              </button>
+
+              {/* Edit Schedule Button */}
+              {props.onEditSchedule && (
+                <button
+                  onClick={handleEditSchedule}
+                  className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-green-400 transition-all flex items-center gap-2"
+                  title="Edit Jadwal"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span className="text-sm font-medium">Edit Jadwal</span>
+                </button>
+              )}
+
+              {/* Delete Schedule Button */}
+              {props.onDeleteSchedule && (
+                <button
+                  onClick={handleDeleteSchedule}
+                  className="p-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all flex items-center gap-2"
+                  title="Hapus Jadwal"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">Hapus Jadwal</span>
+                </button>
+              )}
+
               {/* Calendar Button */}
               <button
                 onClick={handleCalendarClick}
@@ -1064,6 +1146,20 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
           </div>
         </div>
       )}
+
+      {/* Edit Part Modal */}
+      <ChildPart
+        isOpen={showEditPartModal}
+        onClose={() => setShowEditPartModal(false)}
+        onGenerate={() => {}}
+        onEdit={handleEditPartSubmit}
+        initialData={{
+          partName: props.partName,
+          customerName: props.customerName,
+          stock: props.initialStock,
+        }}
+        isEditMode={true}
+      />
       {loading && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-40">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1075,6 +1171,18 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
         onConfirm={handleDeleteConfirm}
         title="Konfirmasi Hapus"
         message="Apakah Anda yakin ingin menghapus part ini?"
+      />
+      <Modal
+        open={showDeleteScheduleModal}
+        onClose={() => setShowDeleteScheduleModal(false)}
+        onConfirm={() => {
+          setShowDeleteScheduleModal(false);
+          if (props.onDeleteSchedule) {
+            props.onDeleteSchedule();
+          }
+        }}
+        title="Konfirmasi Hapus Jadwal"
+        message="Apakah Anda yakin ingin menghapus jadwal untuk hari ini?"
       />
     </div>
   );

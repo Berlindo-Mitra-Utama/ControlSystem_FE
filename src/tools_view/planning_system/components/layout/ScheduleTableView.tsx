@@ -11,6 +11,9 @@ import {
   calculateScheduleTotals,
   formatJamProduksi,
   formatNumber,
+  calculateTotalAkumulasiDelivery,
+  calculateTotalAkumulasiHasilProduksi,
+  recalculateAllAkumulasi,
 } from "../../utils/scheduleCalcUtils";
 import {
   ALL_ROWS,
@@ -135,6 +138,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
     loadManpowerFromDatabase();
   }, []);
+
+  // Recalculate akumulasi when validGroupedRows changes (component mount or data update)
+  useEffect(() => {
+    if (validGroupedRows.length > 0) {
+      console.log(
+        "🔄 ScheduleTableView: Recalculating akumulasi on component mount/data update",
+      );
+      recalculateAllAkumulasi(validGroupedRows);
+    }
+  }, [validGroupedRows]);
 
   // Clean up invalid manpower IDs when manpowerList changes
   useEffect(() => {
@@ -265,10 +278,27 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const handleInputChange = (rowId: string, field: string, value: string) => {
     const numericValue = Number(value) || 0;
 
+    console.log(`🔄 handleInputChange called:`, {
+      rowId,
+      field,
+      value,
+      numericValue,
+    });
+
     // Update the row data
     const row = flatRows.find((r) => r.id === rowId);
     if (row) {
+      const oldValue = (row as any)[field];
       (row as any)[field] = numericValue;
+
+      console.log(`📝 Updated row data:`, {
+        rowId,
+        field,
+        oldValue,
+        newValue: numericValue,
+        shift: row.shift,
+        day: row.day,
+      });
 
       // Update edit form if available
       if (setEditForm) {
@@ -278,10 +308,20 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
         }));
       }
 
+      // Jika ada perubahan delivery, hitung ulang akumulasi
+      if (field === "delivery" || field === "pcs") {
+        console.log(
+          `🔄 Recalculating akumulasi for field: ${field}, value: ${numericValue}, shift: ${row.shift}, day: ${row.day}`,
+        );
+        recalculateAllAkumulasi(validGroupedRows);
+      }
+
       // Notify parent component about data change
       if (onDataChange) {
         onDataChange([...flatRows]);
       }
+    } else {
+      console.warn(`⚠️ Row not found for ID: ${rowId}`);
     }
   };
 
@@ -777,7 +817,9 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     totalValue = formatNumber(totals.delivery);
                     break;
                   case "akumulasi-delivery":
-                    totalValue = "-";
+                    totalValue = formatNumber(
+                      calculateTotalAkumulasiDelivery(filteredValidGroupedRows),
+                    );
                     break;
                   case "planning-jam":
                     totalValue = totalPlanningJam;
@@ -798,7 +840,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     totalValue = formatNumber(totals.hasilProduksi);
                     break;
                   case "akumulasi-hasil":
-                    totalValue = "-";
+                    totalValue = formatNumber(
+                      calculateTotalAkumulasiHasilProduksi(
+                        filteredValidGroupedRows,
+                      ),
+                    );
                     break;
                   case "jam-aktual":
                     totalValue = "-";

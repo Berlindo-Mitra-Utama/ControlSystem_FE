@@ -27,6 +27,10 @@ import {
   handleFormChange,
   handlePartSelection,
   resetFormAndSchedule,
+  calculateTotalAkumulasiDelivery,
+  calculateTotalAkumulasiHasilProduksi,
+  recalculateAllAkumulasi,
+  prepareTableViewData,
 } from "../utils/scheduleCalcUtils";
 import {
   MONTHS,
@@ -1298,6 +1302,17 @@ const SchedulerPage: React.FC = () => {
     // Generate schedule di frontend
     const newSchedule = generateScheduleFromForm(form, schedule);
     setScheduleWithTracking(newSchedule);
+
+    // Hitung ulang akumulasi untuk semua hari
+    if (newSchedule.length > 0) {
+      const { validGroupedRows } = prepareTableViewData(
+        newSchedule,
+        "",
+        getScheduleName(selectedMonth, selectedYear),
+      );
+      recalculateAllAkumulasi(validGroupedRows);
+    }
+
     setIsGenerating(false);
     setChildPartFilter("all"); // Reset filter ke Semua Child Part setiap generate
 
@@ -3193,6 +3208,16 @@ const SchedulerPage: React.FC = () => {
       // Set schedule data
       setSchedule(saved.schedule || []);
 
+      // Hitung ulang akumulasi untuk semua hari
+      if (saved.schedule && saved.schedule.length > 0) {
+        const { validGroupedRows } = prepareTableViewData(
+          saved.schedule,
+          "",
+          saved.name,
+        );
+        recalculateAllAkumulasi(validGroupedRows);
+      }
+
       // Set product info
       if (saved.productInfo) {
         setProductInfo({
@@ -3264,6 +3289,16 @@ const SchedulerPage: React.FC = () => {
       }
 
       setSchedule(scheduleData); // Gunakan setSchedule langsung, bukan setScheduleWithTracking
+
+      // Hitung ulang akumulasi untuk semua hari
+      if (scheduleData.length > 0) {
+        const { validGroupedRows } = prepareTableViewData(
+          scheduleData,
+          "",
+          saved.name,
+        );
+        recalculateAllAkumulasi(validGroupedRows);
+      }
 
       // Reset semua flag perubahan karena ini adalah schedule yang sudah tersimpan
       setHasUnsavedChanges(false);
@@ -3638,6 +3673,37 @@ const SchedulerPage: React.FC = () => {
   // Handler untuk menyimpan perubahan dari komponen
   const handleSaveProductionChanges = async (updatedRows: ScheduleItem[]) => {
     try {
+      console.log(
+        "🔄 handleSaveProductionChanges called with updatedRows:",
+        updatedRows.length,
+        "rows",
+      );
+
+      // Hitung ulang akumulasi untuk semua hari
+      const { validGroupedRows } = prepareTableViewData(
+        updatedRows,
+        "",
+        getScheduleName(selectedMonth, selectedYear),
+      );
+
+      console.log(
+        "📊 Prepared validGroupedRows:",
+        validGroupedRows.length,
+        "groups",
+      );
+      console.log(
+        "📊 ValidGroupedRows data:",
+        validGroupedRows.map((group) => ({
+          day: group.day,
+          shift1Delivery:
+            group.rows.find((r) => r.shift === "1")?.delivery || 0,
+          shift2Delivery:
+            group.rows.find((r) => r.shift === "2")?.delivery || 0,
+        })),
+      );
+
+      recalculateAllAkumulasi(validGroupedRows);
+
       // Cari schedule yang sedang aktif
       const currentSchedule = savedSchedules.find(
         (s) =>
