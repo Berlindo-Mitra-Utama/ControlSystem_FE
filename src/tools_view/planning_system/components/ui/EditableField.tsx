@@ -33,7 +33,9 @@ const EditableField: React.FC<EditableFieldProps> = ({
         type={type}
         step={step}
         value={
-          editForm[field] !== undefined ? editForm[field] : (value ?? "")
+          editForm[field] !== undefined
+            ? String(editForm[field] || "")
+            : String(value ?? "")
         }
         onChange={(e) => {
           const val =

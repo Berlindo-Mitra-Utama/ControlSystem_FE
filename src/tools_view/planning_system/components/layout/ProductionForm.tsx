@@ -52,6 +52,9 @@ interface ProductionFormProps {
   onClose?: () => void;
   onSuccess?: (message?: string) => void;
   isEditMode?: boolean;
+  // Tambahkan props untuk edit mode
+  editingScheduleId?: string | null;
+  editingScheduleBackendId?: number | null;
 }
 
 const ProductionForm: React.FC<ProductionFormProps> = ({
@@ -70,6 +73,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   onClose,
   onSuccess,
   isEditMode = false,
+  editingScheduleId,
+  editingScheduleBackendId,
 }) => {
   const { theme } = useTheme();
   const { showAlert, showSuccess, showError, notification, hideNotification } =
@@ -175,37 +180,49 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     setIsSaving(true);
 
     try {
-      // Cek apakah jadwal sudah ada untuk part, customer, bulan, dan tahun yang sama
-      const existingSchedule = checkExistingSchedule(
-        form.part.trim(),
-        selectedMonth,
-        selectedYear,
-        form.customer.trim(),
-      );
+      if (isEditMode && editingScheduleBackendId) {
+        // Mode edit: Update jadwal yang sudah ada menggunakan ID backend
+        console.log(
+          "🔄 Edit mode: Updating existing schedule with backendId:",
+          editingScheduleBackendId,
+        );
 
-      // Simpan ke backend menggunakan upsert agar tidak membuat duplikasi
-      await PlanningSystemService.upsertProductPlanning(planningData);
+        try {
+          // Update jadwal yang sudah ada menggunakan updateProductPlanning
+          await PlanningSystemService.updateProductPlanning(
+            editingScheduleBackendId,
+            planningData,
+          );
+          console.log(
+            "✅ Schedule updated successfully using updateProductPlanning",
+          );
 
-      // Log untuk debugging
-      console.log(
-        `${isEditMode ? "Updating" : "Saving"} planning data with image:`,
-        {
-          partName: planningData.partName,
-          customerName: planningData.customerName,
-          hasImage: !!planningData.partImageBase64,
-          imageSize: planningData.partImageBase64?.length || 0,
-          mimeType: planningData.partImageMimeType,
-        },
-      );
+          // Panggil callback untuk update jadwal di parent component
+          if (onSuccess) {
+            onSuccess("Perubahan berhasil disimpan!");
+          }
+        } catch (updateError) {
+          console.error("Error updating schedule:", updateError);
+          // Fallback ke upsert jika update gagal
+          console.log("⚠️ Update failed, trying upsert as fallback");
+          await PlanningSystemService.upsertProductPlanning(planningData);
 
-      // Buat ID yang konsisten berdasarkan part, customer, bulan, dan tahun (hanya untuk referensi lokal)
-      const scheduleId =
-        `${planningData.partName}-${planningData.customerName}-${selectedMonth}-${selectedYear}`
-          .replace(/\s+/g, "-")
-          .toLowerCase();
+          if (onSuccess) {
+            onSuccess("Perubahan berhasil disimpan!");
+          }
+        }
+      } else {
+        // Mode create: Generate jadwal baru
+        console.log("🆕 Create mode: Creating new schedule");
 
-      // Update savedSchedules hanya untuk mode create
-      if (!isEditMode) {
+        // Simpan ke backend menggunakan upsert
+        await PlanningSystemService.upsertProductPlanning(planningData);
+
+        const scheduleId =
+          `${planningData.partName}-${planningData.customerName}-${selectedMonth}-${selectedYear}`
+            .replace(/\s+/g, "-")
+            .toLowerCase();
+
         const generatedSchedule = generateScheduleFromForm(
           {
             ...form,
@@ -244,15 +261,22 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           if (existingIndex !== -1) updated[existingIndex] = newSchedule;
           return updated;
         });
+
+        if (onSuccess) {
+          onSuccess("Jadwal berhasil digenerate!");
+        }
       }
 
-      if (onSuccess)
-        onSuccess(
-          isEditMode
-            ? "Perubahan berhasil disimpan!"
-            : "Jadwal berhasil digenerate!",
-        );
-      // Tidak langsung tutup modal, biarkan user melihat jadwal di card view dulu
+      // Log untuk debugging
+      console.log(`${isEditMode ? "Updating" : "Saving"} planning data:`, {
+        partName: planningData.partName,
+        customerName: planningData.customerName,
+        productionMonth: planningData.productionMonth,
+        productionYear: planningData.productionYear,
+        currentStock: planningData.currentStock,
+        isEditMode,
+        editingScheduleBackendId,
+      });
     } catch (error) {
       console.error("Error saving to backend:", error);
       showAlert(
@@ -576,7 +600,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               </h2>
               <p className={`${colors.text.secondary} text-xs sm:text-sm`}>
                 {isEditMode
-                  ? "Update your production schedule parameters"
+                  ? "Update monthly information and stock for existing schedule"
                   : "Configure your manufacturing parameters"}
               </p>
             </div>
@@ -620,11 +644,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <label
                 className={`block text-xs font-medium ${colors.text.secondary}`}
               >
-                Select Month & Year
+                {isEditMode ? "Change Month & Year" : "Select Month & Year"}
               </label>
               <div className="w-full max-w-48">
                 <ProductionPeriodSelector />
               </div>
+              {isEditMode && (
+                <p className={`text-xs ${colors.text.muted} mt-1`}>
+                  ⚠️ Changing month/year will update the schedule name
+                </p>
+              )}
             </div>
           </div>
 
@@ -657,7 +686,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               <label
                 className={`block text-xs font-medium ${colors.text.secondary}`}
               >
-                Current Stock
+                {isEditMode ? "Update Stock" : "Current Stock"}
               </label>
               <div className="relative w-full max-w-32">
                 <input
@@ -675,6 +704,11 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   </span>
                 </div>
               </div>
+              {isEditMode && (
+                <p className={`text-xs ${colors.text.muted} mt-1`}>
+                  💡 Update stock value for this schedule
+                </p>
+              )}
             </div>
           </div>
 
@@ -894,9 +928,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         {/* Action Button - Different for Edit Mode vs Create Mode */}
         <div className="pt-2">
           <button
-            onClick={
-              isEditMode ? handleGenerateSchedule : handleGenerateSchedule
-            }
+            onClick={handleGenerateSchedule}
             disabled={isGenerating || isSaving}
             className={`w-full px-6 py-3 ${isEditMode ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" : colors.button.primary} text-white font-bold text-sm rounded-lg focus:ring-4 focus:ring-emerald-300/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl`}
           >
@@ -927,7 +959,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   />
                 </svg>
                 <span>
-                  {isEditMode ? "Simpan Perubahan" : "Generate Jadwal"}
+                  {isEditMode ? "✓ Simpan Perubahan" : "Generate Jadwal"}
                 </span>
               </>
             )}
