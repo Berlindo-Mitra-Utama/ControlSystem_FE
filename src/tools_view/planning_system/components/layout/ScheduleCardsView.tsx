@@ -14,6 +14,10 @@ import {
   calculateAkumulasiDelivery,
   calculateAkumulasiHasilProduksi,
   calculateStockCustom,
+  calculateTotalAkumulasiDelivery,
+  calculateTotalAkumulasiHasilProduksi,
+  recalculateAllAkumulasi,
+  prepareTableViewData,
 } from "../../utils/scheduleCalcUtils";
 import StatusBadge from "../ui/StatusBadge";
 import { ManpowerService } from "../../../../services/API_Services";
@@ -147,6 +151,16 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   const currentDayData = validGroupedRows[currentDayIdx]
     ? [validGroupedRows[currentDayIdx]]
     : [];
+
+  // Recalculate akumulasi when validGroupedRows changes (component mount or data update)
+  useEffect(() => {
+    if (validGroupedRows.length > 0) {
+      console.log(
+        "🔄 ScheduleCardsView: Recalculating akumulasi on component mount/data update",
+      );
+      recalculateAllAkumulasi(validGroupedRows);
+    }
+  }, [validGroupedRows]);
 
   // Reset ke hari pertama saat search berubah
   useEffect(() => {
@@ -385,6 +399,17 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
           [field]: numericValue,
         }));
       }
+
+      // Jika ada perubahan delivery atau hasil produksi, hitung ulang akumulasi
+      if (field === "delivery" || field === "pcs") {
+        // Recalculate akumulasi untuk semua hari
+        const { validGroupedRows } = prepareTableViewData(
+          schedule,
+          searchDate,
+          scheduleName,
+        );
+        recalculateAllAkumulasi(validGroupedRows);
+      }
     }
   };
 
@@ -574,6 +599,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 value={flatRows.reduce((sum, r) => sum + (r.delivery || 0), 0)}
               />
               <SummaryCard
+                icon={<TrendingUp className="w-5 h-5 text-green-400" />}
+                label="Akumulasi Delivery"
+                value={calculateTotalAkumulasiDelivery(validGroupedRows)}
+              />
+              <SummaryCard
                 icon={<Target className="w-5 h-5 text-yellow-400" />}
                 label="Planning"
                 value={flatRows.reduce(
@@ -593,6 +623,11 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                 icon={<Factory className="w-5 h-5 text-purple-400" />}
                 label="Hasil Produksi"
                 value={flatRows.reduce((sum, r) => sum + (r.pcs || 0), 0)}
+              />
+              <SummaryCard
+                icon={<TrendingUp className="w-5 h-5 text-indigo-400" />}
+                label="Akumulasi Hasil"
+                value={calculateTotalAkumulasiHasilProduksi(validGroupedRows)}
               />
               <SummaryCard
                 icon={<Activity className="w-5 h-5 text-blue-400" />}

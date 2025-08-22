@@ -100,9 +100,18 @@ export const prepareTableViewData = (
     ? schedule.filter((row) => row.day.toString().includes(searchDate.trim()))
     : schedule;
 
+  // Sort schedule berdasarkan hari dan shift untuk memastikan urutan yang benar
+  const sortedSchedule = filteredSchedule.sort((a, b) => {
+    if (a.day !== b.day) {
+      return a.day - b.day;
+    }
+    // Jika hari sama, urutkan berdasarkan shift (1 sebelum 2)
+    return a.shift.localeCompare(b.shift);
+  });
+
   // Group data berdasarkan hari
-  const groupedRows: { day: number; rows: typeof filteredSchedule }[] = [];
-  filteredSchedule.forEach((row) => {
+  const groupedRows: { day: number; rows: typeof sortedSchedule }[] = [];
+  sortedSchedule.forEach((row) => {
     const lastGroup = groupedRows[groupedRows.length - 1];
     if (lastGroup && lastGroup.day === row.day) {
       lastGroup.rows.push(row);
@@ -110,6 +119,9 @@ export const prepareTableViewData = (
       groupedRows.push({ day: row.day, rows: [row] });
     }
   });
+
+  // Sort groupedRows berdasarkan hari untuk memastikan urutan yang benar
+  groupedRows.sort((a, b) => a.day - b.day);
 
   // Filter groupedRows berdasarkan hari valid dalam bulan
   const months = [
@@ -155,7 +167,21 @@ export const prepareTableViewData = (
     (group) => group.day >= 1 && group.day <= maxDaysInMonth,
   );
 
+  // Sort validGroupedRows berdasarkan hari untuk memastikan urutan yang benar
+  validGroupedRows.sort((a, b) => a.day - b.day);
+
   const flatRows = validGroupedRows.flatMap((g) => g.rows);
+
+  console.log("📊 prepareTableViewData - Data structure:", {
+    totalScheduleItems: schedule.length,
+    filteredItems: filteredSchedule.length,
+    sortedItems: sortedSchedule.length,
+    groupedRows: groupedRows.length,
+    validGroupedRows: validGroupedRows.length,
+    flatRows: flatRows.length,
+    days: validGroupedRows.map((g) => g.day),
+    maxDaysInMonth,
+  });
 
   return { validGroupedRows, flatRows };
 };
@@ -592,28 +618,88 @@ export const calculateAkumulasiDelivery = (
   let akumulasiShift1 = 0;
   let akumulasiShift2 = 0;
 
-  if (groupIndex === 0) {
-    const shift1 = validGroupedRows[0].rows.find((r) => r.shift === "1");
-    const shift2 = validGroupedRows[0].rows.find((r) => r.shift === "2");
-    akumulasiShift1 = shift1?.delivery || 0;
-    akumulasiShift2 = akumulasiShift1 + (shift2?.delivery || 0);
-  } else {
-    const prevGroup = validGroupedRows[groupIndex - 1];
-    const prevShift2 = prevGroup.rows.find((r) => r.shift === "2");
-    const prevAkumulasi = prevShift2?.akumulasiDelivery || 0;
+  console.log(
+    `🔍 Starting calculateAkumulasiDelivery for day ${currentDay} (index ${groupIndex})`,
+  );
+  console.log(`📊 Total days to process: ${validGroupedRows.length}`);
+  console.log(
+    `📊 Days available: ${validGroupedRows.map((g) => g.day).join(", ")}`,
+  );
 
-    const shift1 = validGroupedRows[groupIndex].rows.find(
-      (r) => r.shift === "1",
-    );
-    const shift2 = validGroupedRows[groupIndex].rows.find(
-      (r) => r.shift === "2",
-    );
+  // Hitung akumulasi dari awal sampai hari sebelumnya
+  for (let i = 0; i < groupIndex; i++) {
+    const group = validGroupedRows[i];
+    const shift1 = group.rows.find((r) => r.shift === "1");
+    const shift2 = group.rows.find((r) => r.shift === "2");
 
-    akumulasiShift1 = prevAkumulasi + (shift1?.delivery || 0);
-    akumulasiShift2 = akumulasiShift1 + (shift2?.delivery || 0);
+    const shift1Delivery = shift1?.delivery || 0;
+    const shift2Delivery = shift2?.delivery || 0;
+
+    // Akumulasi untuk shift 1: SUM dari delivery shift 1 dan 2 sebelumnya
+    akumulasiShift1 += shift1Delivery + shift2Delivery;
+    // Akumulasi untuk shift 2: SAMA dengan shift 1 (SUM dari delivery shift 1 dan 2 sebelumnya)
+    akumulasiShift2 = akumulasiShift1;
+
+    console.log(
+      `  📅 Day ${group.day} (index ${i}): shift1=${shift1Delivery}, shift2=${shift2Delivery}, akumulasiShift1=${akumulasiShift1}, akumulasiShift2=${akumulasiShift2}`,
+    );
   }
 
+  // Tambahkan delivery hari ini
+  const currentGroup = validGroupedRows[groupIndex];
+  const currentShift1 = currentGroup.rows.find((r) => r.shift === "1");
+  const currentShift2 = currentGroup.rows.find((r) => r.shift === "2");
+
+  const currentShift1Delivery = currentShift1?.delivery || 0;
+  const currentShift2Delivery = currentShift2?.delivery || 0;
+
+  // Akumulasi shift 1: akumulasi sebelumnya + delivery shift 1 hari ini
+  akumulasiShift1 += currentShift1Delivery;
+  // Akumulasi shift 2: akumulasi shift 1 + delivery shift 2 hari ini
+  akumulasiShift2 = akumulasiShift1 + currentShift2Delivery;
+
+  console.log(
+    `  📅 Current Day ${currentDay} (index ${groupIndex}): shift1=${currentShift1Delivery}, shift2=${currentShift2Delivery}`,
+  );
+  console.log(
+    `  📊 Final: akumulasiShift1=${akumulasiShift1}, akumulasiShift2=${akumulasiShift2}`,
+  );
+
   return { shift1: akumulasiShift1, shift2: akumulasiShift2 };
+};
+
+// Fungsi untuk menghitung total akumulasi delivery sampai akhir hari
+export const calculateTotalAkumulasiDelivery = (
+  validGroupedRows: { day: number; rows: ScheduleItem[] }[],
+): number => {
+  let totalAkumulasi = 0;
+
+  for (let i = 0; i < validGroupedRows.length; i++) {
+    const group = validGroupedRows[i];
+    const shift1 = group.rows.find((r) => r.shift === "1");
+    const shift2 = group.rows.find((r) => r.shift === "2");
+
+    totalAkumulasi += (shift1?.delivery || 0) + (shift2?.delivery || 0);
+  }
+
+  return totalAkumulasi;
+};
+
+// Fungsi untuk menghitung total akumulasi hasil produksi sampai akhir hari
+export const calculateTotalAkumulasiHasilProduksi = (
+  validGroupedRows: { day: number; rows: ScheduleItem[] }[],
+): number => {
+  let totalAkumulasi = 0;
+
+  for (let i = 0; i < validGroupedRows.length; i++) {
+    const group = validGroupedRows[i];
+    const shift1 = group.rows.find((r) => r.shift === "1");
+    const shift2 = group.rows.find((r) => r.shift === "2");
+
+    totalAkumulasi += (shift1?.pcs || 0) + (shift2?.pcs || 0);
+  }
+
+  return totalAkumulasi;
 };
 
 // Fungsi untuk menghitung akumulasi hasil produksi
@@ -625,26 +711,33 @@ export const calculateAkumulasiHasilProduksi = (
   let akumulasiHasilShift1 = 0;
   let akumulasiHasilShift2 = 0;
 
-  if (groupIndex === 0) {
-    const shift1 = validGroupedRows[0].rows.find((r) => r.shift === "1");
-    const shift2 = validGroupedRows[0].rows.find((r) => r.shift === "2");
-    akumulasiHasilShift1 = shift1?.pcs || 0;
-    akumulasiHasilShift2 = akumulasiHasilShift1 + (shift2?.pcs || 0);
-  } else {
-    const prevGroup = validGroupedRows[groupIndex - 1];
-    const prevShift2 = prevGroup.rows.find((r) => r.shift === "2");
-    const prevAkumulasi = prevShift2?.akumulasiHasilProduksi || 0;
+  // Hitung akumulasi dari awal sampai hari sebelumnya
+  for (let i = 0; i < groupIndex; i++) {
+    const group = validGroupedRows[i];
+    const shift1 = group.rows.find((r) => r.shift === "1");
+    const shift2 = group.rows.find((r) => r.shift === "2");
 
-    const shift1 = validGroupedRows[groupIndex].rows.find(
-      (r) => r.shift === "1",
-    );
-    const shift2 = validGroupedRows[groupIndex].rows.find(
-      (r) => r.shift === "2",
-    );
+    const shift1Pcs = shift1?.pcs || 0;
+    const shift2Pcs = shift2?.pcs || 0;
 
-    akumulasiHasilShift1 = prevAkumulasi + (shift1?.pcs || 0);
-    akumulasiHasilShift2 = akumulasiHasilShift1 + (shift2?.pcs || 0);
+    // Akumulasi untuk shift 1: SUM dari hasil produksi shift 1 dan 2 sebelumnya
+    akumulasiHasilShift1 += shift1Pcs + shift2Pcs;
+    // Akumulasi untuk shift 2: SAMA dengan shift 1 (SUM dari hasil produksi shift 1 dan 2 sebelumnya)
+    akumulasiHasilShift2 = akumulasiHasilShift1;
   }
+
+  // Tambahkan hasil produksi hari ini
+  const currentGroup = validGroupedRows[groupIndex];
+  const currentShift1 = currentGroup.rows.find((r) => r.shift === "1");
+  const currentShift2 = currentGroup.rows.find((r) => r.shift === "2");
+
+  const currentShift1Pcs = currentShift1?.pcs || 0;
+  const currentShift2Pcs = currentShift2?.pcs || 0;
+
+  // Akumulasi shift 1: akumulasi sebelumnya + hasil produksi shift 1 hari ini
+  akumulasiHasilShift1 += currentShift1Pcs;
+  // Akumulasi shift 2: akumulasi shift 1 + hasil produksi shift 2 hari ini
+  akumulasiHasilShift2 = akumulasiHasilShift1 + currentShift2Pcs;
 
   return { shift1: akumulasiHasilShift1, shift2: akumulasiHasilShift2 };
 };
@@ -661,19 +754,43 @@ export const calculateStockCustom = (
   const isShift1 = row.shift === "1";
   const isShift2 = row.shift === "2";
 
-  const prevDayGroup =
-    groupIndex > 0 ? validGroupedRows[groupIndex - 1] : undefined;
-  const prevDayShift2 = prevDayGroup
-    ? prevDayGroup.rows.find((r) => r.shift === "2")
-    : undefined;
+  // Hitung stock dari awal sampai hari sebelumnya
+  let runningStock = initialStock;
 
-  const prevActualStockShift2 = prevDayShift2
-    ? (prevDayShift2.actualStockCustom ?? 0)
-    : initialStock;
-  const prevRencanaStockShift2 = prevDayShift2
-    ? (prevDayShift2.rencanaStockCustom ?? 0)
-    : initialStock;
+  for (let i = 0; i < groupIndex; i++) {
+    const prevGroup = validGroupedRows[i];
+    const prevShift1 = prevGroup.rows.find((r) => r.shift === "1");
+    const prevShift2 = prevGroup.rows.find((r) => r.shift === "2");
 
+    // Tambahkan hasil produksi shift 1
+    const shift1Pcs = prevShift1?.pcs || 0;
+    const shift1PlanningPcs = prevShift1?.planningPcs || 0;
+    const shift1OvertimePcs = prevShift1?.overtimePcs || 0;
+    const shift1Delivery = prevShift1?.delivery || 0;
+
+    // Tambahkan hasil produksi shift 2
+    const shift2Pcs = prevShift2?.pcs || 0;
+    const shift2PlanningPcs = prevShift2?.planningPcs || 0;
+    const shift2OvertimePcs = prevShift2?.overtimePcs || 0;
+    const shift2Delivery = prevShift2?.delivery || 0;
+
+    // Update stock berdasarkan hasil produksi aktual atau planning
+    const totalPcs = shift1Pcs + shift2Pcs;
+    const totalPlanningPcs = shift1PlanningPcs + shift2PlanningPcs;
+    const totalOvertimePcs = shift1OvertimePcs + shift2OvertimePcs;
+    const totalDelivery = shift1Delivery + shift2Delivery;
+
+    if (totalPcs > 0) {
+      // Jika ada hasil produksi aktual, gunakan itu
+      runningStock = runningStock + totalPcs - totalDelivery;
+    } else {
+      // Jika tidak ada hasil produksi aktual, gunakan planning
+      runningStock =
+        runningStock + totalPlanningPcs + totalOvertimePcs - totalDelivery;
+    }
+  }
+
+  // Hitung stock untuk shift saat ini
   const hasilProduksi = row.pcs || 0;
   const planningPcs = row.planningPcs || 0;
   const overtimePcs = row.overtimePcs || 0;
@@ -683,31 +800,125 @@ export const calculateStockCustom = (
   let rencanaStock = 0;
 
   if (isHariPertama) {
-    // Hari pertama shift 1 menggunakan initialStock
+    // Hari pertama shift 1
     actualStock =
-      hasilProduksi === 0
-        ? initialStock + planningPcs + overtimePcs - delivery
-        : initialStock + hasilProduksi - delivery;
-    rencanaStock = initialStock + planningPcs + overtimePcs - delivery;
+      hasilProduksi > 0
+        ? runningStock + hasilProduksi - delivery
+        : runningStock + planningPcs + overtimePcs - delivery;
+    rencanaStock = runningStock + planningPcs + overtimePcs - delivery;
   } else if (isShift1) {
     // Shift 1 hari berikutnya
     actualStock =
-      hasilProduksi === 0
-        ? prevActualStockShift2 + planningPcs + overtimePcs - delivery
-        : prevActualStockShift2 + hasilProduksi - delivery;
-    rencanaStock =
-      prevRencanaStockShift2 + planningPcs + overtimePcs - delivery;
+      hasilProduksi > 0
+        ? runningStock + hasilProduksi - delivery
+        : runningStock + planningPcs + overtimePcs - delivery;
+    rencanaStock = runningStock + planningPcs + overtimePcs - delivery;
   } else if (isShift2) {
-    // Shift 2
+    // Shift 2 - ambil stock dari shift 1 hari yang sama
     const shift1Row = group.rows.find((r) => r.shift === "1");
-    const shift1ActualStock = shift1Row?.actualStockCustom ?? initialStock;
+    const shift1Pcs = shift1Row?.pcs || 0;
+    const shift1PlanningPcs = shift1Row?.planningPcs || 0;
+    const shift1OvertimePcs = shift1Row?.overtimePcs || 0;
+    const shift1Delivery = shift1Row?.delivery || 0;
+
+    const shift1Stock =
+      shift1Pcs > 0
+        ? runningStock + shift1Pcs - shift1Delivery
+        : runningStock + shift1PlanningPcs + shift1OvertimePcs - shift1Delivery;
 
     actualStock =
-      hasilProduksi === 0
-        ? shift1ActualStock + planningPcs + overtimePcs - delivery
-        : shift1ActualStock + hasilProduksi - delivery;
-    rencanaStock = shift1ActualStock + planningPcs + overtimePcs - delivery;
+      hasilProduksi > 0
+        ? shift1Stock + hasilProduksi - delivery
+        : shift1Stock + planningPcs + overtimePcs - delivery;
+    rencanaStock = shift1Stock + planningPcs + overtimePcs - delivery;
   }
 
   return { actualStock, rencanaStock };
+};
+
+// Fungsi untuk memaksa perhitungan ulang akumulasi untuk semua hari
+export const recalculateAllAkumulasi = (
+  validGroupedRows: { day: number; rows: ScheduleItem[] }[],
+): void => {
+  console.log(
+    "🔄 Starting recalculateAllAkumulasi for",
+    validGroupedRows.length,
+    "days",
+  );
+
+  console.log(
+    "📊 ValidGroupedRows structure:",
+    validGroupedRows.map((group, index) => ({
+      index,
+      day: group.day,
+      shift1Delivery: group.rows.find((r) => r.shift === "1")?.delivery || 0,
+      shift2Delivery: group.rows.find((r) => r.shift === "2")?.delivery || 0,
+      shift1Pcs: group.rows.find((r) => r.shift === "1")?.pcs || 0,
+      shift2Pcs: group.rows.find((r) => r.shift === "2")?.pcs || 0,
+    })),
+  );
+
+  // Hitung ulang akumulasi delivery untuk semua hari
+  for (let i = 0; i < validGroupedRows.length; i++) {
+    const group = validGroupedRows[i];
+    console.log(
+      `\n🔄 Processing day ${group.day} (index ${i}) for delivery akumulasi`,
+    );
+
+    const akumulasiDelivery = calculateAkumulasiDelivery(
+      group.day,
+      validGroupedRows,
+      i,
+    );
+
+    // Update akumulasi delivery untuk shift 1 dan 2
+    const shift1 = group.rows.find((r) => r.shift === "1");
+    const shift2 = group.rows.find((r) => r.shift === "2");
+
+    if (shift1) {
+      shift1.akumulasiDelivery = akumulasiDelivery.shift1;
+      console.log(
+        `✅ Updated shift1 akumulasiDelivery for day ${group.day}: ${akumulasiDelivery.shift1}`,
+      );
+    }
+    if (shift2) {
+      shift2.akumulasiDelivery = akumulasiDelivery.shift2;
+      console.log(
+        `✅ Updated shift2 akumulasiDelivery for day ${group.day}: ${akumulasiDelivery.shift2}`,
+      );
+    }
+  }
+
+  // Hitung ulang akumulasi hasil produksi untuk semua hari
+  for (let i = 0; i < validGroupedRows.length; i++) {
+    const group = validGroupedRows[i];
+    console.log(
+      `\n🔄 Processing day ${group.day} (index ${i}) for hasil produksi akumulasi`,
+    );
+
+    const akumulasiHasil = calculateAkumulasiHasilProduksi(
+      group.day,
+      validGroupedRows,
+      i,
+    );
+
+    // Update akumulasi hasil produksi untuk shift 1 dan 2
+    const shift1 = group.rows.find((r) => r.shift === "1");
+    const shift2 = group.rows.find((r) => r.shift === "2");
+
+    if (shift1) {
+      shift1.akumulasiHasilProduksi = akumulasiHasil.shift1;
+      console.log(
+        `✅ Updated shift1 akumulasiHasilProduksi for day ${group.day}: ${akumulasiHasil.shift1}`,
+      );
+    }
+    if (shift2) {
+      shift2.akumulasiHasilProduksi = akumulasiHasil.shift2;
+      console.log(
+        `✅ Updated shift2 akumulasiHasilProduksi for day ${group.day}: ${akumulasiHasil.shift2}`,
+      );
+    }
+  }
+
+  console.log("✅ Finished recalculateAllAkumulasi");
 };

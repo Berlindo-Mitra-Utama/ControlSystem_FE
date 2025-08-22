@@ -6,9 +6,11 @@ import {
   TrendingUp,
   TrendingDown,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { memo } from "react";
 import { useTheme } from "../../../contexts/ThemeContext";
+import ChildPart from "./ChildPart";
 
 interface ScheduleItem {
   id: string;
@@ -28,6 +30,8 @@ interface ChildPartTableProps {
   schedule: ScheduleItem[];
   onDelete?: () => void;
   onEdit?: () => void;
+  onEditSchedule?: () => void;
+  onDeleteSchedule?: () => void;
   inMaterial?: (number | null)[][];
   onInMaterialChange?: (val: (number | null)[][]) => void;
   aktualInMaterial?: (number | null)[][];
@@ -111,6 +115,8 @@ const Modal: React.FC<{
 const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   const { uiColors } = useTheme();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteScheduleModal, setShowDeleteScheduleModal] = useState(false);
+  const [showEditPartModal, setShowEditPartModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // In Material per shift per hari: [ [shift1, shift2], ... ]
@@ -282,12 +288,24 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       }
     }
   }
-  
+
   // Determine if we should show each section based on activeFilter
-  const showRencanaInMaterial = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("rencanaInMaterial");
-  const showAktualInMaterial = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("aktualInMaterial");
-  const showRencanaStock = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("rencanaStock");
-  const showAktualStock = !props.activeFilter || props.activeFilter.length === 0 || props.activeFilter.includes("aktualStock");
+  const showRencanaInMaterial =
+    !props.activeFilter ||
+    props.activeFilter.length === 0 ||
+    props.activeFilter.includes("rencanaInMaterial");
+  const showAktualInMaterial =
+    !props.activeFilter ||
+    props.activeFilter.length === 0 ||
+    props.activeFilter.includes("aktualInMaterial");
+  const showRencanaStock =
+    !props.activeFilter ||
+    props.activeFilter.length === 0 ||
+    props.activeFilter.includes("rencanaStock");
+  const showAktualStock =
+    !props.activeFilter ||
+    props.activeFilter.length === 0 ||
+    props.activeFilter.includes("aktualStock");
 
   // Helper untuk dapatkan nama hari dari urutan hari ke-d (mulai Senin)
   const getDayName = (day: number) => {
@@ -306,6 +324,49 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       props.onDelete();
     }
   };
+
+  const handleEditSchedule = () => {
+    if (props.onEditSchedule) {
+      props.onEditSchedule();
+    }
+  };
+
+  const handleDeleteSchedule = () => {
+    setShowDeleteScheduleModal(true);
+  };
+
+  const handleEditPart = () => {
+    setShowEditPartModal(true);
+  };
+
+  const handleEditPartSubmit = (data: {
+    partName: string;
+    customerName: string;
+    stock: number | null;
+  }) => {
+    if (props.onEdit) {
+      props.onEdit();
+    }
+    setShowEditPartModal(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // This useEffect is no longer needed as the dropdown is removed
+      // if (showScheduleActions) {
+      //   const target = event.target as Element;
+      //   if (!target.closest(".schedule-actions-dropdown")) {
+      //     setShowScheduleActions(false);
+      //   }
+      // }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []); // Removed showScheduleActions from dependency array
 
   // Loading logic for navigation/filter
   // If you have navigation/filter change, wrap setState with:
@@ -385,7 +446,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
           </div>
         </div>
 
-        {/* Card Stock Info dengan Delete Button */}
+        {/* Card Stock Info dengan Action Buttons */}
         <div className="flex flex-wrap gap-4 items-center mb-6 justify-between">
           <div className="flex flex-wrap gap-4 items-center">
             {/* Stock Info */}
@@ -416,17 +477,55 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             </div>
           </div>
 
-          {/* Delete Button */}
-          {props.renderHeaderAction && (
+          {/* Action Buttons */}
+          <div className="flex gap-2 items-center">
+            {/* Edit Part Button */}
             <button
-              className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200"
-              onClick={handleDeleteClick}
-              type="button"
-              title="Delete"
+              onClick={handleEditPart}
+              className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+              title="Edit Part"
             >
-              <Trash2 className="w-4 h-4" />
+              <Edit className="w-4 h-4" />
+              <span className="text-sm font-medium">Edit Part</span>
             </button>
-          )}
+
+            {/* Edit Schedule Button */}
+            {props.onEditSchedule && (
+              <button
+                onClick={handleEditSchedule}
+                className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                title="Edit Jadwal"
+              >
+                <Edit className="w-4 h-4" />
+                <span className="text-sm font-medium">Edit Jadwal</span>
+              </button>
+            )}
+
+            {/* Delete Schedule Button */}
+            {props.onDeleteSchedule && (
+              <button
+                onClick={handleDeleteSchedule}
+                className="p-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                title="Hapus Jadwal"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Hapus Jadwal</span>
+              </button>
+            )}
+
+            {/* Delete Button */}
+            {props.renderHeaderAction && (
+              <button
+                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                onClick={handleDeleteClick}
+                type="button"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Hapus Part</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -494,12 +593,12 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                 </div>
               )}
               {showRencanaStock && (
-                <div className="h-16 flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 border-b border-gray-300 dark:border-gray-600 text-amber-700 dark:text-amber-200 font-mono text-sm font-bold">
+                <div className="h-16 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 border-b border-gray-300 dark:border-gray-600 text-yellow-700 dark:text-yellow-200 font-mono text-sm font-bold">
                   -
                 </div>
               )}
               {showAktualStock && (
-                <div className="h-16 flex items-center justify-center bg-sky-100 dark:bg-sky-900/30 border-b border-gray-300 dark:border-gray-600 text-sky-700 dark:text-sky-200 font-mono text-sm font-bold">
+                <div className="h-16 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 border-b border-gray-300 dark:border-gray-600 text-yellow-700 dark:text-yellow-200 font-mono text-sm font-bold">
                   -
                 </div>
               )}
@@ -543,14 +642,18 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                         <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
                           <InputCell
                             value={inMaterial[dayIdx][0]}
-                            onChange={(v) => handleInMaterialChange(dayIdx, 0, v)}
+                            onChange={(v) =>
+                              handleInMaterialChange(dayIdx, 0, v)
+                            }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                         </div>
                         <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
                           <InputCell
                             value={inMaterial[dayIdx][1]}
-                            onChange={(v) => handleInMaterialChange(dayIdx, 1, v)}
+                            onChange={(v) =>
+                              handleInMaterialChange(dayIdx, 1, v)
+                            }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                         </div>
@@ -581,22 +684,22 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     )}
                     {/* Rencana Stock - Baris 3 */}
                     {showRencanaStock && (
-                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-amber-100 dark:bg-amber-900/30">
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
+                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
                           {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-amber-800 dark:text-amber-200">
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
                           {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
                     )}
                     {/* Aktual Stock - Baris 4 */}
                     {showAktualStock && (
-                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-sky-100 dark:bg-sky-900/30">
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
+                      <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
                           {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-sky-800 dark:text-sky-200">
+                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
                           {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
@@ -618,12 +721,40 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
         message="Apakah Anda yakin ingin menghapus part ini?"
       />
 
+      {/* Delete Schedule Confirmation Modal */}
+      <Modal
+        open={showDeleteScheduleModal}
+        onClose={() => setShowDeleteScheduleModal(false)}
+        onConfirm={() => {
+          setShowDeleteScheduleModal(false);
+          if (props.onDeleteSchedule) {
+            props.onDeleteSchedule();
+          }
+        }}
+        title="Konfirmasi Hapus Jadwal"
+        message="Apakah Anda yakin ingin menghapus jadwal ini?"
+      />
+
       {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-40">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
+
+      {/* Edit Part Modal */}
+      <ChildPart
+        isOpen={showEditPartModal}
+        onClose={() => setShowEditPartModal(false)}
+        onGenerate={() => {}}
+        onEdit={handleEditPartSubmit}
+        initialData={{
+          partName: props.partName,
+          customerName: props.customerName,
+          stock: props.initialStock,
+        }}
+        isEditMode={true}
+      />
     </div>
   );
 };
