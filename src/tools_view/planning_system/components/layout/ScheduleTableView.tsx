@@ -11,6 +11,9 @@ import {
   calculateScheduleTotals,
   formatJamProduksi,
   formatNumber,
+  calculateTotalAkumulasiDelivery,
+  calculateTotalAkumulasiHasilProduksi,
+  recalculateAllAkumulasi,
 } from "../../utils/scheduleCalcUtils";
 import {
   ALL_ROWS,
@@ -70,13 +73,7 @@ interface ScheduleTableViewProps {
   };
 }
 
-type FilterType =
-  | "all"
-  | "stock"
-  | "delivery"
-  | "planning"
-  | "overtime"
-  | "hasil-produksi";
+type FilterType = string[];
 
 const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   validGroupedRows,
@@ -95,7 +92,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   productInfo,
 }) => {
   const { uiColors, theme } = useTheme();
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType>([]);
   const [focusedInputs, setFocusedInputs] = useState<{
     [key: string]: boolean;
   }>({});
@@ -105,6 +102,10 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const [manpowerError, setManpowerError] = useState<string>("");
   // State untuk notifikasi sukses manpower
   const [manpowerSuccess, setManpowerSuccess] = useState<string>("");
+
+  // State untuk popup filter data
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [tempActiveFilter, setTempActiveFilter] = useState<FilterType>([]);
 
   // Ref untuk modal manpower
   const manpowerModalRef = useRef<HTMLDivElement>(null);
@@ -135,6 +136,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
     loadManpowerFromDatabase();
   }, []);
+
+  // Recalculate akumulasi when validGroupedRows changes (component mount or data update)
+  useEffect(() => {
+    if (validGroupedRows.length > 0) {
+      console.log(
+        "🔄 ScheduleTableView: Recalculating akumulasi on component mount/data update",
+      );
+      recalculateAllAkumulasi(validGroupedRows);
+    }
+  }, [validGroupedRows]);
 
   // Clean up invalid manpower IDs when manpowerList changes
   useEffect(() => {
@@ -175,6 +186,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Tutup dropdown manpower jika klik di luar
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Element;
+
       // Tutup modal manpower
       if (
         manpowerModalRef.current &&
@@ -183,8 +196,12 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
         setShowManpowerModal(false);
       }
 
+      // Tutup filter dropdown jika klik di luar
+      if (!target.closest(".filter-dropdown-container")) {
+        setShowFilterDropdown(false);
+      }
+
       // Untuk dropdown per cell - hanya tutup jika click di luar dropdown
-      const target = event.target as Element;
       const isClickInsideDropdown = target.closest(".manpower-dropdown");
 
       if (!isClickInsideDropdown) {
@@ -200,6 +217,22 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fungsi untuk handle filter
+  const handleOpenFilter = () => {
+    setTempActiveFilter([...activeFilter]);
+    setShowFilterDropdown(true);
+  };
+
+  const applyFilter = () => {
+    setActiveFilter([...tempActiveFilter]);
+    setShowFilterDropdown(false);
+  };
+
+  const cancelFilter = () => {
+    setTempActiveFilter([...activeFilter]);
+    setShowFilterDropdown(false);
+  };
 
   // Calculate totals using utils
   const totals = calculateScheduleTotals(flatRows);
@@ -256,7 +289,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   }
 
   // Filter rows based on active filter
-  const filteredRows = getFilteredRows(activeFilter).map((row) => ({
+  const filteredRows = (
+    activeFilter.length === 0
+      ? ALL_ROWS
+      : ALL_ROWS.filter((row) => activeFilter.includes(row.key))
+  ).map((row) => ({
     ...row,
     icon: getIconForRow(row.key),
   }));
@@ -265,10 +302,27 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const handleInputChange = (rowId: string, field: string, value: string) => {
     const numericValue = Number(value) || 0;
 
+    console.log(`🔄 handleInputChange called:`, {
+      rowId,
+      field,
+      value,
+      numericValue,
+    });
+
     // Update the row data
     const row = flatRows.find((r) => r.id === rowId);
     if (row) {
+      const oldValue = (row as any)[field];
       (row as any)[field] = numericValue;
+
+      console.log(`📝 Updated row data:`, {
+        rowId,
+        field,
+        oldValue,
+        newValue: numericValue,
+        shift: row.shift,
+        day: row.day,
+      });
 
       // Update edit form if available
       if (setEditForm) {
@@ -278,36 +332,43 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
         }));
       }
 
+      // Jika ada perubahan delivery, hitung ulang akumulasi
+      if (field === "delivery" || field === "pcs") {
+        console.log(
+          `🔄 Recalculating akumulasi for field: ${field}, value: ${numericValue}, shift: ${row.shift}, day: ${row.day}`,
+        );
+        recalculateAllAkumulasi(validGroupedRows);
+      }
+
       // Notify parent component about data change
       if (onDataChange) {
         onDataChange([...flatRows]);
       }
+    } else {
+      console.warn(`⚠️ Row not found for ID: ${rowId}`);
     }
   };
 
-  // Filter menu options dengan icon
-  const filterOptions = FILTER_OPTIONS.map((option) => ({
-    ...option,
-    icon: getIconForFilter(option.value),
-  }));
-
-  // Helper function untuk mendapatkan icon filter
-  function getIconForFilter(value: string) {
-    switch (value) {
-      case "all":
-        return BarChart3;
-      case "delivery":
-        return Truck;
-      case "planning":
-        return Target;
-      case "overtime":
-        return Timer;
-      case "hasil-produksi":
-        return Factory;
-      default:
-        return BarChart3;
-    }
-  }
+  // Filter options untuk ScheduleTableView
+  const filterOptions = [
+    { key: "manpower", label: "Manpower", icon: Activity },
+    { key: "delivery", label: "Delivery", icon: Truck },
+    {
+      key: "akumulasi-delivery",
+      label: "Akumulasi Delivery",
+      icon: TrendingUp,
+    },
+    { key: "planning-pcs", label: "Planning PCS", icon: Target },
+    { key: "planning-jam", label: "Planning Jam", icon: Clock },
+    { key: "overtime-pcs", label: "Overtime PCS", icon: Zap },
+    { key: "overtime-jam", label: "Overtime Jam", icon: Timer },
+    { key: "jam-produksi", label: "Jam Produksi", icon: Gauge },
+    { key: "hasil-produksi", label: "Hasil Produksi", icon: Factory },
+    { key: "akumulasi-hasil", label: "Akumulasi Hasil", icon: TrendingUp },
+    { key: "jam-aktual", label: "Jam Aktual", icon: Activity },
+    { key: "actual-stock", label: "Actual Stock", icon: Package },
+    { key: "rencana-stock", label: "Rencana Stock", icon: Layers },
+  ];
 
   return (
     <div className="space-y-6">
@@ -429,7 +490,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       <div
         className={`${uiColors.bg.secondary}/50 rounded-xl p-6 ${uiColors.border.primary}`}
       >
-        {/* Info Stock Awal & Add Manpower */}
+        {/* Info Stock Awal, Filter Data & Add Manpower */}
         <div className="flex flex-wrap gap-4 items-center mb-6 justify-between">
           <div className="flex items-center gap-4">
             <div
@@ -437,6 +498,108 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             >
               <Package className={`w-5 h-5 ${uiColors.text.tertiary}`} />
               Stock Awal: <span className="ml-1">{initialStock}</span>
+            </div>
+
+            {/* Filter Data Button */}
+            <div className="relative filter-dropdown-container">
+              <button
+                onClick={handleOpenFilter}
+                className={`px-4 py-2 rounded-lg font-semibold border border-blue-400 text-blue-400 flex items-center gap-2 hover:bg-blue-900 transition`}
+              >
+                <Filter className="w-4 h-4" />
+                Filter Data{" "}
+                {activeFilter.length > 0 && (
+                  <span className="ml-1 px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+                    ({activeFilter.length})
+                  </span>
+                )}
+                <svg
+                  className={`w-3 h-3 transition-transform ${showFilterDropdown ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Filter Dropdown */}
+              {showFilterDropdown && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 filter-dropdown-container">
+                  <div className="w-[600px] bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 animate-fadeInUp">
+                    <div className="mb-4 border-b border-slate-600 pb-3 flex items-center gap-2">
+                      <Filter className="w-5 h-5 text-blue-400" />
+                      <span className="text-white font-bold text-base">
+                        Filter Data{" "}
+                        {tempActiveFilter.length > 0 &&
+                          `(${tempActiveFilter.length})`}
+                      </span>
+                    </div>
+
+                    {/* Filter Options dalam Grid 3 Kolom */}
+                    <div className="mb-4">
+                      <button
+                        onClick={() => setTempActiveFilter([])}
+                        className={`w-full mb-3 text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${tempActiveFilter.length === 0 ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                      >
+                        <BarChart3 className="w-4 h-4" /> Semua Data
+                      </button>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        {filterOptions.map((option) => {
+                          const IconComponent = option.icon;
+                          return (
+                            <button
+                              key={option.key}
+                              onClick={() => {
+                                const currentFilters = [...tempActiveFilter];
+                                if (currentFilters.includes(option.key)) {
+                                  setTempActiveFilter(
+                                    currentFilters.filter(
+                                      (f) => f !== option.key,
+                                    ),
+                                  );
+                                } else {
+                                  setTempActiveFilter([
+                                    ...currentFilters,
+                                    option.key,
+                                  ]);
+                                }
+                              }}
+                              className={`text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 text-sm ${tempActiveFilter.includes(option.key) ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                            >
+                              <IconComponent className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">{option.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-600 pt-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={cancelFilter}
+                          className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          onClick={applyFilter}
+                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                        >
+                          Terapkan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <button
@@ -448,40 +611,6 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             <Plus className="w-5 h-5" />
             Add Manpower
           </button>
-        </div>
-        {/* Divider */}
-        <div className={`border-b ${uiColors.border.secondary} mb-4`} />
-        {/* Judul Filter Data */}
-        <h3
-          className={`${uiColors.text.primary} font-bold text-lg mb-4 flex items-center gap-3`}
-        >
-          <Filter className={`w-6 h-6 ${uiColors.text.tertiary}`} />
-          Filter Data
-        </h3>
-        <div className="flex flex-wrap gap-3 items-center">
-          {filterOptions.map((option) => {
-            const IconComponent = option.icon;
-            return (
-              <button
-                key={option.value}
-                onClick={() => setActiveFilter(option.value as FilterType)}
-                className={`${
-                  option.value === "all"
-                    ? "px-4 py-2 rounded-lg text-sm font-medium"
-                    : "px-6 py-3 rounded-xl text-base font-semibold"
-                } transition-all flex items-center gap-2 ${
-                  activeFilter === option.value
-                    ? `${uiColors.bg.tertiary} ${uiColors.text.primary} shadow-xl scale-105`
-                    : `${uiColors.bg.tertiary} ${uiColors.text.tertiary} hover:${uiColors.bg.secondary} hover:${uiColors.text.primary} hover:scale-102`
-                }`}
-              >
-                <IconComponent
-                  className={option.value === "all" ? "w-4 h-4" : "w-5 h-5"}
-                />
-                {option.label}
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -777,7 +906,9 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     totalValue = formatNumber(totals.delivery);
                     break;
                   case "akumulasi-delivery":
-                    totalValue = "-";
+                    totalValue = formatNumber(
+                      calculateTotalAkumulasiDelivery(filteredValidGroupedRows),
+                    );
                     break;
                   case "planning-jam":
                     totalValue = totalPlanningJam;
@@ -798,7 +929,11 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     totalValue = formatNumber(totals.hasilProduksi);
                     break;
                   case "akumulasi-hasil":
-                    totalValue = "-";
+                    totalValue = formatNumber(
+                      calculateTotalAkumulasiHasilProduksi(
+                        filteredValidGroupedRows,
+                      ),
+                    );
                     break;
                   case "jam-aktual":
                     totalValue = "-";
