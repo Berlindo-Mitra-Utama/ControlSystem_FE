@@ -21,13 +21,19 @@ interface StatsCardsProps {
     akumulasiHasilProduksi: number;
     actualStock: number;
     rencanaStock: number;
+    
+    // Data untuk child part
+    rencanaInMaterial?: number;
+    aktualInMaterial?: number;
   };
+  isChildPart?: boolean;
+  showAllMetrics?: boolean; // Tambahkan prop baru untuk menampilkan semua metrik
 }
 
-const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
+const StatsCards: React.FC<StatsCardsProps> = ({ stats, isChildPart = false, showAllMetrics = false }) => {
   const { uiColors } = useTheme();
   
-  // Data untuk tabel dibagi menjadi 3 kolom
+  // Data untuk tabel dibagi menjadi 3 kolom untuk part normal
   const leftColumnData = [
     { label: "MANPOWER", value: stats.disruptedItems },
     { label: "DELIVERY PLAN (PCS)", value: stats.deliveryPlan },
@@ -47,6 +53,14 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
     { label: "AKUMULASI HASIL PRODUKSI (PCS)", value: stats.akumulasiHasilProduksi },
     { label: "ACTUAL STOCK (PCS)", value: stats.actualStock },
     { label: "RENCANA STOCK (PCS)", value: stats.rencanaStock },
+  ];
+  
+  // Data untuk child part (sesuai gambar)
+  const childPartData = [
+    { label: "RENCANA IN MATERIAL", value: stats.rencanaInMaterial || 0 },
+    { label: "AKTUAL IN MATERIAL", value: stats.aktualInMaterial || 0 },
+    { label: "RENCANA STOCK (PCS)", value: stats.rencanaStock },
+    { label: "AKTUAL STOCK (PCS)", value: stats.actualStock },
   ];
 
   // Fungsi untuk membuat tabel
@@ -82,6 +96,39 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
     </div>
   );
 
+  // Jika showAllMetrics true, tampilkan kedua jenis metrik
+  if (showAllMetrics) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Normal Part</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>{renderTable(leftColumnData)}</div>
+            <div>{renderTable(middleColumnData)}</div>
+            <div>{renderTable(rightColumnData)}</div>
+          </div>
+        </div>
+        
+        <div>
+          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Child Part</h3>
+          <div className="grid grid-cols-1 gap-4">
+            <div>{renderTable(childPartData)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Jika isChildPart true, tampilkan hanya satu tabel dengan metrik child part
+  if (isChildPart) {
+    return (
+      <div className="grid grid-cols-1 gap-4">
+        <div>{renderTable(childPartData)}</div>
+      </div>
+    );
+  }
+
+  // Jika bukan child part, tampilkan tiga tabel seperti biasa
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>{renderTable(leftColumnData)}</div>
