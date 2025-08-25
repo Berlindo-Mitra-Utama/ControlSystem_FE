@@ -392,18 +392,17 @@ const Dashboard: React.FC = () => {
         {/* Chart Kedua: Perbandingan Rencana vs Actual Produksi */}
         {savedSchedules.length > 0 && (
           <div className="mt-12 sm:mt-20">
-            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2
-                className={`text-2xl sm:text-3xl font-semibold ${uiColors.text.accent}`}
-              >
-                Production Planning vs Actual Chart
-              </h2>
-            </div>
             <div className={`w-full h-96 ${uiColors.bg.secondary} rounded-xl p-4`}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className={`text-xl font-semibold ${uiColors.text.primary}`}>
                   Perbandingan Rencana vs Actual Produksi per Bulan
                 </h3>
+                <button
+                  onClick={() => navigate("/dashboard/production-comparison")}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                >
+                  Lihat Semua
+                </button>
               </div>
               <ResponsiveContainer width="100%" height="85%">
                 <BarChart
