@@ -224,11 +224,8 @@ export const generateScheduleFromForm = (
   form: any,
   prevSchedule: ScheduleItem[] = [],
 ): ScheduleItem[] => {
-  // Save previous delivery values if possible
-  const prevDeliveryMap = new Map<string, number | undefined>();
-  prevSchedule.forEach((item) => {
-    prevDeliveryMap.set(item.id, item.delivery);
-  });
+  // Reset semua delivery ke 0 untuk schedule baru
+  // Tidak perlu menyimpan previous delivery values karena kita ingin mulai dari 0
 
   // Parameter produksi
   const waktuKerjaShift = 7; // jam kerja per shift
@@ -250,87 +247,62 @@ export const generateScheduleFromForm = (
 
   // Simulasi 30 hari produksi
   for (let d = 1; d <= 30; d++) {
-    // Delivery per hari (bisa diisi user, default 0, atau ambil dari prevDeliveryMap shift 1)
+    // Delivery per hari - selalu mulai dari 0 untuk schedule baru
     const idShift1 = `${d}-1`;
-    let deliveryShift1 = prevDeliveryMap.get(idShift1) ?? 0;
+    let deliveryShift1 = 0; // Selalu 0 untuk schedule baru
     // Shift 2 tidak ada delivery
     // Total delivery hari ini
-    let totalDelivery = deliveryShift1;
-    // Bagi delivery ke 2 shift
-    let planningHariIni = Math.min(totalDelivery, sisaStock);
-    let planningShift1 = Math.min(
-      Math.floor(planningHariIni / 2),
-      kapasitasShift,
-      sisaStock,
+    let totalDelivery = 0; // Selalu 0 untuk schedule baru
+
+    console.log(
+      `📅 Generating day ${d}: deliveryShift1=${deliveryShift1}, totalDelivery=${totalDelivery}`,
     );
-    sisaStock -= planningShift1;
-    let planningShift2 = Math.min(
-      planningHariIni - planningShift1,
-      kapasitasShift,
-      sisaStock,
-    );
-    sisaStock -= planningShift2;
-    // Jika delivery > total produksi hari ini, shortfall
-    let shortfallHariIni = totalDelivery - (planningShift1 + planningShift2);
-    if (shortfallHariIni > 0) {
-      shortfall += shortfallHariIni;
-    }
+
+    // Untuk jadwal baru, field-field dibiarkan kosong agar user bisa mengisi sendiri
     // Row shift 1
     scheduleList.push({
       id: idShift1,
       day: d,
       shift: "1",
       type: "Produksi",
-      pcs: planningShift1,
+      pcs: 0, // Kosong untuk jadwal baru
       time: "07:00-15:00",
       status: "Normal",
       delivery: deliveryShift1,
-      planningPcs: planningShift1,
-      overtimePcs: 0,
+      planningPcs: 0, // Kosong untuk jadwal baru
+      overtimePcs: 0, // Kosong untuk jadwal baru
       notes: "",
+      // Field-field lain dibiarkan undefined untuk jadwal baru
+      actualPcs: undefined,
+      jamProduksiAktual: undefined,
+      manpowerIds: undefined,
     });
+
     // Row shift 2
     scheduleList.push({
       id: `${d}-2`,
       day: d,
       shift: "2",
       type: "Produksi",
-      pcs: planningShift2,
+      pcs: 0, // Kosong untuk jadwal baru
       time: "15:00-23:00",
       status: "Normal",
-      delivery: undefined,
-      planningPcs: planningShift2,
-      overtimePcs: 0,
+      delivery: 0, // Set delivery shift 2 ke 0, bukan undefined
+      planningPcs: 0, // Kosong untuk jadwal baru
+      overtimePcs: 0, // Kosong untuk jadwal baru
       notes: "",
+      // Field-field lain dibiarkan undefined untuk jadwal baru
+      actualPcs: undefined,
+      jamProduksiAktual: undefined,
+      manpowerIds: undefined,
     });
-    // Setiap 3 hari, shortfall dijadwalkan sebagai lembur 2 hari kemudian
-    if (d % 3 === 0 && shortfall > 0) {
-      const lemburDay = d + 2;
-      if (lemburDay <= 30) {
-        overtimeRows.push({
-          id: `${lemburDay}-OT`,
-          day: lemburDay,
-          shift: "-",
-          type: "Lembur",
-          pcs: shortfall,
-          time: "-",
-          status: "Normal",
-          delivery: undefined,
-          planningPcs: 0,
-          overtimePcs: shortfall,
-          notes: `Lembur dari shortfall hari ${d - 2} s/d ${d}`,
-        });
-        sisaStock -= shortfall;
-      }
-      shortfall = 0;
-    }
+
+    // Tidak ada overtime karena delivery = 0 dan tidak ada shortfall
+    // Overtime hanya akan ada jika user mengisi delivery secara manual
   }
-  // Gabungkan lembur ke schedule utama, urutkan berdasarkan hari
-  const allRows = [...scheduleList, ...overtimeRows];
-  allRows.sort(
-    (a, b) => a.day - b.day || (a.shift || "").localeCompare(b.shift || ""),
-  );
-  return allRows;
+
+  // Return schedule tanpa overtime karena delivery = 0
+  return scheduleList;
 };
 
 // Fungsi untuk recalculate schedule dengan perubahan
@@ -576,8 +548,24 @@ export const resetFormAndSchedule = (
 
 // Fungsi untuk menghitung totals dari schedule
 export const calculateScheduleTotals = (flatRows: ScheduleItem[]) => {
+  const deliveryTotal = flatRows.reduce(
+    (sum, row) => sum + (row.delivery || 0),
+    0,
+  );
+
+  console.log("🔍 calculateScheduleTotals - Delivery Debug:", {
+    totalRows: flatRows.length,
+    deliveryTotal,
+    deliveryDetails: flatRows.map((row) => ({
+      id: row.id,
+      day: row.day,
+      shift: row.shift,
+      delivery: row.delivery || 0,
+    })),
+  });
+
   return {
-    delivery: flatRows.reduce((sum, row) => sum + (row.delivery || 0), 0),
+    delivery: deliveryTotal,
     planningPcs: flatRows.reduce((sum, row) => sum + (row.planningPcs || 0), 0),
     overtimePcs: flatRows.reduce((sum, row) => sum + (row.overtimePcs || 0), 0),
     hasilProduksi: flatRows.reduce((sum, row) => sum + (row.pcs || 0), 0),
@@ -618,14 +606,6 @@ export const calculateAkumulasiDelivery = (
   let akumulasiShift1 = 0;
   let akumulasiShift2 = 0;
 
-  console.log(
-    `🔍 Starting calculateAkumulasiDelivery for day ${currentDay} (index ${groupIndex})`,
-  );
-  console.log(`📊 Total days to process: ${validGroupedRows.length}`);
-  console.log(
-    `📊 Days available: ${validGroupedRows.map((g) => g.day).join(", ")}`,
-  );
-
   // Hitung akumulasi dari awal sampai hari sebelumnya
   for (let i = 0; i < groupIndex; i++) {
     const group = validGroupedRows[i];
@@ -639,10 +619,6 @@ export const calculateAkumulasiDelivery = (
     akumulasiShift1 += shift1Delivery + shift2Delivery;
     // Akumulasi untuk shift 2: SAMA dengan shift 1 (SUM dari delivery shift 1 dan 2 sebelumnya)
     akumulasiShift2 = akumulasiShift1;
-
-    console.log(
-      `  📅 Day ${group.day} (index ${i}): shift1=${shift1Delivery}, shift2=${shift2Delivery}, akumulasiShift1=${akumulasiShift1}, akumulasiShift2=${akumulasiShift2}`,
-    );
   }
 
   // Tambahkan delivery hari ini
@@ -655,15 +631,8 @@ export const calculateAkumulasiDelivery = (
 
   // Akumulasi shift 1: akumulasi sebelumnya + delivery shift 1 hari ini
   akumulasiShift1 += currentShift1Delivery;
-  // Akumulasi shift 2: akumulasi shift 1 + delivery shift 2 hari ini
+  // Akumulasi shift 2: akumulasi shift 1 (yang sudah termasuk delivery shift 1 hari ini) + delivery shift 2 hari ini
   akumulasiShift2 = akumulasiShift1 + currentShift2Delivery;
-
-  console.log(
-    `  📅 Current Day ${currentDay} (index ${groupIndex}): shift1=${currentShift1Delivery}, shift2=${currentShift2Delivery}`,
-  );
-  console.log(
-    `  📊 Final: akumulasiShift1=${akumulasiShift1}, akumulasiShift2=${akumulasiShift2}`,
-  );
 
   return { shift1: akumulasiShift1, shift2: akumulasiShift2 };
 };
@@ -674,14 +643,30 @@ export const calculateTotalAkumulasiDelivery = (
 ): number => {
   let totalAkumulasi = 0;
 
+  console.log("🔍 calculateTotalAkumulasiDelivery - Debug:", {
+    totalGroups: validGroupedRows.length,
+    groups: validGroupedRows.map((group, index) => ({
+      index,
+      day: group.day,
+      shift1Delivery: group.rows.find((r) => r.shift === "1")?.delivery || 0,
+      shift2Delivery: group.rows.find((r) => r.shift === "2")?.delivery || 0,
+    })),
+  });
+
   for (let i = 0; i < validGroupedRows.length; i++) {
     const group = validGroupedRows[i];
     const shift1 = group.rows.find((r) => r.shift === "1");
     const shift2 = group.rows.find((r) => r.shift === "2");
 
-    totalAkumulasi += (shift1?.delivery || 0) + (shift2?.delivery || 0);
+    const dayDelivery = (shift1?.delivery || 0) + (shift2?.delivery || 0);
+    totalAkumulasi += dayDelivery;
+
+    console.log(
+      `📅 Day ${group.day}: shift1=${shift1?.delivery || 0}, shift2=${shift2?.delivery || 0}, dayTotal=${dayDelivery}, runningTotal=${totalAkumulasi}`,
+    );
   }
 
+  console.log("📊 Final totalAkumulasi:", totalAkumulasi);
   return totalAkumulasi;
 };
 

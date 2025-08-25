@@ -54,8 +54,14 @@ const partOptions = [
   "29N Muffler", 
   "Transmission Case B2", 
   "Brake Disc C3",
-  "Engine Block A7",  // Data dummy 1
-  "Cylinder Head X5"  // Data dummy 2
+  "Engine Block A7",  // Contoh child part 1
+  "Cylinder Head X5"  // Contoh child part 2
+];
+
+// Tambahkan array untuk menentukan child parts
+const childPartOptions = [
+  "Engine Block A7",  // Contoh child part 1
+  "Cylinder Head X5"  // Contoh child part 2
 ];
 
 const Dashboard: React.FC = () => {
@@ -76,11 +82,12 @@ const Dashboard: React.FC = () => {
   const [showPartDropdown, setShowPartDropdown] = useState<boolean>(false);
   
   // Filter part berdasarkan pencarian
+  // Filter part berdasarkan pencarian
   const filteredPartOptions = partOptions.filter(part => {
-    // Hapus semua spasi dari part dan search query untuk perbandingan
-    const partNoSpaces = part.toLowerCase().replace(/\s+/g, "");
-    const searchNoSpaces = searchPart.toLowerCase().replace(/\s+/g, "");
-    return partNoSpaces.includes(searchNoSpaces);
+  // Hapus semua spasi dari part dan search query untuk perbandingan
+  const partNoSpaces = part.toLowerCase().replace(/\s+/g, "");
+  const searchNoSpaces = searchPart.toLowerCase().replace(/\s+/g, "");
+  return partNoSpaces.includes(searchNoSpaces);
   });
   
   // Tambahkan state untuk filter bulan dan shift dengan default kosong
@@ -177,6 +184,12 @@ const Dashboard: React.FC = () => {
     setShowDatePickerModal(false);
   };
 
+  // Tambahkan state untuk menentukan apakah part yang dipilih adalah child part
+  const isSelectedPartChildPart = React.useMemo(() => {
+    if (!selectedPart) return false;
+    return childPartOptions.includes(selectedPart);
+  }, [selectedPart]);
+  
   // Calculate stats berdasarkan filter
   const stats = React.useMemo(() => {
     return {
@@ -346,7 +359,11 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         
-        <StatsCards stats={stats} />
+        <StatsCards 
+          stats={stats} 
+          isChildPart={isSelectedPartChildPart} 
+          showAllMetrics={!selectedPart} // Tampilkan semua metrik jika tidak ada part yang dipilih
+        />
 
         {savedSchedules.length > 0 ? (
           <div className="mt-12 sm:mt-20">

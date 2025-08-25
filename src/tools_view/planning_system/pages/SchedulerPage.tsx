@@ -1668,7 +1668,7 @@ const SchedulerPage: React.FC = () => {
           oldRow2 && typeof oldRow2.actualPcs === "number"
             ? oldRow2.actualPcs
             : undefined,
-        delivery: undefined,
+        delivery: 0,
         planningPcs: planningShift2,
         overtimePcs: 0,
         notes: notes2,
@@ -1691,7 +1691,7 @@ const SchedulerPage: React.FC = () => {
             pcs: shortfall,
             time: "-",
             status: "Normal",
-            delivery: undefined,
+            delivery: 0,
             planningPcs: 0,
             overtimePcs: shortfall,
             notes: `Lembur dari shortfall hari ${d - 2} s/d ${d}`,
