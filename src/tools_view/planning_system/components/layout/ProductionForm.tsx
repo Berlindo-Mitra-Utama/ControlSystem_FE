@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MONTHS } from "../../utils/scheduleDateUtils";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useSchedule } from "../../contexts/ScheduleContext";
@@ -76,6 +77,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   editingScheduleId,
   editingScheduleBackendId,
 }) => {
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const { showAlert, showSuccess, showError, notification, hideNotification } =
     useNotification();
@@ -201,6 +203,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           if (onSuccess) {
             onSuccess("Perubahan berhasil disimpan!");
           }
+
+          // Tidak perlu navigate karena user sudah di halaman yang benar
+          // onSuccess akan dihandle oleh parent component (SchedulerPage)
+          // yang akan mengarahkan user kembali ke view cards
         } catch (updateError) {
           console.error("Error updating schedule:", updateError);
           // Fallback ke upsert jika update gagal
@@ -210,6 +216,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           if (onSuccess) {
             onSuccess("Perubahan berhasil disimpan!");
           }
+
+          // Tidak perlu navigate karena user sudah di halaman yang benar
+          // onSuccess akan dihandle oleh parent component (SchedulerPage)
+          // yang akan mengarahkan user kembali ke view cards
         }
       } else {
         // Mode create: Generate jadwal baru
@@ -265,6 +275,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         if (onSuccess) {
           onSuccess("Jadwal berhasil digenerate!");
         }
+
+        // Tidak perlu navigate karena user sudah di halaman yang benar
+        // onSuccess akan dihandle oleh parent component (SchedulerPage)
+        // yang akan mengarahkan user kembali ke view cards
       }
 
       // Log untuk debugging
@@ -294,6 +308,11 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
       await processScheduleGeneration(pendingScheduleData);
       setPendingScheduleData(null);
       setShowConfirmationModal(false);
+
+      // Tidak perlu navigate karena user sudah di halaman yang benar
+      // processScheduleGeneration akan memanggil onSuccess
+      // yang akan dihandle oleh parent component (SchedulerPage)
+      // untuk mengarahkan user kembali ke view cards
     }
   };
 

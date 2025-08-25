@@ -255,6 +255,463 @@ const SchedulerPage: React.FC = () => {
     return `data:${mime};base64,${imageData}`;
   };
 
+  // Helper function untuk mengoptimalkan ukuran gambar sebelum disimpan
+  const optimizeImageForStorage = (imageUrl: string): string => {
+    if (!imageUrl || !imageUrl.startsWith("data:")) return imageUrl;
+
+    try {
+      // Jika gambar terlalu besar (> 5MB), kompres atau gunakan placeholder
+      const base64Data = imageUrl.split(",")[1];
+      const sizeInBytes = Math.ceil((base64Data.length * 3) / 4);
+      const sizeInMB = sizeInBytes / (1024 * 1024);
+
+      if (sizeInMB > 5) {
+        console.log(
+          `⚠️ Image too large (${sizeInMB.toFixed(2)}MB), optimizing for storage`,
+        );
+
+        // Untuk sementara, gunakan placeholder image yang lebih kecil
+        // TODO: Implement proper image compression
+        return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1lcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmI3MjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2U8L3RleHQ+PC9zdmc+";
+      }
+
+      return imageUrl;
+    } catch (error) {
+      console.error("Error optimizing image:", error);
+      return imageUrl;
+    }
+  };
+
+  // Helper function untuk membersihkan data gambar yang terlalu besar
+  const cleanLargeImages = (schedules: any[]): any[] => {
+    return schedules.map((schedule) => {
+      const cleanedSchedule = { ...schedule };
+
+      // Clean form image
+      if (cleanedSchedule.form?.partImageUrl) {
+        cleanedSchedule.form.partImageUrl = optimizeImageForStorage(
+          cleanedSchedule.form.partImageUrl,
+        );
+      }
+
+      // Clean productInfo image
+      if (cleanedSchedule.productInfo?.partImageUrl) {
+        cleanedSchedule.productInfo.partImageUrl = optimizeImageForStorage(
+          cleanedSchedule.productInfo.partImageUrl,
+        );
+      }
+
+      return cleanedSchedule;
+    });
+  };
+
+  // Helper function untuk memulihkan gambar dari placeholder
+  const restoreImageFromPlaceholder = (
+    schedule: any,
+    originalImageUrl?: string,
+  ): any => {
+    if (!schedule) return schedule;
+
+    const restoredSchedule = { ...schedule };
+
+    // Check if current image is placeholder
+    const isPlaceholder = (imageUrl: string) => {
+      return (
+        imageUrl &&
+        imageUrl.includes(
+          "PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1lcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmI3MjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2U8L3RleHQ+PC9zdmc+",
+        )
+      );
+    };
+
+    // Restore form image if it's placeholder and we have original
+    if (
+      restoredSchedule.form?.partImageUrl &&
+      isPlaceholder(restoredSchedule.form.partImageUrl)
+    ) {
+      if (originalImageUrl) {
+        restoredSchedule.form.partImageUrl = originalImageUrl;
+        console.log("🔄 Restored form image from placeholder");
+      } else {
+        // Remove placeholder if no original available
+        restoredSchedule.form.partImageUrl = undefined;
+        console.log("🗑️ Removed placeholder from form (no original available)");
+      }
+    }
+
+    // Restore productInfo image if it's placeholder and we have original
+    if (
+      restoredSchedule.productInfo?.partImageUrl &&
+      isPlaceholder(restoredSchedule.productInfo.partImageUrl)
+    ) {
+      if (originalImageUrl) {
+        restoredSchedule.productInfo.partImageUrl = originalImageUrl;
+        console.log("🔄 Restored productInfo image from placeholder");
+      } else {
+        // Remove placeholder if no original available
+        restoredSchedule.productInfo.partImageUrl = undefined;
+        console.log(
+          "🗑️ Removed placeholder from productInfo (no original available)",
+        );
+      }
+    }
+
+    return restoredSchedule;
+  };
+
+  // Helper function untuk load image dari database
+  const loadImageFromDatabase = async (
+    imageId: string,
+  ): Promise<string | null> => {
+    try {
+      // Load image dari database berdasarkan ID
+      const response = await PlanningSystemService.getProductPlanningById(
+        parseInt(imageId),
+      );
+      if (
+        response &&
+        response.productPlanning &&
+        response.productPlanning.partImageBase64
+      ) {
+        // Format image URL dari base64
+        const imageUrl = formatImageUrl(
+          response.productPlanning.partImageBase64,
+          response.productPlanning.partImageMimeType,
+        );
+        console.log("✅ Image loaded from database:", imageId);
+        return imageUrl;
+      }
+      return null;
+    } catch (error) {
+      console.error("❌ Error loading image from database:", error);
+      return null;
+    }
+  };
+
+  // Helper function untuk cleanup localStorage yang penuh
+  const cleanupLocalStorage = () => {
+    try {
+      // Clear old data
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes("savedSchedules")) {
+          keysToRemove.push(key);
+        }
+      }
+
+      keysToRemove.forEach((key) => {
+        try {
+          localStorage.removeItem(key);
+          console.log(`🗑️ Removed old localStorage key: ${key}`);
+        } catch (error) {
+          console.error(`❌ Error removing key ${key}:`, error);
+        }
+      });
+
+      console.log("🧹 localStorage cleanup completed");
+      return true;
+    } catch (error) {
+      console.error("❌ Error during localStorage cleanup:", error);
+      return false;
+    }
+  };
+
+  // Helper function untuk save dengan fallback strategy
+  const saveToLocalStorageWithFallback = async (
+    data: any[],
+    key: string = "savedSchedules",
+  ) => {
+    try {
+      // Try to save with optimized images first
+      const optimizedData = cleanLargeImages(data);
+      localStorage.setItem(key, JSON.stringify(optimizedData));
+      console.log(
+        "✅ Data berhasil disimpan ke localStorage dengan gambar yang dioptimasi",
+      );
+      return true;
+    } catch (storageError) {
+      console.error("❌ Error saving to localStorage:", storageError);
+
+      if (storageError.name === "QuotaExceededError") {
+        console.log("⚠️ localStorage penuh, mencoba cleanup...");
+
+        // Try cleanup first
+        if (cleanupLocalStorage()) {
+          try {
+            const optimizedData = cleanLargeImages(data);
+            localStorage.setItem(key, JSON.stringify(optimizedData));
+            console.log(
+              "✅ Data berhasil disimpan setelah cleanup localStorage",
+            );
+            return true;
+          } catch (retryError) {
+            console.error("❌ Still can't save after cleanup:", retryError);
+          }
+        }
+
+        // Second fallback: save to database
+        console.log("🔄 localStorage masih penuh, mencoba save ke database...");
+        try {
+          const saveToDatabaseResult = await saveSchedulesToDatabase(data);
+          if (saveToDatabaseResult) {
+            console.log(
+              "✅ Data berhasil disimpan ke database sebagai fallback",
+            );
+            showAlert(
+              "localStorage penuh. Data berhasil disimpan ke database.",
+              "Success",
+            );
+
+            // Save metadata ke localStorage (tanpa gambar)
+            const metadataOnly = data.map((schedule) => ({
+              ...schedule,
+              form: { ...schedule.form, partImageUrl: `db://${schedule.id}` },
+              productInfo: {
+                ...schedule.productInfo,
+                partImageUrl: `db://${schedule.id}`,
+              },
+              _storedInDatabase: true,
+            }));
+
+            try {
+              localStorage.setItem(key, JSON.stringify(metadataOnly));
+              console.log(
+                "✅ Metadata tersimpan di localStorage, gambar di database",
+              );
+            } catch (metadataError) {
+              console.log(
+                "⚠️ Metadata tidak bisa disimpan di localStorage, tapi data aman di database",
+              );
+            }
+
+            return true;
+          }
+        } catch (dbError) {
+          console.error("❌ Error saving to database:", dbError);
+        }
+
+        // Final fallback: save without images to localStorage
+        try {
+          const dataWithoutImages = data.map((schedule) => ({
+            ...schedule,
+            form: { ...schedule.form, partImageUrl: undefined },
+            productInfo: { ...schedule.productInfo, partImageUrl: undefined },
+          }));
+
+          localStorage.setItem(key, JSON.stringify(dataWithoutImages));
+          console.log(
+            "✅ Data disimpan tanpa gambar ke localStorage (final fallback)",
+          );
+          showAlert(
+            "localStorage penuh. Data disimpan tanpa gambar.",
+            "Warning",
+          );
+          return true;
+        } catch (fallbackError) {
+          console.error("❌ Final fallback save juga gagal:", fallbackError);
+          showAlert(
+            "Gagal menyimpan data. Silakan refresh halaman dan coba lagi.",
+            "Error",
+          );
+          return false;
+        }
+      }
+
+      return false;
+    }
+  };
+
+  // Helper function untuk save schedules ke database sebagai fallback
+  const saveSchedulesToDatabase = async (
+    schedules: any[],
+  ): Promise<boolean> => {
+    try {
+      console.log("🔄 Mencoba save schedules ke database...");
+
+      // Filter schedules yang memiliki gambar
+      const schedulesWithImages = schedules.filter(
+        (schedule) =>
+          schedule.form?.partImageUrl || schedule.productInfo?.partImageUrl,
+      );
+
+      if (schedulesWithImages.length === 0) {
+        console.log(
+          "ℹ️ Tidak ada schedule dengan gambar yang perlu disimpan ke database",
+        );
+        return true;
+      }
+
+      let successCount = 0;
+
+      for (const schedule of schedulesWithImages) {
+        try {
+          // Jika schedule sudah ada di database, update
+          if (schedule.backendId) {
+            const updateData = {
+              partName: schedule.form?.part || "",
+              customerName: schedule.form?.customer || "",
+              currentStock: schedule.form?.stock || 0,
+              partImageBase64:
+                schedule.form?.partImageUrl ||
+                schedule.productInfo?.partImageUrl ||
+                "",
+              partImageMimeType: "image/png", // Default, bisa di-detect dari data URL
+              // Tambahkan field lain yang diperlukan
+            };
+
+            await PlanningSystemService.updateProductPlanning(
+              schedule.backendId,
+              updateData,
+            );
+            console.log(
+              `✅ Schedule ${schedule.id} berhasil diupdate di database`,
+            );
+            successCount++;
+          } else {
+            // Jika schedule baru, create
+            const createData: ProductPlanningData = {
+              partName: schedule.form?.part || "",
+              customerName: schedule.form?.customer || "",
+              productionMonth: new Date().getMonth(), // Current month
+              productionYear: new Date().getFullYear(), // Current year
+              currentStock: schedule.form?.stock || 0,
+              partImageBase64:
+                schedule.form?.partImageUrl ||
+                schedule.productInfo?.partImageUrl ||
+                "",
+              partImageMimeType: "image/png", // Default, bisa di-detect dari data URL
+            };
+
+            const response =
+              await PlanningSystemService.createProductPlanning(createData);
+            console.log(
+              `✅ Schedule ${schedule.id} berhasil dibuat di database dengan ID: ${response.productPlanning.id}`,
+            );
+
+            // Update local ID dengan backend ID
+            schedule.backendId = response.productPlanning.id;
+            successCount++;
+          }
+        } catch (scheduleError) {
+          console.error(
+            `❌ Error saving schedule ${schedule.id} to database:`,
+            scheduleError,
+          );
+          // Continue dengan schedule berikutnya
+        }
+      }
+
+      console.log(
+        `✅ Berhasil save ${successCount}/${schedulesWithImages.length} schedules ke database`,
+      );
+      return successCount > 0; // Return true jika minimal ada 1 yang berhasil
+    } catch (error) {
+      console.error("❌ Error dalam saveSchedulesToDatabase:", error);
+      return false;
+    }
+  };
+
+  // Helper function untuk handle error saat edit gambar
+  const handleImageEditError = (error: any, context: string) => {
+    console.error(`❌ Error saat ${context}:`, error);
+
+    if (error.name === "QuotaExceededError") {
+      showAlert(
+        "localStorage penuh. Gambar tidak bisa disimpan. Silakan hapus beberapa data lama atau refresh halaman.",
+        "Error",
+      );
+    } else if (error.message?.includes("image")) {
+      showAlert(
+        "Gagal memproses gambar. Pastikan format gambar valid dan ukuran tidak terlalu besar.",
+        "Error",
+      );
+    } else {
+      showAlert(`Gagal ${context}. Silakan coba lagi.`, "Error");
+    }
+  };
+
+  // Helper function untuk validate dan optimize image sebelum edit
+  const validateAndOptimizeImage = (imageUrl: string): string | null => {
+    if (!imageUrl) return null;
+
+    try {
+      // Check if it's a valid data URL
+      if (!imageUrl.startsWith("data:")) {
+        console.warn("⚠️ Invalid image format, expected data: URL");
+        return null;
+      }
+
+      // Check image size
+      const base64Data = imageUrl.split(",")[1];
+      if (!base64Data) {
+        console.warn("⚠️ Invalid base64 data");
+        return null;
+      }
+
+      const sizeInBytes = Math.ceil((base64Data.length * 3) / 4);
+      const sizeInMB = sizeInBytes / (1024 * 1024);
+
+      if (sizeInMB > 5) {
+        console.warn(`⚠️ Image too large (${sizeInMB.toFixed(2)}MB), max 5MB`);
+        showAlert("Gambar terlalu besar. Maksimal 5MB.", "Warning");
+        return null;
+      }
+
+      // Return optimized version
+      return optimizeImageForStorage(imageUrl);
+    } catch (error) {
+      console.error("❌ Error validating image:", error);
+      return null;
+    }
+  };
+
+  // Helper function untuk memastikan gambar tersimpan dengan benar
+  const ensureImageData = (schedule: any) => {
+    // Pastikan gambar tersimpan di form dan productInfo
+    if (schedule.form?.partImageUrl && !schedule.productInfo?.partImageUrl) {
+      schedule.productInfo = {
+        ...schedule.productInfo,
+        partImageUrl: schedule.form.partImageUrl,
+      };
+    }
+
+    if (schedule.productInfo?.partImageUrl && !schedule.form?.partImageUrl) {
+      schedule.form = {
+        ...schedule.form,
+        partImageUrl: schedule.productInfo.partImageUrl,
+      };
+    }
+
+    // Hanya optimize gambar yang baru (bukan yang sudah ada)
+    // Jangan optimize gambar yang sudah di localStorage
+    if (
+      schedule.form?.partImageUrl &&
+      !schedule.form.partImageUrl.includes(
+        "PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1lcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmI3MjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2U8L3RleHQ+PC9zdmc+",
+      )
+    ) {
+      // Ini gambar baru, optimize jika perlu
+      schedule.form.partImageUrl = optimizeImageForStorage(
+        schedule.form.partImageUrl,
+      );
+    }
+
+    if (
+      schedule.productInfo?.partImageUrl &&
+      !schedule.productInfo.partImageUrl.includes(
+        "PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWw9IkFyaWFsLCBzYW5zLWVyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2YjcyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZTwvdGV4dD48L3N2Zz4=",
+      )
+    ) {
+      // Ini gambar baru, optimize jika perlu
+      schedule.productInfo.partImageUrl = optimizeImageForStorage(
+        schedule.productInfo.partImageUrl,
+      );
+    }
+
+    return schedule;
+  };
+
   // Inject CSS untuk animasi
   useEffect(() => {
     injectCSS();
@@ -624,11 +1081,14 @@ const SchedulerPage: React.FC = () => {
                   index === self.findIndex((s) => s.id === schedule.id),
               );
 
+              // Pastikan gambar tersimpan dengan benar
+              const schedulesWithImages = uniqueSchedules.map(ensureImageData);
+
               console.log(
                 "✅ Updated savedSchedules with backend data:",
-                uniqueSchedules,
+                schedulesWithImages,
               );
-              return uniqueSchedules;
+              return schedulesWithImages;
             });
           }
         } catch (error) {
@@ -919,7 +1379,15 @@ const SchedulerPage: React.FC = () => {
                 overtimePcs: item.overtimePcs || 1672,
                 isManualPlanningPcs: item.isManualPlanningPcs || false,
                 manpowers: item.manpowers || [],
-                partImageUrl: item.partImageUrl || undefined,
+                // Pastikan gambar tersimpan dengan benar dari backend
+                partImageUrl:
+                  item.partImageUrl ||
+                  (item.partImageBase64
+                    ? formatImageUrl(
+                        item.partImageBase64,
+                        item.partImageMimeType,
+                      )
+                    : undefined),
               },
               // Map dailyProductions dari backend ke struktur frontend dengan debugging
               schedule: (() => {
@@ -1028,6 +1496,15 @@ const SchedulerPage: React.FC = () => {
               productInfo: {
                 partName: partName,
                 customer: item.customerName || "",
+                // Pastikan gambar tersimpan dengan benar di productInfo
+                partImageUrl:
+                  item.partImageUrl ||
+                  (item.partImageBase64
+                    ? formatImageUrl(
+                        item.partImageBase64,
+                        item.partImageMimeType,
+                      )
+                    : undefined),
                 lastSavedBy: item.updatedBy
                   ? { nama: item.updatedBy, role: "user" }
                   : undefined,
@@ -1039,10 +1516,30 @@ const SchedulerPage: React.FC = () => {
           // Update savedSchedules state
           // Gunakan fungsi cleanDuplicateSchedules untuk membersihkan duplikasi
           const cleanedSchedules = cleanDuplicateSchedules(convertedSchedules);
-          setSavedSchedules(cleanedSchedules);
-          localStorage.setItem(
-            "savedSchedules",
-            JSON.stringify(cleanedSchedules),
+
+          // Pastikan gambar tersimpan dengan benar
+          const schedulesWithImages = cleanedSchedules.map(ensureImageData);
+
+          setSavedSchedules(schedulesWithImages);
+
+          // Save to localStorage with fallback strategy
+          saveToLocalStorageWithFallback(schedulesWithImages);
+
+          // Log untuk debugging gambar
+          console.log(
+            "💾 Backend data dengan gambar tersimpan ke localStorage:",
+            {
+              totalSchedules: schedulesWithImages.length,
+              schedulesWithImages: schedulesWithImages.filter(
+                (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+              ).length,
+              sampleImage:
+                schedulesWithImages
+                  .find(
+                    (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+                  )
+                  ?.form?.partImageUrl?.substring(0, 50) + "...",
+            },
           );
 
           console.log(
@@ -1065,44 +1562,80 @@ const SchedulerPage: React.FC = () => {
 
             // Validasi dan perbaiki data dari localStorage jika perlu
             const validatedData = parsedData.map((item: any) => {
+              // Log untuk debugging gambar
+              if (item.form?.partImageUrl || item.productInfo?.partImageUrl) {
+                console.log("🖼️ Found image in localStorage item:", {
+                  id: item.id,
+                  formImage: item.form?.partImageUrl?.substring(0, 50) + "...",
+                  productInfoImage:
+                    item.productInfo?.partImageUrl?.substring(0, 50) + "...",
+                });
+              }
+
+              // Restore gambar dari placeholder jika ada
+              const restoredItem = restoreImageFromPlaceholder(item);
+
               if (
-                !item.schedule ||
-                !Array.isArray(item.schedule) ||
-                item.schedule.length === 0
+                !restoredItem.schedule ||
+                !Array.isArray(restoredItem.schedule) ||
+                restoredItem.schedule.length === 0
               ) {
                 console.warn(
-                  `⚠️ Schedule data empty for ${item.form?.part}, trying to regenerate...`,
+                  `⚠️ Schedule data empty for ${restoredItem.form?.part}, trying to regenerate...`,
                 );
                 // Coba regenerate schedule dari form data jika ada
-                if (item.form) {
+                if (restoredItem.form) {
                   try {
                     const regeneratedSchedule = generateScheduleFromForm(
-                      item.form,
+                      restoredItem.form,
                       [],
                     );
                     return {
-                      ...item,
+                      ...restoredItem,
                       schedule: regeneratedSchedule,
                     };
                   } catch (regenerateError) {
                     console.error(
-                      `❌ Failed to regenerate schedule for ${item.form.part}:`,
+                      `❌ Failed to regenerate schedule for ${restoredItem.form.part}:`,
                       regenerateError,
                     );
-                    return item;
+                    return restoredItem;
                   }
                 }
               }
-              return item;
+              return restoredItem;
             });
 
             // Bersihkan duplikasi juga untuk data fallback
             const cleanedFallbackData = cleanDuplicateSchedules(validatedData);
-            setSavedSchedules(cleanedFallbackData);
+
+            // Pastikan gambar tersimpan dengan benar
+            const fallbackDataWithImages =
+              cleanedFallbackData.map(ensureImageData);
+
+            setSavedSchedules(fallbackDataWithImages);
+
+            // Simpan kembali ke localStorage untuk memastikan data tersimpan dengan benar
+            saveToLocalStorageWithFallback(fallbackDataWithImages);
+
             console.log(
               "✅ Fallback: Validated, cleaned, and set saved schedules:",
-              cleanedFallbackData,
+              fallbackDataWithImages,
             );
+
+            // Log untuk debugging gambar dari localStorage
+            console.log("🖼️ Fallback: Images loaded from localStorage:", {
+              totalSchedules: fallbackDataWithImages.length,
+              schedulesWithImages: fallbackDataWithImages.filter(
+                (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+              ).length,
+              sampleImage:
+                fallbackDataWithImages
+                  .find(
+                    (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+                  )
+                  ?.form?.partImageUrl?.substring(0, 50) + "...",
+            });
           } catch (parseError) {
             console.error("❌ Error parsing localStorage data:", parseError);
           }
@@ -1418,10 +1951,31 @@ const SchedulerPage: React.FC = () => {
           // Bersihkan duplikasi sebelum set state
           const cleanedGeneratedSchedules =
             cleanDuplicateSchedules(convertedSchedules);
-          setSavedSchedules(cleanedGeneratedSchedules);
-          localStorage.setItem(
-            "savedSchedules",
-            JSON.stringify(cleanedGeneratedSchedules),
+
+          // Pastikan gambar tersimpan dengan benar
+          const generatedSchedulesWithImages =
+            cleanedGeneratedSchedules.map(ensureImageData);
+
+          setSavedSchedules(generatedSchedulesWithImages);
+
+          // Save to localStorage with fallback strategy
+          saveToLocalStorageWithFallback(generatedSchedulesWithImages);
+
+          // Log untuk debugging gambar
+          console.log(
+            "💾 Generated schedules dengan gambar tersimpan ke localStorage:",
+            {
+              totalSchedules: generatedSchedulesWithImages.length,
+              schedulesWithImages: generatedSchedulesWithImages.filter(
+                (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+              ).length,
+              sampleImage:
+                generatedSchedulesWithImages
+                  .find(
+                    (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+                  )
+                  ?.form?.partImageUrl?.substring(0, 50) + "...",
+            },
           );
         }
       }
@@ -2166,7 +2720,11 @@ const SchedulerPage: React.FC = () => {
           Date.now().toString(),
         name: scheduleName,
         date: new Date().toISOString(),
-        form: { ...form },
+        form: {
+          ...form,
+          // Pastikan partImageUrl tersimpan dengan benar
+          partImageUrl: form.partImageUrl || productInfo.partImageUrl || "",
+        },
         schedule: [...schedule],
         childParts: childParts,
         productInfo: {
@@ -2189,6 +2747,16 @@ const SchedulerPage: React.FC = () => {
         },
         backendId: serverSucceeded ? productPlanningId : existingId, // Simpan backend ID untuk referensi
       };
+
+      // Log untuk debugging gambar
+      console.log("💾 newSchedule dengan gambar:", {
+        id: newSchedule.id,
+        partImageUrl: newSchedule.form.partImageUrl,
+        productInfoImageUrl: newSchedule.productInfo.partImageUrl,
+        hasImage: !!(
+          newSchedule.form.partImageUrl || newSchedule.productInfo.partImageUrl
+        ),
+      });
 
       // Simpan child part data ke backend jika ada
       if (childParts.length > 0) {
@@ -2378,6 +2946,31 @@ const SchedulerPage: React.FC = () => {
             });
             setSavedSchedules(updatedSchedules);
 
+            // Pastikan gambar tersimpan dengan benar
+            const updatedSchedulesWithImages =
+              updatedSchedules.map(ensureImageData);
+
+            // Simpan ke localStorage dengan gambar
+            saveToLocalStorageWithFallback(updatedSchedulesWithImages);
+
+            // Log untuk debugging gambar
+            console.log(
+              "💾 Schedule dengan gambar berhasil diupdate di localStorage:",
+              {
+                totalSchedules: updatedSchedulesWithImages.length,
+                schedulesWithImages: updatedSchedulesWithImages.filter(
+                  (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+                ).length,
+                sampleImage:
+                  updatedSchedulesWithImages
+                    .find(
+                      (s) =>
+                        s.form?.partImageUrl || s.productInfo?.partImageUrl,
+                    )
+                    ?.form?.partImageUrl?.substring(0, 50) + "...",
+              },
+            );
+
             // Reset edit mode dan tracking setelah berhasil update
             setIsEditMode(false);
             setEditingScheduleId(null);
@@ -2446,7 +3039,32 @@ const SchedulerPage: React.FC = () => {
           // Bersihkan duplikasi sebelum set state
           const cleanedUpdatedSchedules =
             cleanDuplicateSchedules(updatedSchedules);
-          setSavedSchedules(cleanedUpdatedSchedules);
+
+          // Pastikan gambar tersimpan dengan benar
+          const updatedSchedulesWithImages =
+            cleanedUpdatedSchedules.map(ensureImageData);
+
+          setSavedSchedules(updatedSchedulesWithImages);
+
+          // Simpan ke localStorage dengan gambar
+          saveToLocalStorageWithFallback(updatedSchedulesWithImages);
+
+          // Log untuk debugging gambar
+          console.log(
+            "💾 Schedule dengan gambar berhasil diupdate di localStorage:",
+            {
+              totalSchedules: cleanedUpdatedSchedules.length,
+              schedulesWithImages: updatedSchedulesWithImages.filter(
+                (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+              ).length,
+              sampleImage:
+                updatedSchedulesWithImages
+                  .find(
+                    (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+                  )
+                  ?.form?.partImageUrl?.substring(0, 50) + "...",
+            },
+          );
 
           showSuccess("Jadwal berhasil diperbarui!");
 
@@ -2481,7 +3099,31 @@ const SchedulerPage: React.FC = () => {
 
         // Bersihkan duplikasi sebelum set state
         const cleanedNewSchedules = cleanDuplicateSchedules(updatedSchedules);
-        setSavedSchedules(cleanedNewSchedules);
+
+        // Pastikan gambar tersimpan dengan benar
+        const newSchedulesWithImages = cleanedNewSchedules.map(ensureImageData);
+
+        setSavedSchedules(newSchedulesWithImages);
+
+        // Simpan ke localStorage dengan gambar
+        saveToLocalStorageWithFallback(newSchedulesWithImages);
+
+        // Log untuk debugging gambar
+        console.log(
+          "💾 Schedule baru dengan gambar berhasil disimpan ke localStorage:",
+          {
+            totalSchedules: cleanedNewSchedules.length,
+            schedulesWithImages: newSchedulesWithImages.filter(
+              (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+            ).length,
+            sampleImage:
+              newSchedulesWithImages
+                .find(
+                  (s) => s.form?.partImageUrl || s.productInfo?.partImageUrl,
+                )
+                ?.form?.partImageUrl?.substring(0, 50) + "...",
+          },
+        );
 
         // Pesan sukses sederhana
         const successMessage = serverSucceeded
@@ -3442,11 +4084,65 @@ const SchedulerPage: React.FC = () => {
       console.log("📋 Schedule data:", saved.schedule);
 
       // Paksa apply state lokal supaya bisa tampil lagi meski memilih schedule yang sama
-      setForm(saved.form); // Gunakan setForm langsung, bukan setFormWithTracking
+      // Restore gambar dari placeholder jika ada
+      const restoredForm = restoreImageFromPlaceholder(saved.form);
+      setForm(restoredForm); // Gunakan setForm langsung, bukan setFormWithTracking
 
       // Pastikan schedule data valid
       const scheduleData = saved.schedule || [];
       console.log("📊 Processed schedule data:", scheduleData);
+
+      // Log untuk debugging gambar saat load schedule
+      console.log("🖼️ Loading schedule with image data:", {
+        scheduleId: saved.id,
+        formPartImageUrl: saved.form?.partImageUrl?.substring(0, 50) + "...",
+        productInfoPartImageUrl:
+          saved.productInfo?.partImageUrl?.substring(0, 50) + "...",
+        hasFormImage: !!saved.form?.partImageUrl,
+        hasProductInfoImage: !!saved.productInfo?.partImageUrl,
+        imageData: {
+          formImageLength: saved.form?.partImageUrl?.length || 0,
+          productInfoImageLength: saved.productInfo?.partImageUrl?.length || 0,
+          formImageStartsWithData:
+            saved.form?.partImageUrl?.startsWith("data:") || false,
+          productInfoImageStartsWithData:
+            saved.productInfo?.partImageUrl?.startsWith("data:") || false,
+        },
+        imageValidation: {
+          formImageValid:
+            saved.form?.partImageUrl?.startsWith("data:") || false,
+          productInfoImageValid:
+            saved.productInfo?.partImageUrl?.startsWith("data:") || false,
+          anyImageValid: !!(
+            saved.form?.partImageUrl?.startsWith("data:") ||
+            saved.productInfo?.partImageUrl?.startsWith("data:")
+          ),
+          imageReadyForDisplay: !!(
+            saved.form?.partImageUrl?.startsWith("data:") ||
+            saved.productInfo?.partImageUrl?.startsWith("data:")
+          ),
+        },
+        troubleshooting: {
+          needsImageFormatting:
+            !!(
+              saved.form?.partImageUrl &&
+              !saved.form?.partImageUrl.startsWith("data:")
+            ) ||
+            !!(
+              saved.productInfo?.partImageUrl &&
+              !saved.productInfo?.partImageUrl.startsWith("data:")
+            ),
+          imageDataIntegrity: {
+            formImageLength: saved.form?.partImageUrl?.length || 0,
+            productInfoImageLength:
+              saved.productInfo?.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              saved.form?.partImageUrl?.startsWith("data:") || false,
+            productInfoImageStartsWithData:
+              saved.productInfo?.partImageUrl?.startsWith("data:") || false,
+          },
+        },
+      });
 
       if (scheduleData.length === 0) {
         console.warn("⚠️ Schedule data is empty, cannot display table");
@@ -3483,25 +4179,180 @@ const SchedulerPage: React.FC = () => {
       console.log("📊 Current savedSchedules count:", savedSchedules.length);
       setSelectedPart(saved.form?.part || null);
 
+      // Log untuk debugging state setelah reset
+      console.log("🔄 State reset completed:", {
+        hasUnsavedChanges: false,
+        hasScheduleChanges: false,
+        hasUnsavedChildPartChanges: false,
+        childPartChanges: "Set(0)",
+        isNewlyGeneratedSchedule: false,
+        selectedPart: saved.form?.part || null,
+        imageState: {
+          formPartImageUrl: form.partImageUrl?.substring(0, 50) + "...",
+          productInfoPartImageUrl:
+            productInfo.partImageUrl?.substring(0, 50) + "...",
+          hasFormImage: !!form.partImageUrl,
+          hasProductInfoImage: !!productInfo.partImageUrl,
+        },
+        troubleshooting: {
+          needsImageFormatting:
+            !!(form.partImageUrl && !form.partImageUrl.startsWith("data:")) ||
+            !!(
+              productInfo.partImageUrl &&
+              !productInfo.partImageUrl.startsWith("data:")
+            ),
+          imageDataIntegrity: {
+            formImageLength: form.partImageUrl?.length || 0,
+            productInfoImageLength: productInfo.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              form.partImageUrl?.startsWith("data:") || false,
+            productInfoImageStartsWithData:
+              productInfo.partImageUrl?.startsWith("data:") || false,
+          },
+        },
+      });
+
       // Update product info
       if (saved.productInfo) {
-        setProductInfo({
+        const productInfoData = {
           partName: saved.productInfo.partName || saved.form.part || "",
           customer: saved.productInfo.customer || saved.form.customer || "",
           partImageUrl:
             saved.productInfo.partImageUrl || saved.form.partImageUrl || "",
           lastSavedBy: saved.productInfo.lastSavedBy,
           lastSavedAt: saved.productInfo.lastSavedAt,
+        };
+
+        // Restore gambar dari placeholder jika ada
+        const restoredProductInfo =
+          restoreImageFromPlaceholder(productInfoData);
+        setProductInfo(restoredProductInfo);
+
+        // Log untuk debugging gambar dari productInfo
+        console.log("🖼️ ProductInfo image data:", {
+          partImageUrl:
+            saved.productInfo.partImageUrl?.substring(0, 50) + "...",
+          formPartImageUrl: saved.form.partImageUrl?.substring(0, 50) + "...",
+          finalImageUrl:
+            (
+              saved.productInfo.partImageUrl || saved.form.partImageUrl
+            )?.substring(0, 50) + "...",
+          imageSource: "productInfo",
+          imageValidation: {
+            partImageUrlValid:
+              saved.productInfo.partImageUrl?.startsWith("data:") || false,
+            formPartImageUrlValid:
+              saved.form.partImageUrl?.startsWith("data:") || false,
+            finalImageUrlValid:
+              (
+                saved.productInfo.partImageUrl || saved.form.partImageUrl
+              )?.startsWith("data:") || false,
+          },
+          troubleshooting: {
+            needsImageFormatting:
+              !!(
+                saved.productInfo.partImageUrl &&
+                !saved.productInfo.partImageUrl.startsWith("data:")
+              ) ||
+              !!(
+                saved.form.partImageUrl &&
+                !saved.form.partImageUrl.startsWith("data:")
+              ),
+            imageDataIntegrity: {
+              partImageUrlLength: saved.productInfo.partImageUrl?.length || 0,
+              formPartImageUrlLength: saved.form.partImageUrl?.length || 0,
+              partImageUrlStartsWithData:
+                saved.productInfo.partImageUrl?.startsWith("data:") || false,
+              formPartImageUrlStartsWithData:
+                saved.form.partImageUrl?.startsWith("data:") || false,
+            },
+          },
         });
       } else {
-        setProductInfo({
+        const formData = {
           partName: saved.form.part || "",
           customer: saved.form.customer || "",
           partImageUrl: saved.form.partImageUrl || "",
           lastSavedBy: undefined,
           lastSavedAt: undefined,
+        };
+
+        // Restore gambar dari placeholder jika ada
+        const restoredFormData = restoreImageFromPlaceholder(formData);
+        setProductInfo(restoredFormData);
+
+        // Log untuk debugging gambar dari form
+        console.log("🖼️ Form image data:", {
+          partImageUrl: saved.form.partImageUrl?.substring(0, 50) + "...",
+          imageSource: "form",
+          imageValidation: {
+            partImageUrlValid:
+              saved.form.partImageUrl?.startsWith("data:") || false,
+            partImageUrlLength: saved.form.partImageUrl?.length || 0,
+          },
+          troubleshooting: {
+            needsImageFormatting: !!(
+              saved.form.partImageUrl &&
+              !saved.form.partImageUrl.startsWith("data:")
+            ),
+            imageDataIntegrity: {
+              partImageUrlLength: saved.form.partImageUrl?.length || 0,
+              partImageUrlStartsWithData:
+                saved.form.partImageUrl?.startsWith("data:") || false,
+            },
+          },
         });
       }
+
+      // Log untuk debugging state setelah update product info
+      console.log("🔄 Product info updated:", {
+        partName: saved.form?.part || "",
+        customer: saved.form?.customer || "",
+        hasPartImageUrl: !!(
+          saved.productInfo?.partImageUrl || saved.form?.partImageUrl
+        ),
+        finalImageUrl:
+          (
+            saved.productInfo?.partImageUrl || saved.form?.partImageUrl
+          )?.substring(0, 50) + "...",
+        imageValidation: {
+          finalImageUrlValid:
+            (
+              saved.productInfo?.partImageUrl || saved.form?.partImageUrl
+            )?.startsWith("data:") || false,
+          finalImageUrlLength:
+            (saved.productInfo?.partImageUrl || saved.form?.partImageUrl)
+              ?.length || 0,
+          imageReadyForDisplay: !!(
+            saved.productInfo?.partImageUrl?.startsWith("data:") ||
+            saved.form?.partImageUrl?.startsWith("data:")
+          ),
+        },
+        troubleshooting: {
+          needsImageFormatting:
+            !!(
+              saved.productInfo?.partImageUrl &&
+              !saved.productInfo?.partImageUrl.startsWith("data:")
+            ) ||
+            !!(
+              saved.form?.partImageUrl &&
+              !saved.form?.partImageUrl.startsWith("data:")
+            ),
+          imageDataIntegrity: {
+            finalImageUrlLength:
+              (saved.productInfo?.partImageUrl || saved.form?.partImageUrl)
+                ?.length || 0,
+            finalImageUrlStartsWithData:
+              (
+                saved.productInfo?.partImageUrl || saved.form?.partImageUrl
+              )?.startsWith("data:") || false,
+            imageReadyForDisplay: !!(
+              saved.productInfo?.partImageUrl?.startsWith("data:") ||
+              saved.form?.partImageUrl?.startsWith("data:")
+            ),
+          },
+        },
+      });
 
       // Jika ada backendId, coba load data lengkap dari backend untuk mendapatkan gambar
       if (saved.backendId) {
@@ -3517,37 +4368,120 @@ const SchedulerPage: React.FC = () => {
             const planning = response.productPlanning;
 
             // Update form dengan data dari backend
-            setForm((prev) => ({
-              ...prev,
-              part: planning.partName,
-              customer: planning.customerName,
-              stock: planning.currentStock,
-              timePerPcs: 257,
-              partImageUrl: formatImageUrl(
+            try {
+              const formattedImageUrl = formatImageUrl(
                 planning.partImageBase64,
                 planning.partImageMimeType,
-              ),
-            }));
+              );
 
-            // Update productInfo dengan gambar dari backend
-            setProductInfo((prev) => ({
-              ...prev,
-              partImageUrl: planning.partImageBase64
-                ? formatImageUrl(
-                    planning.partImageBase64,
-                    planning.partImageMimeType,
-                  )
-                : prev.partImageUrl,
-            }));
+              // Validate dan optimize image sebelum set ke state
+              const validatedImageUrl =
+                validateAndOptimizeImage(formattedImageUrl);
+
+              // Restore gambar dari placeholder jika ada
+              const finalImageUrl = validatedImageUrl || formattedImageUrl;
+
+              // Update form dengan gambar yang sudah di-restore
+              setForm((prev) => {
+                const updatedForm = {
+                  ...prev,
+                  part: planning.partName,
+                  customer: planning.customerName,
+                  stock: planning.currentStock,
+                  timePerPcs: 257,
+                  partImageUrl: finalImageUrl,
+                };
+
+                // Restore dari placeholder jika perlu
+                return restoreImageFromPlaceholder(updatedForm, finalImageUrl);
+              });
+
+              // Update productInfo dengan gambar dari backend
+              setProductInfo((prev) => {
+                const updatedProductInfo = {
+                  ...prev,
+                  partImageUrl: finalImageUrl,
+                };
+
+                // Restore dari placeholder jika perlu
+                return restoreImageFromPlaceholder(
+                  updatedProductInfo,
+                  finalImageUrl,
+                );
+              });
+
+              console.log(
+                "✅ Image berhasil diupdate dari backend dan di-restore dari placeholder",
+              );
+            } catch (imageError) {
+              console.error(
+                "❌ Error updating image from backend:",
+                imageError,
+              );
+              handleImageEditError(imageError, "update image dari backend");
+
+              // Set image ke undefined jika ada error
+              setForm((prev) => ({
+                ...prev,
+                part: planning.partName,
+                customer: planning.customerName,
+                stock: planning.currentStock,
+                timePerPcs: 257,
+                partImageUrl: undefined,
+              }));
+
+              setProductInfo((prev) => ({
+                ...prev,
+                partImageUrl: undefined,
+              }));
+            }
+
+            // Log untuk debugging gambar dari backend
+            console.log("🖼️ Loaded image from backend:", {
+              backendId: saved.backendId,
+              hasPartImageBase64: !!planning.partImageBase64,
+              hasPartImageMimeType: !!planning.partImageMimeType,
+              currentFormImage: form.partImageUrl?.substring(0, 50) + "...",
+            });
 
             console.log(
               "✅ Loaded complete data from backend for ID:",
               saved.backendId,
             );
+
+            // Log untuk debugging gambar setelah load dari backend
+            console.log("🖼️ Image data after backend load:", {
+              backendId: saved.backendId,
+              formPartImageUrl: form.partImageUrl?.substring(0, 50) + "...",
+              productInfoPartImageUrl:
+                productInfo.partImageUrl?.substring(0, 50) + "...",
+              hasFormImage: !!form.partImageUrl,
+              hasProductInfoImage: !!productInfo.partImageUrl,
+              backendData: {
+                hasPartImageBase64: !!planning.partImageBase64,
+                hasPartImageMimeType: !!planning.partImageMimeType,
+                partImageBase64Length: planning.partImageBase64?.length || 0,
+                partImageMimeType: planning.partImageMimeType || "none",
+              },
+              formattedResult: {
+                currentFormImage: form.partImageUrl?.substring(0, 50) + "...",
+                currentFormImageLength: form.partImageUrl?.length || 0,
+                currentFormImageStartsWithData:
+                  form.partImageUrl?.startsWith("data:") || false,
+              },
+            });
           }
         } catch (error) {
           console.error("❌ Error loading complete data from backend:", error);
           // Jika gagal, gunakan data lokal saja
+          console.log("⚠️ Using local data as fallback for image");
+
+          // Handle specific errors
+          if (error.name === "QuotaExceededError") {
+            handleImageEditError(error, "load data dari backend");
+          } else if (error.message?.includes("image")) {
+            handleImageEditError(error, "proses gambar dari backend");
+          }
         }
       }
 
@@ -3556,6 +4490,38 @@ const SchedulerPage: React.FC = () => {
       const monthIndex = MONTHS.findIndex((m) => saved.name.includes(m));
       if (monthIndex >= 0) setSelectedMonth(monthIndex);
       if (yearMatch && yearMatch[1]) setSelectedYear(parseInt(yearMatch[1]));
+
+      // Log untuk debugging bulan dan tahun
+      console.log("📅 Month/Year parsed:", {
+        scheduleName: saved.name,
+        monthIndex,
+        year: yearMatch ? parseInt(yearMatch[1]) : null,
+        selectedMonth: monthIndex >= 0 ? monthIndex : "Not found",
+        selectedYear: yearMatch ? parseInt(yearMatch[1]) : "Not found",
+        imageState: {
+          formPartImageUrl: form.partImageUrl?.substring(0, 50) + "...",
+          productInfoPartImageUrl:
+            productInfo.partImageUrl?.substring(0, 50) + "...",
+          hasFormImage: !!form.partImageUrl,
+          hasProductInfoImage: !!productInfo.partImageUrl,
+        },
+        troubleshooting: {
+          needsImageFormatting:
+            !!(form.partImageUrl && !form.partImageUrl.startsWith("data:")) ||
+            !!(
+              productInfo.partImageUrl &&
+              !productInfo.partImageUrl.startsWith("data:")
+            ),
+          imageDataIntegrity: {
+            formImageLength: form.partImageUrl?.length || 0,
+            productInfoImageLength: productInfo.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              form.partImageUrl?.startsWith("data:") || false,
+            productInfoImageStartsWithData:
+              productInfo.partImageUrl?.startsWith("data:") || false,
+          },
+        },
+      });
 
       // Simpan juga ke context (gunakan objek baru agar perubahan terdeteksi)
       // Pastikan tidak ada duplikasi dengan memeriksa existing schedule
@@ -3567,6 +4533,44 @@ const SchedulerPage: React.FC = () => {
             s.name === saved.name),
       );
 
+      // Log untuk debugging context
+      console.log("🔍 Context check:", {
+        totalSavedSchedules: savedSchedules.length,
+        existingScheduleFound: !!existingScheduleInContext,
+        existingScheduleId: existingScheduleInContext?.id,
+        currentSavedId: saved.id,
+        currentBackendId: saved.backendId,
+        searchCriteria: {
+          backendId: saved.backendId,
+          part: saved.form.part,
+          customer: saved.form.customer,
+          name: saved.name,
+        },
+        imageState: {
+          formPartImageUrl: form.partImageUrl?.substring(0, 50) + "...",
+          productInfoPartImageUrl:
+            productInfo.partImageUrl?.substring(0, 50) + "...",
+          hasFormImage: !!form.partImageUrl,
+          hasProductInfoImage: !!productInfo.partImageUrl,
+        },
+        troubleshooting: {
+          needsImageFormatting:
+            !!(form.partImageUrl && !form.partImageUrl.startsWith("data:")) ||
+            !!(
+              productInfo.partImageUrl &&
+              !productInfo.partImageUrl.startsWith("data:")
+            ),
+          imageDataIntegrity: {
+            formImageLength: form.partImageUrl?.length || 0,
+            productInfoImageLength: productInfo.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              form.partImageUrl?.startsWith("data:") || false,
+            productInfoImageStartsWithData:
+              productInfo.partImageUrl?.startsWith("data:") || false,
+          },
+        },
+      });
+
       if (!existingScheduleInContext) {
         const scheduleWithImage = {
           ...saved,
@@ -3576,7 +4580,81 @@ const SchedulerPage: React.FC = () => {
               saved.productInfo?.partImageUrl || saved.form.partImageUrl || "",
           },
         };
-        loadSchedule(scheduleWithImage);
+
+        // Restore gambar dari placeholder jika ada
+        const restoredScheduleWithImage =
+          restoreImageFromPlaceholder(scheduleWithImage);
+
+        // Log untuk debugging gambar saat load schedule
+        console.log("🖼️ Loading new schedule with image:", {
+          id: restoredScheduleWithImage.id,
+          partImageUrl:
+            restoredScheduleWithImage.productInfo?.partImageUrl?.substring(
+              0,
+              50,
+            ) + "...",
+          hasImage: !!(
+            restoredScheduleWithImage.productInfo?.partImageUrl ||
+            restoredScheduleWithImage.form?.partImageUrl
+          ),
+          scheduleData: {
+            totalScheduleItems: restoredScheduleWithImage.schedule?.length || 0,
+            hasScheduleData: !!(
+              restoredScheduleWithImage.schedule &&
+              restoredScheduleWithImage.schedule.length > 0
+            ),
+          },
+          imageDetails: {
+            formImageUrl:
+              restoredScheduleWithImage.form?.partImageUrl?.substring(0, 50) +
+              "...",
+            productInfoImageUrl:
+              restoredScheduleWithImage.productInfo?.partImageUrl?.substring(
+                0,
+                50,
+              ) + "...",
+            formImageLength:
+              restoredScheduleWithImage.form?.partImageUrl?.length || 0,
+            productInfoImageLength:
+              restoredScheduleWithImage.productInfo?.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              restoredScheduleWithImage.form?.partImageUrl?.startsWith(
+                "data:",
+              ) || false,
+            productInfoImageStartsWithData:
+              restoredScheduleWithImage.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              ) || false,
+          },
+          imageValidation: {
+            formImageValid:
+              restoredScheduleWithImage.form?.partImageUrl?.startsWith(
+                "data:",
+              ) || false,
+            productInfoImageValid:
+              restoredScheduleWithImage.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              ) || false,
+            anyImageValid: !!(
+              restoredScheduleWithImage.form?.partImageUrl?.startsWith(
+                "data:",
+              ) ||
+              restoredScheduleWithImage.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              )
+            ),
+            imageReadyForDisplay: !!(
+              restoredScheduleWithImage.form?.partImageUrl?.startsWith(
+                "data:",
+              ) ||
+              restoredScheduleWithImage.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              )
+            ),
+          },
+        });
+
+        loadSchedule(restoredScheduleWithImage);
       } else {
         // Update existing schedule di context
         const updatedSchedule = {
@@ -3587,7 +4665,75 @@ const SchedulerPage: React.FC = () => {
               saved.productInfo?.partImageUrl || saved.form.partImageUrl || "",
           },
         };
-        updateSchedule(existingScheduleInContext.id, updatedSchedule);
+
+        // Restore gambar dari placeholder jika ada
+        const restoredUpdatedSchedule =
+          restoreImageFromPlaceholder(updatedSchedule);
+
+        // Log untuk debugging gambar saat update schedule
+        console.log("🖼️ Updating existing schedule with image:", {
+          id: restoredUpdatedSchedule.id,
+          partImageUrl:
+            restoredUpdatedSchedule.productInfo?.partImageUrl?.substring(
+              0,
+              50,
+            ) + "...",
+          hasImage: !!(
+            restoredUpdatedSchedule.productInfo?.partImageUrl ||
+            restoredUpdatedSchedule.form?.partImageUrl
+          ),
+          scheduleData: {
+            totalScheduleItems: restoredUpdatedSchedule.schedule?.length || 0,
+            hasScheduleData: !!(
+              restoredUpdatedSchedule.schedule &&
+              restoredUpdatedSchedule.schedule.length > 0
+            ),
+          },
+          imageDetails: {
+            formImageUrl:
+              restoredUpdatedSchedule.form?.partImageUrl?.substring(0, 50) +
+              "...",
+            productInfoImageUrl:
+              restoredUpdatedSchedule.productInfo?.partImageUrl?.substring(
+                0,
+                50,
+              ) + "...",
+            formImageLength:
+              restoredUpdatedSchedule.form?.partImageUrl?.length || 0,
+            productInfoImageLength:
+              restoredUpdatedSchedule.productInfo?.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              restoredUpdatedSchedule.form?.partImageUrl?.startsWith("data:") ||
+              false,
+            productInfoImageStartsWithData:
+              restoredUpdatedSchedule.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              ) || false,
+          },
+          imageValidation: {
+            formImageValid:
+              restoredUpdatedSchedule.form?.partImageUrl?.startsWith("data:") ||
+              false,
+            productInfoImageValid:
+              restoredUpdatedSchedule.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              ) || false,
+            anyImageValid: !!(
+              restoredUpdatedSchedule.form?.partImageUrl?.startsWith("data:") ||
+              restoredUpdatedSchedule.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              )
+            ),
+            imageReadyForDisplay: !!(
+              restoredUpdatedSchedule.form?.partImageUrl?.startsWith("data:") ||
+              restoredUpdatedSchedule.productInfo?.partImageUrl?.startsWith(
+                "data:",
+              )
+            ),
+          },
+        });
+
+        updateSchedule(existingScheduleInContext.id, restoredUpdatedSchedule);
       }
 
       // Scroll ke tabel dengan delay lebih lama untuk memastikan state ter-update
@@ -3601,10 +4747,151 @@ const SchedulerPage: React.FC = () => {
         }
       }, 100);
 
+      // Log final state untuk debugging
+      console.log("🖼️ Final image state after handleShowSchedule:", {
+        formPartImageUrl: form.partImageUrl?.substring(0, 50) + "...",
+        productInfoPartImageUrl:
+          productInfo.partImageUrl?.substring(0, 50) + "...",
+        hasFormImage: !!form.partImageUrl,
+        hasProductInfoImage: !!productInfo.partImageUrl,
+        scheduleState: {
+          totalScheduleItems: schedule.length,
+          hasScheduleData: !!(schedule && schedule.length > 0),
+          selectedPart: !!selectedPart,
+        },
+        imageAnalysis: {
+          formImageLength: form.partImageUrl?.length || 0,
+          productInfoImageLength: productInfo.partImageUrl?.length || 0,
+          formImageStartsWithData:
+            form.partImageUrl?.startsWith("data:") || false,
+          productInfoImageStartsWithData:
+            productInfo.partImageUrl?.startsWith("data:") || false,
+          formImageValid: !!(
+            form.partImageUrl && form.partImageUrl.startsWith("data:")
+          ),
+          productInfoImageValid: !!(
+            productInfo.partImageUrl &&
+            productInfo.partImageUrl.startsWith("data:")
+          ),
+        },
+        imageStatus: {
+          anyImageValid: !!(
+            form.partImageUrl?.startsWith("data:") ||
+            productInfo.partImageUrl?.startsWith("data:")
+          ),
+          imageReadyForDisplay: !!(
+            form.partImageUrl?.startsWith("data:") ||
+            productInfo.partImageUrl?.startsWith("data:")
+          ),
+          imageDisplayIssue: !(
+            form.partImageUrl?.startsWith("data:") ||
+            productInfo.partImageUrl?.startsWith("data:")
+          ),
+        },
+      });
+
       console.log("✅ handleShowSchedule completed successfully");
+
+      // Log summary untuk debugging
+      console.log("📋 handleShowSchedule Summary:", {
+        scheduleId: saved.id,
+        backendId: saved.backendId,
+        partName: saved.form?.part,
+        customerName: saved.form?.customer,
+        hasImage: !!(form.partImageUrl || productInfo.partImageUrl),
+        imageSource: form.partImageUrl
+          ? "form"
+          : productInfo.partImageUrl
+            ? "productInfo"
+            : "none",
+        scheduleItems: schedule.length,
+        selectedPart: !!selectedPart,
+        success: true,
+        imageStatus: {
+          formImageValid: !!(
+            form.partImageUrl && form.partImageUrl.startsWith("data:")
+          ),
+          productInfoImageValid: !!(
+            productInfo.partImageUrl &&
+            productInfo.partImageUrl.startsWith("data:")
+          ),
+          anyImageValid: !!(
+            form.partImageUrl?.startsWith("data:") ||
+            productInfo.partImageUrl?.startsWith("data:")
+          ),
+          imageDisplayReady: !!(
+            form.partImageUrl?.startsWith("data:") ||
+            productInfo.partImageUrl?.startsWith("data:")
+          ),
+        },
+        troubleshooting: {
+          imageDisplayIssue: !(
+            form.partImageUrl?.startsWith("data:") ||
+            productInfo.partImageUrl?.startsWith("data:")
+          ),
+          needsImageFormatting:
+            !!(form.partImageUrl && !form.partImageUrl.startsWith("data:")) ||
+            !!(
+              productInfo.partImageUrl &&
+              !productInfo.partImageUrl.startsWith("data:")
+            ),
+          imageDataIntegrity: {
+            formImageLength: form.partImageUrl?.length || 0,
+            productInfoImageLength: productInfo.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              form.partImageUrl?.startsWith("data:") || false,
+            productInfoImageStartsWithData:
+              productInfo.partImageUrl?.startsWith("data:") || false,
+          },
+        },
+      });
     } catch (error) {
       console.error("❌ Error in handleShowSchedule:", error);
       showAlert("Gagal menampilkan jadwal", "Error");
+
+      // Log error summary untuk debugging
+      console.log("❌ handleShowSchedule Error Summary:", {
+        scheduleId: saved?.id,
+        backendId: saved?.backendId,
+        partName: saved?.form?.part,
+        customerName: saved?.form?.customer,
+        error: error.message,
+        success: false,
+        imageStatus: {
+          formImageValid:
+            saved?.form?.partImageUrl?.startsWith("data:") || false,
+          productInfoImageValid:
+            saved?.productInfo?.partImageUrl?.startsWith("data:") || false,
+          anyImageValid: !!(
+            saved?.form?.partImageUrl?.startsWith("data:") ||
+            saved?.productInfo?.partImageUrl?.startsWith("data:")
+          ),
+        },
+        troubleshooting: {
+          imageDisplayIssue: !(
+            saved?.form?.partImageUrl?.startsWith("data:") ||
+            saved?.productInfo?.partImageUrl?.startsWith("data:")
+          ),
+          needsImageFormatting:
+            !!(
+              saved?.form?.partImageUrl &&
+              !saved?.form?.partImageUrl.startsWith("data:")
+            ) ||
+            !!(
+              saved?.productInfo?.partImageUrl &&
+              !saved?.productInfo?.partImageUrl.startsWith("data:")
+            ),
+          imageDataIntegrity: {
+            formImageLength: saved?.form?.partImageUrl?.length || 0,
+            productInfoImageLength:
+              saved?.productInfo?.partImageUrl?.length || 0,
+            formImageStartsWithData:
+              saved?.form?.partImageUrl?.startsWith("data:") || false,
+            productInfoImageStartsWithData:
+              saved?.productInfo?.partImageUrl?.startsWith("data:") || false,
+          },
+        },
+      });
     }
   };
 
@@ -4003,7 +5290,7 @@ const SchedulerPage: React.FC = () => {
                   </div>
 
                   <div
-                    className={`${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} ${uiColors.border.secondary} rounded-2xl p-4 sm:p-6 shadow-sm`}
+                    className={`${theme === "dark" ? "bg-gray-900" : "bg-gray-200"} ${uiColors.border.secondary} rounded-2xl p-4 sm:p-6 shadow-sm`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2">
                       {parts.map((p) => (
@@ -4013,7 +5300,7 @@ const SchedulerPage: React.FC = () => {
                             setSelectedPart(p.name);
                             setSelectedCustomer(p.customer);
                           }}
-                          className={`group relative bg-gray-800 border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
+                          className={`group relative bg-white border ${p.borderColor} rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer grid grid-cols-12`}
                           style={{ minHeight: "150px" }}
                         >
                           <div className="col-span-5 md:col-span-5 relative">
@@ -4031,11 +5318,11 @@ const SchedulerPage: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between bg-gray-800">
+                          <div className="col-span-7 md:col-span-7 p-5 md:p-6 flex flex-col justify-between bg-white">
                             <div className="flex items-start justify-between">
                               <div className="min-w-0">
                                 <div
-                                  className={`text-lg sm:text-xl font-bold text-white truncate`}
+                                  className={`text-lg sm:text-xl font-bold text-gray-900 truncate`}
                                 >
                                   {p.name} - {p.customer}
                                 </div>
@@ -4053,14 +5340,14 @@ const SchedulerPage: React.FC = () => {
                                   setEditingPartImage(null);
                                   setShowEditPartModal(true);
                                 }}
-                                className={`p-2.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 shadow-lg border border-gray-600 transition-all duration-200 hover:scale-110`}
+                                className={`p-2.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 shadow-lg border border-gray-300 transition-all duration-200 hover:scale-110`}
                                 title="Edit part"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
                             </div>
                             <div>
-                              <p className={`text-gray-400 text-xs mb-3`}>
+                              <p className={`text-gray-600 text-xs mb-3`}>
                                 {p.description}
                               </p>
                               <div
@@ -4497,11 +5784,28 @@ const SchedulerPage: React.FC = () => {
                     );
                     // Jangan reset form, biarkan user melihat perubahan di card view
                   } else {
-                    // Mode create: Masuk ke dashboard
-                    setSelectedPart(form.part);
+                    // Mode create: Kembali ke view cards setelah generate berhasil
                     console.log(
-                      "✅ Create mode onSuccess: Masuk ke dashboard produksi",
+                      "✅ Create mode onSuccess: Kembali ke view cards",
                     );
+
+                    // Reset form dan schedule untuk kembali ke tampilan awal
+                    resetFormAndSchedule();
+
+                    // Pastikan user kembali ke view cards
+                    setSelectedPart(null);
+                    setSelectedCustomer(null);
+                    setSchedule([]);
+                    setIsNewlyGeneratedSchedule(false);
+                    setHasUnsavedChanges(false);
+                    setHasScheduleChanges(false);
+                    setHasUnsavedChildPartChanges(false);
+                    setChildPartChanges(new Set());
+
+                    // Scroll ke atas untuk menampilkan cards
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }, 100);
                   }
                 }}
                 isEditMode={isEditMode}
