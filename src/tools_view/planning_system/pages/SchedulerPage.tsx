@@ -5784,11 +5784,28 @@ const SchedulerPage: React.FC = () => {
                     );
                     // Jangan reset form, biarkan user melihat perubahan di card view
                   } else {
-                    // Mode create: Masuk ke dashboard
-                    setSelectedPart(form.part);
+                    // Mode create: Kembali ke view cards setelah generate berhasil
                     console.log(
-                      "✅ Create mode onSuccess: Masuk ke dashboard produksi",
+                      "✅ Create mode onSuccess: Kembali ke view cards",
                     );
+
+                    // Reset form dan schedule untuk kembali ke tampilan awal
+                    resetFormAndSchedule();
+
+                    // Pastikan user kembali ke view cards
+                    setSelectedPart(null);
+                    setSelectedCustomer(null);
+                    setSchedule([]);
+                    setIsNewlyGeneratedSchedule(false);
+                    setHasUnsavedChanges(false);
+                    setHasScheduleChanges(false);
+                    setHasUnsavedChildPartChanges(false);
+                    setChildPartChanges(new Set());
+
+                    // Scroll ke atas untuk menampilkan cards
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }, 100);
                   }
                 }}
                 isEditMode={isEditMode}
