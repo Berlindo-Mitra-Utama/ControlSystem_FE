@@ -437,11 +437,78 @@ const generateId = (): string => {
   return Math.random().toString(36).substr(2, 9)
 }
 
-// Helper untuk validasi UUID (ID dari database)
-const isValidUuid = (value: string | undefined | null): boolean => {
+// Helper untuk validasi ID (ID dari database - bisa UUID atau numeric)
+const isValidUuid = (value: string | number | undefined | null): boolean => {
   if (!value) return false
-  // UUID v4 pattern sederhana: 36 chars dengan '-'
-  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value)
+  
+  // Jika numeric ID (seperti 4, 5, 6, dst)
+  if (typeof value === 'number' && value > 0) return true
+  
+  // Jika string, cek apakah numeric atau UUID
+  if (typeof value === 'string') {
+    // Jika numeric string (seperti "4", "5", "6", dst)
+    if (/^\d+$/.test(value) && parseInt(value) > 0) return true
+    
+    // Jika UUID v4 pattern: 36 chars dengan '-'
+    if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value)) return true
+  }
+  
+  return false
+}
+
+// Test function untuk debugging
+const testIsValidUuid = () => {
+  console.log('🧪 Testing isValidUuid function:');
+  console.log('isValidUuid(4):', isValidUuid(4));
+  console.log('isValidUuid("4"):', isValidUuid("4"));
+  console.log('isValidUuid("abc"):', isValidUuid("abc"));
+  console.log('isValidUuid(null):', isValidUuid(null));
+  console.log('isValidUuid(undefined):', isValidUuid(undefined));
+}
+
+// Helper functions untuk update overall progress
+const updateProcessOverallProgress = async (processId: string, overallProgress: number): Promise<any> => {
+  try {
+    const response = await fetch(`http://localhost:5555/api/processes/${processId}/overall-progress`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')!).accessToken : ''}`
+      },
+      body: JSON.stringify({ overallProgress })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating process overall progress:', error);
+    throw error;
+  }
+}
+
+const updatePartOverallProgress = async (partId: string, overallProgress: number): Promise<any> => {
+  try {
+    const response = await fetch(`http://localhost:5555/api/parts/${partId}/overall-progress`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')!).accessToken : ''}`
+      },
+      body: JSON.stringify({ overallProgress })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating part overall progress:', error);
+    throw error;
+  }
 }
 
 // Local utility functions for process management
@@ -809,6 +876,11 @@ export default function ManageProgres() {
   useEffect(() => {
     // Force re-render untuk memastikan progress bar ter-update
   }, [progressToolingDetailProgress]);
+
+  // Effect untuk testing isValidUuid function
+  useEffect(() => {
+    testIsValidUuid();
+  }, []);
 
   // Effect untuk mengatur visibility sub-process berdasarkan showDetailedProcesses
   useEffect(() => {
@@ -1502,13 +1574,15 @@ export default function ManageProgres() {
   // Logika:
   // 1. Progress Tooling tidak bisa di-toggle manual (hanya auto-complete)
   // 2. Update local state terlebih dahulu (optimistic update)
-  // 3. Mark sebagai having unsaved changes
-  // 4. Progress akan disimpan ke backend saat user klik Save
+  // 3. Auto-save ke backend untuk persistence
+  // 4. Mark sebagai having unsaved changes
   const toggleProcess = async (partId: string, progressId: string, processId: string, childId?: string) => {
     try {
       // Tentukan nilai completed baru yang akan dikirim ke backend (optimistic)
       let toggledCompleted = false
       let isProgressToolingChild = false
+      let targetProcessId = processId
+      
       if (selectedPart) {
         const category = selectedPart.progress.find(c => c.id === progressId)
         const proc = category?.processes.find(p => p.id === processId)
@@ -1516,6 +1590,7 @@ export default function ManageProgres() {
           const child = proc.children.find(c => c.id === childId)
           isProgressToolingChild = child?.name === 'Progress Tooling'
           toggledCompleted = !(child?.completed ?? false)
+          targetProcessId = childId // Gunakan child ID untuk backend update
         } else {
           toggledCompleted = !(proc?.completed ?? false)
         }
@@ -1524,10 +1599,10 @@ export default function ManageProgres() {
       // Jika Progress Tooling child, abaikan (tidak boleh manual)
       if (isProgressToolingChild) return
 
-      console.log(`Toggling process: partId=${partId}, progressId=${progressId}, processId=${processId}, childId=${childId}`);
-      console.log(`New completed status: ${toggledCompleted}`);
+      console.log(`🔄 Toggling process: partId=${partId}, progressId=${progressId}, processId=${processId}, childId=${childId}`);
+      console.log(`📝 New completed status: ${toggledCompleted}`);
 
-      // Update local state first; TIDAK kirim ke backend di sini (hanya saat Save)
+      // Update local state first (optimistic update)
       setParts((prevParts) => {
         const updatedParts = prevParts.map((part) => {
           if (part.id !== partId) return part
@@ -1552,13 +1627,13 @@ export default function ManageProgres() {
                     
                     // Update sub-process completion
                     const updatedChildren = process.children.map((child) =>
-                      child.id === childId ? { ...child, completed: !child.completed } : child,
+                      child.id === childId ? { ...child, completed: toggledCompleted } : child,
                     )
                     
                     // Check if all sub-processes are completed
                     const allChildrenCompleted = updatedChildren.length > 0 && updatedChildren.every(child => child.completed)
                     
-                    console.log(`Sub-process ${childId} toggled to: ${!updatedChildren.find(c => c.id === childId)?.completed}`);
+                    console.log(`Sub-process ${childId} toggled to: ${toggledCompleted}`);
                     console.log(`All children completed: ${allChildrenCompleted}`);
                     
                     return {
@@ -1568,8 +1643,8 @@ export default function ManageProgres() {
                       completed: allChildrenCompleted
                     }
                   } else {
-                    console.log(`Process ${processId} toggled to: ${!process.completed}`);
-                    return { ...process, completed: !process.completed }
+                    console.log(`Process ${processId} toggled to: ${toggledCompleted}`);
+                    return { ...process, completed: toggledCompleted }
                   }
                 }),
               }
@@ -1591,9 +1666,63 @@ export default function ManageProgres() {
         return updatedParts
       })
       
-      console.log("Status complete berhasil diubah di local state")
+      // AUTO-SAVE: Langsung kirim ke backend untuk persistence
+      console.log(`🔍 Checking if targetProcessId is valid: ${targetProcessId} (type: ${typeof targetProcessId})`);
+      console.log(`🔍 isValidUuid result: ${isValidUuid(targetProcessId)}`);
+      
+      if (isValidUuid(targetProcessId)) {
+        try {
+          console.log(`💾 Auto-saving to backend for process ID: ${targetProcessId}`);
+          console.log(`📤 Sending completion update: ${targetProcessId} -> ${toggledCompleted}`);
+          
+          // Update process completion di backend
+          const updateResponse = await apiUpdateProcessCompletion(targetProcessId, toggledCompleted)
+          console.log('✅ Backend update successful:', updateResponse)
+          
+          // Update overall progress di backend
+          try {
+            console.log(`📤 Sending process overall progress update: ${targetProcessId} -> ${toggledCompleted ? 100 : 0}%`);
+            const overallProgressResponse = await updateProcessOverallProgress(targetProcessId, toggledCompleted ? 100 : 0)
+            console.log('✅ Overall progress update successful:', overallProgressResponse)
+          } catch (progressError) {
+            console.warn('⚠️ Overall progress update failed:', progressError)
+          }
+          
+          // Update part overall progress di backend
+          if (isValidUuid(selectedPart?.id)) {
+            try {
+              const partOverallProgress = calculateOverallProgressWithDetail(selectedPart)
+              console.log(`📤 Sending part overall progress update: ${selectedPart.id} -> ${partOverallProgress}%`);
+              const partProgressResponse = await updatePartOverallProgress(selectedPart.id, partOverallProgress)
+              console.log('✅ Part overall progress update successful:', partProgressResponse)
+            } catch (partError) {
+              console.warn('⚠️ Part overall progress update failed:', partError)
+            }
+          }
+          
+          console.log('🎯 Auto-save completed successfully')
+          
+        } catch (backendError) {
+          console.error('❌ Auto-save failed:', backendError)
+          console.error('❌ Error details:', {
+            message: backendError.message,
+            stack: backendError.stack,
+            name: backendError.name
+          })
+          
+          // Revert local state if backend update fails
+          console.log('🔄 Reverting local state due to backend failure')
+          await refreshPartsData()
+          return
+        }
+      } else {
+        console.warn(`⚠️ targetProcessId tidak valid: ${targetProcessId} (type: ${typeof targetProcessId})`)
+        console.warn('❌ Auto-save tidak dapat dijalankan karena ID tidak valid')
+      }
+      
+      console.log("✅ Status complete berhasil diubah dan tersimpan ke database")
     } catch (error) {
-      console.error("Error saat mengubah status complete:", error)
+      console.error("❌ Error saat mengubah status complete:", error)
       // Refresh data to revert any incorrect changes
       refreshPartsData()
     }
