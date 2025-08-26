@@ -492,21 +492,21 @@ const Dashboard: React.FC = () => {
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke={uiColors.theme === "light" ? "#e5e7eb" : "#374151"}
+                    stroke={uiColors.bg.primary === "bg-gray-50" ? "#e5e7eb" : "#374151"}
                   />
                   <XAxis
                     dataKey="month"
-                    stroke={uiColors.theme === "light" ? "#6b7280" : "#9ca3af"}
+                    stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"}
                   />
-                  <YAxis stroke={uiColors.theme === "light" ? "#6b7280" : "#9ca3af"} />
+                  <YAxis stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: uiColors.theme === "light" ? "#ffffff" : "#1f2937",
-                      border: `1px solid ${uiColors.theme === "light" ? "#d1d5db" : "#374151"}`,
+                      backgroundColor: uiColors.bg.primary === "bg-gray-50" ? "#ffffff" : "#1f2937",
+                      border: `1px solid ${uiColors.bg.primary === "bg-gray-50" ? "#d1d5db" : "#374151"}`,
                       borderRadius: "0.5rem",
-                      color: uiColors.theme === "light" ? "#111827" : "#f9fafb",
+                      color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb",
                     }}
-                    labelStyle={{ color: uiColors.theme === "light" ? "#111827" : "#f9fafb" }}
+                    labelStyle={{ color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb" }}
                   />
                   <Legend />
                   <Bar
