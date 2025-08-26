@@ -159,7 +159,8 @@ const Dashboard: React.FC = () => {
 
   // Handler untuk tombol Lihat Semua
   const handleViewAllCharts = () => {
-    navigate("/dashboard/allcharts");
+    // Buka halaman "Semua Chart Akumulasi Delivery"
+    navigate("/dashboard/all-delivery-charts");
   };
 
   // Handler untuk perubahan part
@@ -414,7 +415,7 @@ const Dashboard: React.FC = () => {
                   {selectedPart ? `Perbandingan Rencana dan Actual Produksi - ${selectedPart} (Per Hari)` : "Perbandingan Rencana dan Actual Produksi per Bulan"}
                 </h3>
                 <button
-                  onClick={() => navigate("/dashboard/production-comparison")}
+                  onClick={() => navigate("/dashboard/all-production-monthly")}
                   className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
                 >
                   Lihat Semua
