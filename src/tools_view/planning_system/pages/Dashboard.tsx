@@ -74,6 +74,7 @@ const Dashboard: React.FC = () => {
   // State untuk menyimpan data part dari database
   const [partOptions, setPartOptions] = useState<string[]>([]);
   const [childPartOptions, setChildPartOptions] = useState<string[]>([]);
+  const [normalPartOptions, setNormalPartOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Debug: Log savedSchedules
@@ -106,6 +107,7 @@ const Dashboard: React.FC = () => {
         // Mengambil data dari ps_product_planning
         const productPlanningResponse = await PlanningSystemService.getAllProductPlanning();
         const productParts = productPlanningResponse.productPlannings.map(part => part.partName);
+        setNormalPartOptions(productParts);
         
         // Menggabungkan data part dan menghilangkan duplikat
         const allParts = [...new Set([...childParts, ...productParts])];
@@ -239,6 +241,12 @@ const Dashboard: React.FC = () => {
     if (!selectedPart) return false;
     return childPartOptions.includes(selectedPart);
   }, [selectedPart, childPartOptions]);
+  
+  // Tambahkan state untuk menentukan apakah part yang dipilih adalah normal part
+  const isSelectedPartNormalPart = React.useMemo(() => {
+    if (!selectedPart) return false;
+    return normalPartOptions.includes(selectedPart);
+  }, [selectedPart, normalPartOptions]);
   
   // Calculate stats berdasarkan filter
   const stats = React.useMemo(() => {
@@ -419,6 +427,7 @@ const Dashboard: React.FC = () => {
           stats={stats} 
           isChildPart={isSelectedPartChildPart} 
           showAllMetrics={!selectedPart} // Tampilkan semua metrik jika tidak ada part yang dipilih
+          isNormalPart={isSelectedPartNormalPart} // Tambahkan prop baru
         />
 
         {savedSchedules.length > 0 ? (

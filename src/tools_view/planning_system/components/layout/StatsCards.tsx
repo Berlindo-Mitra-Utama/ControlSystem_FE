@@ -27,10 +27,16 @@ interface StatsCardsProps {
     aktualInMaterial?: number;
   };
   isChildPart?: boolean;
+  isNormalPart?: boolean; // Tambahkan prop baru
   showAllMetrics?: boolean; // Tambahkan prop baru untuk menampilkan semua metrik
 }
 
-const StatsCards: React.FC<StatsCardsProps> = ({ stats, isChildPart = false, showAllMetrics = false }) => {
+const StatsCards: React.FC<StatsCardsProps> = ({ 
+  stats, 
+  isChildPart = false, 
+  isNormalPart = false, 
+  showAllMetrics = false 
+}) => {
   const { uiColors } = useTheme();
   
   // Data untuk tabel dibagi menjadi 3 kolom untuk part normal
@@ -122,18 +128,33 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, isChildPart = false, sho
   // Jika isChildPart true, tampilkan hanya satu tabel dengan metrik child part
   if (isChildPart) {
     return (
-      <div className="grid grid-cols-1 gap-4">
-        <div>{renderTable(childPartData)}</div>
+      <div>
+        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Child Part</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div>{renderTable(childPartData)}</div>
+        </div>
       </div>
     );
   }
 
-  // Jika bukan child part, tampilkan tiga tabel seperti biasa
+  // Jika isNormalPart true, tampilkan tiga tabel dengan metrik normal part
+  if (isNormalPart) {
+    return (
+      <div>
+        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Normal Part</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>{renderTable(leftColumnData)}</div>
+          <div>{renderTable(middleColumnData)}</div>
+          <div>{renderTable(rightColumnData)}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Jika tidak ada part yang dipilih atau tidak teridentifikasi jenisnya, tampilkan pesan
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>{renderTable(leftColumnData)}</div>
-      <div>{renderTable(middleColumnData)}</div>
-      <div>{renderTable(rightColumnData)}</div>
+    <div className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-xl p-6 text-center`}>
+      <p className={`text-lg ${uiColors.text.primary}`}>Silakan pilih part untuk melihat metrik yang sesuai.</p>
     </div>
   );
 };
