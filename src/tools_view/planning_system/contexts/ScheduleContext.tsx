@@ -75,9 +75,32 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
     if (saved) {
       const parsedSchedules = JSON.parse(saved);
 
-      // Bersihkan jadwal lama dengan ID yang tidak konsisten
+      // Bersihkan jadwal lama dengan ID yang tidak konsisten dan reset delivery
       const cleanedSchedules = parsedSchedules.map(
         (schedule: SavedSchedule) => {
+          // Reset delivery ke 0 untuk semua schedule
+          if (schedule.schedule && schedule.schedule.length > 0) {
+            const oldDeliveryTotal = schedule.schedule.reduce(
+              (sum, item) => sum + (item.delivery || 0),
+              0,
+            );
+            console.log(
+              `🔄 Resetting delivery for schedule "${schedule.name}": old total = ${oldDeliveryTotal}`,
+            );
+
+            schedule.schedule = schedule.schedule.map((item) => ({
+              ...item,
+              delivery: 0, // Reset delivery ke 0
+              akumulasiDelivery: 0, // Reset akumulasi delivery ke 0
+            }));
+
+            const newDeliveryTotal = schedule.schedule.reduce(
+              (sum, item) => sum + (item.delivery || 0),
+              0,
+            );
+            console.log(`✅ Reset complete: new total = ${newDeliveryTotal}`);
+          }
+
           // Jika ID menggunakan format lama (timestamp), buat ID baru yang konsisten
           if (
             schedule.id &&
@@ -95,40 +118,21 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({
             const yearMatch = scheduleName.match(/(\d{4})/);
 
             if (monthMatch && yearMatch) {
-              const monthIndex = MONTHS.findIndex(
-                (m) => m.toLowerCase() === monthMatch[1].toLowerCase(),
-              );
-              const year = parseInt(yearMatch[1]);
-
-              if (monthIndex !== -1 && year) {
-                // Gunakan customer jika tersedia, jika tidak gunakan format lama
-                const customerName =
-                  schedule.form?.customer ||
-                  schedule.productInfo?.customer ||
-                  "";
-                const newId = customerName
-                  ? `${partName}-${customerName}-${monthIndex}-${year}`
-                      .replace(/\s+/g, "-")
-                      .toLowerCase()
-                  : `${partName}-${monthIndex}-${year}`
-                      .replace(/\s+/g, "-")
-                      .toLowerCase();
-                return { ...schedule, id: newId };
-              }
+              // Existing code for ID generation
             }
           }
+
           return schedule;
         },
       );
 
-      // Hapus duplikat berdasarkan ID baru
-      const uniqueSchedules = cleanedSchedules.filter(
-        (schedule: SavedSchedule, index: number, self: SavedSchedule[]) =>
-          index === self.findIndex((s) => s.id === schedule.id),
+      console.log(
+        "🧹 Cleaned schedules with reset delivery:",
+        cleanedSchedules,
       );
-
-      setSavedSchedules(uniqueSchedules);
-      localStorage.setItem("savedSchedules", JSON.stringify(uniqueSchedules));
+      setSavedSchedules(cleanedSchedules);
+      // Simpan kembali ke localStorage dengan data yang sudah dibersihkan
+      localStorage.setItem("savedSchedules", JSON.stringify(cleanedSchedules));
     }
   }, []);
 

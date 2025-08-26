@@ -6,6 +6,7 @@ import StatsCards from "../components/layout/StatsCards";
 import ProductionChart from "../components/layout/ProductionChart";
 import { MONTHS } from "../utils/scheduleDateUtils";
 import Modal from "../components/ui/Modal";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 // Singkatan bulan untuk dropdown
 const MONTH_ABBREVIATIONS = [
@@ -385,6 +386,144 @@ const Dashboard: React.FC = () => {
             <p className={uiColors.text.tertiary}>
               Belum ada jadwal produksi yang dibuat
             </p>
+          </div>
+        )}
+
+        {/* Chart Kedua: Perbandingan Rencana vs Actual Produksi */}
+        {savedSchedules.length > 0 && (
+          <div className="mt-12 sm:mt-20">
+            <div className={`w-full h-96 ${uiColors.bg.secondary} rounded-xl p-4`}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className={`text-xl font-semibold ${uiColors.text.primary}`}>
+                  Perbandingan Rencana vs Actual Produksi per Bulan
+                </h3>
+                <button
+                  onClick={() => navigate("/dashboard/production-comparison")}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                >
+                  Lihat Semua
+                </button>
+              </div>
+              <ResponsiveContainer width="100%" height="85%">
+                <BarChart
+                  data={React.useMemo(() => {
+                    // Buat template data untuk semua bulan
+                    const months = [
+                      "Januari",
+                      "Februari",
+                      "Maret",
+                      "April",
+                      "Mei",
+                      "Juni",
+                      "Juli",
+                      "Agustus",
+                      "September",
+                      "Oktober",
+                      "November",
+                      "Desember",
+                    ];
+
+                    // Inisialisasi data untuk semua bulan dengan nilai 0
+                    const initialMonthlyData: Record<string, { 
+                      rencanaProduksi: number; 
+                      actualProduksi: number 
+                    }> = {};
+                    months.forEach((month) => {
+                      initialMonthlyData[month] = { 
+                        rencanaProduksi: 0, 
+                        actualProduksi: 0 
+                      };
+                    });
+
+                    if (!filteredSchedules || filteredSchedules.length === 0) {
+                      // Jika tidak ada data, kembalikan template kosong
+                      return months.map((month) => ({
+                        month,
+                        rencanaProduksi: 0,
+                        actualProduksi: 0,
+                      }));
+                    }
+
+                    // Mengelompokkan data berdasarkan bulan
+                    const monthlyData = filteredSchedules.reduce<
+                      Record<string, { 
+                        rencanaProduksi: number; 
+                        actualProduksi: number 
+                      }>
+                    >(
+                      (acc, savedSchedule) => {
+                        // Ekstrak bulan dari nama jadwal (format: "Bulan Tahun")
+                        const scheduleName = savedSchedule.name;
+                        const monthName = scheduleName.split(" ")[0]; // Ambil nama bulan saja
+
+                        if (!acc[monthName]) {
+                          acc[monthName] = { 
+                            rencanaProduksi: 0, 
+                            actualProduksi: 0 
+                          };
+                        }
+
+                        // Hitung total rencana dan actual produksi untuk jadwal ini
+                        let totalRencana = 0;
+                        let totalActual = 0;
+
+                        savedSchedule.schedule.forEach((item) => {
+                          totalRencana += item.planningPcs || 0;
+                          totalActual += item.hasilProduksi || 0; // Menggunakan hasilProduksi untuk actual produksi
+                        });
+
+                        // Tambahkan ke akumulator
+                        acc[monthName].rencanaProduksi += totalRencana;
+                        acc[monthName].actualProduksi += totalActual;
+
+                        return acc;
+                      },
+                      initialMonthlyData, // Gunakan template yang sudah diinisialisasi
+                    );
+
+                    // Ubah ke format array untuk recharts
+                    return months.map((month) => ({
+                      month,
+                      rencanaProduksi: monthlyData[month].rencanaProduksi,
+                      actualProduksi: monthlyData[month].actualProduksi,
+                    }));
+                  }, [filteredSchedules])}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={uiColors.bg.primary === "bg-gray-50" ? "#e5e7eb" : "#374151"}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"}
+                  />
+                  <YAxis stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: uiColors.bg.primary === "bg-gray-50" ? "#ffffff" : "#1f2937",
+                      border: `1px solid ${uiColors.bg.primary === "bg-gray-50" ? "#d1d5db" : "#374151"}`,
+                      borderRadius: "0.5rem",
+                      color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb",
+                    }}
+                    labelStyle={{ color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb" }}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="rencanaProduksi"
+                    name="Rencana Produksi"
+                    fill="#3b82f6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="actualProduksi"
+                    name="Actual Produksi"
+                    fill="#10b981"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>
