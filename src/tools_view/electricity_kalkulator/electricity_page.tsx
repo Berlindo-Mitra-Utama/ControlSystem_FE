@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Zap, Clock, Calculator } from "lucide-react";
+import { Zap, Clock, Calculator, Percent } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { handleGirafTeamClick } from "./utils/scrollUtils";
 
@@ -11,6 +11,7 @@ export default function Component() {
   const [hours, setHours] = useState<string>("");
   const [minutes, setMinutes] = useState<string>("");
   const [electricityRate, setElectricityRate] = useState<string>("1444");
+  const [percentage, setPercentage] = useState<string>("100");
   const [cost, setCost] = useState<number>(0);
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
 
@@ -19,10 +20,11 @@ export default function Component() {
     const totalHours =
       (Number.parseFloat(hours) || 0) + (Number.parseFloat(minutes) || 0) / 60;
     const rate = Number.parseFloat(electricityRate) || 0;
+    const usagePercentage = Number.parseFloat(percentage) || 100;
 
     if (powerWatts > 0 && totalHours > 0 && rate > 0) {
-      // Konversi ke kWh
-      const energyKwh = (powerWatts * totalHours) / 1000;
+      // Konversi ke kWh dengan mempertimbangkan persentase pemakaian
+      const energyKwh = (powerWatts * totalHours * (usagePercentage / 100)) / 1000;
       // Hitung biaya
       const totalCost = energyKwh * rate;
       setCost(totalCost);
@@ -38,6 +40,7 @@ export default function Component() {
     setHours("");
     setMinutes("");
     setElectricityRate("1444");
+    setPercentage("100");
     setCost(0);
     setIsCalculated(false);
   };
@@ -52,10 +55,10 @@ export default function Component() {
   };
 
   useEffect(() => {
-    if (power || hours || minutes || electricityRate) {
+    if (power || hours || minutes || electricityRate || percentage) {
       calculateCost();
     }
-  }, [power, hours, minutes, electricityRate]);
+  }, [power, hours, minutes, electricityRate, percentage]);
 
   return (
     <div className="min-h-screen bg-slate-900 p-4 flex items-center justify-center">
@@ -119,6 +122,32 @@ export default function Component() {
               />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-green-400 font-medium">
                 Rp/kWh
+              </span>
+            </div>
+          </div>
+
+          {/* Input Persentase Pemakaian */}
+          <div className="space-y-2">
+            <label
+              htmlFor="percentage"
+              className="text-sm font-medium text-slate-300 flex items-center gap-2"
+            >
+              <Percent className="w-4 h-4" />
+              Persentase Pemakaian
+            </label>
+            <div className="relative">
+              <input
+                id="percentage"
+                type="number"
+                placeholder="Masukkan persentase"
+                value={percentage}
+                onChange={(e) => setPercentage(e.target.value)}
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white placeholder:text-slate-400 rounded-md focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-green-400 font-medium">
+                %
               </span>
             </div>
           </div>
@@ -191,12 +220,19 @@ export default function Component() {
                       {(
                         ((Number.parseFloat(power) || 0) *
                           ((Number.parseFloat(hours) || 0) +
-                            (Number.parseFloat(minutes) || 0) / 60)) /
+                            (Number.parseFloat(minutes) || 0) / 60) *
+                          ((Number.parseFloat(percentage) || 100) / 100)) /
                         1000
                       )
                         .toFixed(3)
                         .replace(".", ",")}{" "}
                       kWh
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Persentase Pemakaian:</span>
+                    <span className="font-medium">
+                      {Number.parseFloat(percentage) || 100}%
                     </span>
                   </div>
                   <div className="flex justify-between">
