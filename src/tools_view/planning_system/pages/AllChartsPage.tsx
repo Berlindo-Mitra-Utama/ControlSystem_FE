@@ -24,12 +24,18 @@ const AllChartsPage: React.FC = () => {
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
 
+  // Get current date for default values
+  const currentDate = new Date();
+  const currentMonthName = months[currentDate.getMonth()];
+  const currentYear = currentDate.getFullYear();
+
   // State untuk filter
   const [selectedPart, setSelectedPart] = useState<string>("");
   const [searchPart, setSearchPart] = useState<string>("");
   const [showPartDropdown, setShowPartDropdown] = useState<boolean>(false);
-  const [selectedMonth, setSelectedMonth] = useState<string>("Januari");
-  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(0);
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthName);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(currentDate.getMonth());
 
   // Filter part berdasarkan pencarian
   const filteredPartOptions = partOptions.filter(part => {
@@ -56,18 +62,38 @@ const AllChartsPage: React.FC = () => {
     if (!selectedMonth) {
       return months;
     }
-    return months.filter(month => month === selectedMonth);
+    return [selectedMonth];
   }, [selectedMonth]);
 
-  // Carousel navigation functions
+  // Calendar navigation functions
   const nextMonth = () => {
-    setCurrentMonthIndex((prev) => (prev + 1) % months.length);
-    setSelectedMonth(months[(currentMonthIndex + 1) % months.length]);
+    const currentIndex = months.indexOf(selectedMonth);
+    if (currentIndex === 11) {
+      // December -> January next year
+      setSelectedMonth("Januari");
+      setSelectedYear(prev => prev + 1);
+      setCurrentMonthIndex(0);
+    } else {
+      // Next month same year
+      const nextIndex = currentIndex + 1;
+      setSelectedMonth(months[nextIndex]);
+      setCurrentMonthIndex(nextIndex);
+    }
   };
 
   const prevMonth = () => {
-    setCurrentMonthIndex((prev) => (prev - 1 + months.length) % months.length);
-    setSelectedMonth(months[(currentMonthIndex - 1 + months.length) % months.length]);
+    const currentIndex = months.indexOf(selectedMonth);
+    if (currentIndex === 0) {
+      // January -> December previous year
+      setSelectedMonth("Desember");
+      setSelectedYear(prev => prev - 1);
+      setCurrentMonthIndex(11);
+    } else {
+      // Previous month same year
+      const prevIndex = currentIndex - 1;
+      setSelectedMonth(months[prevIndex]);
+      setCurrentMonthIndex(prevIndex);
+    }
   };
 
   // Handler untuk perubahan part
@@ -102,24 +128,21 @@ const AllChartsPage: React.FC = () => {
   const generateMonthlyChartData = (monthName: string) => {
     const monthSchedules = filteredSchedules.filter(schedule => {
       const scheduleName = schedule.name || "";
-      return scheduleName.includes(monthName);
+      // Filter by both month and year
+      return scheduleName.includes(monthName) && scheduleName.includes(selectedYear.toString());
     });
 
     if (monthSchedules.length === 0) {
       return [];
     }
 
-    // Tentukan jumlah hari dalam bulan
-    const getDaysInMonth = (month: string) => {
-      const monthMap: { [key: string]: number } = {
-        "Januari": 31, "Februari": 28, "Maret": 31, "April": 30,
-        "Mei": 31, "Juni": 30, "Juli": 31, "Agustus": 31,
-        "September": 30, "Oktober": 31, "November": 30, "Desember": 31
-      };
-      return monthMap[month] || 31;
+    // Tentukan jumlah hari dalam bulan dengan kalkulasi real-time
+    const getDaysInMonth = (month: string, year: number) => {
+      const monthIndex = months.indexOf(month);
+      return new Date(year, monthIndex + 1, 0).getDate();
     };
 
-    const daysInMonth = getDaysInMonth(monthName);
+    const daysInMonth = getDaysInMonth(monthName, selectedYear);
 
     // Gabungkan semua schedule items dari bulan tersebut dan group by day
     const dayData: { [key: number]: { rencana: number; actual: number } } = {};
@@ -154,7 +177,7 @@ const AllChartsPage: React.FC = () => {
   console.log("AllChartsPage - savedSchedules:", savedSchedules);
   console.log("AllChartsPage - filteredSchedules:", filteredSchedules);
 
-    return (
+  return (
     <div className={`w-full min-h-screen ${uiColors.bg.primary}`}>
       <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
@@ -192,7 +215,7 @@ const AllChartsPage: React.FC = () => {
                   onChange={handleSearchPartChange}
                   onFocus={() => setShowPartDropdown(true)}
                   placeholder={selectedPart || "Cari part..."}
-                  className={`${uiColors.bg.secondary} ${uiColors.text.primary} border ${uiColors.border.secondary} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm w-full`}
+                  className={`${uiColors.bg.secondary} ${uiColors.text.primary} border ${uiColors.border.secondary} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full`}
                 />
                 {showPartDropdown && (
                   <div 
@@ -209,7 +232,7 @@ const AllChartsPage: React.FC = () => {
                         <button
                           key={part}
                           onClick={() => handlePartChange(part)}
-                          className={`${uiColors.text.primary} hover:${uiColors.bg.tertiary} px-4 py-2 text-sm w-full text-left ${selectedPart === part ? 'bg-purple-100 dark:bg-purple-900' : ''}`}
+                          className={`${uiColors.text.primary} hover:${uiColors.bg.tertiary} px-4 py-2 text-sm w-full text-left ${selectedPart === part ? 'bg-blue-100 dark:bg-blue-900' : ''}`}
                         >
                           {part}
                         </button>
@@ -224,8 +247,8 @@ const AllChartsPage: React.FC = () => {
                 )}
               </div>
               {selectedPart && (
-                <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -237,26 +260,50 @@ const AllChartsPage: React.FC = () => {
               )}
             </div>
 
-            {/* Month Filter */}
+            {/* Month and Year Filter */}
             <div>
               <label className={`block mb-2 text-sm font-medium ${uiColors.text.primary}`}>
-                Pilih Bulan:
+                Pilih Bulan dan Tahun:
               </label>
-              <div className="relative">
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className={`${uiColors.bg.secondary} ${uiColors.text.primary} border ${uiColors.border.secondary} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm w-full appearance-none pr-8`}
-                >
-                  <option value="">Semua Bulan</option>
-                  {months.map((month) => (
-                    <option key={month} value={month}>{month}</option>
-                  ))}
-                </select>
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Month Selector */}
+                <div className="relative">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => {
+                      setSelectedMonth(e.target.value);
+                      setCurrentMonthIndex(months.indexOf(e.target.value));
+                    }}
+                    className={`${uiColors.bg.secondary} ${uiColors.text.primary} border ${uiColors.border.secondary} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full appearance-none pr-8`}
+                  >
+                    <option value="">Semua Bulan</option>
+                    {months.map((month) => (
+                      <option key={month} value={month}>{month}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                
+                {/* Year Selector */}
+                <div className="relative">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className={`${uiColors.bg.secondary} ${uiColors.text.primary} border ${uiColors.border.secondary} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full appearance-none pr-8`}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => currentYear - 5 + i).map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
               {selectedMonth && (
@@ -266,7 +313,7 @@ const AllChartsPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <span>
-                      Menampilkan data untuk <strong>{selectedMonth}</strong>
+                      Menampilkan data untuk <strong>{selectedMonth} {selectedYear}</strong> ({new Date(selectedYear, months.indexOf(selectedMonth) + 1, 0).getDate()} hari)
                     </span>
                   </div>
                 </div>
@@ -276,42 +323,44 @@ const AllChartsPage: React.FC = () => {
         </div>
 
         {/* Charts Section */}
-        <div className="min-h-screen">
+        <div className="space-y-8">
           {filteredMonths.map((month) => {
            const chartData = generateMonthlyChartData(month);
            const hasData = chartData.length > 0;
 
            return (
-             <div key={month} className={`${uiColors.bg.secondary} rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 min-h-screen`}>
+             <div key={month} className={`${uiColors.bg.secondary} rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700`}>
                {/* Month Header with Carousel Navigation */}
                <div className="mb-6">
                  <div className="flex items-center justify-between mb-4">
-                   <div className="flex items-center gap-4">
-                     <button
-                       onClick={prevMonth}
-                       className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
-                       disabled={currentMonthIndex === 0}
-                     >
-                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                       </svg>
-                     </button>
+                   <button
+                     onClick={prevMonth}
+                     className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     disabled={selectedYear <= currentYear - 5 && months.indexOf(selectedMonth) === 0}
+                   >
+                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                     </svg>
+                   </button>
+                   
+                   <div className="text-center">
                      <h2 className={`text-3xl font-bold ${uiColors.text.accent}`}>
-                       {month}
+                       {month} {selectedYear}
                      </h2>
-                     <button
-                       onClick={nextMonth}
-                       className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
-                       disabled={currentMonthIndex === months.length - 1}
-                     >
-                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                       </svg>
-                     </button>
+                     <div className="mt-1 text-sm text-gray-500">
+                       {new Date(selectedYear, months.indexOf(month) + 1, 0).getDate()} hari
+                     </div>
                    </div>
-                   <div className="text-sm text-gray-500">
-                     {currentMonthIndex + 1} dari {months.length}
-                   </div>
+                   
+                   <button
+                     onClick={nextMonth}
+                     className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     disabled={selectedYear >= currentYear + 4 && months.indexOf(selectedMonth) === 11}
+                   >
+                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                     </svg>
+                   </button>
                  </div>
                  <p className={`text-lg ${uiColors.text.secondary}`}>
                    {selectedPart 
@@ -321,198 +370,167 @@ const AllChartsPage: React.FC = () => {
                  </p>
                </div>
 
-                                {hasData ? (
-                   <div className="h-[calc(100vh-400px)] min-h-[500px]">
+               {hasData ? (
+                 <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                   <div className="h-[500px]">
                      <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
+                       <BarChart
+                         data={chartData}
                          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-          >
-                       <CartesianGrid
-                         strokeDasharray="3 3"
-                         stroke={uiColors.bg.primary === "bg-gray-50" ? "#e5e7eb" : "#374151"}
-                       />
-            <XAxis
-              dataKey="day"
+                       >
+                         <CartesianGrid
+                           strokeDasharray="3 3"
+                           stroke={uiColors.bg.primary === "bg-gray-50" ? "#e5e7eb" : "#374151"}
+                         />
+                         <XAxis
+                           dataKey="day"
                            stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"}
                            angle={0}
                            textAnchor="middle"
                            height={60}
                          />
-                       <YAxis stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"} />
-            <Tooltip
-              contentStyle={{
-                           backgroundColor: uiColors.bg.primary === "bg-gray-50" ? "#ffffff" : "#1f2937",
-                           border: `1px solid ${uiColors.bg.primary === "bg-gray-50" ? "#d1d5db" : "#374151"}`,
-                borderRadius: "0.5rem",
-                           color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb",
-                         }}
-                         labelStyle={{ color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb" }}
-                         formatter={(value: any, name: string) => [
-                           `${value} jam`,
-                           name === "rencanaJamProduksi" ? "Rencana Jam Produksi" : "Actual Jam Produksi"
-                         ]}
-            />
-            <Legend />
-            <Bar
-                         dataKey="rencanaJamProduksi"
-                         name="Rencana Jam Produksi"
-                         fill="#8b5cf6"
-                         radius={[4, 4, 0, 0]}
-                       />
-                       <Bar
-                         dataKey="actualJamProduksi"
-                         name="Actual Jam Produksi"
-                         fill="#ec4899"
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-                                ) : (
-                   <div className="h-[calc(100vh-400px)] min-h-[500px] flex items-center justify-center">
-                     <div className="text-center">
-                       <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                       </svg>
-                       <p className={`text-lg ${uiColors.text.tertiary} mb-2`}>
-                         Tidak ada data untuk {month}
-                       </p>
-                       <p className={`text-sm ${uiColors.text.tertiary}`}>
-                         {selectedPart 
-                           ? `Belum ada jadwal produksi untuk ${selectedPart} di bulan ${month}`
-                           : `Belum ada jadwal produksi di bulan ${month}`
-                         }
-                       </p>
-                     </div>
+                         <YAxis stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"} />
+                         <Tooltip
+                           contentStyle={{
+                             backgroundColor: uiColors.bg.primary === "bg-gray-50" ? "#ffffff" : "#1f2937",
+                             border: `1px solid ${uiColors.bg.primary === "bg-gray-50" ? "#d1d5db" : "#374151"}`,
+                             borderRadius: "0.5rem",
+                             color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb",
+                           }}
+                           labelStyle={{ color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb" }}
+                           formatter={(value: any, name: string) => [
+                             `${value} jam`,
+                             name === "rencanaJamProduksi" ? "Rencana Jam Produksi" : "Actual Jam Produksi"
+                           ]}
+                         />
+                         <Legend />
+                         <Bar
+                           dataKey="rencanaJamProduksi"
+                           name="Rencana Jam Produksi"
+                           fill="#3b82f6"
+                           radius={[4, 4, 0, 0]}
+                         />
+                         <Bar
+                           dataKey="actualJamProduksi"
+                           name="Actual Jam Produksi"
+                           fill="#10b981"
+                           radius={[4, 4, 0, 0]}
+                         />
+                       </BarChart>
+                     </ResponsiveContainer>
                    </div>
-                 )}
-
-               {/* Summary untuk bulan ini */}
-               {hasData && (
-                 <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                     <div>
-                       <span className={`font-medium ${uiColors.text.primary}`}>Total Rencana:</span>
-                       <span className={`ml-2 ${uiColors.text.secondary}`}>
-                         {chartData.reduce((sum, item) => sum + item.rencanaJamProduksi, 0).toFixed(1)} jam
-                       </span>
-                     </div>
-                     <div>
-                       <span className={`font-medium ${uiColors.text.primary}`}>Total Actual:</span>
-                       <span className={`ml-2 ${uiColors.text.secondary}`}>
-                         {chartData.reduce((sum, item) => sum + item.actualJamProduksi, 0).toFixed(1)} jam
-                       </span>
-                     </div>
-                     <div>
-                       <span className={`font-medium ${uiColors.text.primary}`}>Jumlah Hari:</span>
-                       <span className={`ml-2 ${uiColors.text.secondary}`}>
-                         {chartData.length} hari
-                       </span>
-            </div>
-          </div>
-        </div>
+                 </div>
+               ) : (
+                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-12 border border-gray-200 dark:border-gray-700">
+                   <div className="text-center">
+                     <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                     </svg>
+                     <p className={`text-lg ${uiColors.text.tertiary} mb-2`}>
+                       Tidak ada data untuk {month}
+                     </p>
+                     <p className={`text-sm ${uiColors.text.tertiary}`}>
+                       {selectedPart 
+                         ? `Belum ada jadwal produksi untuk ${selectedPart} di bulan ${month}`
+                         : `Belum ada jadwal produksi di bulan ${month}`
+                       }
+                     </p>
+                   </div>
+                 </div>
                )}
 
-                               {/* Tabel Summary per Part */}
-                {hasData && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className={`text-lg font-semibold ${uiColors.text.accent}`}>
-                        Ringkasan Perbandingan - {month}
-                      </h3>
-      </div>
+               {/* Tabel Summary per Part */}
+               {hasData && (
+                 <div className="mt-6">
+                   <div className="flex items-center justify-between mb-4">
+                     <h3 className={`text-lg font-semibold ${uiColors.text.accent}`}>
+                       Ringkasan Perbandingan - {month}
+                     </h3>
+                   </div>
 
-                    <div className={`overflow-x-auto ${uiColors.bg.secondary} rounded-xl border border-gray-200 dark:border-gray-700`}>
-                      <table className="w-full">
-                        <thead>
-                          <tr className={`${uiColors.bg.tertiary}`}>
-                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
-                              HARI
-                            </th>
-                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
-                              RENCANA (JAM)
-                            </th>
-                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
-                              ACTUAL (JAM)
-                            </th>
-                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
-                              GAP
-                            </th>
-                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
-                              ACHIEVEMENT (%)
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className={`divide-y ${uiColors.border.secondary}`}>
-                          {/* Detail per hari */}
-                          {chartData.map((item, index) => {
-                            const dailyGap = item.rencanaJamProduksi - item.actualJamProduksi;
-                            const dailyAchievement = item.rencanaJamProduksi > 0 ? ((item.actualJamProduksi / item.rencanaJamProduksi) * 100) : 0;
-                            
-                            return (
-                              <tr key={index} className={`${uiColors.bg.secondary} hover:${uiColors.bg.tertiary}`}>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${uiColors.text.primary}`}>
-                                  Hari {item.day}
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}>
-                                  {item.rencanaJamProduksi.toFixed(1)} jam
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}>
-                                  {item.actualJamProduksi.toFixed(1)} jam
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${dailyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {dailyGap >= 0 ? '+' : ''}{dailyGap.toFixed(1)} jam
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${dailyAchievement >= 100 ? 'text-green-600' : dailyAchievement >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {dailyAchievement.toFixed(1)}%
-                                </td>
-                              </tr>
-                            );
-                          })}
-                          
-                          {/* Baris akumulasi di paling bawah */}
-                          {(() => {
-                            const totalRencanaJam = chartData.reduce((sum, item) => sum + item.rencanaJamProduksi, 0);
-                            const totalActualJam = chartData.reduce((sum, item) => sum + item.actualJamProduksi, 0);
-                            const gap = totalRencanaJam - totalActualJam;
-                            const achievement = totalRencanaJam > 0 ? ((totalActualJam / totalRencanaJam) * 100) : 0;
-                            
-                            return (
-                              <tr className={`${uiColors.bg.tertiary} font-bold border-t-2 border-gray-400`}>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
-                                  Total Akumulasi
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
-                                  {totalRencanaJam.toFixed(1)} jam
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
-                                  {totalActualJam.toFixed(1)} jam
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {gap >= 0 ? '+' : ''}{gap.toFixed(1)} jam
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${achievement >= 100 ? 'text-green-600' : achievement >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {achievement.toFixed(1)}%
-                                </td>
-                              </tr>
-                            );
-                          })()}
-                        </tbody>
-                      </table>
-        </div>
-        </div>
-      )}
+                   <div className={`overflow-x-auto ${uiColors.bg.secondary} rounded-xl border border-gray-200 dark:border-gray-700`}>
+                     <table className="w-full">
+                       <thead>
+                         <tr className={`${uiColors.bg.tertiary}`}>
+                           <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                             HARI
+                           </th>
+                           <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                             RENCANA (JAM)
+                           </th>
+                           <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                             ACTUAL (JAM)
+                           </th>
+                           <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                             GAP
+                           </th>
+                           <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                             ACHIEVEMENT (%)
+                           </th>
+                         </tr>
+                       </thead>
+                       <tbody className={`divide-y ${uiColors.border.secondary}`}>
+                         {/* Detail per hari */}
+                         {chartData.map((item, index) => {
+                           const dailyGap = item.rencanaJamProduksi - item.actualJamProduksi;
+                           const dailyAchievement = item.rencanaJamProduksi > 0 ? ((item.actualJamProduksi / item.rencanaJamProduksi) * 100) : 0;
+                           
+                           return (
+                             <tr key={index} className={`${uiColors.bg.secondary} hover:${uiColors.bg.tertiary}`}>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${uiColors.text.primary}`}>
+                                 Hari {item.day}
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}>
+                                 {item.rencanaJamProduksi.toFixed(1)} jam
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}>
+                                 {item.actualJamProduksi.toFixed(1)} jam
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${dailyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                 {dailyGap >= 0 ? '+' : ''}{dailyGap.toFixed(1)} jam
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${dailyAchievement >= 100 ? 'text-green-600' : dailyAchievement >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                 {dailyAchievement.toFixed(1)}%
+                               </td>
+                             </tr>
+                           );
+                         })}
+                         
+                         {/* Baris akumulasi di paling bawah */}
+                         {(() => {
+                           const totalRencanaJam = chartData.reduce((sum, item) => sum + item.rencanaJamProduksi, 0);
+                           const totalActualJam = chartData.reduce((sum, item) => sum + item.actualJamProduksi, 0);
+                           const gap = totalRencanaJam - totalActualJam;
+                           const achievement = totalRencanaJam > 0 ? ((totalActualJam / totalRencanaJam) * 100) : 0;
+                           
+                           return (
+                             <tr key="total" className={`${uiColors.bg.tertiary} font-bold border-t-2 border-gray-400`}>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
+                                 Total Akumulasi
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
+                                 {totalRencanaJam.toFixed(1)} jam
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
+                                 {totalActualJam.toFixed(1)} jam
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                 {gap >= 0 ? '+' : ''}{gap.toFixed(1)} jam
+                               </td>
+                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${achievement >= 100 ? 'text-green-600' : achievement >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                 {achievement.toFixed(1)}%
+                               </td>
+                             </tr>
+                           );
+                         })()}
+                       </tbody>
+                     </table>
+                   </div>
+                 </div>
+               )}
              </div>
            );
          })}
-        </div>
-
-        {/* Footer */}
-        <div className="mt-12 text-center">
-          <p className={`text-sm ${uiColors.text.tertiary}`}>
-            Menampilkan detail perbandingan jam produksi untuk semua bulan dalam setahun
-          </p>
         </div>
       </div>
     </div>

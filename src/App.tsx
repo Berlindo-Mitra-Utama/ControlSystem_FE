@@ -16,6 +16,8 @@ import Dashboard from "./tools_view/planning_system/pages/Dashboard";
 import Scheduler from "./tools_view/planning_system/pages/SchedulerPage";
 import AllCharts from "./tools_view/planning_system/pages/AllChartsPage";
 import ProductionComparison from "./tools_view/planning_system/pages/ProductionComparisonPage";
+import { default as AllDeliveryCharts } from "./tools_view/planning_system/pages/AllDeliveryChartsPage";
+import { default as AllProductionMonthlyCharts } from "./tools_view/planning_system/pages/AllProductionMonthlyChartsPage";
 import HitungCoil from "./tools_view/hitung_koil/pages/hitungcoil";
 import LandingPage from "./main_view/pages/LandingPage";
 import ToolsDashboard from "./main_view/pages/ToolsDashboard";
@@ -61,6 +63,8 @@ function App() {
                 {/* Removed SavedSchedules route (not used) */}
                 <Route path="allcharts" element={<AllCharts />} />
                 <Route path="production-comparison" element={<ProductionComparison />} />
+                <Route path="all-delivery-charts" element={<AllDeliveryCharts />} />
+                <Route path="all-production-monthly" element={<AllProductionMonthlyCharts />} />
               </Route>
 
                 {/* Protected Routes - Progress Tracker */}
