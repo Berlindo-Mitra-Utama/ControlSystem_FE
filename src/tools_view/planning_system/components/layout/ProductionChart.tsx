@@ -45,7 +45,7 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
   schedules,
   onViewAllCharts,
 }) => {
-  const { uiColors, theme } = useTheme();
+  const { uiColors } = useTheme();
   // Mengolah data untuk chart
   const chartData = React.useMemo(() => {
     // Buat template data untuk semua bulan
@@ -116,7 +116,7 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
   }, [schedules]);
 
   return (
-    <div className={`w-full h-96 ${uiColors.bg.secondary} rounded-xl p-4`}>
+    <div className={`w-full ${uiColors.bg.secondary} rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm`}>
       <div className="flex justify-between items-center mb-4">
         <h3 className={`text-xl font-semibold ${uiColors.text.primary}`}>
           Akumulasi Delivery per Bulan
@@ -130,38 +130,42 @@ const ProductionChart: React.FC<ProductionChartProps> = ({
           </button>
         )}
       </div>
-      <ResponsiveContainer width="100%" height="85%">
-        <BarChart
-          data={chartData}
-          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke={theme === "light" ? "#e5e7eb" : "#374151"}
-          />
-          <XAxis
-            dataKey="month"
-            stroke={theme === "light" ? "#6b7280" : "#9ca3af"}
-          />
-          <YAxis stroke={theme === "light" ? "#6b7280" : "#9ca3af"} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: theme === "light" ? "#ffffff" : "#1f2937",
-              border: `1px solid ${theme === "light" ? "#d1d5db" : "#374151"}`,
-              borderRadius: "0.5rem",
-              color: theme === "light" ? "#111827" : "#f9fafb",
-            }}
-            labelStyle={{ color: theme === "light" ? "#111827" : "#f9fafb" }}
-          />
-          <Legend />
-          <Bar
-            dataKey="akumulasiDelivery"
-            name="Akumulasi Delivery"
-            fill="#10b981"
-            radius={[4, 4, 0, 0]}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+        <div className="h-[420px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={uiColors.bg.primary === "bg-gray-50" ? "#e5e7eb" : "#374151"}
+              />
+              <XAxis
+                dataKey="month"
+                stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"}
+              />
+              <YAxis stroke={uiColors.bg.primary === "bg-gray-50" ? "#6b7280" : "#9ca3af"} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: uiColors.bg.primary === "bg-gray-50" ? "#ffffff" : "#1f2937",
+                  border: `1px solid ${uiColors.bg.primary === "bg-gray-50" ? "#d1d5db" : "#374151"}`,
+                  borderRadius: "0.5rem",
+                  color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb",
+                }}
+                labelStyle={{ color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb" }}
+              />
+              <Legend />
+              <Bar
+                dataKey="akumulasiDelivery"
+                name="Akumulasi Delivery"
+                fill="#10b981"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 };
