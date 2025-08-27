@@ -5,8 +5,9 @@ import { useTheme } from "../../contexts/ThemeContext";
 import StatsCards from "../components/layout/StatsCards";
 import ProductionChart from "../components/layout/ProductionChart";
 import { MONTHS } from "../utils/scheduleDateUtils";
-import Modal from "../components/ui/Modal";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+// Import services untuk mengambil data dari database
+import { ChildPartService, PlanningSystemService } from "../../../services/API_Services";
 
 // Singkatan bulan untuk dropdown
 const MONTH_ABBREVIATIONS = [
@@ -49,25 +50,16 @@ interface ScheduleItem {
   rencanaStockCustom?: number;
 }
 
-// Data part dari mockData di SchedulerPage dengan data dummy tambahan
-const partOptions = [
-  "29N Muffler", 
-  "Transmission Case B2", 
-  "Brake Disc C3",
-  "Engine Block A7",  // Contoh child part 1
-  "Cylinder Head X5"  // Contoh child part 2
-];
-
-// Tambahkan array untuk menentukan child parts
-const childPartOptions = [
-  "Engine Block A7",  // Contoh child part 1
-  "Cylinder Head X5"  // Contoh child part 2
-];
-
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { savedSchedules } = useSchedule();
   const { uiColors } = useTheme();
+  
+  // State untuk menyimpan data part dari database
+  const [partOptions, setPartOptions] = useState<string[]>([]);
+  const [childPartOptions, setChildPartOptions] = useState<string[]>([]);
+  const [normalPartOptions, setNormalPartOptions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Debug: Log savedSchedules
   console.log("Dashboard - savedSchedules:", savedSchedules);
@@ -86,13 +78,40 @@ const Dashboard: React.FC = () => {
   const [searchPart, setSearchPart] = useState<string>("");
   const [showPartDropdown, setShowPartDropdown] = useState<boolean>(false);
   
-  // Filter part berdasarkan pencarian
+  // Mengambil data part dari database saat komponen dimuat
+  useEffect(() => {
+    const fetchPartData = async () => {
+      setIsLoading(true);
+      try {
+        // Mengambil data dari ps_child_parts
+        const childPartsResponse = await ChildPartService.getAllChildParts();
+        const childParts = childPartsResponse.map(part => part.partName);
+        setChildPartOptions(childParts);
+        
+        // Mengambil data dari ps_product_planning
+        const productPlanningResponse = await PlanningSystemService.getAllProductPlanning();
+        const productParts = productPlanningResponse.productPlannings.map(part => part.partName);
+        setNormalPartOptions(productParts);
+        
+        // Menggabungkan data part dan menghilangkan duplikat
+        const allParts = [...new Set([...childParts, ...productParts])];
+        setPartOptions(allParts);
+      } catch (error) {
+        console.error("Error fetching part data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchPartData();
+  }, []);
+  
   // Filter part berdasarkan pencarian
   const filteredPartOptions = partOptions.filter(part => {
-  // Hapus semua spasi dari part dan search query untuk perbandingan
-  const partNoSpaces = part.toLowerCase().replace(/\s+/g, "");
-  const searchNoSpaces = searchPart.toLowerCase().replace(/\s+/g, "");
-  return partNoSpaces.includes(searchNoSpaces);
+    // Hapus semua spasi dari part dan search query untuk perbandingan
+    const partNoSpaces = part.toLowerCase().replace(/\s+/g, "");
+    const searchNoSpaces = searchPart.toLowerCase().replace(/\s+/g, "");
+    return partNoSpaces.includes(searchNoSpaces);
   });
   
   // Tambahkan state untuk filter bulan dan shift dengan default kosong
@@ -205,7 +224,13 @@ const Dashboard: React.FC = () => {
   const isSelectedPartChildPart = React.useMemo(() => {
     if (!selectedPart) return false;
     return childPartOptions.includes(selectedPart);
-  }, [selectedPart]);
+  }, [selectedPart, childPartOptions]);
+  
+  // Tambahkan state untuk menentukan apakah part yang dipilih adalah normal part
+  const isSelectedPartNormalPart = React.useMemo(() => {
+    if (!selectedPart) return false;
+    return normalPartOptions.includes(selectedPart);
+  }, [selectedPart, normalPartOptions]);
   
   // Calculate stats berdasarkan filter
   const stats = React.useMemo(() => {
@@ -304,33 +329,39 @@ const Dashboard: React.FC = () => {
                   className={`${uiColors.bg.secondary} ${uiColors.text.primary} border ${uiColors.border.secondary} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full`}
                 />
                 {showPartDropdown && (
-                  <div 
-                    className={`absolute z-10 mt-1 w-full ${uiColors.bg.secondary} border ${uiColors.border.secondary} rounded-md shadow-lg max-h-60 overflow-auto`}
+              <div 
+                className={`absolute z-10 mt-1 w-full ${uiColors.bg.secondary} border ${uiColors.border.secondary} rounded-md shadow-lg max-h-60 overflow-auto`}
+              >
+                <div className="py-1">
+                  <button
+                    onClick={() => handlePartChange("")}
+                    className={`${uiColors.text.primary} hover:${uiColors.bg.tertiary} px-4 py-2 text-sm w-full text-left`}
                   >
-                    <div className="py-1">
-                      <button
-                        onClick={() => handlePartChange("")}
-                        className={`${uiColors.text.primary} hover:${uiColors.bg.tertiary} px-4 py-2 text-sm w-full text-left`}
-                      >
-                        Semua Part
-                      </button>
-                      {filteredPartOptions.map((part) => (
-                        <button
-                          key={part}
-                          onClick={() => handlePartChange(part)}
-                          className={`${uiColors.text.primary} hover:${uiColors.bg.tertiary} px-4 py-2 text-sm w-full text-left ${selectedPart === part ? 'bg-blue-100 dark:bg-blue-900' : ''}`}
-                        >
-                          {part}
-                        </button>
-                      ))}
-                      {filteredPartOptions.length === 0 && (
-                        <div className={`${uiColors.text.tertiary} px-4 py-2 text-sm italic`}>
-                          Tidak ada part yang sesuai
-                        </div>
-                      )}
+                    Semua Part
+                  </button>
+                  {isLoading ? (
+                    <div className={`${uiColors.text.tertiary} px-4 py-2 text-sm italic`}>
+                      Memuat data part...
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    filteredPartOptions.map((part) => (
+                      <button
+                        key={part}
+                        onClick={() => handlePartChange(part)}
+                        className={`${uiColors.text.primary} hover:${uiColors.bg.tertiary} px-4 py-2 text-sm w-full text-left ${selectedPart === part ? 'bg-blue-100 dark:bg-blue-900' : ''}`}
+                      >
+                        {part}
+                      </button>
+                    ))
+                  )}
+                  {!isLoading && filteredPartOptions.length === 0 && (
+                    <div className={`${uiColors.text.tertiary} px-4 py-2 text-sm italic`}>
+                      Tidak ada part yang ditemukan
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
               </div>
             </div>
             
@@ -380,6 +411,7 @@ const Dashboard: React.FC = () => {
           stats={stats} 
           isChildPart={isSelectedPartChildPart} 
           showAllMetrics={!selectedPart} // Tampilkan semua metrik jika tidak ada part yang dipilih
+          isNormalPart={isSelectedPartNormalPart} // Tambahkan prop baru
         />
 
         {savedSchedules.length > 0 ? (
