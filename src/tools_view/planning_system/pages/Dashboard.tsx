@@ -5,7 +5,6 @@ import { useTheme } from "../../contexts/ThemeContext";
 import StatsCards from "../components/layout/StatsCards";
 import ProductionChart from "../components/layout/ProductionChart";
 import { MONTHS } from "../utils/scheduleDateUtils";
-import Modal from "../components/ui/Modal";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 // Import services untuk mengambil data dari database
 import { ChildPartService, PlanningSystemService } from "../../../services/API_Services";
@@ -50,21 +49,6 @@ interface ScheduleItem {
   actualStock?: number;
   rencanaStockCustom?: number;
 }
-
-// Hapus data statis
-// const partOptions = [
-//   "29N Muffler", 
-//   "Transmission Case B2", 
-//   "Brake Disc C3",
-//   "Engine Block A7",  // Contoh child part 1
-//   "Cylinder Head X5"  // Contoh child part 2
-// ];
-
-// // Tambahkan array untuk menentukan child parts
-// const childPartOptions = [
-//   "Engine Block A7",  // Contoh child part 1
-//   "Cylinder Head X5"  // Contoh child part 2
-// ];
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
