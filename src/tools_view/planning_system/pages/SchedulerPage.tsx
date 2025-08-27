@@ -2889,11 +2889,8 @@ const SchedulerPage: React.FC = () => {
         }
       }
 
-      // Jika ada perubahan pada data produksi dan ada backendId, update data produksi harian
-      if (
-        hasScheduleChanges &&
-        (response.productPlanning?.id || response.id || existingId)
-      ) {
+      // Selalu update data produksi harian ketika menyimpan jadwal
+      if (response.productPlanning?.id || response.id || existingId) {
         try {
           const scheduleId =
             response.productPlanning?.id || response.id || existingId;
@@ -2903,12 +2900,14 @@ const SchedulerPage: React.FC = () => {
           );
 
           // Konversi schedule data untuk update daily production
-          const productionDataForUpdate = schedule.map((item: any) => ({
-            ...item,
-            year: currentYear,
-            // kirim 1-12 ke backend
-            month: currentMonth + 1,
-          }));
+          const productionDataForUpdate = schedule
+            .filter((item: any) => item.shift === "1" || item.shift === "2")
+            .map((item: any) => ({
+              ...item,
+              year: currentYear,
+              // kirim 1-12 ke backend
+              month: currentMonth + 1,
+            }));
 
           await ProductionService.updateDailyProductionBySchedule(
             scheduleId,
@@ -4217,6 +4216,7 @@ const SchedulerPage: React.FC = () => {
       );
       console.log("📊 Current savedSchedules count:", savedSchedules.length);
       setSelectedPart(saved.form?.part || null);
+      setSelectedCustomer(saved.form?.customer || null);
 
       // Log untuk debugging state setelah reset
       console.log("🔄 State reset completed:", {
@@ -5254,11 +5254,13 @@ const SchedulerPage: React.FC = () => {
         );
 
         // Konversi data untuk update
-        const productionDataForUpdate = updatedRows.map((item: any) => ({
-          ...item,
-          year: selectedYear,
-          month: selectedMonth + 1,
-        }));
+        const productionDataForUpdate = updatedRows
+          .filter((item: any) => item.shift === "1" || item.shift === "2")
+          .map((item: any) => ({
+            ...item,
+            year: selectedYear,
+            month: selectedMonth + 1,
+          }));
 
         await ProductionService.updateDailyProductionBySchedule(
           currentSchedule.backendId,
@@ -5273,6 +5275,22 @@ const SchedulerPage: React.FC = () => {
       } else {
         // Fallback ke metode lama jika tidak ada backend ID
         await saveProductionDataToBackend(updatedRows);
+        // Setelah fallback create, coba refresh productPlannings agar backendId tersedia lagi
+        try {
+          const { PlanningSystemService } = await import(
+            "../../../services/API_Services"
+          );
+          const refreshed = await PlanningSystemService.getAllProductPlanning();
+          console.log(
+            "Refreshed product plannings after fallback save:",
+            refreshed,
+          );
+        } catch (e) {
+          console.warn(
+            "Failed to refresh product plannings after fallback save",
+            e,
+          );
+        }
         showSuccess("Perubahan berhasil disimpan ke database!");
       }
     } catch (error) {
