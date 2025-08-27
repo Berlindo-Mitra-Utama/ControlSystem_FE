@@ -29,7 +29,11 @@ interface ChildPartTableProps {
   days: number;
   schedule: ScheduleItem[];
   onDelete?: () => void;
-  onEdit?: () => void;
+  onEdit?: (data: {
+    partName: string;
+    customerName: string;
+    stock: number | null;
+  }) => void;
   onEditSchedule?: () => void;
   onDeleteSchedule?: () => void;
   inMaterial?: (number | null)[][];
@@ -114,7 +118,7 @@ const Modal: React.FC<{
 
 const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   const { uiColors } = useTheme();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Hapus modal konfirmasi lokal untuk delete part (gunakan modal global dari parent)
   const [showDeleteScheduleModal, setShowDeleteScheduleModal] = useState(false);
   const [showEditPartModal, setShowEditPartModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -316,13 +320,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   };
 
   // Wrap delete
-  const handleDeleteClick = () => setShowDeleteModal(true);
-  const handleDeleteConfirm = async () => {
-    setShowDeleteModal(false);
-    if (props.onDelete) {
-      // Panggil onDelete yang sudah ada (akan menghapus dari database dan state)
-      props.onDelete();
-    }
+  const handleDeleteClick = () => {
+    // Delegasikan konfirmasi ke parent (modal global)
+    if (props.onDelete) props.onDelete();
   };
 
   const handleEditSchedule = () => {
@@ -344,9 +344,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     customerName: string;
     stock: number | null;
   }) => {
-    if (props.onEdit) {
-      props.onEdit();
-    }
+    if (props.onEdit) props.onEdit(data);
     setShowEditPartModal(false);
   };
 
@@ -712,14 +710,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleDeleteConfirm}
-        title="Konfirmasi Hapus"
-        message="Apakah Anda yakin ingin menghapus part ini?"
-      />
+      {/* Modal konfirmasi hapus part dihapus, gunakan modal global dari parent */}
 
       {/* Delete Schedule Confirmation Modal */}
       <Modal
@@ -748,6 +739,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
         onClose={() => setShowEditPartModal(false)}
         onGenerate={() => {}}
         onEdit={handleEditPartSubmit}
+        onDelete={props.onDelete}
         initialData={{
           partName: props.partName,
           customerName: props.customerName,

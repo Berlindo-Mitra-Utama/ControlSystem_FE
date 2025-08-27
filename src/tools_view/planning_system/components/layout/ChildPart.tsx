@@ -160,7 +160,10 @@ const ChildPart: React.FC<ChildPartFormProps> = ({
             {isEditMode && onDelete && (
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={() => {
+                  // Delegasikan konfirmasi ke parent agar hanya ada satu modal
+                  onDelete();
+                }}
                 className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
@@ -187,41 +190,7 @@ const ChildPart: React.FC<ChildPartFormProps> = ({
         </form>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-60 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm relative border border-gray-200 dark:border-gray-800 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Trash2 className="w-6 h-6 text-red-500" />
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Konfirmasi Hapus
-              </h3>
-            </div>
-            <p className="text-gray-700 dark:text-gray-300 mb-6">
-              Apakah Anda yakin ingin menghapus part "{partName}"? Tindakan ini
-              tidak dapat dibatalkan.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex-1 py-2 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal konfirmasi hapus dihapus, gunakan modal global dari parent */}
     </div>
   );
 };
