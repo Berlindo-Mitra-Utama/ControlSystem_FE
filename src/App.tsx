@@ -1,4 +1,3 @@
-import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./main_view/contexts/AuthContext";
 import { ScheduleProvider } from "./tools_view/planning_system/contexts/ScheduleContext";
