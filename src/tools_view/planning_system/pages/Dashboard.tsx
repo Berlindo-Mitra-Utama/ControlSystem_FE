@@ -372,7 +372,7 @@ const Dashboard: React.FC = () => {
                   )}
                   {!isLoading && filteredPartOptions.length === 0 && (
                     <div className={`${uiColors.text.tertiary} px-4 py-2 text-sm italic`}>
-                      Tidak ada part yang sesuai
+                      Tidak ada part yang ditemukan
                     </div>
                   )}
                 </div>
