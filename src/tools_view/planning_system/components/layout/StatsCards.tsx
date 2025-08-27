@@ -11,14 +11,12 @@ interface StatsCardsProps {
     
     // Data baru sesuai gambar
     deliveryPlan: number;
-    akumulasiDelivery: number;
     planningProduksiPcs: number;
     planningProduksiJam: number;
     overtimePcs: number;
     overtimeJam: number;
     jamProduksiCycleTime: number;
     hasilProduksiAktual: number;
-    akumulasiHasilProduksi: number;
     actualStock: number;
     rencanaStock: number;
     
@@ -27,23 +25,22 @@ interface StatsCardsProps {
     aktualInMaterial?: number;
   };
   isChildPart?: boolean;
-  isNormalPart?: boolean; // Tambahkan prop baru
+  isFinishGoodPart?: boolean; // Ganti nama dari isNormalPart menjadi isFinishGoodPart
   showAllMetrics?: boolean; // Tambahkan prop baru untuk menampilkan semua metrik
 }
 
 const StatsCards: React.FC<StatsCardsProps> = ({ 
   stats, 
   isChildPart = false, 
-  isNormalPart = false, 
+  isFinishGoodPart = false, // Ganti nama dari isNormalPart menjadi isFinishGoodPart
   showAllMetrics = false 
 }) => {
   const { uiColors } = useTheme();
   
-  // Data untuk tabel dibagi menjadi 3 kolom untuk part normal
+  // Data untuk tabel dibagi menjadi 3 kolom untuk finish good part
   const leftColumnData = [
     { label: "MANPOWER", value: stats.disruptedItems },
     { label: "DELIVERY PLAN (PCS)", value: stats.deliveryPlan },
-    { label: "AKUMULASI DELIVERY (PCS)", value: stats.akumulasiDelivery },
     { label: "PLANNING PRODUKSI (PCS)", value: stats.planningProduksiPcs },
   ];
 
@@ -56,7 +53,6 @@ const StatsCards: React.FC<StatsCardsProps> = ({
 
   const rightColumnData = [
     { label: "HASIL PRODUKSI AKTUAL (PCS)", value: stats.hasilProduksiAktual },
-    { label: "AKUMULASI HASIL PRODUKSI (PCS)", value: stats.akumulasiHasilProduksi },
     { label: "ACTUAL STOCK (PCS)", value: stats.actualStock },
     { label: "RENCANA STOCK (PCS)", value: stats.rencanaStock },
   ];
@@ -107,7 +103,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
     return (
       <div className="space-y-8">
         <div>
-          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Normal Part</h3>
+          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Finish Good Part</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>{renderTable(leftColumnData)}</div>
             <div>{renderTable(middleColumnData)}</div>
@@ -137,11 +133,11 @@ const StatsCards: React.FC<StatsCardsProps> = ({
     );
   }
 
-  // Jika isNormalPart true, tampilkan tiga tabel dengan metrik normal part
-  if (isNormalPart) {
+  // Jika isFinishGoodPart true, tampilkan tiga tabel dengan metrik finish good part
+  if (isFinishGoodPart) {
     return (
       <div>
-        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Normal Part</h3>
+        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Finish Good Part</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>{renderTable(leftColumnData)}</div>
           <div>{renderTable(middleColumnData)}</div>
