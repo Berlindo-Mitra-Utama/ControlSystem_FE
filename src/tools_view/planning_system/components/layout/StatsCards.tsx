@@ -79,7 +79,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
               Metrik
             </th>
             <th className={`px-4 py-3 text-right text-sm font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
-              Nilai
+              Total
             </th>
           </tr>
         </thead>
