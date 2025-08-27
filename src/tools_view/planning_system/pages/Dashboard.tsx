@@ -441,10 +441,10 @@ const Dashboard: React.FC = () => {
         {/* Chart Kedua: Perbandingan Rencana dan Actual Produksi */}
         {savedSchedules.length > 0 && (
           <div className="mt-12 sm:mt-20">
-            <div className={`w-full h-96 ${uiColors.bg.secondary} rounded-xl p-4`}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className={`text-xl font-semibold ${uiColors.text.primary}`}>
-                  {selectedPart ? `Perbandingan Rencana dan Actual Produksi - ${selectedPart} (Per Hari)` : "Perbandingan Rencana dan Actual Produksi per Bulan"}
+                <div className={`w-full ${uiColors.bg.secondary} rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-xl font-semibold ${uiColors.text.primary}`}>
+                      {selectedPart ? `Perbandingan Rencana dan Actual Produksi - ${selectedPart} (Per Hari)` : "Perbandingan Rencana dan Actual Produksi per Bulan"}
                 </h3>
                 <button
                   onClick={() => navigate("/dashboard/all-production-monthly")}
@@ -453,7 +453,9 @@ const Dashboard: React.FC = () => {
                   Lihat Semua
                 </button>
               </div>
-              <ResponsiveContainer width="100%" height="85%">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                <div className="h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={React.useMemo(() => {
                     console.log("Chart 2 - filteredSchedules:", filteredSchedules);
@@ -657,8 +659,10 @@ const Dashboard: React.FC = () => {
                     fill="#10b981"
                     radius={[4, 4, 0, 0]}
                   />
-                </BarChart>
-              </ResponsiveContainer>
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          </div>
               
               {/* Informasi tambahan untuk part yang dipilih */}
               {selectedPart && (
@@ -681,7 +685,7 @@ const Dashboard: React.FC = () => {
         {/* Chart Ketiga: Perbandingan Rencana dan Actual Jam Produksi per Bulan */}
         {savedSchedules.length > 0 && (
           <div className="mt-12 sm:mt-20">
-            <div className={`w-full h-96 ${uiColors.bg.secondary} rounded-xl p-4`}>
+            <div className={`w-full ${uiColors.bg.secondary} rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm`}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className={`text-xl font-semibold ${uiColors.text.primary}`}>
                   {selectedPart ? `Perbandingan Rencana dan Actual Jam Produksi - ${selectedPart} (Per Hari)` : "Perbandingan Rencana dan Actual Jam Produksi per Bulan"}
@@ -693,7 +697,9 @@ const Dashboard: React.FC = () => {
                   Lihat Semua
                 </button>
               </div>
-              <ResponsiveContainer width="100%" height="85%">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                <div className="h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={React.useMemo(() => {
                     console.log("Chart 3 - filteredSchedules:", filteredSchedules);
@@ -897,8 +903,10 @@ const Dashboard: React.FC = () => {
                     fill="#ec4899"
                     radius={[4, 4, 0, 0]}
                   />
-                </BarChart>
-              </ResponsiveContainer>
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          </div>
               
               {/* Informasi tambahan untuk part yang dipilih */}
               {selectedPart && (
