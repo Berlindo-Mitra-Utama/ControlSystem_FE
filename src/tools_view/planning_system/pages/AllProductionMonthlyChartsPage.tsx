@@ -415,6 +415,96 @@ const AllProductionMonthlyChartsPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Tabel Summary per Hari */}
+                {hasData && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className={`text-lg font-semibold ${uiColors.text.accent}`}>
+                        Ringkasan Perbandingan - {month} {selectedYear}
+                      </h3>
+                    </div>
+
+                    <div className={`overflow-x-auto ${uiColors.bg.secondary} rounded-xl border border-gray-200 dark:border-gray-700`}>
+                      <table className="w-full">
+                        <thead>
+                          <tr className={`${uiColors.bg.tertiary}`}>
+                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                              HARI
+                            </th>
+                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                              RENCANA (PCS)
+                            </th>
+                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                              ACTUAL (PCS)
+                            </th>
+                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                              GAP
+                            </th>
+                            <th className={`px-6 py-3 text-left text-xs font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+                              ACHIEVEMENT (%)
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${uiColors.border.secondary}`}>
+                          {/* Detail per hari */}
+                          {chartData.map((item, index) => {
+                            const dailyGap = item.rencanaProduksi - item.actualProduksi;
+                            const dailyAchievement = item.rencanaProduksi > 0 ? ((item.actualProduksi / item.rencanaProduksi) * 100) : 0;
+                            
+                            return (
+                              <tr key={index} className={`${uiColors.bg.secondary} hover:${uiColors.bg.tertiary}`}>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${uiColors.text.primary}`}>
+                                  Hari {item.day}
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}>
+                                  {item.rencanaProduksi.toLocaleString()} pcs
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}>
+                                  {item.actualProduksi.toLocaleString()} pcs
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${dailyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {dailyGap >= 0 ? '+' : ''}{dailyGap.toLocaleString()} pcs
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${dailyAchievement >= 100 ? 'text-green-600' : dailyAchievement >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                  {dailyAchievement.toFixed(1)}%
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          
+                          {/* Baris akumulasi di paling bawah */}
+                          {(() => {
+                            const totalRencanaPcs = chartData.reduce((sum, item) => sum + item.rencanaProduksi, 0);
+                            const totalActualPcs = chartData.reduce((sum, item) => sum + item.actualProduksi, 0);
+                            const gap = totalRencanaPcs - totalActualPcs;
+                            const achievement = totalRencanaPcs > 0 ? ((totalActualPcs / totalRencanaPcs) * 100) : 0;
+                            
+                            return (
+                              <tr key="total" className={`${uiColors.bg.tertiary} font-bold border-t-2 border-gray-400`}>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
+                                  Total Akumulasi
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
+                                  {totalRencanaPcs.toLocaleString()} pcs
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}>
+                                  {totalActualPcs.toLocaleString()} pcs
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {gap >= 0 ? '+' : ''}{gap.toLocaleString()} pcs
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${achievement >= 100 ? 'text-green-600' : achievement >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                  {achievement.toFixed(1)}%
+                                </td>
+                              </tr>
+                            );
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

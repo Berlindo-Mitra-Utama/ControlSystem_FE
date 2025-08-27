@@ -483,8 +483,8 @@ const Dashboard: React.FC = () => {
                           allItems.push({
                             day: item.day,
                             shift: item.shift,
-                            rencanaProduksi: item.planningPcs || 0,
-                            actualProduksi: item.hasilProduksi || 0,
+                            rencanaProduksi: item.planningPcs || item.pcs || 0, // Fallback ke pcs jika planningPcs tidak ada
+                            actualProduksi: item.hasilProduksi || item.actualPcs || 0, // Fallback ke actualPcs jika hasilProduksi tidak ada
                             date: schedule.name || ""
                           });
                         });
@@ -560,8 +560,8 @@ const Dashboard: React.FC = () => {
                           let totalActual = 0;
 
                           savedSchedule.schedule.forEach((item) => {
-                            totalRencana += item.planningPcs || 0;
-                            totalActual += item.hasilProduksi || 0; // Menggunakan hasilProduksi untuk actual produksi
+                            totalRencana += item.planningPcs || item.pcs || 0; // Fallback ke pcs jika planningPcs tidak ada
+                            totalActual += item.hasilProduksi || item.actualPcs || 0; // Menggunakan hasilProduksi untuk actual produksi
                           });
 
                           // Tambahkan ke akumulator
@@ -603,9 +603,13 @@ const Dashboard: React.FC = () => {
                       color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb",
                     }}
                     labelStyle={{ color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb" }}
-                    formatter={(value: any, name: string) => [
+                    formatter={(value: any, name: string, props: any) => [
                       `${value} pcs`,
-                      name === "rencanaProduksi" ? "Rencana Produksi" : "Actual Produksi"
+                      props && props.dataKey === "rencanaProduksi"
+                        ? "Rencana Produksi"
+                        : props && props.dataKey === "actualProduksi"
+                        ? "Actual Produksi"
+                        : name
                     ]}
                   />
                   <Legend />
@@ -839,9 +843,13 @@ const Dashboard: React.FC = () => {
                       color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb",
                     }}
                     labelStyle={{ color: uiColors.bg.primary === "bg-gray-50" ? "#111827" : "#f9fafb" }}
-                    formatter={(value: any, name: string) => [
+                    formatter={(value: any, name: string, props: any) => [
                       `${value} jam`,
-                      name === "rencanaJamProduksi" ? "Rencana Jam Produksi" : "Actual Jam Produksi"
+                      props && props.dataKey === "rencanaJamProduksi"
+                        ? "Rencana Jam Produksi"
+                        : props && props.dataKey === "actualJamProduksi"
+                        ? "Actual Jam Produksi"
+                        : name
                     ]}
                   />
                   <Legend />
