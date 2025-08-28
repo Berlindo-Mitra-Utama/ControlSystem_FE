@@ -1,5 +1,6 @@
 import React from "react";
 import { ScheduleItem } from "../../types/scheduleTypes";
+import { useNotification } from "../../../../hooks/useNotification";
 
 interface ManpowerDropdownProps {
   shift: ScheduleItem;
@@ -32,6 +33,7 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
   uiColors,
   setManpowerError,
 }) => {
+  const { showAlert, showSuccess } = useNotification();
   const currentSelection = tempManpowerSelection[shift.id] ||
     shift.manpowerIds || [1, 2, 3];
 
@@ -65,6 +67,10 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
   };
 
   const handleConfirm = () => {
+    const beforeIds =
+      shift.manpowerIds && Array.isArray(shift.manpowerIds)
+        ? [...shift.manpowerIds]
+        : [];
     const selectedIds = tempManpowerSelection[shift.id] ||
       shift.manpowerIds || [1, 2, 3];
     shift.manpowerIds = selectedIds;
@@ -77,13 +83,32 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
     }
 
     if (onDataChange) {
-      onDataChange([...flatRows]);
+      // Update realtime ke backend via handler parent
+      try {
+        onDataChange([...flatRows]);
+      } catch (e) {
+        showAlert("Gagal menyimpan perubahan manpower ke server", "Error");
+      }
     }
 
     setFocusedInputs((prev) => ({
       ...prev,
       [`${shift.id}-manpowerDropdown`]: false,
     }));
+
+    // Hitung perubahan untuk notifikasi
+    const added = selectedIds.filter((id) => !beforeIds.includes(id));
+    const removed = beforeIds.filter((id) => !selectedIds.includes(id));
+
+    if (added.length > 0 && removed.length === 0) {
+      showSuccess(`Manpower berhasil ditambahkan (${added.length})`);
+    } else if (removed.length > 0 && added.length === 0) {
+      showSuccess(`Manpower berhasil dihapus (${removed.length})`);
+    } else if (added.length > 0 || removed.length > 0) {
+      showSuccess(`Manpower diperbarui: +${added.length} / -${removed.length}`);
+    } else {
+      // Tidak ada perubahan
+    }
   };
 
   return (
@@ -143,7 +168,7 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
               <div className="space-y-1">
                 {manpowerList
                   .filter((mp) => mp && mp.id && mp.name)
-                  .map((mp) => (
+                  .map((mp, idx) => (
                     <label
                       key={mp.id}
                       className="flex items-center px-2 py-2 hover:bg-blue-800/50 cursor-pointer rounded transition-colors duration-200"
@@ -161,7 +186,7 @@ const ManpowerDropdown: React.FC<ManpowerDropdownProps> = ({
                         className="mr-2 w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
                       />
                       <span className="text-blue-100 text-sm">
-                        {mp.id}. {mp.name}
+                        {idx + 1}. {mp.name}
                       </span>
                     </label>
                   ))}

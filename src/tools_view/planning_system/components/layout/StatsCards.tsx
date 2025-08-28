@@ -8,9 +8,9 @@ interface StatsCardsProps {
     totalPlanned: number;
     totalDays: number;
     disruptedItems: number;
-    
+
     // Data baru sesuai gambar
-    deliveryPlan: number;
+    deliveryActual: number;
     planningProduksiPcs: number;
     planningProduksiJam: number;
     overtimePcs: number;
@@ -19,7 +19,7 @@ interface StatsCardsProps {
     hasilProduksiAktual: number;
     actualStock: number;
     rencanaStock: number;
-    
+
     // Data untuk child part
     rencanaInMaterial?: number;
     aktualInMaterial?: number;
@@ -29,18 +29,18 @@ interface StatsCardsProps {
   showAllMetrics?: boolean; // Tambahkan prop baru untuk menampilkan semua metrik
 }
 
-const StatsCards: React.FC<StatsCardsProps> = ({ 
-  stats, 
-  isChildPart = false, 
+const StatsCards: React.FC<StatsCardsProps> = ({
+  stats,
+  isChildPart = false,
   isFinishGoodPart = false, // Ganti nama dari isNormalPart menjadi isFinishGoodPart
-  showAllMetrics = false 
+  showAllMetrics = false,
 }) => {
   const { uiColors } = useTheme();
-  
+
   // Data untuk tabel dibagi menjadi 3 kolom untuk finish good part
   const leftColumnData = [
     { label: "MANPOWER", value: stats.disruptedItems },
-    { label: "DELIVERY PLAN (PCS)", value: stats.deliveryPlan },
+    { label: "DELIVERY PLAN (PCS)", value: stats.deliveryActual },
     { label: "PLANNING PRODUKSI (PCS)", value: stats.planningProduksiPcs },
   ];
 
@@ -56,7 +56,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
     { label: "ACTUAL STOCK (PCS)", value: stats.actualStock },
     { label: "RENCANA STOCK (PCS)", value: stats.rencanaStock },
   ];
-  
+
   // Data untuk child part (sesuai gambar)
   const childPartData = [
     { label: "RENCANA IN MATERIAL", value: stats.rencanaInMaterial || 0 },
@@ -67,29 +67,45 @@ const StatsCards: React.FC<StatsCardsProps> = ({
 
   // Fungsi untuk membuat tabel
   const renderTable = (data: { label: string; value: number }[]) => (
-    <div className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-xl overflow-hidden shadow-md h-full`}>
+    <div
+      className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-xl overflow-hidden shadow-md h-full`}
+    >
       <table className="w-full">
         <thead>
           <tr className={`${uiColors.bg.tertiary}`}>
-            <th className={`px-4 py-3 text-left text-sm font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+            <th
+              className={`px-4 py-3 text-left text-sm font-medium ${uiColors.text.primary} uppercase tracking-wider`}
+            >
               Metrik
             </th>
-            <th className={`px-4 py-3 text-right text-sm font-medium ${uiColors.text.primary} uppercase tracking-wider`}>
+            <th
+              className={`px-4 py-3 text-right text-sm font-medium ${uiColors.text.primary} uppercase tracking-wider`}
+            >
               Total
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
           {data.map((item, index) => (
-            <tr 
-              key={index} 
-              className={index % 2 === 0 ? uiColors.bg.secondary : `${uiColors.bg.primary} bg-opacity-50`}
+            <tr
+              key={index}
+              className={
+                index % 2 === 0
+                  ? uiColors.bg.secondary
+                  : `${uiColors.bg.primary} bg-opacity-50`
+              }
             >
-              <td className={`px-4 py-3 text-sm font-medium ${uiColors.text.tertiary} uppercase`}>
+              <td
+                className={`px-4 py-3 text-sm font-medium ${uiColors.text.tertiary} uppercase`}
+              >
                 {item.label}
               </td>
-              <td className={`px-4 py-3 text-right text-sm font-bold ${uiColors.text.primary}`}>
-                {typeof item.value === 'number' ? item.value.toLocaleString() : item.value || 0}
+              <td
+                className={`px-4 py-3 text-right text-sm font-bold ${uiColors.text.primary}`}
+              >
+                {typeof item.value === "number"
+                  ? item.value.toLocaleString()
+                  : item.value || 0}
               </td>
             </tr>
           ))}
@@ -103,16 +119,20 @@ const StatsCards: React.FC<StatsCardsProps> = ({
     return (
       <div className="space-y-8">
         <div>
-          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Finish Good Part</h3>
+          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>
+            Metrik Finish Good Part
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>{renderTable(leftColumnData)}</div>
             <div>{renderTable(middleColumnData)}</div>
             <div>{renderTable(rightColumnData)}</div>
           </div>
         </div>
-        
+
         <div>
-          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Child Part</h3>
+          <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>
+            Metrik Child Part
+          </h3>
           <div className="grid grid-cols-1 gap-4">
             <div>{renderTable(childPartData)}</div>
           </div>
@@ -125,7 +145,9 @@ const StatsCards: React.FC<StatsCardsProps> = ({
   if (isChildPart) {
     return (
       <div>
-        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Child Part</h3>
+        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>
+          Metrik Child Part
+        </h3>
         <div className="grid grid-cols-1 gap-4">
           <div>{renderTable(childPartData)}</div>
         </div>
@@ -137,7 +159,9 @@ const StatsCards: React.FC<StatsCardsProps> = ({
   if (isFinishGoodPart) {
     return (
       <div>
-        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>Metrik Finish Good Part</h3>
+        <h3 className={`text-xl font-semibold ${uiColors.text.primary} mb-4`}>
+          Metrik Finish Good Part
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>{renderTable(leftColumnData)}</div>
           <div>{renderTable(middleColumnData)}</div>
@@ -149,8 +173,12 @@ const StatsCards: React.FC<StatsCardsProps> = ({
 
   // Jika tidak ada part yang dipilih atau tidak teridentifikasi jenisnya, tampilkan pesan
   return (
-    <div className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-xl p-6 text-center`}>
-      <p className={`text-lg ${uiColors.text.primary}`}>Silakan pilih part untuk melihat metrik yang sesuai.</p>
+    <div
+      className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-xl p-6 text-center`}
+    >
+      <p className={`text-lg ${uiColors.text.primary}`}>
+        Silakan pilih part untuk melihat metrik yang sesuai.
+      </p>
     </div>
   );
 };

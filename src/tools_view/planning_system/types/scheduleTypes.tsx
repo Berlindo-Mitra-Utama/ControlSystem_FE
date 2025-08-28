@@ -22,9 +22,7 @@ export interface ScheduleItem {
   hasilProduksi?: number;
   akumulasiHasilProduksi?: number;
   jamProduksiCycleTime?: number;
-  selisihDetikPerPcs?: number;
-  selisihCycleTime?: number;
-  selisihCycleTimePcs?: number;
+  // jamProduksiAktual dapat dihitung otomatis dari pcs & cycle time
   actualStock?: number;
   // Tambahan untuk custom stock
   actualStockCustom?: number;

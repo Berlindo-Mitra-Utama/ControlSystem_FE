@@ -33,17 +33,10 @@ export const calculateOutputFields = (
 
   const jamProduksiCycleTime =
     hasilProduksi > 0 ? (hasilProduksi * timePerPcs) / 3600 : 0;
-  const selisihDetikPerPcs =
-    row.jamProduksiAktual && hasilProduksi > 0
-      ? timePerPcs - (row.jamProduksiAktual * 3600) / hasilProduksi
-      : 0;
-  const selisihCycleTime = row.jamProduksiAktual
-    ? jamProduksiCycleTime - row.jamProduksiAktual
-    : 0;
-  const selisihCycleTimePcs =
-    selisihCycleTime > 0
-      ? Math.floor((selisihCycleTime * 3600) / timePerPcs)
-      : 0;
+  // Jam Produksi Aktual (jam) = hasil produksi aktual (pcs) / output per jam (pcs/jam)
+  // output per jam = 3600 / timePerPcs ⇒ jam = pcs * timePerPcs / 3600
+  const jamProduksiAktualCalc =
+    (row.pcs || 0) > 0 ? ((row.pcs as number) * timePerPcs) / 3600 : 0;
 
   const prevStock =
     index === 0 ? initialStock : allRows[index - 1].actualStock || initialStock;
@@ -56,9 +49,8 @@ export const calculateOutputFields = (
     hasilProduksi,
     akumulasiHasilProduksi,
     jamProduksiCycleTime,
-    selisihDetikPerPcs,
-    selisihCycleTime,
-    selisihCycleTimePcs,
+    // perhitungan ringkas: berikan jam aktual hasil formula di atas untuk konsumsi opsional
+    jamProduksiAktual: jamProduksiAktualCalc,
     actualStock,
     prevStock,
   };

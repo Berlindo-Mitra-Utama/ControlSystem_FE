@@ -88,8 +88,16 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
     saveSchedulesToStorage,
   } = useSchedule();
   const today = new Date();
-  const [errors, setErrors] = useState<{ part?: string; customer?: string }>(
-    {},
+  const [errors, setErrors] = useState<{
+    part?: string;
+    customer?: string;
+    cycle?: string;
+  }>({});
+  // Simpan input Cycletime per 1 Jam (pcs/jam) dan konversi ke timePerPcs
+  const [cyclePerHour, setCyclePerHour] = useState<number>(
+    form.timePerPcs && form.timePerPcs > 0
+      ? Math.round(3600 / form.timePerPcs)
+      : 0,
   );
   const [partImagePreview, setPartImagePreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -102,7 +110,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
   const handleGenerateSchedule = async () => {
     // Validasi form hanya jika bukan mode edit
     if (!isEditMode) {
-      const newErrors: { part?: string; customer?: string } = {};
+      const newErrors: { part?: string; customer?: string; cycle?: string } =
+        {};
 
       if (!form.part.trim()) {
         newErrors.part = "Part name harus diisi";
@@ -112,12 +121,24 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         newErrors.customer = "Customer name harus diisi";
       }
 
+      if (!cyclePerHour || cyclePerHour <= 0) {
+        newErrors.cycle = "Cycletime per 1 jam (pcs/jam) harus diisi";
+      }
+
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         return;
       }
 
       setErrors({});
+    }
+
+    // Persist konversi cyclePerHour -> timePerPcs sebelum generate
+    if (cyclePerHour && cyclePerHour > 0) {
+      const timePerPcs = 3600 / cyclePerHour;
+      handleChange({
+        target: { name: "timePerPcs", value: timePerPcs },
+      } as unknown as React.ChangeEvent<HTMLInputElement>);
     }
 
     // Persiapkan data untuk backend
@@ -237,7 +258,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           {
             ...form,
             stock: planningData.currentStock,
-            timePerPcs: form.timePerPcs || 257,
+            timePerPcs:
+              form.timePerPcs || (cyclePerHour > 0 ? 3600 / cyclePerHour : 257),
           },
           [],
         );
@@ -665,7 +687,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               >
                 {isEditMode ? "Change Month & Year" : "Select Month & Year"}
               </label>
-              <div className="w-full max-w-48">
+              <div className="w-full">
                 <ProductionPeriodSelector />
               </div>
               {isEditMode && (
@@ -707,7 +729,7 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
               >
                 {isEditMode ? "Update Stock" : "Current Stock"}
               </label>
-              <div className="relative w-full max-w-32">
+              <div className="relative w-full">
                 <input
                   type="number"
                   name="stock"
@@ -715,17 +737,49 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
                   onChange={handleChange}
                   min="0"
                   placeholder="0"
-                  className={`w-full px-3 py-2 pr-8 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                  className={`w-full h-11 px-4 pr-16 ${colors.input.bg} border ${colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
                 />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <span className={`text-sm font-medium ${colors.text.muted}`}>
-                    PCS
-                  </span>
-                </div>
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/70 dark:border-slate-600/60">
+                  PCS
+                </span>
               </div>
               {isEditMode && (
                 <p className={`text-xs ${colors.text.muted} mt-1`}>
                   💡 Update stock value for this schedule
+                </p>
+              )}
+            </div>
+
+            {/* Cycletime per 1 Jam (pcs/jam) - Required */}
+            <div className="space-y-1 mt-3">
+              <label
+                className={`block text-xs font-medium ${colors.text.secondary}`}
+              >
+                Cycletime per 1 Jam (pcs/jam){" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="relative w-full">
+                <input
+                  type="number"
+                  value={cyclePerHour || ""}
+                  onChange={(e) =>
+                    setCyclePerHour(Math.max(0, Number(e.target.value) || 0))
+                  }
+                  min="1"
+                  placeholder="0"
+                  className={`w-full h-11 px-4 pr-20 ${colors.input.bg} border ${errors.cycle ? colors.input.error : colors.input.border} rounded-lg ${colors.input.focus} transition-all duration-200 ${colors.text.primary} ${colors.input.placeholder} text-sm font-medium`}
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/70 dark:border-slate-600/60">
+                  pcs/jam
+                </span>
+              </div>
+              {errors.cycle && (
+                <p className={`text-xs ${colors.text.error}`}>{errors.cycle}</p>
+              )}
+              {!errors.cycle && cyclePerHour > 0 && (
+                <p className={`text-xs ${colors.text.muted}`}>
+                  setara timePerPcs ≈ {(3600 / cyclePerHour).toFixed(1)}{" "}
+                  detik/pcs
                 </p>
               )}
             </div>

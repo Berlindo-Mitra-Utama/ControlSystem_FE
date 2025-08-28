@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-//const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
-const API_BASE_URL = "http://localhost:5555/api";
+const API_BASE_URL = "https://292mhrfs-5555.asse.devtunnels.ms/api";
+//const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({
@@ -709,7 +709,7 @@ export const ProductionService = {
           productionDate: dateOnly,
           shift: parseInt(item.shift),
           planningProduction: item.planningPcs || 0,
-          deliveryPlan: item.delivery || 0,
+          deliveryActual: item.delivery || 0,
           overtime: item.overtimePcs || 0,
           actualProduction: item.pcs || 0,
           actualProductionHours: item.jamProduksiAktual || 0,
@@ -919,7 +919,7 @@ export const ProductionService = {
         const updatePromises = existingData.map((item) =>
           ProductionService.updateProductionData(item.backendId, {
             planningProduction: item.planningPcs || 0,
-            deliveryPlan: item.delivery || 0,
+            deliveryActual: item.delivery || 0,
             overtime: item.overtimePcs || 0,
             actualProduction: item.pcs || 0,
             actualProductionHours: item.jamProduksiAktual || 0,
@@ -1819,7 +1819,8 @@ export const ShiftMetricsService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(
-          error.response.data.message || "Gagal mendapatkan summary shift metrics",
+          error.response.data.message ||
+            "Gagal mendapatkan summary shift metrics",
         );
       }
       throw new Error("Terjadi kesalahan saat menghubungi server");
@@ -1827,14 +1828,18 @@ export const ShiftMetricsService = {
   },
 
   // Get shift metrics by month and year
-  getShiftMetricsByMonth: async (bulan: number, tahun: number): Promise<ShiftMetricsData> => {
+  getShiftMetricsByMonth: async (
+    bulan: number,
+    tahun: number,
+  ): Promise<ShiftMetricsData> => {
     try {
       const response = await api.get(`/shift-metrics/month/${bulan}/${tahun}`);
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(
-          error.response.data.message || "Gagal mendapatkan data shift metrics berdasarkan bulan",
+          error.response.data.message ||
+            "Gagal mendapatkan data shift metrics berdasarkan bulan",
         );
       }
       throw new Error("Terjadi kesalahan saat menghubungi server");
@@ -1844,7 +1849,7 @@ export const ShiftMetricsService = {
   // Get shift metrics by part name
   getShiftMetricsByPart: async (
     partName: string,
-    params?: { bulan?: number; tahun?: number }
+    params?: { bulan?: number; tahun?: number },
   ): Promise<ShiftMetricsData> => {
     try {
       const queryParams = new URLSearchParams();
@@ -1857,7 +1862,8 @@ export const ShiftMetricsService = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(
-          error.response.data.message || "Gagal mendapatkan data shift metrics berdasarkan part",
+          error.response.data.message ||
+            "Gagal mendapatkan data shift metrics berdasarkan part",
         );
       }
       throw new Error("Terjadi kesalahan saat menghubungi server");
@@ -1880,14 +1886,19 @@ export const ShiftMetricsService = {
   },
 
   // Bulk save shift metrics for multiple parts
-  bulkSaveShiftMetrics: async (schedules: SaveShiftMetricsPayload[]): Promise<any> => {
+  bulkSaveShiftMetrics: async (
+    schedules: SaveShiftMetricsPayload[],
+  ): Promise<any> => {
     try {
-      const response = await api.post("/shift-metrics/bulk-save", { schedules });
+      const response = await api.post("/shift-metrics/bulk-save", {
+        schedules,
+      });
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(
-          error.response.data.message || "Gagal menyimpan data shift metrics secara bulk",
+          error.response.data.message ||
+            "Gagal menyimpan data shift metrics secara bulk",
         );
       }
       throw new Error("Terjadi kesalahan saat menghubungi server");
@@ -1895,7 +1906,7 @@ export const ShiftMetricsService = {
   },
 
   // Individual shift table services (for advanced usage)
-  
+
   // FG Part Shift 1
   getFgPartShift1: async (): Promise<any> => {
     try {

@@ -19,7 +19,7 @@ export const ALL_ROWS = [
   },
   {
     key: "delivery",
-    label: "DELIVERY PLAN (PCS)",
+    label: "DELIVERY AKTUAL (PCS)",
     category: "delivery",
   },
   {
@@ -50,12 +50,14 @@ export const ALL_ROWS = [
   {
     key: "jam-produksi",
     label: "JAM PRODUKSI\n(CYCLETIME)",
-    category: "hasil-produksi-1", // Grup 1 hasil produksi
+    // Ikuti warna seperti OVERTIME (PCS) dan OVERTIME (JAM)
+    category: "overtime",
   },
   {
     key: "hasil-produksi",
     label: "HASIL PRODUKSI\nAKTUAL (PCS)",
-    category: "hasil-produksi-1", // Grup 1 hasil produksi
+    // Ikuti warna seperti AKUMULASI HASIL PRODUKSI AKTUAL dan JAM PRODUKSI AKTUAL
+    category: "hasil-produksi-2", // Grup 2 hasil produksi
   },
   {
     key: "akumulasi-hasil",
@@ -338,7 +340,7 @@ export const getTotalColorConfig = (
 // Filter options untuk menu filter
 export const FILTER_OPTIONS = [
   { value: "all", label: "Semua Data" },
-  { value: "delivery", label: "Delivery" },
+  { value: "delivery", label: "Delivery Aktual" },
   { value: "planning", label: "Planning" },
   { value: "overtime", label: "Overtime" },
   { value: "hasil-produksi", label: "Hasil Produksi" },

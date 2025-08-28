@@ -70,7 +70,9 @@ const Dashboard: React.FC = () => {
   // State untuk menyimpan data part dari database
   const [partOptions, setPartOptions] = useState<string[]>([]);
   const [childPartOptions, setChildPartOptions] = useState<string[]>([]);
-  const [finishGoodPartOptions, setFinishGoodPartOptions] = useState<string[]>([]);
+  const [finishGoodPartOptions, setFinishGoodPartOptions] = useState<string[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Debug: Log savedSchedules
@@ -290,7 +292,7 @@ const Dashboard: React.FC = () => {
         );
       }, 0),
       // Data baru sesuai gambar
-      deliveryPlan: filteredSchedules.reduce((total, schedule) => {
+      deliveryActual: filteredSchedules.reduce((total, schedule) => {
         return (
           total +
           schedule.schedule.reduce((sum, item) => sum + (item.delivery || 0), 0)
