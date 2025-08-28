@@ -21,6 +21,7 @@ import {
 } from "../../utils/scheduleCalcUtils";
 import StatusBadge from "../ui/StatusBadge";
 import { ManpowerService } from "../../../../services/API_Services";
+import { useNotification } from "../../../../hooks/useNotification";
 
 import {
   Calendar,
@@ -84,6 +85,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
   productInfo,
 }) => {
   const { uiColors, theme } = useTheme();
+  const { showSuccess, showAlert } = useNotification();
 
   // Helper function untuk memformat image URL secara konsisten
   const formatImageUrl = (imageData?: string, mimeType?: string): string => {
@@ -320,7 +322,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
       // Tampilkan notifikasi sukses
       setManpowerError(""); // Clear any previous errors
-      console.log(`${newManpower.trim()} berhasil ditambahkan!`);
+      showSuccess(`${newManpower.trim()} berhasil ditambahkan!`);
 
       // Clear input field
       setNewManpower("");
@@ -342,11 +344,17 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
       // Tampilkan error yang sesuai
       if (error.message && error.message.includes("ERR_CONNECTION_REFUSED")) {
-        console.log("Server tidak tersedia, data disimpan lokal");
+        showAlert("Server tidak tersedia, data disimpan lokal", "Peringatan");
       } else if (error.message && error.message.includes("Token tidak ada")) {
-        console.log("Silakan login terlebih dahulu, data disimpan lokal");
+        showAlert(
+          "Silakan login terlebih dahulu, data disimpan lokal",
+          "Peringatan",
+        );
       } else {
-        console.log("Gagal menyimpan ke database, data disimpan lokal");
+        showAlert(
+          "Gagal menyimpan ke database, data disimpan lokal",
+          "Peringatan",
+        );
       }
     }
   };
@@ -361,7 +369,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
       setManpowerList(manpowerResponse || []);
 
       // Tampilkan notifikasi sukses
-      console.log("Manpower berhasil dihapus!");
+      showSuccess("Manpower berhasil dihapus!");
     } catch (error) {
       console.error("Error removing manpower:", error);
 
@@ -370,11 +378,17 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
 
       // Tampilkan error yang sesuai
       if (error.message && error.message.includes("ERR_CONNECTION_REFUSED")) {
-        console.log("Server tidak tersedia, data dihapus lokal");
+        showAlert("Server tidak tersedia, data dihapus lokal", "Peringatan");
       } else if (error.message && error.message.includes("Token tidak ada")) {
-        console.log("Silakan login terlebih dahulu, data dihapus lokal");
+        showAlert(
+          "Silakan login terlebih dahulu, data dihapus lokal",
+          "Peringatan",
+        );
       } else {
-        console.log("Gagal menghapus dari database, data dihapus lokal");
+        showAlert(
+          "Gagal menghapus dari database, data dihapus lokal",
+          "Peringatan",
+        );
       }
     }
   };
@@ -595,7 +609,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
               />
               <SummaryCard
                 icon={<Truck className="w-5 h-5 text-cyan-400" />}
-                label="Delivery"
+                label="Delivery Aktual"
                 value={flatRows.reduce((sum, r) => sum + (r.delivery || 0), 0)}
               />
               <SummaryCard
@@ -1006,7 +1020,7 @@ const ScheduleCardsView: React.FC<ScheduleCardsViewProps> = ({
                                   <div className="flex items-center gap-1 mb-0.5 w-full">
                                     <Truck className="w-4 h-4 text-blue-300" />
                                     <span className="text-blue-200/90 font-semibold text-xs">
-                                      Delivery Plan (pcs)
+                                      Delivery Aktual (pcs)
                                     </span>
                                   </div>
                                   <input

@@ -1505,7 +1505,11 @@ const SchedulerPage: React.FC = () => {
                       pcs: dp.actualProduction || dp.pcs || 0,
                       planningPcs: dp.planningProduction || dp.planningPcs || 0,
                       overtimePcs: dp.overtime || dp.overtimePcs || 0,
-                      delivery: dp.deliveryPlan || dp.delivery || 0,
+                      delivery:
+                        dp.deliveryActual ||
+                        dp.delivery ||
+                        dp.deliveryPlan ||
+                        0,
                       status: dp.status || "Normal",
                       notes: dp.notes || "",
                       jamProduksiAktual:

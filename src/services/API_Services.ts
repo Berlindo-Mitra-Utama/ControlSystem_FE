@@ -709,7 +709,7 @@ export const ProductionService = {
           productionDate: dateOnly,
           shift: parseInt(item.shift),
           planningProduction: item.planningPcs || 0,
-          deliveryPlan: item.delivery || 0,
+          deliveryActual: item.delivery || 0,
           overtime: item.overtimePcs || 0,
           actualProduction: item.pcs || 0,
           actualProductionHours: item.jamProduksiAktual || 0,
@@ -919,7 +919,7 @@ export const ProductionService = {
         const updatePromises = existingData.map((item) =>
           ProductionService.updateProductionData(item.backendId, {
             planningProduction: item.planningPcs || 0,
-            deliveryPlan: item.delivery || 0,
+            deliveryActual: item.delivery || 0,
             overtime: item.overtimePcs || 0,
             actualProduction: item.pcs || 0,
             actualProductionHours: item.jamProduksiAktual || 0,

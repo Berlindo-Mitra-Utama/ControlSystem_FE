@@ -352,7 +352,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   // Filter options untuk ScheduleTableView
   const filterOptions = [
     { key: "manpower", label: "Manpower", icon: Activity },
-    { key: "delivery", label: "Delivery", icon: Truck },
+    { key: "delivery", label: "Delivery Aktual", icon: Truck },
     {
       key: "akumulasi-delivery",
       label: "Akumulasi Delivery",
