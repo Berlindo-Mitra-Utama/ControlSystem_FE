@@ -7,6 +7,7 @@ import {
   TrendingDown,
   Trash2,
   Edit,
+  AlertTriangle,
 } from "lucide-react";
 import { memo } from "react";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -60,10 +61,12 @@ const InputCell = memo(function InputCell({
   value,
   onChange,
   className,
+  hasError,
 }: {
   value: number | null;
   onChange: (val: number | null) => void;
   className: string;
+  hasError?: boolean;
 }) {
   return (
     <input
@@ -73,7 +76,7 @@ const InputCell = memo(function InputCell({
       onChange={(e) =>
         onChange(e.target.value === "" ? null : Number(e.target.value))
       }
-      className={className}
+      className={`${className} ${hasError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
     />
   );
 });
@@ -122,6 +125,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   const [showDeleteScheduleModal, setShowDeleteScheduleModal] = useState(false);
   const [showEditPartModal, setShowEditPartModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showDisruptionSection, setShowDisruptionSection] = useState(false);
 
   // In Material per shift per hari: [ [shift1, shift2], ... ]
   const [inMaterialState, setInMaterialState] = useState<(number | null)[][]>(
@@ -230,6 +234,46 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     (sum, arr) => sum + (arr[0] ?? 0) + (arr[1] ?? 0),
     0,
   );
+
+  // Helper function to check if value has error (negative or less than 0)
+  const hasValueError = (value: number | null): boolean => {
+    return value !== null && value < 0;
+  };
+
+  // Helper function to check if stock value has error
+  const hasStockError = (value: number): boolean => {
+    return value < 0;
+  };
+
+  // Get error count for a specific day
+  const getDayErrorCount = (dayIdx: number): number => {
+    let errorCount = 0;
+    
+    // Check inMaterial errors
+    if (showRencanaInMaterial) {
+      if (hasValueError(inMaterial[dayIdx][0])) errorCount++;
+      if (hasValueError(inMaterial[dayIdx][1])) errorCount++;
+    }
+    
+    // Check aktualInMaterial errors
+    if (showAktualInMaterial) {
+      if (hasValueError(aktualInMaterial[dayIdx][0])) errorCount++;
+      if (hasValueError(aktualInMaterial[dayIdx][1])) errorCount++;
+    }
+    
+    // Check stock errors
+    if (showRencanaStock) {
+      if (hasStockError(rencanaStock[dayIdx * 2])) errorCount++;
+      if (hasStockError(rencanaStock[dayIdx * 2 + 1])) errorCount++;
+    }
+    
+    if (showAktualStock) {
+      if (hasStockError(aktualStock[dayIdx * 2])) errorCount++;
+      if (hasStockError(aktualStock[dayIdx * 2 + 1])) errorCount++;
+    }
+    
+    return errorCount;
+  };
 
   // Handler input granular
   const handleInMaterialChange = useCallback(
@@ -477,6 +521,26 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
           {/* Action Buttons */}
           <div className="flex gap-2 items-center">
+            {/* Disruption Button */}
+            <button
+              onClick={() => setShowDisruptionSection(!showDisruptionSection)}
+              className={`p-2 rounded-lg transition-all duration-200 flex items-center gap-2 relative ${
+                showDisruptionSection 
+                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+              }`}
+              title="Toggle Disruption Section"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-sm font-medium">Disruption</span>
+              {/* Error Badge */}
+              {Array.from({ length: props.days }, (_, dayIdx) => getDayErrorCount(dayIdx)).some(count => count > 0) && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                  !
+                </span>
+              )}
+            </button>
+
             {/* Edit Part Button */}
             <button
               onClick={handleEditPart}
@@ -644,6 +708,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleInMaterialChange(dayIdx, 0, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            hasError={hasValueError(inMaterial[dayIdx][0])}
                           />
                         </div>
                         <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
@@ -653,6 +718,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleInMaterialChange(dayIdx, 1, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            hasError={hasValueError(inMaterial[dayIdx][1])}
                           />
                         </div>
                       </div>
@@ -667,6 +733,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleAktualInMaterialChange(dayIdx, 0, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            hasError={hasValueError(aktualInMaterial[dayIdx][0])}
                           />
                         </div>
                         <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
@@ -676,6 +743,7 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleAktualInMaterialChange(dayIdx, 1, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            hasError={hasValueError(aktualInMaterial[dayIdx][1])}
                           />
                         </div>
                       </div>
@@ -683,10 +751,18 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {/* Rencana Stock - Baris 3 */}
                     {showRencanaStock && (
                       <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                          hasStockError(rencanaStock[dayIdx * 2]) 
+                            ? 'text-red-600 dark:text-red-400' 
+                            : 'text-yellow-800 dark:text-yellow-200'
+                        }`}>
                           {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                          hasStockError(rencanaStock[dayIdx * 2 + 1]) 
+                            ? 'text-red-600 dark:text-red-400' 
+                            : 'text-yellow-800 dark:text-yellow-200'
+                        }`}>
                           {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
@@ -694,10 +770,18 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {/* Aktual Stock - Baris 4 */}
                     {showAktualStock && (
                       <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                          hasStockError(aktualStock[dayIdx * 2]) 
+                            ? 'text-red-600 dark:text-red-400' 
+                            : 'text-yellow-800 dark:text-yellow-200'
+                        }`}>
                           {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className="text-center flex items-center justify-center font-mono text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                          hasStockError(aktualStock[dayIdx * 2 + 1]) 
+                            ? 'text-red-600 dark:text-red-400' 
+                            : 'text-yellow-800 dark:text-yellow-200'
+                        }`}>
                           {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
@@ -708,6 +792,90 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             </div>
           </div>
         </div>
+
+        {/* Disruption Section - Show below table when disruption button is clicked */}
+        {showDisruptionSection && (
+          <div className="bg-gray-50 dark:bg-gray-900/20 border-t border-gray-200 dark:border-gray-800 p-4">
+            {Array.from({ length: props.days }, (_, dayIdx) => getDayErrorCount(dayIdx)).some(count => count > 0) ? (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <span className="text-red-800 dark:text-red-200 font-semibold">Peringatan: Nilai Negatif Ditemukan</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: props.days }, (_, dayIdx) => {
+                    const errorCount = getDayErrorCount(dayIdx);
+                    if (errorCount === 0) return null;
+                    
+                    return (
+                      <div key={dayIdx} className="bg-red-100 dark:bg-red-800/30 rounded-lg p-3 border border-red-200 dark:border-red-700">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-red-700 dark:text-red-300 font-semibold">
+                            {getDayName(dayIdx)} {dayIdx + 1}
+                          </span>
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                            {errorCount} error
+                          </span>
+                        </div>
+                        <div className="text-sm text-red-600 dark:text-red-400 space-y-1">
+                          {showRencanaInMaterial && (
+                            <>
+                              {hasValueError(inMaterial[dayIdx][0]) && (
+                                <div>• Shift 1 Rencana: {inMaterial[dayIdx][0]} (negatif)</div>
+                              )}
+                              {hasValueError(inMaterial[dayIdx][1]) && (
+                                <div>• Shift 2 Rencana: {inMaterial[dayIdx][1]} (negatif)</div>
+                              )}
+                            </>
+                          )}
+                          {showAktualInMaterial && (
+                            <>
+                              {hasValueError(aktualInMaterial[dayIdx][0]) && (
+                                <div>• Shift 1 Aktual: {aktualInMaterial[dayIdx][0]} (negatif)</div>
+                              )}
+                              {hasValueError(aktualInMaterial[dayIdx][1]) && (
+                                <div>• Shift 2 Aktual: {aktualInMaterial[dayIdx][1]} (negatif)</div>
+                              )}
+                            </>
+                          )}
+                          {showRencanaStock && (
+                            <>
+                              {hasStockError(rencanaStock[dayIdx * 2]) && (
+                                <div>• Shift 1 Rencana Stock: {rencanaStock[dayIdx * 2]?.toFixed(0)} (negatif)</div>
+                              )}
+                              {hasStockError(rencanaStock[dayIdx * 2 + 1]) && (
+                                <div>• Shift 2 Rencana Stock: {rencanaStock[dayIdx * 2 + 1]?.toFixed(0)} (negatif)</div>
+                              )}
+                            </>
+                          )}
+                          {showAktualStock && (
+                            <>
+                              {hasStockError(aktualStock[dayIdx * 2]) && (
+                                <div>• Shift 1 Aktual Stock: {aktualStock[dayIdx * 2]?.toFixed(0)} (negatif)</div>
+                              )}
+                              {hasStockError(aktualStock[dayIdx * 2 + 1]) && (
+                                <div>• Shift 2 Aktual Stock: {aktualStock[dayIdx * 2 + 1]?.toFixed(0)} (negatif)</div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-semibold">Tidak ada nilai negatif ditemukan. Semua data valid.</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modal konfirmasi hapus part dihapus, gunakan modal global dari parent */}

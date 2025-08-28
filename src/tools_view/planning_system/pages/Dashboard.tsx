@@ -70,7 +70,9 @@ const Dashboard: React.FC = () => {
   // State untuk menyimpan data part dari database
   const [partOptions, setPartOptions] = useState<string[]>([]);
   const [childPartOptions, setChildPartOptions] = useState<string[]>([]);
-  const [normalPartOptions, setNormalPartOptions] = useState<string[]>([]);
+  const [finishGoodPartOptions, setFinishGoodPartOptions] = useState<string[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Debug: Log savedSchedules
@@ -106,7 +108,7 @@ const Dashboard: React.FC = () => {
         const productParts = productPlanningResponse.productPlannings.map(
           (part) => part.partName,
         );
-        setNormalPartOptions(productParts);
+        setFinishGoodPartOptions(productParts);
 
         // Menggabungkan data part dan menghilangkan duplikat
         const allParts = [...new Set([...childParts, ...productParts])];
@@ -253,11 +255,11 @@ const Dashboard: React.FC = () => {
     return childPartOptions.includes(selectedPart);
   }, [selectedPart, childPartOptions]);
 
-  // Tambahkan state untuk menentukan apakah part yang dipilih adalah normal part
-  const isSelectedPartNormalPart = React.useMemo(() => {
+  // Tambahkan state untuk menentukan apakah part yang dipilih adalah finish good part
+  const isSelectedPartFinishGoodPart = React.useMemo(() => {
     if (!selectedPart) return false;
-    return normalPartOptions.includes(selectedPart);
-  }, [selectedPart, normalPartOptions]);
+    return finishGoodPartOptions.includes(selectedPart);
+  }, [selectedPart, finishGoodPartOptions]);
 
   // Calculate stats berdasarkan filter
   const stats = React.useMemo(() => {
@@ -294,15 +296,6 @@ const Dashboard: React.FC = () => {
         return (
           total +
           schedule.schedule.reduce((sum, item) => sum + (item.delivery || 0), 0)
-        );
-      }, 0),
-      akumulasiDelivery: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.akumulasiDelivery || 0),
-            0,
-          )
         );
       }, 0),
       planningProduksiPcs: filteredSchedules.reduce((total, schedule) => {
@@ -355,15 +348,6 @@ const Dashboard: React.FC = () => {
           total +
           schedule.schedule.reduce(
             (sum, item) => sum + (item.hasilProduksi || 0),
-            0,
-          )
-        );
-      }, 0),
-      akumulasiHasilProduksi: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.akumulasiHasilProduksi || 0),
             0,
           )
         );
@@ -516,7 +500,7 @@ const Dashboard: React.FC = () => {
           stats={stats}
           isChildPart={isSelectedPartChildPart}
           showAllMetrics={!selectedPart} // Tampilkan semua metrik jika tidak ada part yang dipilih
-          isNormalPart={isSelectedPartNormalPart} // Tambahkan prop baru
+          isFinishGoodPart={isSelectedPartFinishGoodPart} // Ganti nama dari isNormalPart menjadi isFinishGoodPart
         />
 
         {savedSchedules.length > 0 ? (

@@ -1676,4 +1676,369 @@ export const ChatService = {
   },
 };
 
+// Interface untuk shift metrics data
+export interface ShiftMetricsData {
+  normalPart: {
+    shift1Data: any[];
+    shift2Data: any[];
+    totals: {
+      manpower: number;
+      deliveryPlan: number;
+      akumulasiDelivery: number;
+      planningProduksiPcs: number;
+      planningProduksiJam: number;
+      overtimePcs: number;
+      overtimeJam: number;
+      jamProduksiCycleTime: number;
+      hasilProduksiAktual: number;
+      akumulasiHasilProduksi: number;
+      actualStock: number;
+      rencanaStock: number;
+    };
+  };
+  childPart: {
+    shift1Data: any[];
+    shift2Data: any[];
+    totals: {
+      rencanaInMaterial: number;
+      aktualInMaterial: number;
+      rencanaStock: number;
+      aktualStock: number;
+    };
+  };
+}
+
+export interface ShiftMetricsSummary {
+  normalPart: {
+    manpower: number;
+    deliveryPlan: number;
+    akumulasiDelivery: number;
+    planningProduksiPcs: number;
+    planningProduksiJam: number;
+    overtimePcs: number;
+    overtimeJam: number;
+    jamProduksiCycleTime: number;
+    hasilProduksiAktual: number;
+    akumulasiHasilProduksi: number;
+    actualStock: number;
+    rencanaStock: number;
+  };
+  childPart: {
+    rencanaInMaterial: number;
+    aktualInMaterial: number;
+    rencanaStock: number;
+    aktualStock: number;
+  };
+  hasNormalPartData: boolean;
+  hasChildPartData: boolean;
+}
+
+export interface SaveShiftMetricsPayload {
+  partId?: number;
+  childPartIds?: number[];
+  bulan: number;
+  tahun: number;
+  normalPartMetrics?: {
+    shift1?: {
+      manpower?: number;
+      deliveryPlan?: number;
+      akumulasiDelivery?: number;
+      planningProduksiPcs?: number;
+      planningProduksiJam?: number;
+      overtimePcs?: number;
+      overtimeJam?: number;
+      jamProduksiCycleTime?: number;
+      hasilProduksiAktual?: number;
+      akumulasiHasilProduksi?: number;
+      actualStock?: number;
+      rencanaStock?: number;
+    };
+    shift2?: {
+      manpower?: number;
+      deliveryPlan?: number;
+      akumulasiDelivery?: number;
+      planningProduksiPcs?: number;
+      planningProduksiJam?: number;
+      overtimePcs?: number;
+      overtimeJam?: number;
+      jamProduksiCycleTime?: number;
+      hasilProduksiAktual?: number;
+      akumulasiHasilProduksi?: number;
+      actualStock?: number;
+      rencanaStock?: number;
+    };
+  };
+  childPartMetrics?: Array<{
+    shift1?: {
+      rencanaInMaterial?: number;
+      aktualInMaterial?: number;
+      rencanaStock?: number;
+      aktualStock?: number;
+    };
+    shift2?: {
+      rencanaInMaterial?: number;
+      aktualInMaterial?: number;
+      rencanaStock?: number;
+      aktualStock?: number;
+    };
+  }>;
+}
+
+// Service untuk Shift Metrics
+export const ShiftMetricsService = {
+  // Get all shift metrics
+  getAllShiftMetrics: async (): Promise<ShiftMetricsData> => {
+    try {
+      const response = await api.get("/shift-metrics");
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan data shift metrics",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Get shift metrics summary for dashboard
+  getShiftMetricsSummary: async (params?: {
+    partName?: string;
+    bulan?: number;
+    tahun?: number;
+  }): Promise<ShiftMetricsSummary> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.partName) queryParams.append("partName", params.partName);
+      if (params?.bulan) queryParams.append("bulan", params.bulan.toString());
+      if (params?.tahun) queryParams.append("tahun", params.tahun.toString());
+
+      const url = `/shift-metrics/summary${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+      const response = await api.get(url);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan summary shift metrics",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Get shift metrics by month and year
+  getShiftMetricsByMonth: async (bulan: number, tahun: number): Promise<ShiftMetricsData> => {
+    try {
+      const response = await api.get(`/shift-metrics/month/${bulan}/${tahun}`);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan data shift metrics berdasarkan bulan",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Get shift metrics by part name
+  getShiftMetricsByPart: async (
+    partName: string,
+    params?: { bulan?: number; tahun?: number }
+  ): Promise<ShiftMetricsData> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.bulan) queryParams.append("bulan", params.bulan.toString());
+      if (params?.tahun) queryParams.append("tahun", params.tahun.toString());
+
+      const url = `/shift-metrics/part/${encodeURIComponent(partName)}${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+      const response = await api.get(url);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal mendapatkan data shift metrics berdasarkan part",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Save shift metrics from scheduler page
+  saveShiftMetrics: async (payload: SaveShiftMetricsPayload): Promise<any> => {
+    try {
+      const response = await api.post("/shift-metrics/save", payload);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal menyimpan data shift metrics",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Bulk save shift metrics for multiple parts
+  bulkSaveShiftMetrics: async (schedules: SaveShiftMetricsPayload[]): Promise<any> => {
+    try {
+      const response = await api.post("/shift-metrics/bulk-save", { schedules });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data.message || "Gagal menyimpan data shift metrics secara bulk",
+        );
+      }
+      throw new Error("Terjadi kesalahan saat menghubungi server");
+    }
+  },
+
+  // Individual shift table services (for advanced usage)
+  
+  // FG Part Shift 1
+  getFgPartShift1: async (): Promise<any> => {
+    try {
+      const response = await api.get("/fg-part-shift-1");
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mendapatkan data FG Part Shift 1");
+    }
+  },
+
+  createFgPartShift1: async (data: any): Promise<any> => {
+    try {
+      const response = await api.post("/fg-part-shift-1", data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal membuat data FG Part Shift 1");
+    }
+  },
+
+  updateFgPartShift1: async (id: number, data: any): Promise<any> => {
+    try {
+      const response = await api.put(`/fg-part-shift-1/${id}`, data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mengupdate data FG Part Shift 1");
+    }
+  },
+
+  deleteFgPartShift1: async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/fg-part-shift-1/${id}`);
+    } catch (error) {
+      throw new Error("Gagal menghapus data FG Part Shift 1");
+    }
+  },
+
+  // FG Part Shift 2
+  getFgPartShift2: async (): Promise<any> => {
+    try {
+      const response = await api.get("/fg-part-shift-2");
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mendapatkan data FG Part Shift 2");
+    }
+  },
+
+  createFgPartShift2: async (data: any): Promise<any> => {
+    try {
+      const response = await api.post("/fg-part-shift-2", data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal membuat data FG Part Shift 2");
+    }
+  },
+
+  updateFgPartShift2: async (id: number, data: any): Promise<any> => {
+    try {
+      const response = await api.put(`/fg-part-shift-2/${id}`, data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mengupdate data FG Part Shift 2");
+    }
+  },
+
+  deleteFgPartShift2: async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/fg-part-shift-2/${id}`);
+    } catch (error) {
+      throw new Error("Gagal menghapus data FG Part Shift 2");
+    }
+  },
+
+  // Child Part Shift 1
+  getCPartShift1: async (): Promise<any> => {
+    try {
+      const response = await api.get("/c-part-shift-1");
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mendapatkan data Child Part Shift 1");
+    }
+  },
+
+  createCPartShift1: async (data: any): Promise<any> => {
+    try {
+      const response = await api.post("/c-part-shift-1", data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal membuat data Child Part Shift 1");
+    }
+  },
+
+  updateCPartShift1: async (id: number, data: any): Promise<any> => {
+    try {
+      const response = await api.put(`/c-part-shift-1/${id}`, data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mengupdate data Child Part Shift 1");
+    }
+  },
+
+  deleteCPartShift1: async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/c-part-shift-1/${id}`);
+    } catch (error) {
+      throw new Error("Gagal menghapus data Child Part Shift 1");
+    }
+  },
+
+  // Child Part Shift 2
+  getCPartShift2: async (): Promise<any> => {
+    try {
+      const response = await api.get("/c-part-shift-2");
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mendapatkan data Child Part Shift 2");
+    }
+  },
+
+  createCPartShift2: async (data: any): Promise<any> => {
+    try {
+      const response = await api.post("/c-part-shift-2", data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal membuat data Child Part Shift 2");
+    }
+  },
+
+  updateCPartShift2: async (id: number, data: any): Promise<any> => {
+    try {
+      const response = await api.put(`/c-part-shift-2/${id}`, data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error("Gagal mengupdate data Child Part Shift 2");
+    }
+  },
+
+  deleteCPartShift2: async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/c-part-shift-2/${id}`);
+    } catch (error) {
+      throw new Error("Gagal menghapus data Child Part Shift 2");
+    }
+  },
+};
+
 export default api;
