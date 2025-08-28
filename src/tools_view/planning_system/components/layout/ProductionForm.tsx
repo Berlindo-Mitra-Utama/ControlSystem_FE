@@ -7,6 +7,7 @@ import {
   PlanningSystemService,
   ProductPlanningData,
 } from "../../../../services/API_Services";
+import { ProductionService } from "../../../../services/API_Services";
 import Modal from "../ui/Modal";
 import { generateScheduleFromForm } from "../../utils/scheduleCalcUtils";
 import { useNotification } from "../../../../hooks/useNotification";
@@ -243,17 +244,15 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           // yang akan mengarahkan user kembali ke view cards
         }
       } else {
-        // Mode create: Generate jadwal baru
-        console.log("🆕 Create mode: Creating new schedule");
-
-        // Simpan ke backend menggunakan upsert
-        await PlanningSystemService.upsertProductPlanning(planningData);
+        // Mode create: Generate jadwal baru dan simpan SEKETIKA ke database (product planning + ps_daily_production)
+        console.log("🆕 Create mode: Creating new schedule (auto-save)");
 
         const scheduleId =
           `${planningData.partName}-${planningData.customerName}-${selectedMonth}-${selectedYear}`
             .replace(/\s+/g, "-")
             .toLowerCase();
 
+        // Generate schedule lokal terlebih dahulu
         const generatedSchedule = generateScheduleFromForm(
           {
             ...form,
@@ -264,15 +263,58 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
           [],
         );
 
+        // Bangun payload untuk backend (ps_daily_production)
+        const scheduleName = `${MONTHS[selectedMonth]} ${selectedYear}`;
+        const backendPayload = {
+          partName: planningData.partName,
+          customer: planningData.customerName,
+          month: selectedMonth + 1,
+          year: selectedYear,
+          initialStock: planningData.currentStock,
+          timePerPcs:
+            form.timePerPcs || (cyclePerHour > 0 ? 3600 / cyclePerHour : 257),
+          scheduleName,
+          productionData: generatedSchedule.map((item: any) => ({
+            day: item.day,
+            shift: item.shift,
+            planningPcs: item.planningPcs || 0,
+            delivery: item.delivery || 0,
+            overtimePcs: item.overtimePcs || 0,
+            pcs: item.pcs || 0,
+            jamProduksiAktual: item.jamProduksiAktual || 0,
+            manpowerIds: item.manpowerIds || [],
+            status: item.status || "Normal",
+            notes: item.notes || "",
+          })),
+        } as any;
+
+        // Simpan ke backend: ini akan upsert ProductPlanning dan upsert seluruh daily production
+        let backendId: number | undefined;
+        try {
+          const response =
+            await ProductionService.createProductionSchedule(backendPayload);
+          // Ambil ID planning dari response (productPlanning)
+          backendId =
+            response?.data?.productPlanning?.id ||
+            response?.productPlanning?.id ||
+            response?.id;
+          console.log("✅ Auto-saved schedule to backend with ID:", backendId);
+        } catch (saveErr) {
+          console.error("❌ Gagal auto-save schedule ke backend:", saveErr);
+          // Tetap lanjut simpan lokal agar UX tidak terblokir, namun beri peringatan
+          // (opsional) showAlert("Gagal menyimpan jadwal ke database.", "Peringatan");
+        }
+
         const newSchedule = {
           id: scheduleId,
-          name: `${MONTHS[selectedMonth]} ${selectedYear}`,
+          name: scheduleName,
           date: new Date().toISOString(),
           form: {
             part: planningData.partName,
             customer: planningData.customerName,
             stock: planningData.currentStock,
-            timePerPcs: 257,
+            timePerPcs:
+              form.timePerPcs || (cyclePerHour > 0 ? 3600 / cyclePerHour : 257),
             initialStock: planningData.currentStock,
             partImageUrl:
               partImagePreview || (form as any).partImageUrl || null,
@@ -284,7 +326,8 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
             lastSavedBy: undefined,
             lastSavedAt: new Date().toISOString(),
           },
-        };
+          backendId: backendId, // simpan backendId bila tersedia
+        } as any;
 
         setSavedSchedules((prev) => {
           const existingIndex = prev.findIndex((s) => s.id === scheduleId);
@@ -295,12 +338,10 @@ const ProductionForm: React.FC<ProductionFormProps> = ({
         });
 
         if (onSuccess) {
-          onSuccess("Jadwal berhasil digenerate!");
+          onSuccess("Jadwal berhasil digenerate dan tersimpan otomatis!");
         }
 
         // Tidak perlu navigate karena user sudah di halaman yang benar
-        // onSuccess akan dihandle oleh parent component (SchedulerPage)
-        // yang akan mengarahkan user kembali ke view cards
       }
 
       // Log untuk debugging

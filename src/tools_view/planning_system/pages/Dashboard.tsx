@@ -512,8 +512,9 @@ const Dashboard: React.FC = () => {
                 Production Chart
               </h2>
             </div>
+            {/* ProductionChart tidak terpengaruh oleh filter Part/Bulan/Shift */}
             <ProductionChart
-              schedules={filteredSchedules}
+              schedules={savedSchedules}
               onViewAllCharts={handleViewAllCharts}
             />
           </div>
@@ -553,253 +554,72 @@ const Dashboard: React.FC = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={React.useMemo(() => {
-                        console.log(
-                          "Chart 2 - filteredSchedules:",
-                          filteredSchedules,
+                        // Chart 2 tidak terpengaruh filter; gunakan seluruh savedSchedules dan tampilkan agregasi per-bulan
+                        const months = [
+                          "Januari",
+                          "Februari",
+                          "Maret",
+                          "April",
+                          "Mei",
+                          "Juni",
+                          "Juli",
+                          "Agustus",
+                          "September",
+                          "Oktober",
+                          "November",
+                          "Desember",
+                        ];
+
+                        const initialMonthlyData: Record<
+                          string,
+                          { rencanaProduksi: number; actualProduksi: number }
+                        > = {};
+                        months.forEach(
+                          (m) =>
+                            (initialMonthlyData[m] = {
+                              rencanaProduksi: 0,
+                              actualProduksi: 0,
+                            }),
                         );
-                        console.log("Chart 2 - selectedPart:", selectedPart);
 
-                        if (
-                          !filteredSchedules ||
-                          filteredSchedules.length === 0
-                        ) {
-                          console.log(
-                            "Chart 2 - No filtered schedules, using fallback data",
-                          );
-                          // Fallback data untuk testing
-                          if (selectedPart) {
-                            return [
-                              {
-                                day: "Hari 1 (Shift 1)",
-                                rencanaProduksi: 100,
-                                actualProduksi: 95,
-                              },
-                              {
-                                day: "Hari 2 (Shift 1)",
-                                rencanaProduksi: 120,
-                                actualProduksi: 110,
-                              },
-                              {
-                                day: "Hari 3 (Shift 1)",
-                                rencanaProduksi: 90,
-                                actualProduksi: 85,
-                              },
-                              {
-                                day: "Hari 4 (Shift 1)",
-                                rencanaProduksi: 110,
-                                actualProduksi: 105,
-                              },
-                              {
-                                day: "Hari 5 (Shift 1)",
-                                rencanaProduksi: 130,
-                                actualProduksi: 125,
-                              },
-                            ];
-                          } else {
-                            return [
-                              {
-                                month: "Januari",
-                                rencanaProduksi: 500,
-                                actualProduksi: 480,
-                              },
-                              {
-                                month: "Februari",
-                                rencanaProduksi: 600,
-                                actualProduksi: 570,
-                              },
-                              {
-                                month: "Maret",
-                                rencanaProduksi: 550,
-                                actualProduksi: 520,
-                              },
-                            ];
-                          }
-                        }
-
-                        if (selectedPart) {
-                          // Jika part dipilih, tampilkan data per hari untuk part tersebut
-                          const partSchedules = filteredSchedules.filter(
-                            (schedule) =>
-                              schedule.form &&
-                              schedule.form.part === selectedPart,
-                          );
-
-                          console.log(
-                            "Chart 2 - partSchedules for selected part:",
-                            partSchedules,
-                          );
-
-                          if (partSchedules.length === 0) {
-                            console.log(
-                              "Chart 2 - No schedules found for selected part, using fallback data",
-                            );
-                            // Fallback data untuk part yang dipilih
-                            return [
-                              {
-                                day: "Hari 1 (Shift 1)",
-                                rencanaProduksi: 100,
-                                actualProduksi: 95,
-                              },
-                              {
-                                day: "Hari 2 (Shift 1)",
-                                rencanaProduksi: 120,
-                                actualProduksi: 110,
-                              },
-                              {
-                                day: "Hari 3 (Shift 1)",
-                                rencanaProduksi: 90,
-                                actualProduksi: 85,
-                              },
-                              {
-                                day: "Hari 4 (Shift 1)",
-                                rencanaProduksi: 110,
-                                actualProduksi: 105,
-                              },
-                              {
-                                day: "Hari 5 (Shift 1)",
-                                rencanaProduksi: 130,
-                                actualProduksi: 125,
-                              },
-                            ];
-                          }
-
-                          // Gabungkan semua schedule items dari part yang dipilih
-                          const allItems: Array<{
-                            day: number;
-                            shift: string;
-                            rencanaProduksi: number;
-                            actualProduksi: number;
-                            date: string;
-                          }> = [];
-
-                          partSchedules.forEach((schedule) => {
-                            console.log(
-                              "Chart 2 - Processing schedule:",
-                              schedule.name,
-                              "with items:",
-                              schedule.schedule.length,
-                            );
-                            schedule.schedule.forEach((item) => {
-                              console.log("Chart 2 - Item:", item);
-                              allItems.push({
-                                day: item.day,
-                                shift: item.shift,
-                                rencanaProduksi:
-                                  item.planningPcs || item.pcs || 0, // Fallback ke pcs jika planningPcs tidak ada
-                                actualProduksi:
-                                  item.hasilProduksi || item.actualPcs || 0, // Fallback ke actualPcs jika hasilProduksi tidak ada
-                                date: schedule.name || "",
-                              });
-                            });
-                          });
-
-                          console.log(
-                            "Chart 2 - All items before sorting:",
-                            allItems,
-                          );
-
-                          // Urutkan berdasarkan hari
-                          allItems.sort((a, b) => a.day - b.day);
-
-                          // Buat data untuk chart dengan label yang informatif
-                          const chartData = allItems.map((item, index) => ({
-                            day: `Hari ${item.day} (Shift ${item.shift})`,
-                            rencanaProduksi: item.rencanaProduksi,
-                            actualProduksi: item.actualProduksi,
-                            originalDay: item.day,
-                            shift: item.shift,
-                            date: item.date,
-                          }));
-
-                          console.log("Chart 2 - Final chart data:", chartData);
-                          return chartData;
-                        } else {
-                          // Jika tidak ada part yang dipilih, tampilkan data per bulan seperti sebelumnya
-                          const months = [
-                            "Januari",
-                            "Februari",
-                            "Maret",
-                            "April",
-                            "Mei",
-                            "Juni",
-                            "Juli",
-                            "Agustus",
-                            "September",
-                            "Oktober",
-                            "November",
-                            "Desember",
-                          ];
-
-                          // Inisialisasi data untuk semua bulan dengan nilai 0
-                          const initialMonthlyData: Record<
+                        const monthlyData = savedSchedules.reduce<
+                          Record<
                             string,
-                            {
-                              rencanaProduksi: number;
-                              actualProduksi: number;
-                            }
-                          > = {};
-                          months.forEach((month) => {
-                            initialMonthlyData[month] = {
+                            { rencanaProduksi: number; actualProduksi: number }
+                          >
+                        >((acc, s) => {
+                          const scheduleName = s.name || "";
+                          const monthName = scheduleName.split(" ")[0];
+                          if (!acc[monthName])
+                            acc[monthName] = {
                               rencanaProduksi: 0,
                               actualProduksi: 0,
                             };
+
+                          let totalRencana = 0;
+                          let totalActual = 0;
+                          s.schedule.forEach((item) => {
+                            totalRencana += item.planningPcs || item.pcs || 0;
+                            totalActual +=
+                              item.hasilProduksi || item.actualPcs || 0;
                           });
 
-                          // Mengelompokkan data berdasarkan bulan
-                          const monthlyData = filteredSchedules.reduce<
-                            Record<
-                              string,
-                              {
-                                rencanaProduksi: number;
-                                actualProduksi: number;
-                              }
-                            >
-                          >(
-                            (acc, savedSchedule) => {
-                              // Ekstrak bulan dari nama jadwal (format: "Bulan Tahun")
-                              const scheduleName = savedSchedule.name;
-                              const monthName = scheduleName.split(" ")[0]; // Ambil nama bulan saja
+                          acc[monthName].rencanaProduksi += totalRencana;
+                          acc[monthName].actualProduksi += totalActual;
+                          return acc;
+                        }, initialMonthlyData);
 
-                              if (!acc[monthName]) {
-                                acc[monthName] = {
-                                  rencanaProduksi: 0,
-                                  actualProduksi: 0,
-                                };
-                              }
-
-                              // Hitung total rencana dan actual produksi untuk jadwal ini
-                              let totalRencana = 0;
-                              let totalActual = 0;
-
-                              savedSchedule.schedule.forEach((item) => {
-                                totalRencana +=
-                                  item.planningPcs || item.pcs || 0; // Fallback ke pcs jika planningPcs tidak ada
-                                totalActual +=
-                                  item.hasilProduksi || item.actualPcs || 0; // Menggunakan hasilProduksi untuk actual produksi
-                              });
-
-                              // Tambahkan ke akumulator
-                              acc[monthName].rencanaProduksi += totalRencana;
-                              acc[monthName].actualProduksi += totalActual;
-
-                              return acc;
-                            },
-                            initialMonthlyData, // Gunakan template yang sudah diinisialisasi
-                          );
-
-                          // Ubah ke format array untuk recharts
-                          return months.map((month) => ({
-                            month,
-                            rencanaProduksi: monthlyData[month].rencanaProduksi,
-                            actualProduksi: monthlyData[month].actualProduksi,
-                          }));
-                        }
-                      }, [filteredSchedules, selectedPart])}
+                        return months.map((month) => ({
+                          month,
+                          rencanaProduksi: monthlyData[month].rencanaProduksi,
+                          actualProduksi: monthlyData[month].actualProduksi,
+                        }));
+                      }, [savedSchedules])}
                       margin={{
                         top: 10,
                         right: 30,
                         left: 0,
-                        bottom: selectedPart ? 80 : 0,
+                        bottom: 0,
                       }}
                     >
                       <CartesianGrid
@@ -811,15 +631,15 @@ const Dashboard: React.FC = () => {
                         }
                       />
                       <XAxis
-                        dataKey={selectedPart ? "day" : "month"}
+                        dataKey="month"
                         stroke={
                           uiColors.bg.primary === "bg-gray-50"
                             ? "#6b7280"
                             : "#9ca3af"
                         }
-                        angle={selectedPart ? -45 : 0}
-                        textAnchor={selectedPart ? "end" : "middle"}
-                        height={selectedPart ? 80 : 60}
+                        angle={0}
+                        textAnchor="middle"
+                        height={60}
                       />
                       <YAxis
                         stroke={
@@ -847,11 +667,11 @@ const Dashboard: React.FC = () => {
                               ? "#111827"
                               : "#f9fafb",
                         }}
-                        formatter={(value: any, name: string, props: any) => [
+                        formatter={(value: any, name: string) => [
                           `${value} pcs`,
-                          props && props.dataKey === "rencanaProduksi"
+                          name === "rencanaProduksi"
                             ? "Rencana Produksi"
-                            : props && props.dataKey === "actualProduksi"
+                            : name === "actualProduksi"
                               ? "Actual Produksi"
                               : name,
                         ]}
@@ -874,31 +694,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Informasi tambahan untuk part yang dipilih */}
-              {selectedPart && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span>
-                      Menampilkan data per hari untuk{" "}
-                      <strong>{selectedPart}</strong>. Klik "Semua Part" untuk
-                      kembali ke tampilan per bulan.
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Chart ini tidak mengikuti filter part, jadi tidak perlu info per-part */}
             </div>
           </div>
         )}
@@ -929,253 +725,79 @@ const Dashboard: React.FC = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={React.useMemo(() => {
-                        console.log(
-                          "Chart 3 - filteredSchedules:",
-                          filteredSchedules,
-                        );
-                        console.log("Chart 3 - selectedPart:", selectedPart);
+                        // Chart 3 tidak terpengaruh filter; gunakan seluruh savedSchedules dan tampilkan agregasi per-bulan
+                        const months = [
+                          "Januari",
+                          "Februari",
+                          "Maret",
+                          "April",
+                          "Mei",
+                          "Juni",
+                          "Juli",
+                          "Agustus",
+                          "September",
+                          "Oktober",
+                          "November",
+                          "Desember",
+                        ];
 
-                        if (
-                          !filteredSchedules ||
-                          filteredSchedules.length === 0
-                        ) {
-                          console.log(
-                            "Chart 3 - No filtered schedules, using fallback data",
-                          );
-                          // Fallback data untuk testing
-                          if (selectedPart) {
-                            return [
-                              {
-                                day: "Hari 1 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.5,
-                              },
-                              {
-                                day: "Hari 2 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.8,
-                              },
-                              {
-                                day: "Hari 3 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.2,
-                              },
-                              {
-                                day: "Hari 4 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.9,
-                              },
-                              {
-                                day: "Hari 5 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 8.1,
-                              },
-                            ];
-                          } else {
-                            return [
-                              {
-                                month: "Januari",
-                                rencanaJamProduksi: 160,
-                                actualJamProduksi: 150,
-                              },
-                              {
-                                month: "Februari",
-                                rencanaJamProduksi: 160,
-                                actualJamProduksi: 155,
-                              },
-                              {
-                                month: "Maret",
-                                rencanaJamProduksi: 160,
-                                actualJamProduksi: 148,
-                              },
-                            ];
-                          }
-                        }
-
-                        if (selectedPart) {
-                          // Jika part dipilih, tampilkan data per hari untuk part tersebut
-                          const partSchedules = filteredSchedules.filter(
-                            (schedule) =>
-                              schedule.form &&
-                              schedule.form.part === selectedPart,
-                          );
-
-                          console.log(
-                            "Chart 3 - partSchedules for selected part:",
-                            partSchedules,
-                          );
-
-                          if (partSchedules.length === 0) {
-                            console.log(
-                              "Chart 3 - No schedules found for selected part, using fallback data",
-                            );
-                            // Fallback data untuk part yang dipilih
-                            return [
-                              {
-                                day: "Hari 1 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.5,
-                              },
-                              {
-                                day: "Hari 2 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.8,
-                              },
-                              {
-                                day: "Hari 3 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.2,
-                              },
-                              {
-                                day: "Hari 4 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 7.9,
-                              },
-                              {
-                                day: "Hari 5 (Shift 1)",
-                                rencanaJamProduksi: 8,
-                                actualJamProduksi: 8.1,
-                              },
-                            ];
-                          }
-
-                          // Gabungkan semua schedule items dari part yang dipilih
-                          const allItems: Array<{
-                            day: number;
-                            shift: string;
+                        const initialMonthlyData: Record<
+                          string,
+                          {
                             rencanaJamProduksi: number;
                             actualJamProduksi: number;
-                            date: string;
-                          }> = [];
+                          }
+                        > = {};
+                        months.forEach(
+                          (m) =>
+                            (initialMonthlyData[m] = {
+                              rencanaJamProduksi: 0,
+                              actualJamProduksi: 0,
+                            }),
+                        );
 
-                          partSchedules.forEach((schedule) => {
-                            console.log(
-                              "Chart 3 - Processing schedule:",
-                              schedule.name,
-                              "with items:",
-                              schedule.schedule.length,
-                            );
-                            schedule.schedule.forEach((item) => {
-                              console.log("Chart 3 - Item:", item);
-                              allItems.push({
-                                day: item.day,
-                                shift: item.shift,
-                                rencanaJamProduksi: item.planningHour || 0,
-                                actualJamProduksi: item.jamProduksiAktual || 0,
-                                date: schedule.name || "",
-                              });
-                            });
-                          });
-
-                          console.log(
-                            "Chart 3 - All items before sorting:",
-                            allItems,
-                          );
-
-                          // Urutkan berdasarkan hari
-                          allItems.sort((a, b) => a.day - b.day);
-
-                          // Buat data untuk chart dengan label yang informatif
-                          const chartData = allItems.map((item, index) => ({
-                            day: `Hari ${item.day} (Shift ${item.shift})`,
-                            rencanaJamProduksi: item.rencanaJamProduksi,
-                            actualJamProduksi: item.actualJamProduksi,
-                            originalDay: item.day,
-                            shift: item.shift,
-                            date: item.date,
-                          }));
-
-                          console.log("Chart 3 - Final chart data:", chartData);
-                          return chartData;
-                        } else {
-                          // Jika tidak ada part yang dipilih, tampilkan data per bulan seperti sebelumnya
-                          const months = [
-                            "Januari",
-                            "Februari",
-                            "Maret",
-                            "April",
-                            "Mei",
-                            "Juni",
-                            "Juli",
-                            "Agustus",
-                            "September",
-                            "Oktober",
-                            "November",
-                            "Desember",
-                          ];
-
-                          // Inisialisasi data untuk semua bulan dengan nilai 0
-                          const initialMonthlyData: Record<
+                        const monthlyData = savedSchedules.reduce<
+                          Record<
                             string,
                             {
                               rencanaJamProduksi: number;
                               actualJamProduksi: number;
                             }
-                          > = {};
-                          months.forEach((month) => {
-                            initialMonthlyData[month] = {
+                          >
+                        >((acc, s) => {
+                          const scheduleName = s.name || "";
+                          const monthName = scheduleName.split(" ")[0];
+                          if (!acc[monthName])
+                            acc[monthName] = {
                               rencanaJamProduksi: 0,
                               actualJamProduksi: 0,
                             };
+
+                          let totalRencanaJam = 0;
+                          let totalActualJam = 0;
+                          s.schedule.forEach((item) => {
+                            totalRencanaJam += item.planningHour || 0;
+                            totalActualJam += item.jamProduksiAktual || 0;
                           });
 
-                          // Mengelompokkan data berdasarkan bulan
-                          const monthlyData = filteredSchedules.reduce<
-                            Record<
-                              string,
-                              {
-                                rencanaJamProduksi: number;
-                                actualJamProduksi: number;
-                              }
-                            >
-                          >(
-                            (acc, savedSchedule) => {
-                              // Ekstrak bulan dari nama jadwal (format: "Bulan Tahun")
-                              const scheduleName = savedSchedule.name;
-                              const monthName = scheduleName.split(" ")[0]; // Ambil nama bulan saja
+                          acc[monthName].rencanaJamProduksi += totalRencanaJam;
+                          acc[monthName].actualJamProduksi += totalActualJam;
+                          return acc;
+                        }, initialMonthlyData);
 
-                              if (!acc[monthName]) {
-                                acc[monthName] = {
-                                  rencanaJamProduksi: 0,
-                                  actualJamProduksi: 0,
-                                };
-                              }
-
-                              // Hitung total rencana dan actual jam produksi untuk jadwal ini
-                              let totalRencanaJam = 0;
-                              let totalActualJam = 0;
-
-                              savedSchedule.schedule.forEach((item) => {
-                                totalRencanaJam += item.planningHour || 0;
-                                totalActualJam += item.jamProduksiAktual || 0; // Menggunakan jamProduksiAktual untuk actual jam produksi
-                              });
-
-                              // Tambahkan ke akumulator
-                              acc[monthName].rencanaJamProduksi +=
-                                totalRencanaJam;
-                              acc[monthName].actualJamProduksi +=
-                                totalActualJam;
-
-                              return acc;
-                            },
-                            initialMonthlyData, // Gunakan template yang sudah diinisialisasi
-                          );
-
-                          // Ubah ke format array untuk recharts
-                          return months.map((month) => ({
-                            month,
-                            rencanaJamProduksi:
-                              monthlyData[month].rencanaJamProduksi,
-                            actualJamProduksi:
-                              monthlyData[month].actualJamProduksi,
-                          }));
-                        }
-                      }, [filteredSchedules, selectedPart])}
+                        return months.map((month) => ({
+                          month,
+                          rencanaJamProduksi:
+                            monthlyData[month].rencanaJamProduksi,
+                          actualJamProduksi:
+                            monthlyData[month].actualJamProduksi,
+                        }));
+                      }, [savedSchedules])}
                       margin={{
                         top: 10,
                         right: 30,
                         left: 0,
-                        bottom: selectedPart ? 80 : 0,
+                        bottom: 0,
                       }}
                     >
                       <CartesianGrid
@@ -1187,15 +809,15 @@ const Dashboard: React.FC = () => {
                         }
                       />
                       <XAxis
-                        dataKey={selectedPart ? "day" : "month"}
+                        dataKey="month"
                         stroke={
                           uiColors.bg.primary === "bg-gray-50"
                             ? "#6b7280"
                             : "#9ca3af"
                         }
-                        angle={selectedPart ? -45 : 0}
-                        textAnchor={selectedPart ? "end" : "middle"}
-                        height={selectedPart ? 80 : 60}
+                        angle={0}
+                        textAnchor="middle"
+                        height={60}
                       />
                       <YAxis
                         stroke={
@@ -1223,11 +845,11 @@ const Dashboard: React.FC = () => {
                               ? "#111827"
                               : "#f9fafb",
                         }}
-                        formatter={(value: any, name: string, props: any) => [
+                        formatter={(value: any, name: string) => [
                           `${value} jam`,
-                          props && props.dataKey === "rencanaJamProduksi"
+                          name === "rencanaJamProduksi"
                             ? "Rencana Jam Produksi"
-                            : props && props.dataKey === "actualJamProduksi"
+                            : name === "actualJamProduksi"
                               ? "Actual Jam Produksi"
                               : name,
                         ]}
@@ -1250,31 +872,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Informasi tambahan untuk part yang dipilih */}
-              {selectedPart && (
-                <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span>
-                      Menampilkan data per hari untuk{" "}
-                      <strong>{selectedPart}</strong>. Klik "Semua Part" untuk
-                      kembali ke tampilan per bulan.
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Chart ini tidak mengikuti filter part, jadi tidak perlu info per-part */}
             </div>
           </div>
         )}

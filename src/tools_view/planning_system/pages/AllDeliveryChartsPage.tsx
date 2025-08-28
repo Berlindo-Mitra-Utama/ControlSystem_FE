@@ -18,14 +18,15 @@ const AllDeliveryChartsPage: React.FC = () => {
   const { savedSchedules } = useSchedule();
   const { uiColors } = useTheme();
 
-  // Part options (follow other pages for consistency)
-  const partOptions = [
-    "29N Muffler",
-    "Transmission Case B2",
-    "Brake Disc C3",
-    "Engine Block A7",
-    "Cylinder Head X5",
-  ];
+  // Part options (dinamis dari scheduler)
+  const partOptions = React.useMemo(() => {
+    const parts = new Set<string>();
+    savedSchedules.forEach((s) => {
+      const p = s?.form?.part;
+      if (p && typeof p === 'string' && p.trim().length > 0) parts.add(p);
+    });
+    return Array.from(parts).sort((a, b) => a.localeCompare(b));
+  }, [savedSchedules]);
 
   // Month list
   const months = [
