@@ -959,11 +959,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           </div>
 
           {/* Scrollable Right Section - Date Columns - Enhanced */}
-          <div className="flex-1 overflow-x-auto">
+          <div className="flex-1 overflow-x-auto custom-scrollbar">
             <div className="flex min-w-max">
               {filteredValidGroupedRows.map((group) => (
                 <div
                   key={group.day}
+                  data-date={group.day}
+                  data-day-name={formatValidDate(group.day, scheduleName || "Februari 2025").dayName}
                   className={`flex-shrink-0 w-40 ${uiColors.border.secondary}`}
                 >
                   {/* Date Header */}
@@ -989,10 +991,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       </div>
                       {/* Shift Headers */}
                       <div className="grid grid-cols-2 gap-1 mt-2">
-                        <div className="bg-blue-600 text-white text-xs py-1 rounded font-semibold">
+                        <div 
+                          data-shift="1"
+                          className="bg-blue-600 text-white text-xs py-1 rounded font-semibold"
+                        >
                           SHIFT 1
                         </div>
-                        <div className="bg-purple-600 text-white text-xs py-1 rounded font-semibold">
+                        <div 
+                          data-shift="2"
+                          className="bg-purple-600 text-white text-xs py-1 rounded font-semibold"
+                        >
                           SHIFT 2
                         </div>
                       </div>
@@ -1039,6 +1047,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           className={`h-16 grid grid-cols-2 gap-0 ${uiColors.border.secondary} ${rowBgColor}`}
                         >
                           <div
+                            data-shift="1"
+                            data-row-type={row.key}
                             className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift1 ? (
@@ -1095,6 +1105,8 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                             )}
                           </div>
                           <div
+                            data-shift="2"
+                            data-row-type={row.key}
                             className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift2 ? (

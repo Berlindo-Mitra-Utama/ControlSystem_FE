@@ -29,7 +29,11 @@ interface ChildPartCardViewProps {
   days: number;
   schedule: ScheduleItem[];
   onDelete?: () => void;
-  onEdit?: () => void;
+  onEdit?: (data: {
+    partName: string;
+    customerName: string;
+    stock: number | null;
+  }) => void;
   onEditSchedule?: () => void;
   onDeleteSchedule?: () => void;
   inMaterial?: (number | null)[][];
@@ -889,7 +893,7 @@ const ChildPartCardView: React.FC<ChildPartCardViewProps> = (props) => {
     stock: number | null;
   }) => {
     if (props.onEdit) {
-      props.onEdit();
+      props.onEdit(data);
     }
     setShowEditPartModal(false);
   };
