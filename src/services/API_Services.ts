@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-const API_BASE_URL = "https://292mhrfs-5555.asse.devtunnels.ms/api";
-//const API_BASE_URL = "http://localhost:5555/api";
+//const API_BASE_URL = "https://292mhrfs-5555.asse.devtunnels.ms/api";
+const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({
@@ -1494,9 +1494,14 @@ api.interceptors.response.use(
 // Child Part Service
 export const ChildPartService = {
   // Get all child parts
-  async getAllChildParts() {
+  async getAllChildParts(params?: { productPlanningId?: number }) {
     try {
-      const response = await api.get("/child-part");
+      const query = new URLSearchParams();
+      if (params?.productPlanningId !== undefined) {
+        query.append("productPlanningId", String(params.productPlanningId));
+      }
+      const url = `/child-part${query.toString() ? `?${query.toString()}` : ""}`;
+      const response = await api.get(url);
       return response.data.data;
     } catch (error) {
       console.error("Error fetching child parts:", error);
@@ -1509,6 +1514,7 @@ export const ChildPartService = {
     partName: string;
     customerName: string;
     stockAvailable: number;
+    productPlanningId?: number | null;
   }) {
     try {
       const response = await api.post("/child-part", childPartData);
@@ -1526,6 +1532,7 @@ export const ChildPartService = {
       partName: string;
       customerName: string;
       stockAvailable: number;
+      productPlanningId?: number | null;
     },
   ) {
     try {
