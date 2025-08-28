@@ -1208,10 +1208,11 @@ const SchedulerPage: React.FC = () => {
             }
           }
 
-          setChildParts(convertedChildParts);
+          // Dedupe hasil load dari backend (berdasarkan part+customer)
+          setChildParts(dedupeChildParts(convertedChildParts));
           console.log(
             "Child parts dan rencana data berhasil dimuat dari database:",
-            convertedChildParts,
+            dedupeChildParts(convertedChildParts),
           );
         }
       } catch (error) {
@@ -1252,6 +1253,33 @@ const SchedulerPage: React.FC = () => {
         cp.customerName.toLowerCase().includes(childPartSearch.toLowerCase()),
     );
     return filtered;
+  };
+
+  // Helper untuk membuat key unik Child Part dan deduplikasi array
+  const getChildPartKey = (cp: { partName: string; customerName: string }) =>
+    `${(cp.partName || "").trim().toLowerCase()}__${(cp.customerName || "").trim().toLowerCase()}`;
+
+  const dedupeChildParts = (parts: ChildPartData[]): ChildPartData[] => {
+    const map = new Map<string, ChildPartData>();
+    for (const cp of parts) {
+      const key = getChildPartKey(cp);
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, cp);
+      } else {
+        // Prioritaskan data yang memiliki id (berasal dari database)
+        const prefer = existing.id ? existing : cp;
+        const other = existing.id ? cp : existing;
+        // Gabungkan data agar tidak kehilangan inMaterial/aktualInMaterial
+        map.set(key, {
+          ...other,
+          ...prefer,
+          inMaterial: prefer.inMaterial || other.inMaterial,
+          aktualInMaterial: prefer.aktualInMaterial || other.aktualInMaterial,
+        });
+      }
+    }
+    return Array.from(map.values());
   };
 
   // Fungsi untuk membersihkan duplikasi di savedSchedules
@@ -2765,7 +2793,10 @@ const SchedulerPage: React.FC = () => {
             "../../../services/API_Services"
           );
 
-          for (const childPart of childParts) {
+          // Gunakan childParts unik untuk mencegah create/update ganda
+          const uniqueChildParts = dedupeChildParts(childParts);
+
+          for (const childPart of uniqueChildParts) {
             // Cek apakah child part sudah ada di database
             if (childPart.id && typeof childPart.id === "number") {
               // Update existing child part
@@ -2858,11 +2889,8 @@ const SchedulerPage: React.FC = () => {
         }
       }
 
-      // Jika ada perubahan pada data produksi dan ada backendId, update data produksi harian
-      if (
-        hasScheduleChanges &&
-        (response.productPlanning?.id || response.id || existingId)
-      ) {
+      // Selalu update data produksi harian ketika menyimpan jadwal
+      if (response.productPlanning?.id || response.id || existingId) {
         try {
           const scheduleId =
             response.productPlanning?.id || response.id || existingId;
@@ -2872,12 +2900,14 @@ const SchedulerPage: React.FC = () => {
           );
 
           // Konversi schedule data untuk update daily production
-          const productionDataForUpdate = schedule.map((item: any) => ({
-            ...item,
-            year: currentYear,
-            // kirim 1-12 ke backend
-            month: currentMonth + 1,
-          }));
+          const productionDataForUpdate = schedule
+            .filter((item: any) => item.shift === "1" || item.shift === "2")
+            .map((item: any) => ({
+              ...item,
+              year: currentYear,
+              // kirim 1-12 ke backend
+              month: currentMonth + 1,
+            }));
 
           await ProductionService.updateDailyProductionBySchedule(
             scheduleId,
@@ -3237,8 +3267,12 @@ const SchedulerPage: React.FC = () => {
         };
       }
 
-      // Create local child part data with correct structure
+      // Create local child part data with correct structure (sertakan id jika ada)
       const newChildPart: ChildPartData = {
+        id:
+          typeof savedChildPart?.id === "number"
+            ? savedChildPart.id
+            : undefined,
         partName: data.partName,
         customerName: data.customerName,
         stock: data.stock,
@@ -3246,7 +3280,11 @@ const SchedulerPage: React.FC = () => {
         aktualInMaterial: Array.from({ length: days }, () => [null, null]),
       };
 
-      setChildParts((prev) => [...prev, newChildPart]);
+      // Tambahkan dengan deduplikasi berdasarkan part+customer
+      setChildParts((prev) => {
+        const next = dedupeChildParts([...prev, newChildPart]);
+        return next;
+      });
       setShowChildPartModal(false);
 
       // Set flag perubahan
@@ -4178,6 +4216,7 @@ const SchedulerPage: React.FC = () => {
       );
       console.log("📊 Current savedSchedules count:", savedSchedules.length);
       setSelectedPart(saved.form?.part || null);
+      setSelectedCustomer(saved.form?.customer || null);
 
       // Log untuk debugging state setelah reset
       console.log("🔄 State reset completed:", {
@@ -5215,11 +5254,13 @@ const SchedulerPage: React.FC = () => {
         );
 
         // Konversi data untuk update
-        const productionDataForUpdate = updatedRows.map((item: any) => ({
-          ...item,
-          year: selectedYear,
-          month: selectedMonth + 1,
-        }));
+        const productionDataForUpdate = updatedRows
+          .filter((item: any) => item.shift === "1" || item.shift === "2")
+          .map((item: any) => ({
+            ...item,
+            year: selectedYear,
+            month: selectedMonth + 1,
+          }));
 
         await ProductionService.updateDailyProductionBySchedule(
           currentSchedule.backendId,
@@ -5234,6 +5275,22 @@ const SchedulerPage: React.FC = () => {
       } else {
         // Fallback ke metode lama jika tidak ada backend ID
         await saveProductionDataToBackend(updatedRows);
+        // Setelah fallback create, coba refresh productPlannings agar backendId tersedia lagi
+        try {
+          const { PlanningSystemService } = await import(
+            "../../../services/API_Services"
+          );
+          const refreshed = await PlanningSystemService.getAllProductPlanning();
+          console.log(
+            "Refreshed product plannings after fallback save:",
+            refreshed,
+          );
+        } catch (e) {
+          console.warn(
+            "Failed to refresh product plannings after fallback save",
+            e,
+          );
+        }
         showSuccess("Perubahan berhasil disimpan ke database!");
       }
     } catch (error) {
@@ -6502,6 +6559,64 @@ const SchedulerPage: React.FC = () => {
                               initialStock: cp.stock,
                               days: days,
                               schedule: schedule,
+                              onEdit: (data: {
+                                partName: string;
+                                customerName: string;
+                                stock: number | null;
+                              }) => {
+                                // Update state lokal + dedupe
+                                setChildParts((prev) => {
+                                  const updated = prev.map((c, i) =>
+                                    i === realIdx
+                                      ? {
+                                          ...c,
+                                          partName: data.partName,
+                                          customerName: data.customerName,
+                                          stock: data.stock ?? c.stock,
+                                        }
+                                      : c,
+                                  );
+                                  return dedupeChildParts(updated);
+                                });
+
+                                // Update backend jika ada ID
+                                try {
+                                  const current = childParts[realIdx];
+                                  if (
+                                    current?.id &&
+                                    typeof current.id === "number"
+                                  ) {
+                                    ChildPartService.updateChildPart(
+                                      current.id,
+                                      {
+                                        partName: data.partName,
+                                        customerName: data.customerName,
+                                        stockAvailable: data.stock ?? 0,
+                                      },
+                                    )
+                                      .then(() => {
+                                        showSuccess(
+                                          "Child part berhasil diupdate!",
+                                        );
+                                      })
+                                      .catch((err: any) => {
+                                        console.error(
+                                          "Gagal update child part ke server:",
+                                          err,
+                                        );
+                                        showAlert(
+                                          "Gagal update child part ke database",
+                                          "Peringatan",
+                                        );
+                                      });
+                                  }
+                                } catch (e) {
+                                  console.error(
+                                    "Error updating child part:",
+                                    e,
+                                  );
+                                }
+                              },
                               onDelete: () => {
                                 handleDeleteChildPart(realIdx);
                               },
