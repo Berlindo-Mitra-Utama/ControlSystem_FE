@@ -3419,6 +3419,63 @@ const SchedulerPage: React.FC = () => {
         }
       }
 
+      // Selalu update nama part dan customer ke backend bila ada backendId
+      try {
+        const { PlanningSystemService } = await import(
+          "../../../services/API_Services"
+        );
+
+        // Cari satu schedule yang memiliki backendId untuk dijadikan acuan update
+        const scheduleWithBackend = schedulesToUpdate.find((s) => s.backendId);
+        if (scheduleWithBackend?.backendId) {
+          // Derive month/year dari nama jadwal bila memungkinkan
+          let productionMonth: number | undefined;
+          let productionYear: number | undefined;
+          try {
+            // gunakan import statis yang sudah ada di top: from "../utils/scheduleDateUtils"
+            const parsed = parseScheduleName(scheduleWithBackend.name || "");
+            if (parsed && typeof parsed.month === "number") {
+              productionMonth = parsed.month + 1; // FE 0-11 → BE 1-12
+              productionYear = parsed.year;
+            }
+          } catch {}
+
+          const updatePayload = {
+            partName: editingPartName.trim(),
+            customerName: editingPartCustomer.trim(),
+            currentStock: scheduleWithBackend.form?.stock || 0,
+            productionMonth: productionMonth || new Date().getMonth() + 1,
+            productionYear: productionYear || new Date().getFullYear(),
+          };
+
+          await PlanningSystemService.updateProductPlanning(
+            scheduleWithBackend.backendId,
+            updatePayload,
+          );
+          console.log("✅ Part name/customer updated in backend");
+        } else {
+          // Tidak ada backendId → upsert berdasarkan kombinasi
+          const upsertPayload = {
+            partName: editingPartName.trim(),
+            customerName: editingPartCustomer.trim(),
+            productionMonth: new Date().getMonth() + 1,
+            productionYear: new Date().getFullYear(),
+            currentStock: schedulesToUpdate[0]?.form?.stock || form?.stock || 0,
+          } as any;
+          await PlanningSystemService.upsertProductPlanning(upsertPayload);
+          console.log("✅ Part name/customer upserted in backend");
+        }
+      } catch (updateError) {
+        console.error(
+          "❌ Error updating part name/customer in backend:",
+          updateError,
+        );
+        showAlert(
+          "Perubahan berhasil disimpan lokal, namun gagal mengupdate database",
+          "Peringatan",
+        );
+      }
+
       setShowEditPartModal(false);
       setEditingPartId(null);
       setEditingPartImage(null);

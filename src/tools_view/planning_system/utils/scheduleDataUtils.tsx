@@ -32,6 +32,7 @@ export const getRowDataConfig = (
   initialStock: number,
   manpowerList: { id: number; name: string }[],
   flatRows: ScheduleItem[],
+  timePerPcs: number,
 ): RowDataConfig => {
   let shift1Value: string | number = "-";
   let shift2Value: string | number = "-";
@@ -150,11 +151,17 @@ export const getRowDataConfig = (
       break;
 
     case "jam-aktual":
-      shift1Value = formatNumberWithDecimal(shift1?.jamProduksiAktual || 0);
-      shift2Value = formatNumberWithDecimal(shift2?.jamProduksiAktual || 0);
-      isEditable = true;
-      shift1Field = "jamProduksiAktual";
-      shift2Field = "jamProduksiAktual";
+      // Jam Produksi Aktual dihitung otomatis: pcs / output per jam (output per jam = 3600 / timePerPcs)
+      const outputPerHour = timePerPcs > 0 ? 3600 / timePerPcs : 0;
+      shift1Value = formatNumberWithDecimal(
+        outputPerHour > 0 ? (shift1?.pcs || 0) / outputPerHour : 0,
+      );
+      shift2Value = formatNumberWithDecimal(
+        outputPerHour > 0 ? (shift2?.pcs || 0) / outputPerHour : 0,
+      );
+      isEditable = false;
+      shift1Field = "";
+      shift2Field = "";
       break;
 
     case "actual-stock":

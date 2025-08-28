@@ -1031,6 +1031,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                         initialStock,
                         manpowerList,
                         flatRows,
+                        timePerPcs,
                       );
 
                       return (
@@ -1081,11 +1082,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 }}
                                 onChange={handleInputChange}
                                 textColor={textColor}
-                                step={
-                                  shift1Field === "jamProduksiAktual"
-                                    ? "0.1"
-                                    : "1"
-                                }
+                                step={"1"}
                                 min="0"
                               />
                             ) : typeof shift1Value === "number" ? (
@@ -1137,11 +1134,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 }}
                                 onChange={handleInputChange}
                                 textColor={textColor}
-                                step={
-                                  shift2Field === "jamProduksiAktual"
-                                    ? "0.1"
-                                    : "1"
-                                }
+                                step={"1"}
                                 min="0"
                               />
                             ) : typeof shift2Value === "number" ? (
