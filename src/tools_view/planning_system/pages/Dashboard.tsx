@@ -1410,13 +1410,22 @@ const Dashboard: React.FC = () => {
               className={`w-full ${uiColors.bg.secondary} rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm`}
             >
               <div className="flex justify-between items-center mb-4">
-                <h3
-                  className={`text-xl font-semibold ${uiColors.text.primary}`}
-                >
-                  {selectedPart
-                    ? `Perbandingan Rencana dan Actual Jam Produksi - ${selectedPart} (Per Hari)`
-                    : "Perbandingan Rencana dan Actual Jam Produksi per Bulan"}
-                </h3>
+                <div>
+                  <h3
+                    className={`text-xl font-semibold ${uiColors.text.primary}`}
+                  >
+                    {selectedPart
+                      ? `Perbandingan Rencana dan Actual Jam Produksi - ${selectedPart}`
+                      : "Perbandingan Rencana dan Actual Jam Produksi per Bulan"}
+                  </h3>
+                  {(selectedPart || selectedMonth !== null || selectedShift !== "all") && (
+                    <p className={`text-sm ${uiColors.text.secondary} mt-1`}>
+                      Filter: {selectedPart ? `${selectedPart}` : "Semua Part"}
+                      {selectedMonth !== null && ` • ${MONTHS[selectedMonth]} ${selectedYear}`}
+                      {selectedShift !== "all" && ` • Shift ${selectedShift}`}
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={() => navigate("/dashboard/allcharts")}
                   className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300"
@@ -1460,7 +1469,35 @@ const Dashboard: React.FC = () => {
                             }),
                         );
 
-                        const monthlyData = savedSchedules.reduce<
+                        // Filter schedules berdasarkan part yang dipilih
+                        let filteredSchedules = savedSchedules;
+                        if (selectedPart) {
+                          filteredSchedules = savedSchedules.filter(
+                            (schedule) => schedule.form && schedule.form.part === selectedPart
+                          );
+                        }
+                        
+                        // Filter berdasarkan bulan dan tahun jika bulan dipilih
+                        if (selectedMonth !== null) {
+                          filteredSchedules = filteredSchedules.filter((schedule) => {
+                            const scheduleName = schedule.name || "";
+                            const monthMatch = scheduleName.includes(MONTHS[selectedMonth]);
+                            const yearMatch = scheduleName.includes(selectedYear.toString());
+                            return monthMatch && yearMatch;
+                          });
+                        }
+                        
+                        // Jika shift dipilih, filter schedule items berdasarkan shift
+                        if (selectedShift !== "all") {
+                          filteredSchedules = filteredSchedules.map((schedule) => ({
+                            ...schedule,
+                            schedule: schedule.schedule.filter(
+                              (item) => item.shift === selectedShift
+                            ),
+                          }));
+                        }
+                        
+                        const monthlyData = filteredSchedules.reduce<
                           Record<
                             string,
                             {
@@ -1479,9 +1516,33 @@ const Dashboard: React.FC = () => {
 
                           let totalRencanaJam = 0;
                           let totalActualJam = 0;
+                          
                           s.schedule.forEach((item) => {
-                            totalRencanaJam += item.planningHour || 0;
-                            totalActualJam += item.jamProduksiAktual || 0;
+                            // Rencana Jam Produksi - ambil dari planningHour atau hitung dari planningPcs
+                            let rencanaJam = 0;
+                            if (item.planningHour && item.planningHour > 0) {
+                              rencanaJam = item.planningHour;
+                            } else if (item.planningPcs && item.planningPcs > 0) {
+                              // Hitung jam produksi dari planning PCS dan manpower
+                              const manpower = item.manpowerIds?.length || 3; // default 3 manpower
+                              const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
+                              const outputPerHour = manpower * pcsPerManpower;
+                              rencanaJam = outputPerHour > 0 ? item.planningPcs / outputPerHour : 0;
+                            }
+                            
+                            // Actual Jam Produksi - ambil dari jamProduksiAktual atau hitung dari pcs
+                            let actualJam = 0;
+                            if (item.jamProduksiAktual && item.jamProduksiAktual > 0) {
+                              actualJam = item.jamProduksiAktual;
+                            } else if (item.pcs && item.pcs > 0) {
+                              // Hitung jam produksi aktual dari PCS dan timePerPcs
+                              const timePerPcs = 3600 / 14; // 14 pcs per jam (default)
+                              const outputPerHour = timePerPcs > 0 ? 3600 / timePerPcs : 0;
+                              actualJam = outputPerHour > 0 ? item.pcs / outputPerHour : 0;
+                            }
+                            
+                            totalRencanaJam += rencanaJam;
+                            totalActualJam += actualJam;
                           });
 
                           acc[monthName].rencanaJamProduksi += totalRencanaJam;
@@ -1489,14 +1550,38 @@ const Dashboard: React.FC = () => {
                           return acc;
                         }, initialMonthlyData);
 
-                        return months.map((month) => ({
+                        const chartData = months.map((month) => ({
                           month,
                           rencanaJamProduksi:
                             monthlyData[month].rencanaJamProduksi,
                           actualJamProduksi:
                             monthlyData[month].actualJamProduksi,
                         }));
-                      }, [savedSchedules])}
+                        
+                        // Debug logging
+                        console.log("Chart 3 - Jam Produksi Data:", {
+                          savedSchedulesCount: savedSchedules.length,
+                          monthlyData,
+                          chartData
+                        });
+                        
+                        // Check if there's any data
+                        const hasData = chartData.some(item => 
+                          item.rencanaJamProduksi > 0 || item.actualJamProduksi > 0
+                        );
+                        
+                        if (!hasData) {
+                          console.log("Chart 3 - No data available for jam produksi");
+                          // Return empty data structure with message
+                          return [{
+                            month: "Tidak ada data",
+                            rencanaJamProduksi: 0,
+                            actualJamProduksi: 0
+                          }];
+                        }
+                        
+                        return chartData;
+                      }, [savedSchedules, selectedPart, selectedMonth, selectedYear, selectedShift])}
                       margin={{
                         top: 10,
                         right: 30,
@@ -1549,14 +1634,14 @@ const Dashboard: React.FC = () => {
                               ? "#111827"
                               : "#f9fafb",
                         }}
-                        formatter={(value: any, name: string) => [
-                          `${value} jam`,
-                          name === "rencanaJamProduksi"
-                            ? "Rencana Jam Produksi"
-                            : name === "actualJamProduksi"
-                              ? "Actual Jam Produksi"
-                              : name,
-                        ]}
+                                                 formatter={(value: any, name: string) => [
+                           `${Number(value).toFixed(2)} jam`,
+                           name === "rencanaJamProduksi"
+                             ? "Rencana Jam Produksi"
+                             : name === "actualJamProduksi"
+                               ? "Actual Jam Produksi"
+                               : name,
+                         ]}
                       />
                       <Legend />
                       <Bar
