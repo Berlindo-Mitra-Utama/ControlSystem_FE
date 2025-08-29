@@ -25,7 +25,30 @@ import {
 import { getRowDataConfig } from "../../utils/scheduleDataUtils";
 import ManpowerDropdown from "./ManpowerDropdown";
 import EditableCell from "./EditableCell";
+import DisruptionModal from "./DisruptionModal";
 import { ManpowerService } from "../../../../services/API_Services";
+
+// Add custom CSS for pulse animation
+const pulseAnimation = `
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+`;
+
+// Inject CSS
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = pulseAnimation;
+  document.head.appendChild(style);
+}
 
 import {
   Clock,
@@ -43,6 +66,7 @@ import {
   Activity,
   Plus,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 
 interface ScheduleTableViewProps {
@@ -98,6 +122,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   }>({});
   // State untuk popup dan list manpower
   const [showManpowerModal, setShowManpowerModal] = useState(false);
+  const [showDisruptionModal, setShowDisruptionModal] = useState(false);
   // State untuk notifikasi error manpower
   const [manpowerError, setManpowerError] = useState<string>("");
   // State untuk notifikasi sukses manpower
@@ -291,6 +316,145 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
         return Activity;
     }
   }
+
+  // Detect disruptions in schedule data
+  const getScheduleDisruptions = () => {
+    const disruptions: Array<{
+      partId: string;
+      partName: string;
+      customerName: string;
+      day: number;
+      shift: number;
+      type: 'planningPcs' | 'overtimePcs' | 'hasilProduksi' | 'actualStock' | 'rencanaStock';
+      value: number;
+      fieldName: string;
+    }> = [];
+
+    flatRows.forEach((row) => {
+      // Check for negative planning PCS
+      if (row.planningPcs && row.planningPcs < 0) {
+        disruptions.push({
+          partId: productInfo?.partName || 'Unknown',
+          partName: productInfo?.partName || 'Unknown',
+          customerName: productInfo?.customer || 'Unknown',
+          day: row.day,
+          shift: parseInt(row.shift),
+          type: 'planningPcs',
+          value: row.planningPcs,
+          fieldName: `Planning PCS Shift ${row.shift}`
+        });
+      }
+
+      // Check for negative overtime PCS
+      if (row.overtimePcs && row.overtimePcs < 0) {
+        disruptions.push({
+          partId: productInfo?.partName || 'Unknown',
+          partName: productInfo?.partName || 'Unknown',
+          customerName: productInfo?.customer || 'Unknown',
+          day: row.day,
+          shift: parseInt(row.shift),
+          type: 'overtimePcs',
+          value: row.overtimePcs,
+          fieldName: `Overtime PCS Shift ${row.shift}`
+        });
+      }
+
+      // Check for negative hasil produksi
+      if (row.pcs && row.pcs < 0) {
+        disruptions.push({
+          partId: productInfo?.partName || 'Unknown',
+          partName: productInfo?.partName || 'Unknown',
+          customerName: productInfo?.customer || 'Unknown',
+          day: row.day,
+          shift: parseInt(row.shift),
+          type: 'hasilProduksi',
+          value: row.pcs,
+          fieldName: `Hasil Produksi Shift ${row.shift}`
+        });
+      }
+
+      // Check for negative actual stock (if available)
+      if (row.actualStock && row.actualStock < 0) {
+        disruptions.push({
+          partId: productInfo?.partName || 'Unknown',
+          partName: productInfo?.partName || 'Unknown',
+          customerName: productInfo?.customer || 'Unknown',
+          day: row.day,
+          shift: parseInt(row.shift),
+          type: 'actualStock',
+          value: row.actualStock,
+          fieldName: `Actual Stock Shift ${row.shift}`
+        });
+      }
+
+      // Check for negative rencana stock (if available)
+      if (row.rencanaStock && row.rencanaStock < 0) {
+        disruptions.push({
+          partId: productInfo?.partName || 'Unknown',
+          partName: productInfo?.partName || 'Unknown',
+          customerName: productInfo?.customer || 'Unknown',
+          day: row.day,
+          shift: parseInt(row.shift),
+          type: 'rencanaStock',
+          value: row.rencanaStock,
+          fieldName: `Rencana Stock Shift ${row.shift}`
+        });
+      }
+    });
+
+    return disruptions;
+  };
+
+  // Handle navigate to specific field in schedule table
+  const handleNavigateToField = (disruption: any) => {
+    // Find the specific day and shift element
+    const dayElement = document.querySelector(`[data-day="${disruption.day}"]`);
+    if (dayElement) {
+      // Scroll to the day element
+      dayElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+
+      // Add highlight effect
+      dayElement.classList.add('bg-yellow-200', 'dark:bg-yellow-800/50');
+      
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        dayElement.classList.remove('bg-yellow-200', 'dark:bg-yellow-800/50');
+      }, 3000);
+
+      // Find the specific field based on disruption type and shift
+      let fieldElement: Element | null = null;
+      
+      if (disruption.type === 'planningPcs') {
+        fieldElement = dayElement.querySelector(`[data-field="planning-pcs"][data-shift="${disruption.shift}"]`);
+      } else if (disruption.type === 'overtimePcs') {
+        fieldElement = dayElement.querySelector(`[data-field="overtime-pcs"][data-shift="${disruption.shift}"]`);
+      } else if (disruption.type === 'hasilProduksi') {
+        fieldElement = dayElement.querySelector(`[data-field="hasil-produksi"][data-shift="${disruption.shift}"]`);
+      } else if (disruption.type === 'actualStock') {
+        fieldElement = dayElement.querySelector(`[data-field="actual-stock"][data-shift="${disruption.shift}"]`);
+      } else if (disruption.type === 'rencanaStock') {
+        fieldElement = dayElement.querySelector(`[data-field="rencana-stock"][data-shift="${disruption.shift}"]`);
+      }
+
+      if (fieldElement) {
+        // Add pulse animation to the field
+        fieldElement.classList.add('animate-pulse', 'ring-2', 'ring-red-500');
+        
+        // Remove animation after 3 seconds
+        setTimeout(() => {
+          fieldElement.classList.remove('animate-pulse', 'ring-2', 'ring-red-500');
+        }, 3000);
+
+        // Focus on input field if it's an input
+        if (fieldElement.tagName === 'INPUT') {
+          (fieldElement as HTMLInputElement).focus();
+        }
+      }
+    }
+  };
 
   // Filter rows based on active filter
   const filteredRows = (
@@ -606,15 +770,33 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               )}
             </div>
           </div>
-          <button
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-base font-semibold ${uiColors.button.secondary.bg} ${uiColors.button.secondary.hover} ${uiColors.button.secondary.text} shadow ${uiColors.button.secondary.border} transition`}
-            onClick={() => setShowManpowerModal(true)}
-            type="button"
-            title="Tambah Manpower"
-          >
-            <Plus className="w-5 h-5" />
-            Add Manpower
-          </button>
+          <div className="flex gap-2 items-center">
+            {/* Disruption Button */}
+            <button
+              onClick={() => setShowDisruptionModal(true)}
+              className={`p-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all duration-200 flex items-center gap-2 relative`}
+              title="View All Disruptions"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-sm font-medium">Disruption</span>
+              {/* Error Badge */}
+              {getScheduleDisruptions().length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                  !
+                </span>
+              )}
+            </button>
+
+            <button
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-base font-semibold ${uiColors.button.secondary.bg} ${uiColors.button.secondary.hover} ${uiColors.button.secondary.text} shadow ${uiColors.button.secondary.border} transition`}
+              onClick={() => setShowManpowerModal(true)}
+              type="button"
+              title="Tambah Manpower"
+            >
+              <Plus className="w-5 h-5" />
+              Add Manpower
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1068,6 +1250,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
               {filteredValidGroupedRows.map((group) => (
                 <div
                   key={group.day}
+                  data-day={group.day}
                   data-date={group.day}
                   data-day-name={
                     formatValidDate(group.day, scheduleName || "Februari 2025")
@@ -1157,6 +1340,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           <div
                             data-shift="1"
                             data-row-type={row.key}
+                            data-field={row.key}
                             className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift1 ? (
@@ -1211,6 +1395,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                           <div
                             data-shift="2"
                             data-row-type={row.key}
+                            data-field={row.key}
                             className={`text-center flex items-center justify-center ${textColor} font-mono text-sm font-semibold`}
                           >
                             {row.key === "manpower" && shift2 ? (
@@ -1272,6 +1457,16 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Disruption Modal */}
+      <DisruptionModal
+        isOpen={showDisruptionModal}
+        onClose={() => setShowDisruptionModal(false)}
+        disruptions={getScheduleDisruptions()}
+        partName={productInfo?.partName || 'Unknown'}
+        customerName={productInfo?.customer || 'Unknown'}
+        onNavigateToField={handleNavigateToField}
+      />
     </div>
   );
 };
