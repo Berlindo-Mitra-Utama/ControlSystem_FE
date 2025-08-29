@@ -1681,6 +1681,29 @@ export const RencanaChildPartService = {
       return [];
     }
   },
+
+  // Upsert rencana child part (create or update)
+  async upsertRencanaChildPart(rencanaData: {
+    childPartId: number;
+    bulan: number;
+    tahun: number;
+    hari: number;
+    shift: number;
+    rencana_inmaterial: number;
+    aktual_inmaterial: number;
+  }) {
+    try {
+      // Gunakan endpoint backend yang baru
+      const response = await api.post(
+        "/rencana-child-part/test/upsert",
+        rencanaData,
+      );
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error upserting rencana child part:", error);
+      throw error;
+    }
+  },
 };
 
 // Service untuk chat

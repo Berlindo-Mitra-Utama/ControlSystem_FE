@@ -30,8 +30,8 @@ const pulseAnimation = `
 `;
 
 // Inject CSS
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
   style.textContent = pulseAnimation;
   document.head.appendChild(style);
 }
@@ -150,25 +150,55 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   const [showDisruptionModal, setShowDisruptionModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Debug logging untuk memastikan props diterima dengan benar
+  console.log("🔍 ChildPartTable props received:", {
+    partName: props.partName,
+    customerName: props.customerName,
+    initialStock: props.initialStock,
+    days: props.days,
+    inMaterial: props.inMaterial,
+    aktualInMaterial: props.aktualInMaterial,
+    hasOnInMaterialChange: !!props.onInMaterialChange,
+    hasOnAktualInMaterialChange: !!props.onAktualInMaterialChange,
+  });
+
   // In Material per shift per hari: [ [shift1, shift2], ... ]
   const [inMaterialState, setInMaterialState] = useState<(number | null)[][]>(
     props.inMaterial ?? Array.from({ length: props.days }, () => [null, null]),
   );
   // Sinkronisasi jika inMaterialProp berubah (misal, load dari localStorage)
   React.useEffect(() => {
-    if (props.inMaterial) setInMaterialState(props.inMaterial);
+    console.log("🔄 inMaterial useEffect triggered:", {
+      propsInMaterial: props.inMaterial,
+      currentInMaterialState: inMaterialState,
+    });
+
+    if (props.inMaterial) {
+      console.log("✅ Setting inMaterialState from props:", props.inMaterial);
+      setInMaterialState(props.inMaterial);
+    }
   }, [props.inMaterial]);
 
   // Ensure inMaterialState is properly initialized for all days
   const inMaterial = React.useMemo(() => {
     const base = props.inMaterial ?? inMaterialState;
+    console.log("🔍 inMaterial useMemo - base:", base);
+
     // Ensure array has correct length and all days are initialized
     const result = Array.from({ length: props.days }, (_, dayIdx) => {
       if (base[dayIdx] && Array.isArray(base[dayIdx])) {
-        return [base[dayIdx][0] ?? 0, base[dayIdx][1] ?? 0]; // Ubah null menjadi 0
+        const shift1Value = base[dayIdx][0] ?? 0;
+        const shift2Value = base[dayIdx][1] ?? 0;
+        console.log(
+          `📊 Day ${dayIdx + 1}: shift1=${shift1Value}, shift2=${shift2Value}`,
+        );
+        return [shift1Value, shift2Value]; // Ubah null menjadi 0
       }
+      console.log(`📊 Day ${dayIdx + 1}: using default [0, 0]`);
       return [0, 0]; // Default ke 0
     });
+
+    console.log("🔍 inMaterial useMemo - final result:", result);
     return result;
   }, [props.inMaterial, inMaterialState, props.days]);
 
@@ -178,13 +208,23 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     const base =
       props.aktualInMaterial ??
       Array.from({ length: props.days }, () => [null, null]);
+    console.log("🔍 aktualInMaterial useMemo - base:", base);
+
     // Ensure array has correct length and all days are initialized
     const result = Array.from({ length: props.days }, (_, dayIdx) => {
       if (base[dayIdx] && Array.isArray(base[dayIdx])) {
-        return [base[dayIdx][0] ?? 0, base[dayIdx][1] ?? 0]; // Ubah null menjadi 0
+        const shift1Value = base[dayIdx][0] ?? 0;
+        const shift2Value = base[dayIdx][1] ?? 0;
+        console.log(
+          `📊 Day ${dayIdx + 1}: shift1=${shift1Value}, shift2=${shift2Value}`,
+        );
+        return [shift1Value, shift2Value]; // Ubah null menjadi 0
       }
+      console.log(`📊 Day ${dayIdx + 1}: using default [0, 0]`);
       return [0, 0]; // Default ke 0
     });
+
+    console.log("🔍 aktualInMaterial useMemo - final result:", result);
     return result;
   }, [props.aktualInMaterial, props.days]);
 
@@ -442,51 +482,59 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     const dayElement = document.querySelector(`[data-day="${disruption.day}"]`);
     if (dayElement) {
       // Scroll to the day element
-      dayElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
+      dayElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
       });
 
       // Add highlight effect
-      dayElement.classList.add('bg-yellow-200', 'dark:bg-yellow-800/50');
-      
+      dayElement.classList.add("bg-yellow-200", "dark:bg-yellow-800/50");
+
       // Remove highlight after 3 seconds
       setTimeout(() => {
-        dayElement.classList.remove('bg-yellow-200', 'dark:bg-yellow-800/50');
+        dayElement.classList.remove("bg-yellow-200", "dark:bg-yellow-800/50");
       }, 3000);
 
       // Find the specific field based on disruption type and shift
       let fieldElement: Element | null = null;
-      
-      if (disruption.type === 'rencanaInMaterial') {
+
+      if (disruption.type === "rencanaInMaterial") {
         // Find input in the first row (Rencana In Material)
         const inputs = dayElement.querySelectorAll('input[type="number"]');
         if (inputs.length >= 2) {
           fieldElement = inputs[disruption.shift - 1]; // shift 1 = index 0, shift 2 = index 1
         }
-      } else if (disruption.type === 'aktualInMaterial') {
+      } else if (disruption.type === "aktualInMaterial") {
         // Find input in the second row (Aktual In Material)
         const inputs = dayElement.querySelectorAll('input[type="number"]');
         if (inputs.length >= 4) {
           fieldElement = inputs[disruption.shift + 1]; // shift 1 = index 2, shift 2 = index 3
         }
-      } else if (disruption.type === 'rencanaStock') {
-        fieldElement = dayElement.querySelector(`[data-stock-type="rencanaStock"][data-shift="${disruption.shift}"]`);
-      } else if (disruption.type === 'aktualStock') {
-        fieldElement = dayElement.querySelector(`[data-stock-type="aktualStock"][data-shift="${disruption.shift}"]`);
+      } else if (disruption.type === "rencanaStock") {
+        fieldElement = dayElement.querySelector(
+          `[data-stock-type="rencanaStock"][data-shift="${disruption.shift}"]`,
+        );
+      } else if (disruption.type === "aktualStock") {
+        fieldElement = dayElement.querySelector(
+          `[data-stock-type="aktualStock"][data-shift="${disruption.shift}"]`,
+        );
       }
 
       if (fieldElement) {
         // Add pulse animation to the field
-        fieldElement.classList.add('animate-pulse', 'ring-2', 'ring-red-500');
-        
+        fieldElement.classList.add("animate-pulse", "ring-2", "ring-red-500");
+
         // Remove animation after 3 seconds
         setTimeout(() => {
-          fieldElement.classList.remove('animate-pulse', 'ring-2', 'ring-red-500');
+          fieldElement.classList.remove(
+            "animate-pulse",
+            "ring-2",
+            "ring-red-500",
+          );
         }, 3000);
 
         // Focus on input field if it's an input
-        if (fieldElement.tagName === 'INPUT') {
+        if (fieldElement.tagName === "INPUT") {
           (fieldElement as HTMLInputElement).focus();
         }
       }
