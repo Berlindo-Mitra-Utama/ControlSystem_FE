@@ -1026,7 +1026,7 @@ const SchedulerPage: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchDate, setSearchDate] = useState("");
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
 
   const [showChildPartModal, setShowChildPartModal] = useState(false);
   const [childParts, setChildParts] = useState<ChildPartData[]>([]);
@@ -1127,11 +1127,11 @@ const SchedulerPage: React.FC = () => {
       const isMobileDevice = window.innerWidth < 640;
       setIsMobile(isMobileDevice);
 
-      // Set viewMode berdasarkan device
-      if (isMobileDevice) {
-        setViewMode("cards");
-      } else {
-        setViewMode("table");
+      // Keep viewMode as table for better navigation experience
+      // Only change to cards if explicitly requested by user
+      if (isMobileDevice && viewMode === "table") {
+        // Don't auto-change to cards, keep table view
+        console.log("📱 Mobile detected but keeping table view for navigation");
       }
     };
 
@@ -1139,7 +1139,7 @@ const SchedulerPage: React.FC = () => {
     window.addEventListener("resize", checkMobile);
 
     return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  }, [viewMode]);
 
   // Close part filter dropdown when clicking outside
   useEffect(() => {
@@ -1171,596 +1171,9 @@ const SchedulerPage: React.FC = () => {
     };
   }, [showFilterDropdown]);
 
-  // Check for navigation from disruption page and auto-open corresponding schedule
-  useEffect(() => {
-    const navigateToField = sessionStorage.getItem("navigateToField");
-    if (navigateToField) {
-      try {
-        const target = JSON.parse(navigateToField);
-        if (
-          target.navigateToSchedule &&
-          target.partName &&
-          target.customerName
-        ) {
-          // Set navigation loading state
-          setNavigationLoading(true);
-          console.log("🚀 Memulai navigasi otomatis...");
-          console.log("🎯 Target data:", target);
+  
 
-          // Check if this is a "back to planning" navigation
-          if (target.showChildPartTable) {
-            console.log("🔄 Navigasi: Kembali ke Planning - ChildPartTable");
-          } else {
-            console.log("🎯 Navigasi: Navigasi ke Field Disruption");
-          }
 
-          // Clear the navigation target
-          sessionStorage.removeItem("navigateToField");
-
-          // Wait for DOM to be ready
-          setTimeout(() => {
-            // Set the form to match the target part and customer
-            setForm((prev) => ({
-              ...prev,
-              part: target.partName,
-              customer: target.customerName,
-            }));
-
-            // Set selected part and customer for filtering
-            setSelectedPart(target.partName);
-            setSelectedCustomer(target.customerName);
-
-            // Set child part filter to show only the target part
-            setChildPartFilter([target.partName]);
-
-            // If openScheduleDirectly is true, try to find and open the existing schedule
-            if (target.openScheduleDirectly) {
-              // Look for existing schedule in savedSchedules
-              const existingSchedule = savedSchedules.find(
-                (schedule) =>
-                  schedule.productInfo?.partName === target.partName &&
-                  schedule.productInfo?.customer === target.customerName,
-              );
-
-              if (existingSchedule) {
-                // Load the existing schedule
-                console.log(
-                  `✅ Schedule ditemukan untuk ${target.partName} - ${target.customerName}, membuka...`,
-                );
-
-                // Set the schedule data
-                setSchedule(existingSchedule.schedule || []);
-
-                // Set the form data from the schedule form
-                if (existingSchedule.form) {
-                  setForm((prev) => ({
-                    ...prev,
-                    part: existingSchedule.form.part || target.partName,
-                    customer:
-                      existingSchedule.form.customer || target.customerName,
-                    timePerPcs: existingSchedule.form.timePerPcs || 257,
-                    cycle1: existingSchedule.form.cycle1 || 0,
-                    cycle7: existingSchedule.form.cycle7 || 0,
-                    cycle35: existingSchedule.form.cycle35 || 0,
-                    stock: existingSchedule.form.stock || 332,
-                    planningHour: existingSchedule.form.planningHour || 274,
-                    overtimeHour: existingSchedule.form.overtimeHour || 119,
-                    planningPcs: existingSchedule.form.planningPcs || 3838,
-                    overtimePcs: existingSchedule.form.overtimePcs || 1672,
-                  }));
-                }
-
-                // Set selected month and year from schedule
-                if (
-                  existingSchedule.schedule &&
-                  existingSchedule.schedule.length > 0
-                ) {
-                  // Try to get month and year from the schedule name or use current date
-                  if (existingSchedule.name) {
-                    // Extract month and year from schedule name (e.g., "Agustus 2025")
-                    const monthMatch =
-                      existingSchedule.name.match(/(\w+)\s+(\d{4})/);
-                    if (monthMatch) {
-                      const monthName = monthMatch[1];
-                      const year = parseInt(monthMatch[2]);
-                      const monthIndex = MONTHS.findIndex(
-                        (m) => m.toLowerCase() === monthName.toLowerCase(),
-                      );
-                      if (monthIndex !== -1) {
-                        setSelectedMonth(monthIndex);
-                        setSelectedYear(year);
-                      }
-                    }
-                  }
-                }
-
-                // Show success message
-                console.log(
-                  `✅ Schedule untuk ${target.partName} - ${target.customerName} berhasil dibuka`,
-                );
-
-                // Switch to table view to show the schedule details
-                setViewMode("table");
-              } else {
-                console.log(
-                  `⚠️ Schedule tidak ditemukan untuk ${target.partName} - ${target.customerName}, akan buat baru`,
-                );
-              }
-            }
-
-            // Show success message in console for debugging
-            console.log(
-              `✅ Schedule untuk ${target.partName} - ${target.customerName} telah dibuka`,
-            );
-
-            // Scroll to the child part table
-            const childPartSection = document.querySelector(
-              '[data-section="child-parts"]',
-            );
-            if (childPartSection) {
-              console.log("🎯 Scrolling ke ChildPartTable section...");
-              childPartSection.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-
-              // Add highlight effect to the child part section
-              childPartSection.classList.add(
-                "ring-4",
-                "ring-blue-500",
-                "ring-opacity-50",
-              );
-              setTimeout(() => {
-                childPartSection.classList.remove(
-                  "ring-4",
-                  "ring-blue-500",
-                  "ring-opacity-50",
-                );
-              }, 3000);
-            }
-
-            // If showChildPartTable is true, focus on the ChildPartTable and stop loading
-            if (target.showChildPartTable) {
-              console.log(
-                "🎯 Menampilkan ChildPartTable untuk navigasi kembali...",
-              );
-
-              // Ensure we're in the right view mode to show ChildPartTable
-              setViewMode("table"); // This will show the ChildPartTable in table view for desktop
-
-              // If navigateToSpecificField is true, we need to navigate to the specific disrupted field
-              if (
-                target.navigateToSpecificField &&
-                target.day &&
-                target.shift &&
-                target.type
-              ) {
-                console.log("🎯 Navigasi ke field spesifik yang terdisrupt...");
-                console.log(
-                  `📍 Target: Day ${target.day}, Shift ${target.shift}, Type ${target.type}`,
-                );
-
-                // Store the specific field navigation data for ChildPartTable to use
-                sessionStorage.setItem(
-                  "navigateToField",
-                  JSON.stringify({
-                    partName: target.partName,
-                    customerName: target.customerName,
-                    day: target.day,
-                    shift: target.shift,
-                    type: target.type,
-                    fieldName: target.fieldName,
-                    navigateToSchedule: false, // Don't trigger schedule navigation again
-                    openScheduleDirectly: false,
-                    scrollToSpecificDate: false,
-                    showChildPartTable: false,
-                    navigateToSpecificField: true,
-                    timestamp: Date.now(),
-                  }),
-                );
-
-                // Add a small delay to ensure the view mode change is applied
-                setTimeout(() => {
-                  // Scroll to the child part table again to ensure it's visible
-                  const childPartSection = document.querySelector(
-                    '[data-section="child-parts"]',
-                  );
-                  if (childPartSection) {
-                    childPartSection.scrollIntoView({
-                      behavior: "smooth",
-                      block: "center",
-                    });
-
-                    // Add a simple green border highlight for "back to planning" navigation
-                    childPartSection.classList.add(
-                      "border-2",
-                      "border-green-500",
-                      "border-solid",
-                    );
-                    setTimeout(() => {
-                      childPartSection.classList.remove(
-                        "border-2",
-                        "border-green-500",
-                        "border-solid",
-                      );
-                    }, 6000);
-                  }
-
-                  // Show success message and stop loading
-                  setNavigationLoading(false);
-                  console.log(
-                    "✅ Navigasi kembali ke ChildPartTable dengan field spesifik selesai!",
-                  );
-
-                  // Show a brief success indicator
-                  const successIndicator = document.createElement("div");
-                  successIndicator.className =
-                    "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50";
-                  successIndicator.innerHTML = `
-                          <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span>Berhasil kembali ke Planning dengan field spesifik</span>
-                          </div>
-                        `;
-                  document.body.appendChild(successIndicator);
-
-                  // Remove success indicator after 3 seconds
-                  setTimeout(() => {
-                    if (successIndicator.parentNode) {
-                      successIndicator.parentNode.removeChild(successIndicator);
-                    }
-                  }, 3000);
-                }, 1500);
-              } else {
-                // Regular "back to planning" without specific field navigation
-                // Add a small delay to ensure the view mode change is applied
-                setTimeout(() => {
-                  // Scroll to the child part table again to ensure it's visible
-                  const childPartSection = document.querySelector(
-                    '[data-section="child-parts"]',
-                  );
-                  if (childPartSection) {
-                    childPartSection.scrollIntoView({
-                      behavior: "smooth",
-                      block: "center",
-                    });
-
-                    // Add a simple green border highlight for "back to planning" navigation
-                    childPartSection.classList.add(
-                      "border-2",
-                      "border-green-500",
-                      "border-solid",
-                    );
-                    setTimeout(() => {
-                      childPartSection.classList.remove(
-                        "border-2",
-                        "border-green-500",
-                        "border-solid",
-                      );
-                    }, 6000);
-                  }
-
-                  // Show success message and stop loading
-                  setNavigationLoading(false);
-                  console.log("✅ Navigasi kembali ke ChildPartTable selesai!");
-
-                  // Show a brief success indicator
-                  const successIndicator = document.createElement("div");
-                  successIndicator.className =
-                    "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50";
-                  successIndicator.innerHTML = `
-                          <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span>Berhasil kembali ke Planning</span>
-                          </div>
-                        `;
-                  document.body.appendChild(successIndicator);
-
-                  // Remove success indicator after 3 seconds
-                  setTimeout(() => {
-                    if (successIndicator.parentNode) {
-                      successIndicator.parentNode.removeChild(successIndicator);
-                    }
-                  }, 3000);
-                }, 1500);
-              }
-              return; // Exit early, don't continue with schedule table navigation
-            }
-
-            // If this is a direct navigation to specific field (not "back to planning")
-            if (
-              target.day &&
-              target.shift &&
-              target.type &&
-              !target.showChildPartTable
-            ) {
-              console.log(
-                "🎯 Navigasi langsung ke field spesifik yang terdisrupt...",
-              );
-              console.log(
-                `📍 Target: Day ${target.day}, Shift ${target.shift}, Type ${target.type}`,
-              );
-
-              // Store the specific field navigation data for ChildPartTable to use
-              sessionStorage.setItem(
-                "navigateToField",
-                JSON.stringify({
-                  partName: target.partName,
-                  customerName: target.customerName,
-                  day: target.day,
-                  shift: target.shift,
-                  type: target.type,
-                  fieldName: target.fieldName,
-                  navigateToSchedule: false, // Don't trigger schedule navigation again
-                  openScheduleDirectly: false,
-                  scrollToSpecificDate: false,
-                  showChildPartTable: false,
-                  navigateToSpecificField: true,
-                  timestamp: Date.now(),
-                }),
-              );
-
-              // Switch to table view to show ChildPartTable
-              setViewMode("table");
-
-              // Add a delay to ensure the view mode change is applied
-              setTimeout(() => {
-                // Scroll to the child part table
-                const childPartSection = document.querySelector(
-                  '[data-section="child-parts"]',
-                );
-                if (childPartSection) {
-                  childPartSection.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  });
-
-                  // Add a simple blue border highlight to the child part section
-                  childPartSection.classList.add(
-                    "border-2",
-                    "border-blue-500",
-                    "border-solid",
-                  );
-                  setTimeout(() => {
-                    childPartSection.classList.remove(
-                      "border-2",
-                      "border-blue-500",
-                      "border-solid",
-                    );
-                  }, 6000);
-                }
-
-                // Show success message and stop loading
-                setNavigationLoading(false);
-                console.log("✅ Navigasi langsung ke field spesifik selesai!");
-
-                // Show a brief success indicator
-                const successIndicator = document.createElement("div");
-                successIndicator.className =
-                  "fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50";
-                successIndicator.innerHTML = `
-                        <div class="flex items-center gap-2">
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                          <span>Berhasil navigasi ke field spesifik</span>
-                        </div>
-                      `;
-                document.body.appendChild(successIndicator);
-
-                // Remove success indicator after 3 seconds
-                setTimeout(() => {
-                  if (successIndicator.parentNode) {
-                    successIndicator.parentNode.removeChild(successIndicator);
-                  }
-                }, 3000);
-              }, 1500);
-
-              return; // Exit early, don't continue with schedule table navigation
-            }
-
-            // If we have a schedule, also scroll to the schedule table
-            if (target.openScheduleDirectly && schedule.length > 0) {
-              setTimeout(() => {
-                const scheduleSection = document.querySelector(
-                  '[data-section="schedule-table"]',
-                );
-                if (scheduleSection) {
-                  scheduleSection.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  });
-
-                  // Add highlight effect to the schedule section
-                  scheduleSection.classList.add(
-                    "ring-4",
-                    "ring-blue-500",
-                    "ring-opacity-50",
-                  );
-                  setTimeout(() => {
-                    scheduleSection.classList.remove(
-                      "ring-4",
-                      "ring-blue-500",
-                      "ring-opacity-50",
-                    );
-                  }, 3000);
-                }
-
-                // If scrollToSpecificDate is true, scroll to the specific date column
-                if (target.scrollToSpecificDate && target.targetDate) {
-                  // Wait longer for the DOM to be fully rendered and all components to be mounted
-                  setTimeout(async () => {
-                    console.log(
-                      `🔍 Mencari kolom tanggal dengan data-date="${target.targetDate}"...`,
-                    );
-                    console.log(
-                      `⏰ Delay 3 detik untuk memastikan DOM sudah siap...`,
-                    );
-
-                    // Add global scroll progress bar
-                    const globalProgressTrack = document.createElement("div");
-                    globalProgressTrack.className = "scroll-progress-track";
-                    globalProgressTrack.innerHTML =
-                      '<div class="scroll-progress-bar"></div>';
-                    document.body.appendChild(globalProgressTrack);
-
-                    const globalProgressBar = globalProgressTrack.querySelector(
-                      ".scroll-progress-bar",
-                    ) as HTMLElement;
-
-                    // Debug: Log all scrollable containers before scrolling
-                    console.log(
-                      "🔍 Debug: All scrollable containers before scrolling:",
-                    );
-                    const allScrollableContainers = document.querySelectorAll(
-                      '.overflow-x-auto, [class*="overflow-x"]',
-                    );
-                    allScrollableContainers.forEach((container, index) => {
-                      console.log(`Container ${index}:`, {
-                        element: container,
-                        className: container.className,
-                        scrollWidth: container.scrollWidth,
-                        clientWidth: container.clientWidth,
-                        scrollLeft: container.scrollLeft,
-                        hasScroll:
-                          container.scrollWidth > container.clientWidth,
-                      });
-                    });
-
-                    // Use the enhanced smooth scroll function
-                    console.log(
-                      `🎯 Memulai smoothScrollToDate untuk tanggal ${target.targetDate} (${target.dayName})`,
-                    );
-                    try {
-                      await smoothScrollToDate(
-                        target.targetDate,
-                        target.dayName,
-                      );
-                      console.log(
-                        `✅ smoothScrollToDate berhasil untuk tanggal ${target.targetDate}`,
-                      );
-                    } catch (error) {
-                      console.error(
-                        `❌ Error dalam smoothScrollToDate untuk tanggal ${target.targetDate}:`,
-                        error,
-                      );
-                    }
-
-                    // Update global progress bar
-                    if (globalProgressBar) {
-                      globalProgressBar.style.width = "100%";
-                      setTimeout(() => {
-                        if (globalProgressTrack.parentNode) {
-                          globalProgressTrack.parentNode.removeChild(
-                            globalProgressTrack,
-                          );
-                        }
-                      }, 2000);
-                    }
-
-                    // Find the date column for highlighting
-                    const dateColumn = document.querySelector(
-                      `[data-date="${target.targetDate}"]`,
-                    );
-                    if (dateColumn) {
-                      console.log(
-                        `🎯 Highlighting tanggal ${target.targetDate} (${target.dayName})`,
-                      );
-
-                      // Add highlight effect to the date column
-                      dateColumn.classList.add(
-                        "ring-4",
-                        "ring-green-500",
-                        "ring-opacity-75",
-                        "animate-pulse",
-                      );
-
-                      // Remove highlight after 5 seconds
-                      setTimeout(() => {
-                        dateColumn.classList.remove(
-                          "ring-4",
-                          "ring-green-500",
-                          "ring-opacity-75",
-                          "animate-pulse",
-                        );
-                      }, 5000);
-
-                      // Also highlight the specific shift within the date column
-                      const shiftElements =
-                        dateColumn.querySelectorAll("[data-shift]");
-                      console.log(
-                        "🔍 Shift elements found:",
-                        shiftElements.length,
-                      );
-
-                      const targetShiftElement = Array.from(shiftElements).find(
-                        (el) =>
-                          el.getAttribute("data-shift") ===
-                          target.shift.toString(),
-                      );
-
-                      if (targetShiftElement) {
-                        console.log(
-                          "🎯 Target shift element found:",
-                          targetShiftElement,
-                        );
-                        targetShiftElement.classList.add(
-                          "bg-yellow-200",
-                          "dark:bg-yellow-800/50",
-                          "ring-2",
-                          "ring-yellow-500",
-                        );
-                        setTimeout(() => {
-                          targetShiftElement.classList.remove(
-                            "bg-yellow-200",
-                            "dark:bg-yellow-800/50",
-                            "ring-2",
-                            "ring-yellow-500",
-                          );
-                        }, 4000);
-                      } else {
-                        console.log("⚠️ Target shift element tidak ditemukan");
-                      }
-                    } else {
-                      console.log(
-                        `⚠️ Tanggal ${target.targetDate} tidak ditemukan untuk highlighting`,
-                      );
-                    }
-
-                    // Stop navigation loading after all scrolling is complete
-                    setTimeout(() => {
-                      setNavigationLoading(false);
-                      console.log("✅ Navigasi otomatis selesai!");
-                    }, 2000);
-                  }, 3000); // Wait longer for the schedule table to be fully rendered
-                } else {
-                  // If no specific date scrolling, stop loading after schedule table scroll
-                  setTimeout(() => {
-                    setNavigationLoading(false);
-                    console.log("✅ Navigasi otomatis selesai!");
-                  }, 2000);
-                }
-              }, 1000);
-            } else {
-              // If no schedule table, stop loading after child parts scroll
-              setTimeout(() => {
-                setNavigationLoading(false);
-                console.log("✅ Navigasi otomatis selesai!");
-              }, 2000);
-            }
-          }, 500);
-        }
-      } catch (error) {
-        console.error("Error parsing navigation target:", error);
-        sessionStorage.removeItem("navigateToField");
-        setNavigationLoading(false);
-      }
-    }
-  }, [savedSchedules, schedule]);
 
   // Generate schedule name from selected month/year
   const getCurrentScheduleName = () => {
@@ -1969,6 +1382,43 @@ const SchedulerPage: React.FC = () => {
 
     loadDataFromBackend();
   }, []);
+
+         // Handle navigation from DisruptionPage to saved schedule view
+       useEffect(() => {
+         const navigateToSavedSchedule = sessionStorage.getItem('navigateToSavedSchedule');
+         if (!navigateToSavedSchedule) return;
+       
+         try {
+           const target = JSON.parse(navigateToSavedSchedule);
+           
+           // Validate required fields
+           if (!target.partName || !target.customerName) {
+             console.error("Missing required navigation data");
+             sessionStorage.removeItem('navigateToSavedSchedule');
+             return;
+           }
+       
+           console.log("🚀 Starting navigation to saved schedule view:", target);
+           
+           // Clear navigation data immediately
+           sessionStorage.removeItem('navigateToSavedSchedule');
+       
+           // Set selected part and customer to show the list of schedules for this part/customer
+           setSelectedPart(target.partName);
+           setSelectedCustomer(target.customerName);
+       
+           showNotification({
+             type: "success",
+             title: "Navigasi Berhasil",
+             message: `Berhasil membuka daftar jadwal untuk ${target.partName} - ${target.customerName}`
+           });
+       
+           console.log("✅ Navigation to saved schedule list completed successfully");
+         } catch (error) {
+           console.error("Error during navigation to saved schedule:", error);
+           sessionStorage.removeItem('navigateToSavedSchedule');
+         }
+       }, [savedSchedules]);
 
   // Load manpowerList saat komponen dimount
   useEffect(() => {
@@ -6089,9 +5539,9 @@ const SchedulerPage: React.FC = () => {
     console.log("✅ Berhasil kembali ke menu sebelumnya");
   };
 
-  // Fungsi helper untuk reset state dan kembali ke card view
-  const resetToCardView = () => {
-    console.log("🔄 resetToCardView: Resetting all states...");
+  // Fungsi helper untuk reset state dan kembali ke table view
+  const resetToTableView = () => {
+    console.log("🔄 resetToTableView: Resetting all states...");
 
     // Reset semua state untuk kembali ke tampilan awal
     resetFormAndSchedule();
@@ -6116,6 +5566,9 @@ const SchedulerPage: React.FC = () => {
     setSelectedMonth(new Date().getMonth());
     setSelectedYear(new Date().getFullYear());
 
+    // Keep table view for better navigation experience
+    setViewMode("table");
+
     // Pastikan tidak ada schedule yang sedang aktif
     console.log("✅ All states reset successfully");
 
@@ -6124,7 +5577,7 @@ const SchedulerPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {}
 
-    console.log("✅ Berhasil kembali ke menu jadwal");
+    console.log("✅ Berhasil kembali ke menu jadwal dengan table view");
   };
 
   const handleDownloadExcel = (saved: SavedSchedule) => {

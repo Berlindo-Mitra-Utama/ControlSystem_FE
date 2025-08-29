@@ -11,8 +11,30 @@ import {
 } from "lucide-react";
 import { memo } from "react";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { useNavigate } from "react-router-dom";
 import ChildPart from "./ChildPart";
+import DisruptionModal from "./DisruptionModal";
+
+// Add custom CSS for pulse animation
+const pulseAnimation = `
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+`;
+
+// Inject CSS
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = pulseAnimation;
+  document.head.appendChild(style);
+}
 
 interface ScheduleItem {
   id: string;
@@ -122,10 +144,10 @@ const Modal: React.FC<{
 
 const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   const { uiColors } = useTheme();
-  const navigate = useNavigate();
   // Hapus modal konfirmasi lokal untuk delete part (gunakan modal global dari parent)
   const [showDeleteScheduleModal, setShowDeleteScheduleModal] = useState(false);
   const [showEditPartModal, setShowEditPartModal] = useState(false);
+  const [showDisruptionModal, setShowDisruptionModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // In Material per shift per hari: [ [shift1, shift2], ... ]
@@ -405,17 +427,66 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
     return disruptions;
   };
 
-  // Handle navigation to disruption page
+  // Handle opening disruption modal
   const handleNavigateToDisruption = () => {
-    const disruptions = getAllDisruptions();
-    // Store disruptions in sessionStorage for the disruption page to access
-    sessionStorage.setItem('disruptions', JSON.stringify(disruptions));
-    sessionStorage.setItem('currentPartInfo', JSON.stringify({
-      partName: props.partName,
-      customerName: props.customerName,
-      days: props.days
-    }));
-    navigate('/dashboard/disruption');
+    setShowDisruptionModal(true);
+  };
+
+  // Handle navigate to specific field
+  const handleNavigateToField = (disruption: any) => {
+    // Find the specific day and shift element
+    const dayElement = document.querySelector(`[data-day="${disruption.day}"]`);
+    if (dayElement) {
+      // Scroll to the day element
+      dayElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+
+      // Add highlight effect
+      dayElement.classList.add('bg-yellow-200', 'dark:bg-yellow-800/50');
+      
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        dayElement.classList.remove('bg-yellow-200', 'dark:bg-yellow-800/50');
+      }, 3000);
+
+      // Find the specific field based on disruption type and shift
+      let fieldElement: Element | null = null;
+      
+      if (disruption.type === 'rencanaInMaterial') {
+        // Find input in the first row (Rencana In Material)
+        const inputs = dayElement.querySelectorAll('input[type="number"]');
+        if (inputs.length >= 2) {
+          fieldElement = inputs[disruption.shift - 1]; // shift 1 = index 0, shift 2 = index 1
+        }
+      } else if (disruption.type === 'aktualInMaterial') {
+        // Find input in the second row (Aktual In Material)
+        const inputs = dayElement.querySelectorAll('input[type="number"]');
+        if (inputs.length >= 4) {
+          fieldElement = inputs[disruption.shift + 1]; // shift 1 = index 2, shift 2 = index 3
+        }
+      } else if (disruption.type === 'rencanaStock') {
+        fieldElement = dayElement.querySelector(`[data-stock-type="rencanaStock"][data-shift="${disruption.shift}"]`);
+      } else if (disruption.type === 'aktualStock') {
+        fieldElement = dayElement.querySelector(`[data-stock-type="aktualStock"][data-shift="${disruption.shift}"]`);
+      }
+
+      if (fieldElement) {
+        // Add pulse animation to the field
+        fieldElement.classList.add('animate-pulse', 'ring-2', 'ring-red-500');
+        
+        // Remove animation after 3 seconds
+        setTimeout(() => {
+          fieldElement.classList.remove('animate-pulse', 'ring-2', 'ring-red-500');
+        }, 3000);
+
+        // Focus on input field if it's an input
+        if (fieldElement.tagName === 'INPUT') {
+          (fieldElement as HTMLInputElement).focus();
+        }
+      }
+    }
   };
 
   // Handler input granular
@@ -552,270 +623,6 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []); // Removed showScheduleActions from dependency array
-
-  // Check for navigation targets from disruption page
-  useEffect(() => {
-    const navigateToField = sessionStorage.getItem('navigateToField');
-    console.log('🔍 ChildPartTable: navigateToField dari sessionStorage:', navigateToField);
-    if (navigateToField) {
-      try {
-        const target = JSON.parse(navigateToField);
-        console.log('🔍 ChildPartTable: Target parsed:', target);
-        console.log('🔍 ChildPartTable: props.partName:', props.partName);
-        
-        // Check if this is a navigation to specific field (either from disruption page or "back to planning")
-        console.log('🔍 ChildPartTable: Checking navigation conditions...');
-        console.log('🔍 ChildPartTable: target.partName === props.partName:', target.partName === props.partName);
-        console.log('🔍 ChildPartTable: target.navigateToSpecificField:', target.navigateToSpecificField);
-        console.log('🔍 ChildPartTable: target.day:', target.day);
-        console.log('🔍 ChildPartTable: target.shift:', target.shift);
-        console.log('🔍 ChildPartTable: target.type:', target.type);
-        
-        if (target.partName === props.partName && (target.navigateToSpecificField || target.day)) {
-          // Clear the navigation target
-          sessionStorage.removeItem('navigateToField');
-          
-          // Wait for DOM to be ready
-          setTimeout(() => {
-            // Find the specific field element based on type, day, and shift
-            let fieldElement: HTMLElement | null = null;
-            
-            if (target.type === 'rencanaInMaterial' || target.type === 'aktualInMaterial') {
-              // For input fields, find the specific input element
-              const dayElement = document.querySelector(`[data-day="${target.day}"]`);
-              console.log('🔍 ChildPartTable: Mencari day element dengan data-day="${target.day}":', dayElement);
-              if (dayElement) {
-                const shiftIndex = target.shift - 1; // Convert shift 1/2 to 0/1
-                const inputElements = dayElement.querySelectorAll('input[type="number"]');
-                console.log('🔍 ChildPartTable: Input elements found:', inputElements.length, 'for shift index:', shiftIndex);
-                if (inputElements[shiftIndex]) {
-                  fieldElement = inputElements[shiftIndex] as HTMLElement;
-                  console.log('✅ ChildPartTable: Input field element found for shift', target.shift);
-                } else {
-                  console.log('⚠️ ChildPartTable: Input field element not found for shift index:', shiftIndex);
-                }
-              } else {
-                console.log('⚠️ ChildPartTable: Day element not found for day:', target.day);
-              }
-            } else if (target.type === 'rencanaStock' || target.type === 'aktualStock') {
-              // For stock fields, find the specific stock display
-              const dayElement = document.querySelector(`[data-day="${target.day}"]`);
-              console.log('🔍 ChildPartTable: Mencari day element untuk stock dengan data-day="${target.day}":', dayElement);
-              if (dayElement) {
-                const shiftIndex = target.shift - 1; // Convert shift 1/2 to 0/1
-                const stockElements = dayElement.querySelectorAll('[data-stock-type]');
-                console.log('🔍 ChildPartTable: Stock elements found:', stockElements.length);
-                const targetElement = Array.from(stockElements).find(el => 
-                  el.getAttribute('data-stock-type') === target.type &&
-                  el.getAttribute('data-shift') === target.shift.toString()
-                );
-                if (targetElement) {
-                  fieldElement = targetElement as HTMLElement;
-                  console.log('✅ ChildPartTable: Stock field element found for type:', target.type, 'shift:', target.shift);
-                } else {
-                  console.log('⚠️ ChildPartTable: Stock field element not found for type:', target.type, 'shift:', target.shift);
-                  console.log('🔍 Available stock elements:', Array.from(stockElements).map(el => ({
-                    type: el.getAttribute('data-stock-type'),
-                    shift: el.getAttribute('data-shift')
-                  })));
-                }
-              } else {
-                console.log('⚠️ ChildPartTable: Day element not found for day:', target.day);
-              }
-            }
-            
-            if (fieldElement) {
-              console.log('🎯 ChildPartTable: Field element ditemukan:', fieldElement);
-              console.log('🎯 ChildPartTable: Field type:', fieldElement.tagName);
-              console.log('🎯 ChildPartTable: Field classes:', fieldElement.className);
-              
-              // Enhanced horizontal scrolling for ChildPartTable with visual scroll bar animation
-              const scrollableContainer = fieldElement.closest('.overflow-x-auto') || 
-                                       fieldElement.closest('[class*="overflow-x"]') ||
-                                       document.querySelector('.overflow-x-auto');
-               
-               if (scrollableContainer) {
-                console.log('🔍 ChildPartTable enhanced scrollable container found:', scrollableContainer);
-                console.log('🔍 ChildPartTable container classes:', scrollableContainer.className);
-                console.log('🔍 ChildPartTable container scroll info:', {
-                  scrollWidth: scrollableContainer.scrollWidth,
-                  clientWidth: scrollableContainer.clientWidth,
-                  scrollLeft: scrollableContainer.scrollLeft,
-                  maxScrollLeft: scrollableContainer.scrollWidth - scrollableContainer.clientWidth
-                });
-                console.log('🔍 Container scroll info:', {
-                  scrollWidth: scrollableContainer.scrollWidth,
-                  clientWidth: scrollableContainer.clientWidth,
-                  scrollLeft: scrollableContainer.scrollLeft,
-                  maxScrollLeft: scrollableContainer.scrollWidth - scrollableContainer.clientWidth
-                });
-                
-                // Calculate scroll position to center the field
-                const containerRect = scrollableContainer.getBoundingClientRect();
-                const fieldRect = fieldElement.getBoundingClientRect();
-                const currentScrollLeft = scrollableContainer.scrollLeft;
-                
-                // Calculate target scroll position to center the field
-                const fieldCenter = fieldRect.left + (fieldRect.width / 2);
-                const containerCenter = containerRect.left + (containerRect.width / 2);
-                const scrollOffset = fieldCenter - containerCenter;
-                const targetScrollLeft = currentScrollLeft + scrollOffset;
-                
-                // Ensure we don't scroll beyond bounds
-                const maxScrollLeft = scrollableContainer.scrollWidth - scrollableContainer.clientWidth;
-                const finalTargetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
-                
-                console.log('🔍 ChildPartTable enhanced scroll calculation:', {
-                  containerWidth: containerRect.width,
-                  fieldWidth: fieldRect.width,
-                  fieldLeft: fieldRect.left,
-                  containerLeft: containerRect.left,
-                  currentScrollLeft,
-                  targetScrollLeft,
-                  finalTargetScrollLeft,
-                  scrollOffset,
-                  maxScrollLeft
-                });
-                
-                // Enhanced smooth scroll with step-by-step animation for ChildPartTable
-                const startScrollLeft = currentScrollLeft;
-                const distance = finalTargetScrollLeft - startScrollLeft;
-                const duration = 1000; // 1 second for ChildPartTable
-                const startTime = performance.now();
-                
-                // Add visual indicator for ChildPartTable scroll progress
-                const scrollProgressIndicator = document.createElement('div');
-                scrollProgressIndicator.className = 'fixed top-20 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
-                scrollProgressIndicator.innerHTML = `
-                  <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Navigasi ke field ${target.fieldName}...</span>
-                  </div>
-                  <div class="w-full bg-white bg-opacity-30 rounded-full h-2 mt-2">
-                    <div class="bg-white h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                  </div>
-                `;
-                document.body.appendChild(scrollProgressIndicator);
-                
-                const progressBar = scrollProgressIndicator.querySelector('.bg-white.h-2') as HTMLElement;
-                
-                // Animate scroll step by step for ChildPartTable
-                const animateScroll = (currentTime: number) => {
-                  const elapsed = currentTime - startTime;
-                  const progress = Math.min(elapsed / duration, 1);
-                  
-                  // Easing function for smooth animation
-                  const easeInOutCubic = (t: number) => {
-                    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-                  };
-                  
-                  const easedProgress = easeInOutCubic(progress);
-                  const currentScrollLeft = startScrollLeft + (distance * easedProgress);
-                  
-                  // Update scroll position directly
-                  scrollableContainer.scrollLeft = currentScrollLeft;
-                  
-                  // Update progress bar
-                  if (progressBar) {
-                    progressBar.style.width = `${progress * 100}%`;
-                  }
-                  
-                  // Continue animation or complete
-                  if (progress < 1) {
-                    requestAnimationFrame(animateScroll);
-                  } else {
-                    // Animation complete
-                    console.log('✅ ChildPartTable enhanced smooth scroll selesai');
-                    console.log('🔍 Final scroll position:', scrollableContainer.scrollLeft);
-                    
-                    // Remove progress indicator
-                    setTimeout(() => {
-                      if (scrollProgressIndicator.parentNode) {
-                        scrollProgressIndicator.parentNode.removeChild(scrollProgressIndicator);
-                      }
-                    }, 1000);
-                    
-                    // Add scroll bar highlight effect for ChildPartTable
-                    if (scrollableContainer.classList.contains('custom-scrollbar')) {
-                      scrollableContainer.classList.add('scroll-animation-active');
-                      
-                      // Remove animation class after scroll completes
-                      setTimeout(() => {
-                        scrollableContainer.classList.remove('scroll-animation-active');
-                      }, 3000);
-                    }
-                  }
-                };
-                
-                // Start animation
-                requestAnimationFrame(animateScroll);
-                
-              } else {
-                console.log('⚠️ ChildPartTable scrollable container tidak ditemukan, menggunakan scrollIntoView');
-                console.log('🔍 Debug: Semua elemen dengan overflow-x-auto:', document.querySelectorAll('.overflow-x-auto'));
-                console.log('🔍 Debug: Semua elemen dengan class yang mengandung overflow-x:', document.querySelectorAll('[class*="overflow-x"]'));
-                
-                // Fallback to scrollIntoView
-                fieldElement.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'center',
-                  inline: 'center'
-                });
-              }
-              
-              // Add simple red border highlight - clean and simple
-              fieldElement.classList.add(
-                'border-2',
-                'border-red-500',
-                'border-solid'
-              );
-              
-              // If it's an input field, focus on it
-              if (fieldElement.tagName === 'INPUT') {
-                (fieldElement as HTMLInputElement).focus();
-                (fieldElement as HTMLInputElement).select();
-              }
-              
-              // Remove highlight after 8 seconds (longer visibility)
-              setTimeout(() => {
-                fieldElement.classList.remove(
-                  'border-2',
-                  'border-red-500',
-                  'border-solid'
-                );
-              }, 8000);
-              
-              // Add a simple background highlight to the entire day column
-              const dayElement = document.querySelector(`[data-day="${target.day}"]`);
-              if (dayElement) {
-                dayElement.classList.add(
-                  'bg-red-50',
-                  'dark:bg-red-900/20'
-                );
-                setTimeout(() => {
-                  dayElement.classList.remove(
-                    'bg-red-50',
-                    'dark:bg-red-900/20'
-                  );
-                }, 6000);
-              }
-              
-              // Show success message
-              console.log(`✅ Berhasil navigasi ke field "${target.fieldName}" pada ${target.day} Shift ${target.shift}`);
-            } else {
-              console.log('⚠️ ChildPartTable: Field element tidak ditemukan');
-              console.log('🔍 Debug: Semua elemen dengan data-day:', document.querySelectorAll('[data-day]'));
-              console.log('🔍 Debug: Semua elemen dengan data-stock-type:', document.querySelectorAll('[data-stock-type]'));
-              console.log('🔍 Debug: Semua elemen dengan data-shift:', document.querySelectorAll('[data-shift]'));
-            }
-          }, 100);
-        }
-      } catch (error) {
-        console.error('Error parsing navigation target:', error);
-        sessionStorage.removeItem('navigateToField');
-      }
-    }
-  }, [props.partName]);
 
   // Loading logic for navigation/filter
   // If you have navigation/filter change, wrap setState with:
@@ -1236,6 +1043,16 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
           stock: props.initialStock,
         }}
         isEditMode={true}
+      />
+
+      {/* Disruption Modal */}
+      <DisruptionModal
+        isOpen={showDisruptionModal}
+        onClose={() => setShowDisruptionModal(false)}
+        disruptions={getAllDisruptions()}
+        partName={props.partName}
+        customerName={props.customerName}
+        onNavigateToField={handleNavigateToField}
       />
     </div>
   );

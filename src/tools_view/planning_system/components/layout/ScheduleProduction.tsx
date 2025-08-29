@@ -65,7 +65,7 @@ const useSharedManpower = (propsManpowerList?: any[]) => {
 
 const ScheduleProduction: React.FC<ScheduleTableProps> = (props) => {
   const [viewMode, setViewMode] = useState<"cards" | "table">(
-    props.viewMode || "cards",
+    props.viewMode || "table",
   );
   const [searchDate, setSearchDate] = useState(props.searchDate || "");
 

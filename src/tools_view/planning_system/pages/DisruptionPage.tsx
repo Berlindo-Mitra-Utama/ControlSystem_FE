@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Navigation, Package, TrendingDown } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Package, TrendingDown } from "lucide-react";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 interface DisruptionItem {
@@ -100,81 +100,24 @@ const DisruptionPage: React.FC = () => {
     return DAY_NAMES[(offset + day) % 7];
   };
 
-  const handleNavigateToField = (disruption: DisruptionItem) => {
-    // Show confirmation dialog
-    if (window.confirm(`Navigasi ke field "${disruption.fieldName}" pada ${getDayName(disruption.day)} Shift ${disruption.shift}?`)) {
-      // Show toast message
-      showToastMessage(`Navigasi ke ${disruption.fieldName}...`);
-      
-      // Store comprehensive navigation data for the planning page to use
-      sessionStorage.setItem('navigateToField', JSON.stringify({
-        partName: disruption.partName,
-        customerName: disruption.customerName,
-        day: disruption.day,
-        shift: disruption.shift,
-        type: disruption.type,
-        fieldName: disruption.fieldName,
-        navigateToSchedule: true, // Flag to indicate we want to go to schedule
-        openScheduleDirectly: true, // Flag to open schedule directly
-        scrollToSpecificDate: true, // Flag to scroll to specific date
-        targetDate: disruption.day, // Target date for scrolling
-        dayName: getDayName(disruption.day), // Day name for better identification
-        timestamp: Date.now() // Add timestamp for tracking
-      }));
-      
-      // Navigate directly to the scheduler page
-      navigate('/dashboard/scheduler');
-    }
-  };
+
 
   const handleBackToPlanning = () => {
-    // Navigate back to the planning page with ChildPartTable
-    // First, check if we have current part info to navigate to the specific schedule
+    // Navigate to saved schedule view with ChildPartTable
     if (currentPartInfo && currentPartInfo.partName && currentPartInfo.customerName) {
-      // Find the first disruption for this part to navigate to the specific field
-      const firstDisruption = disruptions.find(d => 
-        d.partName === currentPartInfo.partName && 
-        d.customerName === currentPartInfo.customerName
-      );
+      // Show toast message
+      showToastMessage(`Kembali ke Planning: ${currentPartInfo.partName} - ${currentPartInfo.customerName}`);
       
-      if (firstDisruption) {
-        // Show toast message
-        showToastMessage(`Kembali ke Planning: ${currentPartInfo.partName} - ${currentPartInfo.customerName}`);
-        
-        // Store comprehensive navigation data to open the specific schedule and navigate to the disrupted field
-        sessionStorage.setItem('navigateToField', JSON.stringify({
-          partName: currentPartInfo.partName,
-          customerName: currentPartInfo.customerName,
-          day: firstDisruption.day,
-          shift: firstDisruption.shift,
-          type: firstDisruption.type,
-          fieldName: firstDisruption.fieldName,
-          navigateToSchedule: true,
-          openScheduleDirectly: true,
-          scrollToSpecificDate: true, // Enable scrolling to specific date
-          targetDate: firstDisruption.day, // Target date for scrolling
-          dayName: getDayName(firstDisruption.day), // Day name for better identification
-          showChildPartTable: true, // Flag to indicate we want to show ChildPartTable
-          navigateToSpecificField: true, // Flag to navigate to specific disrupted field
-          timestamp: Date.now()
-        }));
-      } else {
-        // If no disruption found, just navigate to the schedule without specific field targeting
-        showToastMessage(`Kembali ke Planning: ${currentPartInfo.partName} - ${currentPartInfo.customerName}`);
-        
-        sessionStorage.setItem('navigateToField', JSON.stringify({
-          partName: currentPartInfo.partName,
-          customerName: currentPartInfo.customerName,
-          navigateToSchedule: true,
-          openScheduleDirectly: true,
-          scrollToSpecificDate: false,
-          showChildPartTable: true,
-          navigateToSpecificField: false,
-          timestamp: Date.now()
-        }));
-      }
+      // Store navigation data to open the specific schedule in saved schedule view
+      sessionStorage.setItem('navigateToSavedSchedule', JSON.stringify({
+        partName: currentPartInfo.partName,
+        customerName: currentPartInfo.customerName,
+        openScheduleDirectly: true,
+        showChildPartTable: true,
+        timestamp: Date.now()
+      }));
       
-      // Navigate to the scheduler page
+      // Navigate to SchedulerPage with saved schedule view
       navigate('/dashboard/scheduler');
     } else {
       // If no specific part info, just go back to the previous page
@@ -365,15 +308,7 @@ const DisruptionPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Navigation Button */}
-                                              <button
-                          onClick={() => handleNavigateToField(disruption)}
-                          className="mt-3 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                          title={`Klik untuk navigasi ke field "${disruption.fieldName}"`}
-                        >
-                        <Navigation className="w-4 h-4" />
-                        Navigate ke Field
-                      </button>
+                      
                     </div>
                   ))}
                 </div>
