@@ -99,7 +99,7 @@ const InputCell = memo(function InputCell({
       onChange={(e) =>
         onChange(e.target.value === "" ? null : Number(e.target.value))
       }
-      className={`${className} ${hasError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
+      className={`${className} ${hasError ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""}`}
     />
   );
 });
@@ -271,30 +271,30 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   // Get error count for a specific day
   const getDayErrorCount = (dayIdx: number): number => {
     let errorCount = 0;
-    
+
     // Check inMaterial errors
     if (showRencanaInMaterial) {
       if (hasValueError(inMaterial[dayIdx][0])) errorCount++;
       if (hasValueError(inMaterial[dayIdx][1])) errorCount++;
     }
-    
+
     // Check aktualInMaterial errors
     if (showAktualInMaterial) {
       if (hasValueError(aktualInMaterial[dayIdx][0])) errorCount++;
       if (hasValueError(aktualInMaterial[dayIdx][1])) errorCount++;
     }
-    
+
     // Check stock errors
     if (showRencanaStock) {
       if (hasStockError(rencanaStock[dayIdx * 2])) errorCount++;
       if (hasStockError(rencanaStock[dayIdx * 2 + 1])) errorCount++;
     }
-    
+
     if (showAktualStock) {
       if (hasStockError(aktualStock[dayIdx * 2])) errorCount++;
       if (hasStockError(aktualStock[dayIdx * 2 + 1])) errorCount++;
     }
-    
+
     return errorCount;
   };
 
@@ -306,7 +306,11 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       customerName: string;
       day: number;
       shift: number;
-      type: 'rencanaInMaterial' | 'aktualInMaterial' | 'rencanaStock' | 'aktualStock';
+      type:
+        | "rencanaInMaterial"
+        | "aktualInMaterial"
+        | "rencanaStock"
+        | "aktualStock";
       value: number;
       fieldName: string;
     }> = [];
@@ -321,9 +325,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'rencanaInMaterial',
+            type: "rencanaInMaterial",
             value: inMaterial[dayIdx][0]!,
-            fieldName: 'Rencana In Material Shift 1'
+            fieldName: "Rencana In Material Shift 1",
           });
         }
         if (hasValueError(inMaterial[dayIdx][1])) {
@@ -333,9 +337,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'rencanaInMaterial',
+            type: "rencanaInMaterial",
             value: inMaterial[dayIdx][1]!,
-            fieldName: 'Rencana In Material Shift 2'
+            fieldName: "Rencana In Material Shift 2",
           });
         }
       }
@@ -349,9 +353,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'aktualInMaterial',
+            type: "aktualInMaterial",
             value: aktualInMaterial[dayIdx][0]!,
-            fieldName: 'Aktual In Material Shift 1'
+            fieldName: "Aktual In Material Shift 1",
           });
         }
         if (hasValueError(aktualInMaterial[dayIdx][1])) {
@@ -361,9 +365,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'aktualInMaterial',
+            type: "aktualInMaterial",
             value: aktualInMaterial[dayIdx][1]!,
-            fieldName: 'Aktual In Material Shift 2'
+            fieldName: "Aktual In Material Shift 2",
           });
         }
       }
@@ -377,9 +381,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'rencanaStock',
+            type: "rencanaStock",
             value: rencanaStock[dayIdx * 2],
-            fieldName: 'Rencana Stock Shift 1'
+            fieldName: "Rencana Stock Shift 1",
           });
         }
         if (hasStockError(rencanaStock[dayIdx * 2 + 1])) {
@@ -389,9 +393,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'rencanaStock',
+            type: "rencanaStock",
             value: rencanaStock[dayIdx * 2 + 1],
-            fieldName: 'Rencana Stock Shift 2'
+            fieldName: "Rencana Stock Shift 2",
           });
         }
       }
@@ -404,9 +408,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'aktualStock',
+            type: "aktualStock",
             value: aktualStock[dayIdx * 2],
-            fieldName: 'Aktual Stock Shift 1'
+            fieldName: "Aktual Stock Shift 1",
           });
         }
         if (hasStockError(aktualStock[dayIdx * 2 + 1])) {
@@ -416,9 +420,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'aktualStock',
+            type: "aktualStock",
             value: aktualStock[dayIdx * 2 + 1],
-            fieldName: 'Aktual Stock Shift 2'
+            fieldName: "Aktual Stock Shift 2",
           });
         }
       }
@@ -744,7 +748,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               <AlertTriangle className="w-4 h-4" />
               <span className="text-sm font-medium">Disruption</span>
               {/* Error Badge */}
-              {Array.from({ length: props.days }, (_, dayIdx) => getDayErrorCount(dayIdx)).some(count => count > 0) && (
+              {Array.from({ length: props.days }, (_, dayIdx) =>
+                getDayErrorCount(dayIdx),
+              ).some((count) => count > 0) && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                   !
                 </span>
@@ -866,12 +872,24 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               )}
               {showRencanaStock && (
                 <div className="h-16 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 border-b border-gray-300 dark:border-gray-600 text-yellow-700 dark:text-yellow-200 font-mono text-sm font-bold">
-                  -
+                  {(() => {
+                    // Ambil nilai terakhir dari rencanaStock (bisa positif atau negatif)
+                    if (rencanaStock.length > 0) {
+                      return rencanaStock[rencanaStock.length - 1].toFixed(0);
+                    }
+                    return "0";
+                  })()}
                 </div>
               )}
               {showAktualStock && (
                 <div className="h-16 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 border-b border-gray-300 dark:border-gray-600 text-yellow-700 dark:text-yellow-200 font-mono text-sm font-bold">
-                  -
+                  {(() => {
+                    // Ambil nilai terakhir dari aktualStock (bisa positif atau negatif)
+                    if (aktualStock.length > 0) {
+                      return aktualStock[aktualStock.length - 1].toFixed(0);
+                    }
+                    return "0";
+                  })()}
                 </div>
               )}
             </div>
@@ -944,7 +962,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleAktualInMaterialChange(dayIdx, 0, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            hasError={hasValueError(aktualInMaterial[dayIdx][0])}
+                            hasError={hasValueError(
+                              aktualInMaterial[dayIdx][0],
+                            )}
                           />
                         </div>
                         <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
@@ -954,7 +974,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleAktualInMaterialChange(dayIdx, 1, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            hasError={hasValueError(aktualInMaterial[dayIdx][1])}
+                            hasError={hasValueError(
+                              aktualInMaterial[dayIdx][1],
+                            )}
                           />
                         </div>
                       </div>
@@ -962,18 +984,26 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {/* Rencana Stock - Baris 3 */}
                     {showRencanaStock && (
                       <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(rencanaStock[dayIdx * 2]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="rencanaStock" data-shift="1">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(rencanaStock[dayIdx * 2])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="rencanaStock"
+                          data-shift="1"
+                        >
                           {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(rencanaStock[dayIdx * 2 + 1]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="rencanaStock" data-shift="2">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(rencanaStock[dayIdx * 2 + 1])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="rencanaStock"
+                          data-shift="2"
+                        >
                           {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
@@ -981,18 +1011,26 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {/* Aktual Stock - Baris 4 */}
                     {showAktualStock && (
                       <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(aktualStock[dayIdx * 2]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="aktualStock" data-shift="1">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(aktualStock[dayIdx * 2])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="aktualStock"
+                          data-shift="1"
+                        >
                           {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(aktualStock[dayIdx * 2 + 1]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="aktualStock" data-shift="2">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(aktualStock[dayIdx * 2 + 1])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="aktualStock"
+                          data-shift="2"
+                        >
                           {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
@@ -1003,8 +1041,6 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             </div>
           </div>
         </div>
-
-
       </div>
 
       {/* Modal konfirmasi hapus part dihapus, gunakan modal global dari parent */}

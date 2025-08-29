@@ -19,6 +19,8 @@ import {
 import {
   ChildPartService,
   PlanningSystemService,
+  ProductionService,
+  RencanaChildPartService,
 } from "../../../services/API_Services";
 
 // Singkatan bulan untuk dropdown
@@ -75,6 +77,12 @@ const Dashboard: React.FC = () => {
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // State untuk menyimpan data daily production
+  const [dailyProductionData, setDailyProductionData] = useState<any[]>([]);
+  const [childPartData, setChildPartData] = useState<any[]>([]);
+  const [isLoadingDailyProduction, setIsLoadingDailyProduction] =
+    useState<boolean>(false);
+
   // Debug: Log savedSchedules
   console.log("Dashboard - savedSchedules:", savedSchedules);
   console.log("Dashboard - savedSchedules length:", savedSchedules.length);
@@ -91,6 +99,21 @@ const Dashboard: React.FC = () => {
   // State untuk pencarian part
   const [searchPart, setSearchPart] = useState<string>("");
   const [showPartDropdown, setShowPartDropdown] = useState<boolean>(false);
+
+  // Tambahkan state untuk filter bulan dan shift dengan default kosong
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(
+    currentDate.getFullYear(),
+  );
+  const [selectedShift, setSelectedShift] = useState<string>("all");
+
+  // State untuk popup date picker
+  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [tempSelectedMonth, setTempSelectedMonth] = useState<number | null>(
+    selectedMonth,
+  );
+  const [tempSelectedYear, setTempSelectedYear] = useState(selectedYear);
 
   // Mengambil data part dari database saat komponen dimuat
   useEffect(() => {
@@ -123,6 +146,143 @@ const Dashboard: React.FC = () => {
     fetchPartData();
   }, []);
 
+  // Mengambil data daily production berdasarkan filter
+  useEffect(() => {
+    const fetchDailyProductionData = async () => {
+      setIsLoadingDailyProduction(true);
+      try {
+        // Ambil semua product planning
+        const productPlanningResponse =
+          await PlanningSystemService.getAllProductPlanning();
+        const productPlannings = productPlanningResponse.productPlannings;
+
+        // Filter planning berdasarkan part jika dipilih
+        let filteredPlannings = productPlannings;
+        if (selectedPart) {
+          filteredPlannings = productPlannings.filter(
+            (planning) => planning.partName === selectedPart,
+          );
+        }
+
+        // Filter planning berdasarkan bulan dan tahun jika dipilih
+        if (selectedMonth !== null) {
+          filteredPlannings = filteredPlannings.filter(
+            (planning) =>
+              planning.productionMonth === selectedMonth &&
+              planning.productionYear === selectedYear,
+          );
+        }
+
+        // Ambil daily production untuk setiap planning
+        const allDailyProductions = [];
+        for (const planning of filteredPlannings) {
+          try {
+            const dailyProductions =
+              await ProductionService.getDailyProductionByPlanningId(
+                planning.id,
+              );
+
+            // Filter berdasarkan shift jika dipilih
+            let filteredDailyProductions = dailyProductions;
+            if (selectedShift !== "all") {
+              filteredDailyProductions = dailyProductions.filter(
+                (dp) => dp.shift === parseInt(selectedShift),
+              );
+            }
+
+            // Tambahkan informasi planning ke setiap daily production
+            const dailyProductionsWithPlanning = filteredDailyProductions.map(
+              (dp) => ({
+                ...dp,
+                planning: planning,
+              }),
+            );
+
+            allDailyProductions.push(...dailyProductionsWithPlanning);
+          } catch (error) {
+            console.error(
+              `Error fetching daily production for planning ${planning.id}:`,
+              error,
+            );
+          }
+        }
+
+        console.log("Daily production data from API:", allDailyProductions);
+        if (allDailyProductions.length > 0) {
+          console.log(
+            "Sample daily production item from API:",
+            allDailyProductions[0],
+          );
+          console.log(
+            "Available fields in daily production:",
+            Object.keys(allDailyProductions[0]),
+          );
+        } else {
+          console.log("No daily production data from API - will use fallback");
+        }
+        setDailyProductionData(allDailyProductions);
+
+        // Ambil data child part jika part yang dipilih adalah child part
+        if (selectedPart && childPartOptions.includes(selectedPart)) {
+          try {
+            const childPartsResponse =
+              await ChildPartService.getAllChildParts();
+            const selectedChildPart = childPartsResponse.find(
+              (cp) => cp.partName === selectedPart,
+            );
+
+            if (selectedChildPart) {
+              // Ambil rencana child part untuk part ini
+              const rencanaChildParts =
+                await RencanaChildPartService.getRencanaChildPartByChildPartId(
+                  selectedChildPart.id,
+                );
+
+              // Filter berdasarkan bulan dan tahun jika dipilih
+              let filteredRencana = rencanaChildParts;
+              if (selectedMonth !== null) {
+                filteredRencana = rencanaChildParts.filter(
+                  (rcp) =>
+                    rcp.bulan === selectedMonth && rcp.tahun === selectedYear,
+                );
+              }
+
+              // Filter berdasarkan shift jika dipilih
+              if (selectedShift !== "all") {
+                filteredRencana = filteredRencana.filter(
+                  (rcp) => rcp.shift === parseInt(selectedShift),
+                );
+              }
+
+              console.log("Child part data:", filteredRencana);
+              if (filteredRencana.length > 0) {
+                console.log("Sample child part item:", filteredRencana[0]);
+              }
+              setChildPartData(filteredRencana);
+            }
+          } catch (error) {
+            console.error("Error fetching child part data:", error);
+            setChildPartData([]);
+          }
+        } else {
+          setChildPartData([]);
+        }
+      } catch (error) {
+        console.error("Error fetching daily production data:", error);
+      } finally {
+        setIsLoadingDailyProduction(false);
+      }
+    };
+
+    fetchDailyProductionData();
+  }, [
+    selectedPart,
+    selectedMonth,
+    selectedYear,
+    selectedShift,
+    childPartOptions,
+  ]);
+
   // Filter part berdasarkan pencarian
   const filteredPartOptions = partOptions.filter((part) => {
     // Hapus semua spasi dari part dan search query untuk perbandingan
@@ -130,21 +290,6 @@ const Dashboard: React.FC = () => {
     const searchNoSpaces = searchPart.toLowerCase().replace(/\s+/g, "");
     return partNoSpaces.includes(searchNoSpaces);
   });
-
-  // Tambahkan state untuk filter bulan dan shift dengan default kosong
-  const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(
-    currentDate.getFullYear(),
-  );
-  const [selectedShift, setSelectedShift] = useState<string>("all");
-
-  // State untuk popup date picker
-  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
-  const [tempSelectedMonth, setTempSelectedMonth] = useState<number | null>(
-    selectedMonth,
-  );
-  const [tempSelectedYear, setTempSelectedYear] = useState(selectedYear);
 
   // Mendapatkan schedule yang dipilih
   const selectedSchedule = React.useMemo(() => {
@@ -261,115 +406,459 @@ const Dashboard: React.FC = () => {
     return finishGoodPartOptions.includes(selectedPart);
   }, [selectedPart, finishGoodPartOptions]);
 
-  // Calculate stats berdasarkan filter
+  // Calculate stats berdasarkan data daily production
   const stats = React.useMemo(() => {
-    return {
-      totalProduction: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.actualPcs || 0),
-            0,
-          )
-        );
-      }, 0),
-      totalPlanned: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total + schedule.schedule.reduce((sum, item) => sum + item.pcs, 0)
-        );
-      }, 0),
-      totalDays: filteredSchedules.reduce((total, schedule) => {
-        const maxDay =
-          schedule.schedule.length > 0
-            ? Math.max(...schedule.schedule.map((item) => item.day))
-            : 0;
-        return total + maxDay;
-      }, 0),
-      disruptedItems: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.filter((item) => item.status === "Gangguan").length
-        );
-      }, 0),
-      // Data baru sesuai gambar
-      deliveryActual: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce((sum, item) => sum + (item.delivery || 0), 0)
-        );
-      }, 0),
-      planningProduksiPcs: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.planningPcs || 0),
-            0,
-          )
-        );
-      }, 0),
-      planningProduksiJam: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.planningHour || 0),
-            0,
-          )
-        );
-      }, 0),
-      overtimePcs: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.overtimePcs || 0),
-            0,
-          )
-        );
-      }, 0),
-      overtimeJam: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.overtimeHour || 0),
-            0,
-          )
-        );
-      }, 0),
-      jamProduksiCycleTime: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.jamProduksiCycleTime || 0),
-            0,
-          )
-        );
-      }, 0),
-      hasilProduksiAktual: filteredSchedules.reduce((total, schedule) => {
-        return (
-          total +
-          schedule.schedule.reduce(
-            (sum, item) => sum + (item.hasilProduksi || 0),
-            0,
-          )
-        );
-      }, 0),
-      actualStock: filteredSchedules.reduce((total, schedule) => {
-        // Ambil nilai actualStock dari item terakhir dalam schedule
-        const lastItem =
-          schedule.schedule.length > 0
-            ? schedule.schedule[schedule.schedule.length - 1]
-            : null;
-        return total + (lastItem?.actualStock || 0);
-      }, 0),
-      rencanaStock: filteredSchedules.reduce((total, schedule) => {
-        // Ambil nilai rencanaStockCustom dari item terakhir dalam schedule
-        const lastItem =
-          schedule.schedule.length > 0
-            ? schedule.schedule[schedule.schedule.length - 1]
-            : null;
-        return total + (lastItem?.rencanaStockCustom || 0);
-      }, 0),
+    if (isLoadingDailyProduction) {
+      return {
+        totalProduction: 0,
+        totalPlanned: 0,
+        totalDays: 0,
+        disruptedItems: 0,
+        deliveryActual: 0,
+        planningProduksiPcs: 0,
+        planningProduksiJam: 0,
+        overtimePcs: 0,
+        overtimeJam: 0,
+        jamProduksiCycleTime: 0,
+        jamProduksiAktual: 0,
+        hasilProduksiAktual: 0,
+        actualStock: 0,
+        rencanaStock: 0,
+        rencanaInMaterial: 0,
+        aktualInMaterial: 0,
+      };
+    }
+
+    // Helper function untuk mendapatkan nilai dengan berbagai kemungkinan field name
+    const getValue = (item: any, possibleFields: string[]): number => {
+      for (const field of possibleFields) {
+        if (item[field] !== undefined && item[field] !== null) {
+          return Number(item[field]) || 0;
+        }
+      }
+      return 0;
     };
-  }, [filteredSchedules]);
+
+    // Jika tidak ada data dari API, gunakan data dari savedSchedules sebagai fallback
+    let dataSource = dailyProductionData;
+    let isUsingFallback = false;
+
+    if (dailyProductionData.length === 0 && filteredSchedules.length > 0) {
+      console.log("No API data found, using savedSchedules as fallback");
+      isUsingFallback = true;
+      // Konversi savedSchedules ke format yang sesuai
+      dataSource = filteredSchedules.flatMap((schedule) =>
+        schedule.schedule.map((item) => {
+          console.log("Processing fallback item:", item);
+          console.log("Item delivery fields:", {
+            delivery: item.delivery,
+            deliveryPcs: (item as any).deliveryPcs,
+            deliveryActual: (item as any).deliveryActual,
+          });
+          console.log("Item manpower fields:", {
+            manpowerIds: item.manpowerIds,
+            manpower: item.manpower,
+          });
+
+          return {
+            ...item,
+            // Standardize field names
+            actualProduction: getValue(item, [
+              "actualPcs",
+              "hasilProduksi",
+              "pcs",
+            ]),
+            planningProduction: getValue(item, ["planningPcs", "pcs"]),
+            deliveryActual:
+              getValue(item, ["delivery", "deliveryPcs", "deliveryActual"]) ||
+              item.delivery ||
+              (item as any).deliveryPcs ||
+              0,
+            actualProductionHours: getValue(item, ["jamProduksiAktual"]),
+            overtime: getValue(item, ["overtimePcs"]),
+            manpower: (() => {
+              // Cek manpowerIds array terlebih dahulu
+              if (
+                item.manpowerIds &&
+                Array.isArray(item.manpowerIds) &&
+                item.manpowerIds.length > 0
+              ) {
+                return item.manpowerIds.length;
+              }
+              // Cek field manpower langsung
+              else if (
+                item.manpower &&
+                typeof item.manpower === "number" &&
+                item.manpower > 0
+              ) {
+                return item.manpower;
+              }
+              // Cek field manpower sebagai boolean
+              else if ((item.manpower as any) === true || item.manpower === 1) {
+                return 1;
+              }
+              // Cek menggunakan getValue helper
+              else {
+                const manpowerValue = getValue(item, ["manpower"]);
+                if (
+                  manpowerValue &&
+                  typeof manpowerValue === "number" &&
+                  manpowerValue > 0
+                ) {
+                  return manpowerValue;
+                }
+              }
+              return 0;
+            })(),
+            actualStockCustom: getValue(item, [
+              "actualStockCustom",
+              "actualStock",
+            ]),
+            rencanaStockCustom: getValue(item, [
+              "rencanaStockCustom",
+              "rencanaStock",
+            ]),
+            // Tambahkan field untuk jam produksi
+            jamProduksiCycleTime: getValue(item, ["jamProduksiCycleTime"]),
+            jamProduksiAktual: getValue(item, ["jamProduksiAktual"]),
+            overtimeJam: getValue(item, ["overtimeJam"]),
+            // Pastikan field yang diperlukan tersedia
+            manpowerIds: item.manpowerIds || [],
+          };
+        }),
+      );
+    }
+
+    console.log("Data source for stats calculation:", dataSource);
+    console.log("Is using fallback:", isUsingFallback);
+    console.log("Daily production data length:", dailyProductionData.length);
+    console.log("Filtered schedules length:", filteredSchedules.length);
+
+    // Debug untuk melihat data savedSchedules
+    if (filteredSchedules.length > 0) {
+      console.log("Sample filtered schedule:", filteredSchedules[0]);
+      console.log("Sample schedule item:", filteredSchedules[0]?.schedule?.[0]);
+      console.log(
+        "Sample item fields:",
+        Object.keys(filteredSchedules[0]?.schedule?.[0] || {}),
+      );
+
+      // Debug khusus untuk manpower
+      console.log("=== MANPOWER DEBUG ===");
+      filteredSchedules[0]?.schedule?.forEach((item, index) => {
+        console.log(`Item ${index}:`, {
+          id: item.id,
+          manpower: item.manpower,
+          manpowerIds: item.manpowerIds,
+          manpowerType: typeof item.manpower,
+          manpowerIdsType: Array.isArray(item.manpowerIds)
+            ? "array"
+            : typeof item.manpowerIds,
+          manpowerIdsLength: item.manpowerIds?.length || 0,
+        });
+      });
+    }
+
+    // Tambahkan debug untuk melihat semua field yang tersedia
+    if (dataSource.length > 0) {
+      console.log(
+        "All available fields in first data item:",
+        Object.keys(dataSource[0]),
+      );
+      console.log("Sample values for key fields:");
+      const sample = dataSource[0];
+      console.log(
+        "- actualProduction:",
+        getValue(sample, ["actualProduction", "hasilProduksi", "actualPcs"]),
+      );
+      console.log(
+        "- planningProduction:",
+        getValue(sample, ["planningProduction", "planningPcs", "pcs"]),
+      );
+      console.log(
+        "- deliveryActual:",
+        getValue(sample, ["deliveryActual", "delivery"]),
+      );
+      console.log(
+        "- manpower:",
+        getValue(sample, ["manpower"]) + (sample.manpowerIds?.length || 0),
+      );
+    }
+
+    const calculatedStats = {
+      totalProduction: dataSource.reduce(
+        (total, dp) =>
+          total +
+          getValue(dp, ["actualProduction", "hasilProduksi", "actualPcs"]),
+        0,
+      ),
+      totalPlanned: dataSource.reduce(
+        (total, dp) =>
+          total + getValue(dp, ["planningProduction", "planningPcs", "pcs"]),
+        0,
+      ),
+      totalDays: dataSource.length,
+      disruptedItems: dataSource.reduce((total, dp) => {
+        // Coba berbagai kemungkinan field untuk manpower
+        let manpowerCount = 0;
+
+        // Debug untuk melihat semua kemungkinan field manpower
+        console.log("=== MANPOWER ITEM DEBUG ===");
+        console.log("Item ID:", dp.id);
+        console.log("All item fields:", Object.keys(dp));
+        console.log("Manpower related fields:", {
+          manpower: dp.manpower,
+          manpowerIds: dp.manpowerIds,
+          manpowerType: typeof dp.manpower,
+          manpowerIdsType: Array.isArray(dp.manpowerIds)
+            ? "array"
+            : typeof dp.manpowerIds,
+          manpowerIdsLength: dp.manpowerIds?.length || 0,
+          manpowerDirect: dp.manpower,
+          manpowerFromGetValue: getValue(dp, ["manpower"]),
+        });
+
+        // Cek manpowerIds array terlebih dahulu
+        if (
+          dp.manpowerIds &&
+          Array.isArray(dp.manpowerIds) &&
+          dp.manpowerIds.length > 0
+        ) {
+          manpowerCount = dp.manpowerIds.length;
+          console.log("Using manpowerIds array length:", manpowerCount);
+        }
+        // Cek field manpower langsung
+        else if (
+          dp.manpower &&
+          typeof dp.manpower === "number" &&
+          dp.manpower > 0
+        ) {
+          manpowerCount = dp.manpower;
+          console.log("Using direct manpower field:", manpowerCount);
+        }
+        // Cek field manpower sebagai boolean
+        else if ((dp.manpower as any) === true || dp.manpower === 1) {
+          manpowerCount = 1;
+          console.log("Using manpower as boolean/1:", manpowerCount);
+        }
+        // Cek menggunakan getValue helper
+        else {
+          const manpowerValue = getValue(dp, ["manpower"]);
+          if (
+            manpowerValue &&
+            typeof manpowerValue === "number" &&
+            manpowerValue > 0
+          ) {
+            manpowerCount = manpowerValue;
+            console.log("Using manpower from getValue:", manpowerCount);
+          }
+        }
+
+        // Jika masih 0, coba cek field lain yang mungkin berisi data manpower
+        if (manpowerCount === 0) {
+          // Cek apakah ada field lain yang mungkin berisi data manpower
+          const allFields = Object.keys(dp);
+          const manpowerRelatedFields = allFields.filter(
+            (field) =>
+              field.toLowerCase().includes("manpower") ||
+              field.toLowerCase().includes("worker") ||
+              field.toLowerCase().includes("person"),
+          );
+          console.log(
+            "Other manpower-related fields found:",
+            manpowerRelatedFields,
+          );
+
+          // Jika tidak ada data manpower sama sekali, gunakan default 1
+          if (manpowerRelatedFields.length === 0) {
+            manpowerCount = 1; // Default 1 manpower per item
+            console.log(
+              "No manpower data found, using default:",
+              manpowerCount,
+            );
+          }
+        }
+
+        console.log("Final manpower count for item:", manpowerCount);
+        return total + manpowerCount;
+      }, 0),
+      // Data untuk finish good part
+      deliveryActual: dataSource.reduce((total, dp) => {
+        // Coba berbagai kemungkinan field untuk delivery
+        const deliveryValue =
+          getValue(dp, ["deliveryActual", "delivery", "deliveryPcs"]) ||
+          dp.delivery ||
+          dp.deliveryActual ||
+          0;
+        console.log("Delivery calculation for item:", {
+          deliveryActual: dp.deliveryActual,
+          delivery: dp.delivery,
+          deliveryPcs: dp.deliveryPcs,
+          calculated: deliveryValue,
+        });
+        return total + deliveryValue;
+      }, 0),
+      planningProduksiPcs: dataSource.reduce(
+        (total, dp) =>
+          total + getValue(dp, ["planningProduction", "planningPcs", "pcs"]),
+        0,
+      ),
+      planningProduksiJam: dataSource.reduce((total, dp) => {
+        // Hitung planning produksi jam berdasarkan planning pcs dan output per jam
+        const planningPcs = getValue(dp, [
+          "planningProduction",
+          "planningPcs",
+          "pcs",
+        ]);
+        const manpower = dp.manpowerIds?.length || 3;
+        const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
+        const outputPerHour = manpower * pcsPerManpower;
+        return total + (outputPerHour > 0 ? planningPcs / outputPerHour : 0);
+      }, 0),
+      overtimePcs: dataSource.reduce(
+        (total, dp) => total + getValue(dp, ["overtime", "overtimePcs"]),
+        0,
+      ),
+      overtimeJam: dataSource.reduce((total, dp) => {
+        // Hitung overtime jam berdasarkan overtime pcs dan output per jam
+        const overtimePcs = getValue(dp, ["overtime", "overtimePcs"]);
+        const manpower = dp.manpowerIds?.length || 3;
+        const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
+        const outputPerHour = manpower * pcsPerManpower;
+        return total + (outputPerHour > 0 ? overtimePcs / outputPerHour : 0);
+      }, 0),
+      jamProduksiCycleTime: dataSource.reduce((total, dp) => {
+        // Hitung jam produksi cycle time berdasarkan pcs dan manpower
+        const pcs = getValue(dp, [
+          "actualProduction",
+          "hasilProduksi",
+          "actualPcs",
+        ]);
+        const manpower = dp.manpowerIds?.length || 3;
+        const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
+        const outputPerHour = manpower * pcsPerManpower;
+        return total + (outputPerHour > 0 ? pcs / outputPerHour : 0);
+      }, 0),
+      hasilProduksiAktual: dataSource.reduce(
+        (total, dp) =>
+          total +
+          getValue(dp, ["actualProduction", "hasilProduksi", "actualPcs"]),
+        0,
+      ),
+      // Tambahkan perhitungan jam produksi aktual
+      jamProduksiAktual: dataSource.reduce((total, dp) => {
+        // Hitung jam produksi aktual berdasarkan pcs dan timePerPcs
+        const pcs = getValue(dp, [
+          "actualProduction",
+          "hasilProduksi",
+          "actualPcs",
+        ]);
+        // Gunakan nilai default timePerPcs jika tidak tersedia
+        const defaultTimePerPcs = 3600 / 14; // 14 pcs per jam
+        const outputPerHour =
+          defaultTimePerPcs > 0 ? 3600 / defaultTimePerPcs : 0;
+        return total + (outputPerHour > 0 ? pcs / outputPerHour : 0);
+      }, 0),
+      actualStock: (() => {
+        // Ambil data terakhir yang memiliki actual stock > 0
+        const lastItemWithStock = dataSource
+          .filter((dp) => getValue(dp, ["actualStockCustom"]) > 0)
+          .pop();
+        return lastItemWithStock
+          ? getValue(lastItemWithStock, ["actualStockCustom"])
+          : 0;
+      })(),
+      rencanaStock: (() => {
+        // Ambil data terakhir yang memiliki rencana stock > 0
+        const lastItemWithStock = dataSource
+          .filter((dp) => getValue(dp, ["rencanaStockCustom"]) > 0)
+          .pop();
+        return lastItemWithStock
+          ? getValue(lastItemWithStock, ["rencanaStockCustom"])
+          : 0;
+      })(),
+      // Data untuk child part dari rencana child part
+      rencanaInMaterial: childPartData.reduce(
+        (total, rcp) => total + getValue(rcp, ["rencanaInMaterial"]),
+        0,
+      ),
+      aktualInMaterial: childPartData.reduce(
+        (total, rcp) => total + getValue(rcp, ["aktualInMaterial"]),
+        0,
+      ),
+    };
+
+    console.log("Calculated stats with debug:", calculatedStats);
+    console.log("Stats calculation details:");
+    console.log(
+      "- totalProduction items:",
+      dataSource.map((dp) =>
+        getValue(dp, ["actualProduction", "hasilProduksi", "actualPcs"]),
+      ),
+    );
+    console.log(
+      "- deliveryActual items:",
+      dataSource.map((dp) => {
+        const deliveryValue =
+          getValue(dp, ["deliveryActual", "delivery", "deliveryPcs"]) || 0;
+        return deliveryValue;
+      }),
+    );
+    console.log(
+      "- delivery details:",
+      dataSource.map((dp) => ({
+        deliveryActual: dp.deliveryActual,
+        delivery: dp.delivery,
+        deliveryPcs: dp.deliveryPcs,
+      })),
+    );
+    console.log(
+      "- manpower items:",
+      dataSource.map((dp) => {
+        const manpowerCount =
+          dp.manpowerIds?.length ||
+          getValue(dp, ["manpower"]) ||
+          (dp.manpower ? 1 : 0) ||
+          0;
+        return manpowerCount;
+      }),
+    );
+    console.log(
+      "- manpower details:",
+      dataSource.map((dp) => ({
+        manpowerIds: dp.manpowerIds,
+        manpowerField: getValue(dp, ["manpower"]),
+        manpowerDirect: dp.manpower,
+      })),
+    );
+    console.log(
+      "- planningProduksiPcs items:",
+      dataSource.map((dp) =>
+        getValue(dp, ["planningProduction", "planningPcs", "pcs"]),
+      ),
+    );
+    console.log(
+      "- overtimePcs items:",
+      dataSource.map((dp) => getValue(dp, ["overtime", "overtimePcs"])),
+    );
+    console.log(
+      "- actualStock items:",
+      dataSource.map((dp) => getValue(dp, ["actualStockCustom"])),
+    );
+    console.log(
+      "- rencanaStock items:",
+      dataSource.map((dp) => getValue(dp, ["rencanaStockCustom"])),
+    );
+    console.log("Data source length:", dataSource.length);
+    console.log("Sample data source item:", dataSource[0]);
+
+    return calculatedStats;
+  }, [
+    dailyProductionData,
+    childPartData,
+    isLoadingDailyProduction,
+    filteredSchedules,
+  ]);
 
   return (
     <div className={`w-full min-h-screen ${uiColors.bg.primary}`}>
@@ -496,12 +985,22 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <StatsCards
-          stats={stats}
-          isChildPart={isSelectedPartChildPart}
-          showAllMetrics={!selectedPart} // Tampilkan semua metrik jika tidak ada part yang dipilih
-          isFinishGoodPart={isSelectedPartFinishGoodPart} // Ganti nama dari isNormalPart menjadi isFinishGoodPart
-        />
+        {isLoadingDailyProduction ? (
+          <div
+            className={`${uiColors.bg.secondary} border ${uiColors.border.primary} rounded-xl p-6 text-center`}
+          >
+            <p className={`text-lg ${uiColors.text.primary}`}>
+              Memuat data metrik...
+            </p>
+          </div>
+        ) : (
+          <StatsCards
+            stats={stats}
+            isChildPart={isSelectedPartChildPart}
+            showAllMetrics={!selectedPart} // Tampilkan semua metrik jika tidak ada part yang dipilih
+            isFinishGoodPart={isSelectedPartFinishGoodPart} // Ganti nama dari isNormalPart menjadi isFinishGoodPart
+          />
+        )}
 
         {savedSchedules.length > 0 ? (
           <div className="mt-12 sm:mt-20">

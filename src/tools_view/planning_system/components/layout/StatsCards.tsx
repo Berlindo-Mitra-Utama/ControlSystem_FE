@@ -16,6 +16,7 @@ interface StatsCardsProps {
     overtimePcs: number;
     overtimeJam: number;
     jamProduksiCycleTime: number;
+    jamProduksiAktual: number;
     hasilProduksiAktual: number;
     actualStock: number;
     rencanaStock: number;
@@ -37,10 +38,18 @@ const StatsCards: React.FC<StatsCardsProps> = ({
 }) => {
   const { uiColors } = useTheme();
 
+  // Debug: Log stats data
+  console.log("StatsCards received stats:", stats);
+  console.log("StatsCards props:", {
+    isChildPart,
+    isFinishGoodPart,
+    showAllMetrics,
+  });
+
   // Data untuk tabel dibagi menjadi 3 kolom untuk finish good part
   const leftColumnData = [
     { label: "MANPOWER", value: stats.disruptedItems },
-    { label: "DELIVERY PLAN (PCS)", value: stats.deliveryActual },
+    { label: "DELIVERY ACTUAL (PCS)", value: stats.deliveryActual },
     { label: "PLANNING PRODUKSI (PCS)", value: stats.planningProduksiPcs },
   ];
 
@@ -53,6 +62,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
 
   const rightColumnData = [
     { label: "HASIL PRODUKSI AKTUAL (PCS)", value: stats.hasilProduksiAktual },
+    { label: "JAM PRODUKSI AKTUAL", value: stats.jamProduksiAktual },
     { label: "ACTUAL STOCK (PCS)", value: stats.actualStock },
     { label: "RENCANA STOCK (PCS)", value: stats.rencanaStock },
   ];

@@ -242,6 +242,10 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const totalPlanningJam = formatJamProduksi(totals.planningPcs, outputPerHour);
   const totalOvertimeJam = formatJamProduksi(totals.overtimePcs, outputPerHour);
 
+  // Constants for calculations
+  const DEFAULT_MANPOWER_COUNT = 3;
+  const PCS_PER_MANPOWER = 14 / 3; // 4.666 pcs per manpower
+
   // After validGroupedRows is received as a prop, filter out Sundays for display
   const { month, year } = parseScheduleName(scheduleName || "Juli 2025");
   const filteredValidGroupedRows = validGroupedRows.filter(
@@ -906,9 +910,7 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     totalValue = formatNumber(totals.delivery);
                     break;
                   case "akumulasi-delivery":
-                    totalValue = formatNumber(
-                      calculateTotalAkumulasiDelivery(filteredValidGroupedRows),
-                    );
+                    totalValue = "-";
                     break;
                   case "planning-jam":
                     totalValue = totalPlanningJam;
@@ -923,26 +925,128 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     totalValue = formatNumber(totals.overtimePcs);
                     break;
                   case "jam-produksi":
-                    totalValue = "-";
+                    // Jam Produksi (Cycletime) - hitung dari pcs dan output per jam
+                    totalValue = formatNumber(
+                      filteredValidGroupedRows.reduce((total, group) => {
+                        const shift1 = group.rows.find((r) => r.shift === "1");
+                        const shift2 = group.rows.find((r) => r.shift === "2");
+
+                        // Hitung jam produksi berdasarkan pcs dan output per jam
+                        const shift1Pcs = shift1?.pcs || 0;
+                        const shift2Pcs = shift2?.pcs || 0;
+                        const shift1Manpower =
+                          shift1?.manpowerIds?.length || DEFAULT_MANPOWER_COUNT;
+                        const shift2Manpower =
+                          shift2?.manpowerIds?.length || DEFAULT_MANPOWER_COUNT;
+
+                        const shift1OutputPerHour =
+                          shift1Manpower * PCS_PER_MANPOWER;
+                        const shift2OutputPerHour =
+                          shift2Manpower * PCS_PER_MANPOWER;
+
+                        const shift1Jam =
+                          shift1OutputPerHour > 0
+                            ? shift1Pcs / shift1OutputPerHour
+                            : 0;
+                        const shift2Jam =
+                          shift2OutputPerHour > 0
+                            ? shift2Pcs / shift2OutputPerHour
+                            : 0;
+
+                        return total + shift1Jam + shift2Jam;
+                      }, 0),
+                    );
                     break;
                   case "hasil-produksi":
                     totalValue = formatNumber(totals.hasilProduksi);
                     break;
                   case "akumulasi-hasil":
-                    totalValue = formatNumber(
-                      calculateTotalAkumulasiHasilProduksi(
-                        filteredValidGroupedRows,
-                      ),
-                    );
+                    totalValue = "-";
                     break;
                   case "jam-aktual":
-                    totalValue = "-";
+                    // Jam Produksi Aktual - hitung dari pcs dan timePerPcs
+                    totalValue = formatNumber(
+                      filteredValidGroupedRows.reduce((total, group) => {
+                        const shift1 = group.rows.find((r) => r.shift === "1");
+                        const shift2 = group.rows.find((r) => r.shift === "2");
+
+                        const shift1Pcs = shift1?.pcs || 0;
+                        const shift2Pcs = shift2?.pcs || 0;
+                        const outputPerHour =
+                          timePerPcs > 0 ? 3600 / timePerPcs : 0;
+
+                        const shift1Jam =
+                          outputPerHour > 0 ? shift1Pcs / outputPerHour : 0;
+                        const shift2Jam =
+                          outputPerHour > 0 ? shift2Pcs / outputPerHour : 0;
+
+                        return total + shift1Jam + shift2Jam;
+                      }, 0),
+                    );
                     break;
                   case "actual-stock":
-                    totalValue = "-";
+                    // Ambil data terakhir di bulan tersebut (hari terakhir dengan data)
+                    const lastGroupWithActualStock = filteredValidGroupedRows
+                      .filter((group) => {
+                        const shift1 = group.rows.find((r) => r.shift === "1");
+                        const shift2 = group.rows.find((r) => r.shift === "2");
+                        return (
+                          (shift1?.actualStockCustom || 0) > 0 ||
+                          (shift2?.actualStockCustom || 0) > 0
+                        );
+                      })
+                      .pop();
+
+                    if (lastGroupWithActualStock) {
+                      // Ambil nilai dari shift 2 (shift terakhir) atau shift 1 jika shift 2 tidak ada
+                      const shift2 = lastGroupWithActualStock.rows.find(
+                        (r) => r.shift === "2",
+                      );
+                      const shift1 = lastGroupWithActualStock.rows.find(
+                        (r) => r.shift === "1",
+                      );
+
+                      // Prioritaskan shift 2, jika tidak ada gunakan shift 1
+                      const stockValue =
+                        shift2?.actualStockCustom ||
+                        shift1?.actualStockCustom ||
+                        0;
+                      totalValue = formatNumber(stockValue);
+                    } else {
+                      totalValue = "-";
+                    }
                     break;
                   case "rencana-stock":
-                    totalValue = "-";
+                    // Ambil data terakhir di bulan tersebut (hari terakhir dengan data)
+                    const lastGroupWithRencanaStock = filteredValidGroupedRows
+                      .filter((group) => {
+                        const shift1 = group.rows.find((r) => r.shift === "1");
+                        const shift2 = group.rows.find((r) => r.shift === "2");
+                        return (
+                          (shift1?.rencanaStockCustom || 0) > 0 ||
+                          (shift2?.rencanaStockCustom || 0) > 0
+                        );
+                      })
+                      .pop();
+
+                    if (lastGroupWithRencanaStock) {
+                      // Ambil nilai dari shift 2 (shift terakhir) atau shift 1 jika shift 2 tidak ada
+                      const shift2 = lastGroupWithRencanaStock.rows.find(
+                        (r) => r.shift === "2",
+                      );
+                      const shift1 = lastGroupWithRencanaStock.rows.find(
+                        (r) => r.shift === "1",
+                      );
+
+                      // Prioritaskan shift 2, jika tidak ada gunakan shift 1
+                      const stockValue =
+                        shift2?.rencanaStockCustom ||
+                        shift1?.rencanaStockCustom ||
+                        0;
+                      totalValue = formatNumber(stockValue);
+                    } else {
+                      totalValue = "-";
+                    }
                     break;
                 }
 
@@ -965,7 +1069,10 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 <div
                   key={group.day}
                   data-date={group.day}
-                  data-day-name={formatValidDate(group.day, scheduleName || "Februari 2025").dayName}
+                  data-day-name={
+                    formatValidDate(group.day, scheduleName || "Februari 2025")
+                      .dayName
+                  }
                   className={`flex-shrink-0 w-40 ${uiColors.border.secondary}`}
                 >
                   {/* Date Header */}
@@ -991,13 +1098,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       </div>
                       {/* Shift Headers */}
                       <div className="grid grid-cols-2 gap-1 mt-2">
-                        <div 
+                        <div
                           data-shift="1"
                           className="bg-blue-600 text-white text-xs py-1 rounded font-semibold"
                         >
                           SHIFT 1
                         </div>
-                        <div 
+                        <div
                           data-shift="2"
                           className="bg-purple-600 text-white text-xs py-1 rounded font-semibold"
                         >

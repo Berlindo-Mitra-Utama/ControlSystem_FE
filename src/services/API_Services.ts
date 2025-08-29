@@ -2,6 +2,7 @@ import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
 //const API_BASE_URL = "https://292mhrfs-5555.asse.devtunnels.ms/api";
+//const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
 const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
@@ -635,6 +636,26 @@ export const ProductionService = {
       throw new Error(
         error.response?.data?.message || "Gagal mengupdate schedule",
       );
+    }
+  },
+
+  /**
+   * Mendapatkan daily production berdasarkan planning ID
+   * @param {number} planningId - ID planning
+   * @returns {Promise<Array>} Array of daily production data
+   */
+  getDailyProductionByPlanningId: async (
+    planningId: number,
+  ): Promise<any[]> => {
+    try {
+      const response = await api.get(
+        `/daily-production/planning/${planningId}`,
+      );
+      return response.data.dailyProductions || response.data || [];
+    } catch (error) {
+      console.error("Error getDailyProductionByPlanningId:", error);
+      // Jika tidak ada data, return array kosong
+      return [];
     }
   },
 
@@ -1638,13 +1659,13 @@ export const RencanaChildPartService = {
       const response = await api.get(
         `/rencana-child-part/child-part/${childPartId}`,
       );
-      return response.data.data;
+      return response.data.data || response.data || [];
     } catch (error) {
       console.error(
         "Error fetching rencana child part by child part ID:",
         error,
       );
-      throw error;
+      return [];
     }
   },
 
@@ -1654,10 +1675,10 @@ export const RencanaChildPartService = {
       const response = await api.get(
         `/rencana-child-part/bulan-tahun/${bulan}/${tahun}`,
       );
-      return response.data.data;
+      return response.data.data || response.data || [];
     } catch (error) {
       console.error("Error fetching rencana child part by bulan tahun:", error);
-      throw error;
+      return [];
     }
   },
 };
