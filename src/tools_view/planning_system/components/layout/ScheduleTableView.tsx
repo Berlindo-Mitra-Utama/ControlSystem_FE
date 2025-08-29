@@ -965,7 +965,10 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 <div
                   key={group.day}
                   data-date={group.day}
-                  data-day-name={formatValidDate(group.day, scheduleName || "Februari 2025").dayName}
+                  data-day-name={
+                    formatValidDate(group.day, scheduleName || "Februari 2025")
+                      .dayName
+                  }
                   className={`flex-shrink-0 w-40 ${uiColors.border.secondary}`}
                 >
                   {/* Date Header */}
@@ -991,13 +994,13 @@ const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       </div>
                       {/* Shift Headers */}
                       <div className="grid grid-cols-2 gap-1 mt-2">
-                        <div 
+                        <div
                           data-shift="1"
                           className="bg-blue-600 text-white text-xs py-1 rounded font-semibold"
                         >
                           SHIFT 1
                         </div>
-                        <div 
+                        <div
                           data-shift="2"
                           className="bg-purple-600 text-white text-xs py-1 rounded font-semibold"
                         >
