@@ -77,7 +77,7 @@ const InputCell = memo(function InputCell({
       onChange={(e) =>
         onChange(e.target.value === "" ? null : Number(e.target.value))
       }
-      className={`${className} ${hasError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
+      className={`${className} ${hasError ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""}`}
     />
   );
 });
@@ -249,30 +249,30 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   // Get error count for a specific day
   const getDayErrorCount = (dayIdx: number): number => {
     let errorCount = 0;
-    
+
     // Check inMaterial errors
     if (showRencanaInMaterial) {
       if (hasValueError(inMaterial[dayIdx][0])) errorCount++;
       if (hasValueError(inMaterial[dayIdx][1])) errorCount++;
     }
-    
+
     // Check aktualInMaterial errors
     if (showAktualInMaterial) {
       if (hasValueError(aktualInMaterial[dayIdx][0])) errorCount++;
       if (hasValueError(aktualInMaterial[dayIdx][1])) errorCount++;
     }
-    
+
     // Check stock errors
     if (showRencanaStock) {
       if (hasStockError(rencanaStock[dayIdx * 2])) errorCount++;
       if (hasStockError(rencanaStock[dayIdx * 2 + 1])) errorCount++;
     }
-    
+
     if (showAktualStock) {
       if (hasStockError(aktualStock[dayIdx * 2])) errorCount++;
       if (hasStockError(aktualStock[dayIdx * 2 + 1])) errorCount++;
     }
-    
+
     return errorCount;
   };
 
@@ -284,7 +284,11 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
       customerName: string;
       day: number;
       shift: number;
-      type: 'rencanaInMaterial' | 'aktualInMaterial' | 'rencanaStock' | 'aktualStock';
+      type:
+        | "rencanaInMaterial"
+        | "aktualInMaterial"
+        | "rencanaStock"
+        | "aktualStock";
       value: number;
       fieldName: string;
     }> = [];
@@ -299,9 +303,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'rencanaInMaterial',
+            type: "rencanaInMaterial",
             value: inMaterial[dayIdx][0]!,
-            fieldName: 'Rencana In Material Shift 1'
+            fieldName: "Rencana In Material Shift 1",
           });
         }
         if (hasValueError(inMaterial[dayIdx][1])) {
@@ -311,9 +315,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'rencanaInMaterial',
+            type: "rencanaInMaterial",
             value: inMaterial[dayIdx][1]!,
-            fieldName: 'Rencana In Material Shift 2'
+            fieldName: "Rencana In Material Shift 2",
           });
         }
       }
@@ -327,9 +331,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'aktualInMaterial',
+            type: "aktualInMaterial",
             value: aktualInMaterial[dayIdx][0]!,
-            fieldName: 'Aktual In Material Shift 1'
+            fieldName: "Aktual In Material Shift 1",
           });
         }
         if (hasValueError(aktualInMaterial[dayIdx][1])) {
@@ -339,9 +343,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'aktualInMaterial',
+            type: "aktualInMaterial",
             value: aktualInMaterial[dayIdx][1]!,
-            fieldName: 'Aktual In Material Shift 2'
+            fieldName: "Aktual In Material Shift 2",
           });
         }
       }
@@ -355,9 +359,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'rencanaStock',
+            type: "rencanaStock",
             value: rencanaStock[dayIdx * 2],
-            fieldName: 'Rencana Stock Shift 1'
+            fieldName: "Rencana Stock Shift 1",
           });
         }
         if (hasStockError(rencanaStock[dayIdx * 2 + 1])) {
@@ -367,9 +371,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'rencanaStock',
+            type: "rencanaStock",
             value: rencanaStock[dayIdx * 2 + 1],
-            fieldName: 'Rencana Stock Shift 2'
+            fieldName: "Rencana Stock Shift 2",
           });
         }
       }
@@ -382,9 +386,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 1,
-            type: 'aktualStock',
+            type: "aktualStock",
             value: aktualStock[dayIdx * 2],
-            fieldName: 'Aktual Stock Shift 1'
+            fieldName: "Aktual Stock Shift 1",
           });
         }
         if (hasStockError(aktualStock[dayIdx * 2 + 1])) {
@@ -394,9 +398,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             customerName: props.customerName,
             day: dayIdx + 1,
             shift: 2,
-            type: 'aktualStock',
+            type: "aktualStock",
             value: aktualStock[dayIdx * 2 + 1],
-            fieldName: 'Aktual Stock Shift 2'
+            fieldName: "Aktual Stock Shift 2",
           });
         }
       }
@@ -409,13 +413,16 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
   const handleNavigateToDisruption = () => {
     const disruptions = getAllDisruptions();
     // Store disruptions in sessionStorage for the disruption page to access
-    sessionStorage.setItem('disruptions', JSON.stringify(disruptions));
-    sessionStorage.setItem('currentPartInfo', JSON.stringify({
-      partName: props.partName,
-      customerName: props.customerName,
-      days: props.days
-    }));
-    navigate('/dashboard/disruption');
+    sessionStorage.setItem("disruptions", JSON.stringify(disruptions));
+    sessionStorage.setItem(
+      "currentPartInfo",
+      JSON.stringify({
+        partName: props.partName,
+        customerName: props.customerName,
+        days: props.days,
+      }),
+    );
+    navigate("/dashboard/disruption");
   };
 
   // Handler input granular
@@ -555,117 +562,209 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
 
   // Check for navigation targets from disruption page
   useEffect(() => {
-    const navigateToField = sessionStorage.getItem('navigateToField');
-    console.log('🔍 ChildPartTable: navigateToField dari sessionStorage:', navigateToField);
+    const navigateToField = sessionStorage.getItem("navigateToField");
+    console.log(
+      "🔍 ChildPartTable: navigateToField dari sessionStorage:",
+      navigateToField,
+    );
     if (navigateToField) {
       try {
         const target = JSON.parse(navigateToField);
-        console.log('🔍 ChildPartTable: Target parsed:', target);
-        console.log('🔍 ChildPartTable: props.partName:', props.partName);
-        
+        console.log("🔍 ChildPartTable: Target parsed:", target);
+        console.log("🔍 ChildPartTable: props.partName:", props.partName);
+
         // Check if this is a navigation to specific field (either from disruption page or "back to planning")
-        console.log('🔍 ChildPartTable: Checking navigation conditions...');
-        console.log('🔍 ChildPartTable: target.partName === props.partName:', target.partName === props.partName);
-        console.log('🔍 ChildPartTable: target.navigateToSpecificField:', target.navigateToSpecificField);
-        console.log('🔍 ChildPartTable: target.day:', target.day);
-        console.log('🔍 ChildPartTable: target.shift:', target.shift);
-        console.log('🔍 ChildPartTable: target.type:', target.type);
-        
-        if (target.partName === props.partName && (target.navigateToSpecificField || target.day)) {
+        console.log("🔍 ChildPartTable: Checking navigation conditions...");
+        console.log(
+          "🔍 ChildPartTable: target.partName === props.partName:",
+          target.partName === props.partName,
+        );
+        console.log(
+          "🔍 ChildPartTable: target.navigateToSpecificField:",
+          target.navigateToSpecificField,
+        );
+        console.log("🔍 ChildPartTable: target.day:", target.day);
+        console.log("🔍 ChildPartTable: target.shift:", target.shift);
+        console.log("🔍 ChildPartTable: target.type:", target.type);
+
+        if (
+          target.partName === props.partName &&
+          (target.navigateToSpecificField || target.day)
+        ) {
           // Clear the navigation target
-          sessionStorage.removeItem('navigateToField');
-          
+          sessionStorage.removeItem("navigateToField");
+
           // Wait for DOM to be ready
           setTimeout(() => {
             // Find the specific field element based on type, day, and shift
             let fieldElement: HTMLElement | null = null;
-            
-            if (target.type === 'rencanaInMaterial' || target.type === 'aktualInMaterial') {
+
+            if (
+              target.type === "rencanaInMaterial" ||
+              target.type === "aktualInMaterial"
+            ) {
               // For input fields, find the specific input element
-              const dayElement = document.querySelector(`[data-day="${target.day}"]`);
-              console.log('🔍 ChildPartTable: Mencari day element dengan data-day="${target.day}":', dayElement);
+              const dayElement = document.querySelector(
+                `[data-day="${target.day}"]`,
+              );
+              console.log(
+                '🔍 ChildPartTable: Mencari day element dengan data-day="${target.day}":',
+                dayElement,
+              );
               if (dayElement) {
                 const shiftIndex = target.shift - 1; // Convert shift 1/2 to 0/1
-                const inputElements = dayElement.querySelectorAll('input[type="number"]');
-                console.log('🔍 ChildPartTable: Input elements found:', inputElements.length, 'for shift index:', shiftIndex);
+                const inputElements = dayElement.querySelectorAll(
+                  'input[type="number"]',
+                );
+                console.log(
+                  "🔍 ChildPartTable: Input elements found:",
+                  inputElements.length,
+                  "for shift index:",
+                  shiftIndex,
+                );
                 if (inputElements[shiftIndex]) {
                   fieldElement = inputElements[shiftIndex] as HTMLElement;
-                  console.log('✅ ChildPartTable: Input field element found for shift', target.shift);
+                  console.log(
+                    "✅ ChildPartTable: Input field element found for shift",
+                    target.shift,
+                  );
                 } else {
-                  console.log('⚠️ ChildPartTable: Input field element not found for shift index:', shiftIndex);
+                  console.log(
+                    "⚠️ ChildPartTable: Input field element not found for shift index:",
+                    shiftIndex,
+                  );
                 }
               } else {
-                console.log('⚠️ ChildPartTable: Day element not found for day:', target.day);
+                console.log(
+                  "⚠️ ChildPartTable: Day element not found for day:",
+                  target.day,
+                );
               }
-            } else if (target.type === 'rencanaStock' || target.type === 'aktualStock') {
+            } else if (
+              target.type === "rencanaStock" ||
+              target.type === "aktualStock"
+            ) {
               // For stock fields, find the specific stock display
-              const dayElement = document.querySelector(`[data-day="${target.day}"]`);
-              console.log('🔍 ChildPartTable: Mencari day element untuk stock dengan data-day="${target.day}":', dayElement);
+              const dayElement = document.querySelector(
+                `[data-day="${target.day}"]`,
+              );
+              console.log(
+                '🔍 ChildPartTable: Mencari day element untuk stock dengan data-day="${target.day}":',
+                dayElement,
+              );
               if (dayElement) {
                 const shiftIndex = target.shift - 1; // Convert shift 1/2 to 0/1
-                const stockElements = dayElement.querySelectorAll('[data-stock-type]');
-                console.log('🔍 ChildPartTable: Stock elements found:', stockElements.length);
-                const targetElement = Array.from(stockElements).find(el => 
-                  el.getAttribute('data-stock-type') === target.type &&
-                  el.getAttribute('data-shift') === target.shift.toString()
+                const stockElements =
+                  dayElement.querySelectorAll("[data-stock-type]");
+                console.log(
+                  "🔍 ChildPartTable: Stock elements found:",
+                  stockElements.length,
+                );
+                const targetElement = Array.from(stockElements).find(
+                  (el) =>
+                    el.getAttribute("data-stock-type") === target.type &&
+                    el.getAttribute("data-shift") === target.shift.toString(),
                 );
                 if (targetElement) {
                   fieldElement = targetElement as HTMLElement;
-                  console.log('✅ ChildPartTable: Stock field element found for type:', target.type, 'shift:', target.shift);
+                  console.log(
+                    "✅ ChildPartTable: Stock field element found for type:",
+                    target.type,
+                    "shift:",
+                    target.shift,
+                  );
                 } else {
-                  console.log('⚠️ ChildPartTable: Stock field element not found for type:', target.type, 'shift:', target.shift);
-                  console.log('🔍 Available stock elements:', Array.from(stockElements).map(el => ({
-                    type: el.getAttribute('data-stock-type'),
-                    shift: el.getAttribute('data-shift')
-                  })));
+                  console.log(
+                    "⚠️ ChildPartTable: Stock field element not found for type:",
+                    target.type,
+                    "shift:",
+                    target.shift,
+                  );
+                  console.log(
+                    "🔍 Available stock elements:",
+                    Array.from(stockElements).map((el) => ({
+                      type: el.getAttribute("data-stock-type"),
+                      shift: el.getAttribute("data-shift"),
+                    })),
+                  );
                 }
               } else {
-                console.log('⚠️ ChildPartTable: Day element not found for day:', target.day);
+                console.log(
+                  "⚠️ ChildPartTable: Day element not found for day:",
+                  target.day,
+                );
               }
             }
-            
+
             if (fieldElement) {
-              console.log('🎯 ChildPartTable: Field element ditemukan:', fieldElement);
-              console.log('🎯 ChildPartTable: Field type:', fieldElement.tagName);
-              console.log('🎯 ChildPartTable: Field classes:', fieldElement.className);
-              
+              console.log(
+                "🎯 ChildPartTable: Field element ditemukan:",
+                fieldElement,
+              );
+              console.log(
+                "🎯 ChildPartTable: Field type:",
+                fieldElement.tagName,
+              );
+              console.log(
+                "🎯 ChildPartTable: Field classes:",
+                fieldElement.className,
+              );
+
               // Enhanced horizontal scrolling for ChildPartTable with visual scroll bar animation
-              const scrollableContainer = fieldElement.closest('.overflow-x-auto') || 
-                                       fieldElement.closest('[class*="overflow-x"]') ||
-                                       document.querySelector('.overflow-x-auto');
-               
-               if (scrollableContainer) {
-                console.log('🔍 ChildPartTable enhanced scrollable container found:', scrollableContainer);
-                console.log('🔍 ChildPartTable container classes:', scrollableContainer.className);
-                console.log('🔍 ChildPartTable container scroll info:', {
+              const scrollableContainer =
+                fieldElement.closest(".overflow-x-auto") ||
+                fieldElement.closest('[class*="overflow-x"]') ||
+                document.querySelector(".overflow-x-auto");
+
+              if (scrollableContainer) {
+                console.log(
+                  "🔍 ChildPartTable enhanced scrollable container found:",
+                  scrollableContainer,
+                );
+                console.log(
+                  "🔍 ChildPartTable container classes:",
+                  scrollableContainer.className,
+                );
+                console.log("🔍 ChildPartTable container scroll info:", {
                   scrollWidth: scrollableContainer.scrollWidth,
                   clientWidth: scrollableContainer.clientWidth,
                   scrollLeft: scrollableContainer.scrollLeft,
-                  maxScrollLeft: scrollableContainer.scrollWidth - scrollableContainer.clientWidth
+                  maxScrollLeft:
+                    scrollableContainer.scrollWidth -
+                    scrollableContainer.clientWidth,
                 });
-                console.log('🔍 Container scroll info:', {
+                console.log("🔍 Container scroll info:", {
                   scrollWidth: scrollableContainer.scrollWidth,
                   clientWidth: scrollableContainer.clientWidth,
                   scrollLeft: scrollableContainer.scrollLeft,
-                  maxScrollLeft: scrollableContainer.scrollWidth - scrollableContainer.clientWidth
+                  maxScrollLeft:
+                    scrollableContainer.scrollWidth -
+                    scrollableContainer.clientWidth,
                 });
-                
+
                 // Calculate scroll position to center the field
-                const containerRect = scrollableContainer.getBoundingClientRect();
+                const containerRect =
+                  scrollableContainer.getBoundingClientRect();
                 const fieldRect = fieldElement.getBoundingClientRect();
                 const currentScrollLeft = scrollableContainer.scrollLeft;
-                
+
                 // Calculate target scroll position to center the field
-                const fieldCenter = fieldRect.left + (fieldRect.width / 2);
-                const containerCenter = containerRect.left + (containerRect.width / 2);
+                const fieldCenter = fieldRect.left + fieldRect.width / 2;
+                const containerCenter =
+                  containerRect.left + containerRect.width / 2;
                 const scrollOffset = fieldCenter - containerCenter;
                 const targetScrollLeft = currentScrollLeft + scrollOffset;
-                
+
                 // Ensure we don't scroll beyond bounds
-                const maxScrollLeft = scrollableContainer.scrollWidth - scrollableContainer.clientWidth;
-                const finalTargetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
-                
-                console.log('🔍 ChildPartTable enhanced scroll calculation:', {
+                const maxScrollLeft =
+                  scrollableContainer.scrollWidth -
+                  scrollableContainer.clientWidth;
+                const finalTargetScrollLeft = Math.max(
+                  0,
+                  Math.min(targetScrollLeft, maxScrollLeft),
+                );
+
+                console.log("🔍 ChildPartTable enhanced scroll calculation:", {
                   containerWidth: containerRect.width,
                   fieldWidth: fieldRect.width,
                   fieldLeft: fieldRect.left,
@@ -674,18 +773,19 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   targetScrollLeft,
                   finalTargetScrollLeft,
                   scrollOffset,
-                  maxScrollLeft
+                  maxScrollLeft,
                 });
-                
+
                 // Enhanced smooth scroll with step-by-step animation for ChildPartTable
                 const startScrollLeft = currentScrollLeft;
                 const distance = finalTargetScrollLeft - startScrollLeft;
                 const duration = 1000; // 1 second for ChildPartTable
                 const startTime = performance.now();
-                
+
                 // Add visual indicator for ChildPartTable scroll progress
-                const scrollProgressIndicator = document.createElement('div');
-                scrollProgressIndicator.className = 'fixed top-20 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
+                const scrollProgressIndicator = document.createElement("div");
+                scrollProgressIndicator.className =
+                  "fixed top-20 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg";
                 scrollProgressIndicator.innerHTML = `
                   <div class="flex items-center gap-2">
                     <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -696,123 +796,158 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                   </div>
                 `;
                 document.body.appendChild(scrollProgressIndicator);
-                
-                const progressBar = scrollProgressIndicator.querySelector('.bg-white.h-2') as HTMLElement;
-                
+
+                const progressBar = scrollProgressIndicator.querySelector(
+                  ".bg-white.h-2",
+                ) as HTMLElement;
+
                 // Animate scroll step by step for ChildPartTable
                 const animateScroll = (currentTime: number) => {
                   const elapsed = currentTime - startTime;
                   const progress = Math.min(elapsed / duration, 1);
-                  
+
                   // Easing function for smooth animation
                   const easeInOutCubic = (t: number) => {
-                    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                    return t < 0.5
+                      ? 4 * t * t * t
+                      : 1 - Math.pow(-2 * t + 2, 3) / 2;
                   };
-                  
+
                   const easedProgress = easeInOutCubic(progress);
-                  const currentScrollLeft = startScrollLeft + (distance * easedProgress);
-                  
+                  const currentScrollLeft =
+                    startScrollLeft + distance * easedProgress;
+
                   // Update scroll position directly
                   scrollableContainer.scrollLeft = currentScrollLeft;
-                  
+
                   // Update progress bar
                   if (progressBar) {
                     progressBar.style.width = `${progress * 100}%`;
                   }
-                  
+
                   // Continue animation or complete
                   if (progress < 1) {
                     requestAnimationFrame(animateScroll);
                   } else {
                     // Animation complete
-                    console.log('✅ ChildPartTable enhanced smooth scroll selesai');
-                    console.log('🔍 Final scroll position:', scrollableContainer.scrollLeft);
-                    
+                    console.log(
+                      "✅ ChildPartTable enhanced smooth scroll selesai",
+                    );
+                    console.log(
+                      "🔍 Final scroll position:",
+                      scrollableContainer.scrollLeft,
+                    );
+
                     // Remove progress indicator
                     setTimeout(() => {
                       if (scrollProgressIndicator.parentNode) {
-                        scrollProgressIndicator.parentNode.removeChild(scrollProgressIndicator);
+                        scrollProgressIndicator.parentNode.removeChild(
+                          scrollProgressIndicator,
+                        );
                       }
                     }, 1000);
-                    
+
                     // Add scroll bar highlight effect for ChildPartTable
-                    if (scrollableContainer.classList.contains('custom-scrollbar')) {
-                      scrollableContainer.classList.add('scroll-animation-active');
-                      
+                    if (
+                      scrollableContainer.classList.contains("custom-scrollbar")
+                    ) {
+                      scrollableContainer.classList.add(
+                        "scroll-animation-active",
+                      );
+
                       // Remove animation class after scroll completes
                       setTimeout(() => {
-                        scrollableContainer.classList.remove('scroll-animation-active');
+                        scrollableContainer.classList.remove(
+                          "scroll-animation-active",
+                        );
                       }, 3000);
                     }
                   }
                 };
-                
+
                 // Start animation
                 requestAnimationFrame(animateScroll);
-                
               } else {
-                console.log('⚠️ ChildPartTable scrollable container tidak ditemukan, menggunakan scrollIntoView');
-                console.log('🔍 Debug: Semua elemen dengan overflow-x-auto:', document.querySelectorAll('.overflow-x-auto'));
-                console.log('🔍 Debug: Semua elemen dengan class yang mengandung overflow-x:', document.querySelectorAll('[class*="overflow-x"]'));
-                
+                console.log(
+                  "⚠️ ChildPartTable scrollable container tidak ditemukan, menggunakan scrollIntoView",
+                );
+                console.log(
+                  "🔍 Debug: Semua elemen dengan overflow-x-auto:",
+                  document.querySelectorAll(".overflow-x-auto"),
+                );
+                console.log(
+                  "🔍 Debug: Semua elemen dengan class yang mengandung overflow-x:",
+                  document.querySelectorAll('[class*="overflow-x"]'),
+                );
+
                 // Fallback to scrollIntoView
-                fieldElement.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'center',
-                  inline: 'center'
+                fieldElement.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                  inline: "center",
                 });
               }
-              
+
               // Add simple red border highlight - clean and simple
               fieldElement.classList.add(
-                'border-2',
-                'border-red-500',
-                'border-solid'
+                "border-2",
+                "border-red-500",
+                "border-solid",
               );
-              
+
               // If it's an input field, focus on it
-              if (fieldElement.tagName === 'INPUT') {
+              if (fieldElement.tagName === "INPUT") {
                 (fieldElement as HTMLInputElement).focus();
                 (fieldElement as HTMLInputElement).select();
               }
-              
+
               // Remove highlight after 8 seconds (longer visibility)
               setTimeout(() => {
                 fieldElement.classList.remove(
-                  'border-2',
-                  'border-red-500',
-                  'border-solid'
+                  "border-2",
+                  "border-red-500",
+                  "border-solid",
                 );
               }, 8000);
-              
+
               // Add a simple background highlight to the entire day column
-              const dayElement = document.querySelector(`[data-day="${target.day}"]`);
+              const dayElement = document.querySelector(
+                `[data-day="${target.day}"]`,
+              );
               if (dayElement) {
-                dayElement.classList.add(
-                  'bg-red-50',
-                  'dark:bg-red-900/20'
-                );
+                dayElement.classList.add("bg-red-50", "dark:bg-red-900/20");
                 setTimeout(() => {
                   dayElement.classList.remove(
-                    'bg-red-50',
-                    'dark:bg-red-900/20'
+                    "bg-red-50",
+                    "dark:bg-red-900/20",
                   );
                 }, 6000);
               }
-              
+
               // Show success message
-              console.log(`✅ Berhasil navigasi ke field "${target.fieldName}" pada ${target.day} Shift ${target.shift}`);
+              console.log(
+                `✅ Berhasil navigasi ke field "${target.fieldName}" pada ${target.day} Shift ${target.shift}`,
+              );
             } else {
-              console.log('⚠️ ChildPartTable: Field element tidak ditemukan');
-              console.log('🔍 Debug: Semua elemen dengan data-day:', document.querySelectorAll('[data-day]'));
-              console.log('🔍 Debug: Semua elemen dengan data-stock-type:', document.querySelectorAll('[data-stock-type]'));
-              console.log('🔍 Debug: Semua elemen dengan data-shift:', document.querySelectorAll('[data-shift]'));
+              console.log("⚠️ ChildPartTable: Field element tidak ditemukan");
+              console.log(
+                "🔍 Debug: Semua elemen dengan data-day:",
+                document.querySelectorAll("[data-day]"),
+              );
+              console.log(
+                "🔍 Debug: Semua elemen dengan data-stock-type:",
+                document.querySelectorAll("[data-stock-type]"),
+              );
+              console.log(
+                "🔍 Debug: Semua elemen dengan data-shift:",
+                document.querySelectorAll("[data-shift]"),
+              );
             }
           }, 100);
         }
       } catch (error) {
-        console.error('Error parsing navigation target:', error);
-        sessionStorage.removeItem('navigateToField');
+        console.error("Error parsing navigation target:", error);
+        sessionStorage.removeItem("navigateToField");
       }
     }
   }, [props.partName]);
@@ -937,7 +1072,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               <AlertTriangle className="w-4 h-4" />
               <span className="text-sm font-medium">Disruption</span>
               {/* Error Badge */}
-              {Array.from({ length: props.days }, (_, dayIdx) => getDayErrorCount(dayIdx)).some(count => count > 0) && (
+              {Array.from({ length: props.days }, (_, dayIdx) =>
+                getDayErrorCount(dayIdx),
+              ).some((count) => count > 0) && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                   !
                 </span>
@@ -1059,12 +1196,24 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
               )}
               {showRencanaStock && (
                 <div className="h-16 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 border-b border-gray-300 dark:border-gray-600 text-yellow-700 dark:text-yellow-200 font-mono text-sm font-bold">
-                  -
+                  {(() => {
+                    // Ambil nilai terakhir dari rencanaStock (bisa positif atau negatif)
+                    if (rencanaStock.length > 0) {
+                      return rencanaStock[rencanaStock.length - 1].toFixed(0);
+                    }
+                    return "0";
+                  })()}
                 </div>
               )}
               {showAktualStock && (
                 <div className="h-16 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 border-b border-gray-300 dark:border-gray-600 text-yellow-700 dark:text-yellow-200 font-mono text-sm font-bold">
-                  -
+                  {(() => {
+                    // Ambil nilai terakhir dari aktualStock (bisa positif atau negatif)
+                    if (aktualStock.length > 0) {
+                      return aktualStock[aktualStock.length - 1].toFixed(0);
+                    }
+                    return "0";
+                  })()}
                 </div>
               )}
             </div>
@@ -1137,7 +1286,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleAktualInMaterialChange(dayIdx, 0, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            hasError={hasValueError(aktualInMaterial[dayIdx][0])}
+                            hasError={hasValueError(
+                              aktualInMaterial[dayIdx][0],
+                            )}
                           />
                         </div>
                         <div className="text-center flex items-center justify-center text-blue-700 dark:text-blue-200 font-mono text-sm font-semibold">
@@ -1147,7 +1298,9 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                               handleAktualInMaterialChange(dayIdx, 1, v)
                             }
                             className="w-16 px-2 py-1 rounded bg-blue-200 dark:bg-blue-800/50 border border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200 text-center focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            hasError={hasValueError(aktualInMaterial[dayIdx][1])}
+                            hasError={hasValueError(
+                              aktualInMaterial[dayIdx][1],
+                            )}
                           />
                         </div>
                       </div>
@@ -1155,18 +1308,26 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {/* Rencana Stock - Baris 3 */}
                     {showRencanaStock && (
                       <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(rencanaStock[dayIdx * 2]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="rencanaStock" data-shift="1">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(rencanaStock[dayIdx * 2])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="rencanaStock"
+                          data-shift="1"
+                        >
                           {rencanaStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(rencanaStock[dayIdx * 2 + 1]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="rencanaStock" data-shift="2">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(rencanaStock[dayIdx * 2 + 1])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="rencanaStock"
+                          data-shift="2"
+                        >
                           {rencanaStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
@@ -1174,18 +1335,26 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
                     {/* Aktual Stock - Baris 4 */}
                     {showAktualStock && (
                       <div className="h-16 grid grid-cols-2 gap-1 border-b border-gray-300 dark:border-gray-600 bg-yellow-100 dark:bg-yellow-900/30">
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(aktualStock[dayIdx * 2]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="aktualStock" data-shift="1">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(aktualStock[dayIdx * 2])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="aktualStock"
+                          data-shift="1"
+                        >
                           {aktualStock[dayIdx * 2]?.toFixed(0) || "0"}
                         </div>
-                        <div className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
-                          hasStockError(aktualStock[dayIdx * 2 + 1]) 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-yellow-800 dark:text-yellow-200'
-                        }`} data-stock-type="aktualStock" data-shift="2">
+                        <div
+                          className={`text-center flex items-center justify-center font-mono text-sm font-semibold ${
+                            hasStockError(aktualStock[dayIdx * 2 + 1])
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-yellow-800 dark:text-yellow-200"
+                          }`}
+                          data-stock-type="aktualStock"
+                          data-shift="2"
+                        >
                           {aktualStock[dayIdx * 2 + 1]?.toFixed(0) || "0"}
                         </div>
                       </div>
@@ -1196,8 +1365,6 @@ const ChildPartTable: React.FC<ChildPartTableProps> = (props) => {
             </div>
           </div>
         </div>
-
-
       </div>
 
       {/* Modal konfirmasi hapus part dihapus, gunakan modal global dari parent */}
