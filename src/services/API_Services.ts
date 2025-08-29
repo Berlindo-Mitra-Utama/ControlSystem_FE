@@ -1,9 +1,9 @@
 import axios from "axios";
 
 // Base URL untuk API - Sesuaikan dengan port backend yang benar
-//const API_BASE_URL = "https://292mhrfs-5555.asse.devtunnels.ms/api";
+const API_BASE_URL = "https://292mhrfs-5555.asse.devtunnels.ms/api";
 //const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
-const API_BASE_URL = "http://localhost:5555/api";
+//const API_BASE_URL = "http://localhost:5555/api";
 
 // Konfigurasi axios default
 const api = axios.create({

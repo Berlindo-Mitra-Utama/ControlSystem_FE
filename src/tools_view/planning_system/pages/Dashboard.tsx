@@ -85,6 +85,7 @@ const Dashboard: React.FC = () => {
   const [selectedChildPartDetail, setSelectedChildPartDetail] = useState<
     any | null
   >(null);
+  const [allChildPartsDetail, setAllChildPartsDetail] = useState<any[]>([]);
 
   // Debug: Log savedSchedules
   console.log("Dashboard - savedSchedules:", savedSchedules);
@@ -159,6 +160,10 @@ const Dashboard: React.FC = () => {
           await PlanningSystemService.getAllProductPlanning();
         const productPlannings = productPlanningResponse.productPlannings;
 
+        // Ambil semua child parts (untuk agregasi dan mapping productPlanningId)
+        const allChildParts = await ChildPartService.getAllChildParts();
+        setAllChildPartsDetail(allChildParts || []);
+
         // Filter planning berdasarkan part jika dipilih
         let filteredPlannings = productPlannings;
         if (selectedPart) {
@@ -228,9 +233,7 @@ const Dashboard: React.FC = () => {
         // Ambil data child part jika part yang dipilih adalah child part
         if (selectedPart && childPartOptions.includes(selectedPart)) {
           try {
-            const childPartsResponse =
-              await ChildPartService.getAllChildParts();
-            const selectedChildPart = childPartsResponse.find(
+            const selectedChildPart = (allChildParts || []).find(
               (cp) => cp.partName === selectedPart,
             );
 
@@ -269,7 +272,31 @@ const Dashboard: React.FC = () => {
             setChildPartData([]);
           }
         } else {
-          setChildPartData([]);
+          // Agregasi semua child part untuk bulan/tahun & shift terpilih (atau bulan berjalan jika tidak dipilih)
+          try {
+            const monthForAgg =
+              selectedMonth !== null ? selectedMonth : new Date().getMonth();
+            const yearForAgg = selectedYear;
+
+            const allRencana =
+              await RencanaChildPartService.getRencanaChildPartByBulanTahun(
+                monthForAgg + 1,
+                yearForAgg,
+              );
+
+            // Filter shift jika dipilih
+            let filteredAgg = allRencana || [];
+            if (selectedShift !== "all") {
+              filteredAgg = filteredAgg.filter(
+                (rcp: any) => rcp.shift === parseInt(selectedShift),
+              );
+            }
+            setChildPartData(filteredAgg);
+            setSelectedChildPartDetail(null);
+          } catch (e) {
+            console.error("Error aggregating child part data:", e);
+            setChildPartData([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching daily production data:", error);
@@ -963,8 +990,11 @@ const Dashboard: React.FC = () => {
       ),
     } as any;
 
-    // Jika child part dipilih dan stok berhasil dihitung, gunakan nilai khusus child part
-    if (isSelectedPartChildPart) {
+    // Jika child part dipilih ATAU mode semua part (agregasi), gunakan nilai stok child part hasil hitung
+    if (
+      isSelectedPartChildPart ||
+      (!selectedPart && childPartData.length > 0)
+    ) {
       calculatedStats.rencanaStock = childRencana;
       calculatedStats.actualStock = childAktual;
     }
