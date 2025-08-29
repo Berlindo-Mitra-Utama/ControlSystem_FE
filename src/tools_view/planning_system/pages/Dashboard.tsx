@@ -82,6 +82,9 @@ const Dashboard: React.FC = () => {
   const [childPartData, setChildPartData] = useState<any[]>([]);
   const [isLoadingDailyProduction, setIsLoadingDailyProduction] =
     useState<boolean>(false);
+  const [selectedChildPartDetail, setSelectedChildPartDetail] = useState<
+    any | null
+  >(null);
 
   // Debug: Log savedSchedules
   console.log("Dashboard - savedSchedules:", savedSchedules);
@@ -232,6 +235,7 @@ const Dashboard: React.FC = () => {
             );
 
             if (selectedChildPart) {
+              setSelectedChildPartDetail(selectedChildPart);
               // Ambil rencana child part untuk part ini
               const rencanaChildParts =
                 await RencanaChildPartService.getRencanaChildPartByChildPartId(
@@ -585,6 +589,174 @@ const Dashboard: React.FC = () => {
       );
     }
 
+    // Hitung stok child part (rencana & aktual) jika part yang dipilih adalah child part
+    const computeChildPartStocks = () => {
+      try {
+        if (!isSelectedPartChildPart || !selectedChildPartDetail) {
+          return { childRencana: 0, childAktual: 0 };
+        }
+
+        // Ambil schedule dari savedSchedules berdasarkan productPlanningId
+        const scheduleForPlanning = savedSchedules.find(
+          (s) =>
+            s.backendId &&
+            s.backendId === selectedChildPartDetail.productPlanningId,
+        )?.schedule;
+
+        if (
+          !Array.isArray(scheduleForPlanning) ||
+          scheduleForPlanning.length === 0
+        ) {
+          return { childRencana: 0, childAktual: 0 };
+        }
+
+        // Tentukan jumlah hari dari schedule
+        const daysCount =
+          Math.max(
+            ...scheduleForPlanning.map((it: any) =>
+              typeof it.day === "number" ? it.day : 0,
+            ),
+          ) || 30;
+
+        // Siapkan array in material dari data childPartData
+        const inR: number[][] = Array.from({ length: daysCount }, () => [0, 0]);
+        const inA: number[][] = Array.from({ length: daysCount }, () => [0, 0]);
+
+        const getVal = (obj: any, keys: string[]): number => {
+          for (const k of keys) {
+            if (obj && obj[k] !== undefined && obj[k] !== null) {
+              const num = Number(obj[k]);
+              return Number.isFinite(num) ? num : 0;
+            }
+          }
+          return 0;
+        };
+
+        childPartData.forEach((rcp: any) => {
+          const d = (rcp.hari || rcp.day || 1) - 1;
+          const s = ((rcp.shift || 1) as number) - 1;
+          if (d >= 0 && d < daysCount && (s === 0 || s === 1)) {
+            inR[d][s] = getVal(rcp, [
+              "rencanaInMaterial",
+              "rencana_inmaterial",
+            ]);
+            inA[d][s] = getVal(rcp, ["aktualInMaterial", "aktual_inmaterial"]);
+          }
+        });
+
+        const safeInitial = Number(selectedChildPartDetail.stockAvailable) || 0;
+
+        // Helper schedule lookup
+        const findScheduleItem = (dayIdx: number, shiftIdx: number) => {
+          const shiftStr = shiftIdx === 0 ? "1" : "2";
+          return scheduleForPlanning.find(
+            (s: any) => s.day === dayIdx + 1 && String(s.shift) === shiftStr,
+          );
+        };
+
+        // Rencana stock
+        const rencanaStock: number[] = [];
+        for (let d = 0; d < daysCount; d++) {
+          for (let s = 0; s < 2; s++) {
+            const idx = d * 2 + s;
+            const item = findScheduleItem(d, s);
+            const planningPcs = getVal(item || {}, [
+              "planningPcs",
+              "planningProduction",
+              "pcs",
+            ]);
+            const overtimePcs = getVal(item || {}, ["overtimePcs", "overtime"]);
+
+            if (
+              getVal(item || {}, [
+                "hasilProduksi",
+                "actualPcs",
+                "actualProduction",
+              ]) === 0
+            ) {
+              if (idx === 0) {
+                rencanaStock[idx] =
+                  safeInitial + (inR[d][s] || 0) - (planningPcs + overtimePcs);
+              } else {
+                rencanaStock[idx] =
+                  rencanaStock[idx - 1] +
+                  (inR[d][s] || 0) -
+                  (planningPcs + overtimePcs);
+              }
+            } else {
+              if (idx === 0) {
+                rencanaStock[idx] =
+                  safeInitial +
+                  (inR[d][s] || 0) -
+                  getVal(item || {}, [
+                    "hasilProduksi",
+                    "actualPcs",
+                    "actualProduction",
+                  ]);
+              } else {
+                rencanaStock[idx] =
+                  rencanaStock[idx - 1] +
+                  (inR[d][s] || 0) -
+                  getVal(item || {}, [
+                    "hasilProduksi",
+                    "actualPcs",
+                    "actualProduction",
+                  ]);
+              }
+            }
+          }
+        }
+
+        // Aktual stock
+        const aktualStock: number[] = [];
+        for (let d = 0; d < daysCount; d++) {
+          for (let s = 0; s < 2; s++) {
+            const idx = d * 2 + s;
+            const item = findScheduleItem(d, s);
+            const aktualIn = inA[d][s] || 0;
+            const hasil = getVal(item || {}, [
+              "hasilProduksi",
+              "actualPcs",
+              "actualProduction",
+            ]);
+            const planningPcs = getVal(item || {}, [
+              "planningPcs",
+              "planningProduction",
+              "pcs",
+            ]);
+            const overtimePcs = getVal(item || {}, ["overtimePcs", "overtime"]);
+
+            if (hasil === 0) {
+              if (idx === 0) {
+                aktualStock[idx] =
+                  safeInitial + aktualIn - (planningPcs + overtimePcs);
+              } else {
+                aktualStock[idx] =
+                  aktualStock[idx - 1] + aktualIn - (planningPcs + overtimePcs);
+              }
+            } else {
+              if (idx === 0) {
+                aktualStock[idx] = safeInitial + aktualIn - hasil;
+              } else {
+                aktualStock[idx] = aktualStock[idx - 1] + aktualIn - hasil;
+              }
+            }
+          }
+        }
+
+        const childRencana =
+          rencanaStock.length > 0 ? rencanaStock[rencanaStock.length - 1] : 0;
+        const childAktual =
+          aktualStock.length > 0 ? aktualStock[aktualStock.length - 1] : 0;
+        return { childRencana, childAktual };
+      } catch (err) {
+        console.error("Error computing child part stocks:", err);
+        return { childRencana: 0, childAktual: 0 };
+      }
+    };
+
+    const { childRencana, childAktual } = computeChildPartStocks();
+
     const calculatedStats = {
       totalProduction: dataSource.reduce(
         (total, dp) =>
@@ -778,15 +950,24 @@ const Dashboard: React.FC = () => {
           : 0;
       })(),
       // Data untuk child part dari rencana child part
+      // Total child part menggunakan kedua kemungkinan nama field (frontend casing & backend snake_case)
       rencanaInMaterial: childPartData.reduce(
-        (total, rcp) => total + getValue(rcp, ["rencanaInMaterial"]),
+        (total, rcp) =>
+          total + getValue(rcp, ["rencanaInMaterial", "rencana_inmaterial"]),
         0,
       ),
       aktualInMaterial: childPartData.reduce(
-        (total, rcp) => total + getValue(rcp, ["aktualInMaterial"]),
+        (total, rcp) =>
+          total + getValue(rcp, ["aktualInMaterial", "aktual_inmaterial"]),
         0,
       ),
-    };
+    } as any;
+
+    // Jika child part dipilih dan stok berhasil dihitung, gunakan nilai khusus child part
+    if (isSelectedPartChildPart) {
+      calculatedStats.rencanaStock = childRencana;
+      calculatedStats.actualStock = childAktual;
+    }
 
     console.log("Calculated stats with debug:", calculatedStats);
     console.log("Stats calculation details:");
