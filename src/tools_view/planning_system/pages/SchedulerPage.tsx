@@ -700,7 +700,7 @@ const SchedulerPage: React.FC = () => {
     if (
       schedule.productInfo?.partImageUrl &&
       !schedule.productInfo.partImageUrl.includes(
-        "PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWw9IkFyaWFsLCBzYW5zLWVyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2YjcyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZTwvdGV4dD48L3N2Zz4=",
+        "PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1lcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmI3MjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2U8L3RleHQ+PC9zdmc+",
       )
     ) {
       // Ini gambar baru, optimize jika perlu
@@ -711,7 +711,6 @@ const SchedulerPage: React.FC = () => {
 
     return schedule;
   };
-
   // Enhanced smooth scroll function with direct scroll bar manipulation
   const smoothScrollToDate = (targetDate: number, dayName: string) => {
     return new Promise<void>((resolve) => {
@@ -1171,10 +1170,6 @@ const SchedulerPage: React.FC = () => {
     };
   }, [showFilterDropdown]);
 
-  
-
-
-
   // Generate schedule name from selected month/year
   const getCurrentScheduleName = () => {
     return getScheduleName(selectedMonth, selectedYear);
@@ -1383,42 +1378,46 @@ const SchedulerPage: React.FC = () => {
     loadDataFromBackend();
   }, []);
 
-         // Handle navigation from DisruptionPage to saved schedule view
-       useEffect(() => {
-         const navigateToSavedSchedule = sessionStorage.getItem('navigateToSavedSchedule');
-         if (!navigateToSavedSchedule) return;
-       
-         try {
-           const target = JSON.parse(navigateToSavedSchedule);
-           
-           // Validate required fields
-           if (!target.partName || !target.customerName) {
-             console.error("Missing required navigation data");
-             sessionStorage.removeItem('navigateToSavedSchedule');
-             return;
-           }
-       
-           console.log("🚀 Starting navigation to saved schedule view:", target);
-           
-           // Clear navigation data immediately
-           sessionStorage.removeItem('navigateToSavedSchedule');
-       
-           // Set selected part and customer to show the list of schedules for this part/customer
-           setSelectedPart(target.partName);
-           setSelectedCustomer(target.customerName);
-       
-           showNotification({
-             type: "success",
-             title: "Navigasi Berhasil",
-             message: `Berhasil membuka daftar jadwal untuk ${target.partName} - ${target.customerName}`
-           });
-       
-           console.log("✅ Navigation to saved schedule list completed successfully");
-         } catch (error) {
-           console.error("Error during navigation to saved schedule:", error);
-           sessionStorage.removeItem('navigateToSavedSchedule');
-         }
-       }, [savedSchedules]);
+  // Handle navigation from DisruptionPage to saved schedule view
+  useEffect(() => {
+    const navigateToSavedSchedule = sessionStorage.getItem(
+      "navigateToSavedSchedule",
+    );
+    if (!navigateToSavedSchedule) return;
+
+    try {
+      const target = JSON.parse(navigateToSavedSchedule);
+
+      // Validate required fields
+      if (!target.partName || !target.customerName) {
+        console.error("Missing required navigation data");
+        sessionStorage.removeItem("navigateToSavedSchedule");
+        return;
+      }
+
+      console.log("🚀 Starting navigation to saved schedule view:", target);
+
+      // Clear navigation data immediately
+      sessionStorage.removeItem("navigateToSavedSchedule");
+
+      // Set selected part and customer to show the list of schedules for this part/customer
+      setSelectedPart(target.partName);
+      setSelectedCustomer(target.customerName);
+
+      showNotification({
+        type: "success",
+        title: "Navigasi Berhasil",
+        message: `Berhasil membuka daftar jadwal untuk ${target.partName} - ${target.customerName}`,
+      });
+
+      console.log(
+        "✅ Navigation to saved schedule list completed successfully",
+      );
+    } catch (error) {
+      console.error("Error during navigation to saved schedule:", error);
+      sessionStorage.removeItem("navigateToSavedSchedule");
+    }
+  }, [savedSchedules]);
 
   // Load manpowerList saat komponen dimount
   useEffect(() => {
@@ -1457,7 +1456,6 @@ const SchedulerPage: React.FC = () => {
 
     loadManpowerList();
   }, []);
-
   // Load child parts dari backend saat komponen dimount
   useEffect(() => {
     const loadChildParts = async () => {
@@ -1499,8 +1497,11 @@ const SchedulerPage: React.FC = () => {
               customerName: item.customerName,
               stock: item.stockAvailable,
               productPlanningId: item.productPlanningId ?? null,
-              inMaterial: Array.from({ length: 30 }, () => [null, null]),
-              aktualInMaterial: Array.from({ length: 30 }, () => [null, null]),
+              inMaterial: Array.from({ length: days }, () => [null, null]),
+              aktualInMaterial: Array.from({ length: days }, () => [
+                null,
+                null,
+              ]),
             }),
           );
 
@@ -1509,28 +1510,103 @@ const SchedulerPage: React.FC = () => {
             const childPart = convertedChildParts[i];
             if (childPart.id) {
               try {
-                // Coba load rencana data untuk bulan dan tahun saat ini
-                const currentMonth = new Date().getMonth() + 1;
-                const currentYear = new Date().getFullYear();
-                const rencanaResponse =
+                console.log(
+                  `🔍 Loading rencana data for child part ${childPart.partName} (ID: ${childPart.id})`,
+                );
+
+                // Load rencana data untuk child part ini menggunakan getRencanaChildPartByChildPartIdAndBulanTahun
+                // dengan bulan dan tahun saat ini
+                const currentMonth = selectedMonth + 1; // FE 0-11 → BE 1-12
+                const currentYear = selectedYear;
+
+                const allRencana =
                   await RencanaChildPartService.getRencanaChildPartByBulanTahun(
                     currentMonth,
                     currentYear,
                   );
+                const rencanaResponse = (allRencana || []).filter(
+                  (r: any) => r.childPartId === childPart.id,
+                );
+
+                console.log(
+                  `📊 Raw rencana response for ${childPart.partName} (${currentMonth}/${currentYear}):`,
+                  rencanaResponse,
+                );
 
                 if (rencanaResponse && rencanaResponse.length > 0) {
-                  const rencanaForThisPart = rencanaResponse.find(
-                    (r: any) => r.childPartId === childPart.id,
+                  // Inisialisasi array untuk menyimpan data per hari
+                  const inMaterialData = Array.from({ length: days }, () => [
+                    null,
+                    null,
+                  ]);
+                  const aktualInMaterialData = Array.from(
+                    { length: days },
+                    () => [null, null],
                   );
 
-                  if (rencanaForThisPart) {
-                    convertedChildParts[i].inMaterial =
-                      rencanaForThisPart.rencanaInMaterial ||
-                      Array.from({ length: 30 }, () => [null, null]);
-                    convertedChildParts[i].aktualInMaterial =
-                      rencanaForThisPart.aktualInMaterial ||
-                      Array.from({ length: 30 }, () => [null, null]);
-                  }
+                  // Proses data rencana untuk setiap hari dan shift
+                  rencanaResponse.forEach((rencana: any) => {
+                    const dayIndex = rencana.hari - 1; // Convert hari (1-31) to array index (0-30)
+                    const shiftIndex = rencana.shift - 1; // Convert shift (1-2) to array index (0-1)
+
+                    console.log(
+                      `📅 Processing rencana data: hari=${rencana.hari}, shift=${rencana.shift}, dayIndex=${dayIndex}, shiftIndex=${shiftIndex}`,
+                    );
+                    console.log(
+                      `📊 Rencana values: rencana_inmaterial=${rencana.rencana_inmaterial}, aktual_inmaterial=${rencana.aktual_inmaterial}`,
+                    );
+
+                    if (
+                      dayIndex >= 0 &&
+                      dayIndex < days &&
+                      shiftIndex >= 0 &&
+                      shiftIndex < 2
+                    ) {
+                      // Set rencana in material
+                      if (
+                        rencana.rencana_inmaterial !== null &&
+                        rencana.rencana_inmaterial !== undefined
+                      ) {
+                        inMaterialData[dayIndex][shiftIndex] =
+                          rencana.rencana_inmaterial;
+                        console.log(
+                          `✅ Set inMaterial[${dayIndex}][${shiftIndex}] = ${rencana.rencana_inmaterial}`,
+                        );
+                      }
+
+                      // Set aktual in material
+                      if (
+                        rencana.aktual_inmaterial !== null &&
+                        rencana.aktual_inmaterial !== undefined
+                      ) {
+                        aktualInMaterialData[dayIndex][shiftIndex] =
+                          rencana.aktual_inmaterial;
+                        console.log(
+                          `✅ Set aktualInMaterial[${dayIndex}][${shiftIndex}] = ${rencana.aktual_inmaterial}`,
+                        );
+                      }
+                    } else {
+                      console.warn(
+                        `⚠️ Invalid indices: dayIndex=${dayIndex}, shiftIndex=${shiftIndex}`,
+                      );
+                    }
+                  });
+
+                  convertedChildParts[i].inMaterial = inMaterialData;
+                  convertedChildParts[i].aktualInMaterial =
+                    aktualInMaterialData;
+
+                  console.log(
+                    `✅ Loaded rencana data for child part ${childPart.partName}:`,
+                    {
+                      inMaterial: inMaterialData,
+                      aktualInMaterial: aktualInMaterialData,
+                    },
+                  );
+                } else {
+                  console.log(
+                    `ℹ️ No rencana data found for child part ${childPart.partName} in ${currentMonth}/${currentYear}`,
+                  );
                 }
               } catch (rencanaError) {
                 console.error(
@@ -1539,6 +1615,10 @@ const SchedulerPage: React.FC = () => {
                 );
                 // Gunakan default values jika gagal load rencana data
               }
+            } else {
+              console.warn(
+                `⚠️ Child part ${childPart.partName} has no ID, skipping rencana data load`,
+              );
             }
           }
 
@@ -1557,7 +1637,7 @@ const SchedulerPage: React.FC = () => {
     };
 
     loadChildParts();
-  }, []);
+  }, [savedSchedules, selectedMonth, selectedYear, form.part, form.customer]);
 
   // Fungsi untuk navigasi pagination child parts
   const goToNextChildPartPage = () => {
@@ -1595,6 +1675,27 @@ const SchedulerPage: React.FC = () => {
 
   const dedupeChildParts = (parts: ChildPartData[]): ChildPartData[] => {
     const map = new Map<string, ChildPartData>();
+    const countNonNull = (arr?: (number | null)[][]): number => {
+      if (!Array.isArray(arr)) return 0;
+      let count = 0;
+      for (const day of arr) {
+        if (Array.isArray(day)) {
+          for (const v of day) {
+            if (v !== null && v !== undefined) count++;
+          }
+        }
+      }
+      return count;
+    };
+    const pickBetterArray = (
+      a?: (number | null)[][],
+      b?: (number | null)[][],
+    ): (number | null)[][] | undefined => {
+      const aCount = countNonNull(a);
+      const bCount = countNonNull(b);
+      if (aCount === 0 && bCount === 0) return a ?? b;
+      return aCount >= bCount ? a : b;
+    };
     for (const cp of parts) {
       const key = getChildPartKey(cp);
       const existing = map.get(key);
@@ -1608,12 +1709,69 @@ const SchedulerPage: React.FC = () => {
         map.set(key, {
           ...other,
           ...prefer,
-          inMaterial: prefer.inMaterial || other.inMaterial,
-          aktualInMaterial: prefer.aktualInMaterial || other.aktualInMaterial,
+          inMaterial:
+            pickBetterArray(prefer.inMaterial, other.inMaterial) ??
+            Array.from({ length: days }, () => [null, null]),
+          aktualInMaterial:
+            pickBetterArray(prefer.aktualInMaterial, other.aktualInMaterial) ??
+            Array.from({ length: days }, () => [null, null]),
         });
       }
     }
     return Array.from(map.values());
+  };
+
+  // Fungsi untuk menyimpan data rencana child part ke database
+  const saveChildPartRencanaData = async (
+    childPartId: number,
+    inMaterial: (number | null)[][],
+    aktualInMaterial: (number | null)[][],
+  ) => {
+    try {
+      const currentMonth = selectedMonth + 1; // FE 0-11 → BE 1-12
+      const currentYear = selectedYear;
+
+      // Buat array untuk menyimpan semua operasi upsert
+      const upsertOperations = [];
+
+      // Proses data untuk setiap hari dan shift
+      for (let day = 1; day <= days; day++) {
+        for (let shift = 1; shift <= 2; shift++) {
+          const dayIndex = day - 1;
+          const shiftIndex = shift - 1;
+
+          const rencanaValue = inMaterial[dayIndex]?.[shiftIndex] ?? null;
+          const aktualValue = aktualInMaterial[dayIndex]?.[shiftIndex] ?? null;
+
+          // Hanya simpan jika ada nilai yang tidak null
+          if (rencanaValue !== null || aktualValue !== null) {
+            upsertOperations.push({
+              childPartId,
+              rencana_inmaterial: rencanaValue,
+              aktual_inmaterial: aktualValue,
+              shift,
+              bulan: currentMonth,
+              tahun: currentYear,
+              hari: day,
+            });
+          }
+        }
+      }
+
+      // Lakukan upsert untuk semua data
+      for (const data of upsertOperations) {
+        await RencanaChildPartService.upsertRencanaChildPart(data);
+      }
+
+      console.log(`✅ Saved rencana data for child part ${childPartId}:`, {
+        totalRecords: upsertOperations.length,
+        inMaterial,
+        aktualInMaterial,
+      });
+    } catch (error) {
+      console.error("Error saving child part rencana data:", error);
+      throw error;
+    }
   };
 
   // Fungsi untuk membersihkan duplikasi di savedSchedules
@@ -2102,7 +2260,6 @@ const SchedulerPage: React.FC = () => {
       });
     }
   };
-
   // Handler untuk manpowers (add/remove)
   const addManPower = async (name: string) => {
     try {
@@ -2897,7 +3054,6 @@ const SchedulerPage: React.FC = () => {
       throw error;
     }
   };
-
   // Fungsi untuk melakukan penyimpanan schedule
   const performSaveSchedule = async (
     currentMonth: number,
@@ -3695,7 +3851,6 @@ const SchedulerPage: React.FC = () => {
     );
     handleChildPartDataChange(childPartIdx);
   };
-
   // Wrapper untuk setSchedule dengan tracking perubahan
   const setScheduleWithTracking = (
     newSchedule: ScheduleItem[] | ((prev: ScheduleItem[]) => ScheduleItem[]),
@@ -4416,7 +4571,6 @@ const SchedulerPage: React.FC = () => {
       showAlert("Gagal membuka form edit. Silakan coba lagi.", "Error");
     }
   };
-
   const handleSaveEditSchedule = async (data: {
     month: number;
     year: number;
@@ -5073,7 +5227,6 @@ const SchedulerPage: React.FC = () => {
           },
         },
       });
-
       if (!existingScheduleInContext) {
         const scheduleWithImage = {
           ...saved,
@@ -5765,7 +5918,6 @@ const SchedulerPage: React.FC = () => {
       showAlert("Gagal menyimpan perubahan ke database", "Error");
     }
   };
-
   return (
     <div className="w-full min-h-screen flex items-start justify-center pt-16 sm:pt-20">
       {/* Navigation Loading Screen */}
@@ -6985,7 +7137,6 @@ const SchedulerPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-
               {/* Render ChildPartTable dengan pagination */}
               {childParts.length > 0 ? (
                 <div className="relative px-4 pb-8">
@@ -7118,7 +7269,7 @@ const SchedulerPage: React.FC = () => {
                                 handleDeleteChildPart(realIdx);
                               },
                               inMaterial: cp.inMaterial,
-                              onInMaterialChange: (val: any) => {
+                              onInMaterialChange: async (val: any) => {
                                 setChildParts((prev) =>
                                   prev.map((c, i) =>
                                     i === realIdx
@@ -7126,9 +7277,25 @@ const SchedulerPage: React.FC = () => {
                                       : c,
                                   ),
                                 );
+
+                                // Save to database
+                                try {
+                                  if (cp.id) {
+                                    await saveChildPartRencanaData(
+                                      cp.id,
+                                      val,
+                                      cp.aktualInMaterial,
+                                    );
+                                  }
+                                } catch (error) {
+                                  console.error(
+                                    "Error saving inMaterial to database:",
+                                    error,
+                                  );
+                                }
                               },
                               aktualInMaterial: cp.aktualInMaterial,
-                              onAktualInMaterialChange: (val: any) => {
+                              onAktualInMaterialChange: async (val: any) => {
                                 setChildParts((prev) =>
                                   prev.map((c, i) =>
                                     i === realIdx
@@ -7136,6 +7303,22 @@ const SchedulerPage: React.FC = () => {
                                       : c,
                                   ),
                                 );
+
+                                // Save to database
+                                try {
+                                  if (cp.id) {
+                                    await saveChildPartRencanaData(
+                                      cp.id,
+                                      cp.inMaterial,
+                                      val,
+                                    );
+                                  }
+                                } catch (error) {
+                                  console.error(
+                                    "Error saving aktualInMaterial to database:",
+                                    error,
+                                  );
+                                }
                               },
                               renderHeaderAction: (
                                 <div className="flex gap-2 items-center">

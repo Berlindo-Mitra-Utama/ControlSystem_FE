@@ -1,7 +1,7 @@
 import axios from "axios";
 
-// Base URL untuk API - Sesuaikan dengan port backend yang benar
 const API_BASE_URL = "https://kpmwlkjr-5555.asse.devtunnels.ms/api";
+//const API_BASE_URL = "https://292mhrfs-5555.asse.devtunnels.ms/api";
 //const API_BASE_URL = "https://6bqdp851-5555.use2.devtunnels.ms/api";
 //const API_BASE_URL = "http://localhost:5555/api";
 
@@ -1679,6 +1679,29 @@ export const RencanaChildPartService = {
     } catch (error) {
       console.error("Error fetching rencana child part by bulan tahun:", error);
       return [];
+    }
+  },
+
+  // Upsert rencana child part (create or update)
+  async upsertRencanaChildPart(rencanaData: {
+    childPartId: number;
+    bulan: number;
+    tahun: number;
+    hari: number;
+    shift: number;
+    rencana_inmaterial: number;
+    aktual_inmaterial: number;
+  }) {
+    try {
+      // Gunakan endpoint backend yang baru
+      const response = await api.post(
+        "/rencana-child-part/test/upsert",
+        rencanaData,
+      );
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error upserting rencana child part:", error);
+      throw error;
     }
   },
 };

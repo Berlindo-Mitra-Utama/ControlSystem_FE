@@ -179,14 +179,46 @@ const AllChartsPage: React.FC = () => {
       dayData[day] = { rencana: 0, actual: 0 };
     }
 
-    // Aggregate data per hari
+    // Aggregate data per hari dari scheduler
     monthSchedules.forEach((schedule) => {
       schedule.schedule.forEach((item) => {
         if (item.day >= 1 && item.day <= daysInMonth) {
-          dayData[item.day].rencana += item.planningHour || 0;
-          dayData[item.day].actual += item.jamProduksiAktual || 0;
+          // Rencana Jam Produksi - ambil dari planningHour atau hitung dari planningPcs
+          let rencanaJam = 0;
+          if (item.planningHour && item.planningHour > 0) {
+            rencanaJam = item.planningHour;
+          } else if (item.planningPcs && item.planningPcs > 0) {
+            // Hitung jam produksi dari planning PCS dan manpower
+            const manpower = item.manpowerIds?.length || 3; // default 3 manpower
+            const pcsPerManpower = 14 / 3; // 4.666 pcs per manpower
+            const outputPerHour = manpower * pcsPerManpower;
+            rencanaJam = outputPerHour > 0 ? item.planningPcs / outputPerHour : 0;
+          }
+          
+          // Actual Jam Produksi - ambil dari jamProduksiAktual atau hitung dari pcs
+          let actualJam = 0;
+          if (item.jamProduksiAktual && item.jamProduksiAktual > 0) {
+            actualJam = item.jamProduksiAktual;
+          } else if (item.pcs && item.pcs > 0) {
+            // Hitung jam produksi aktual dari PCS dan timePerPcs
+            const timePerPcs = 3600 / 14; // 14 pcs per jam (default)
+            const outputPerHour = timePerPcs > 0 ? 3600 / timePerPcs : 0;
+            actualJam = outputPerHour > 0 ? item.pcs / outputPerHour : 0;
+          }
+          
+          dayData[item.day].rencana += rencanaJam;
+          dayData[item.day].actual += actualJam;
         }
       });
+    });
+
+    // Debug logging
+    console.log("AllChartsPage - Chart data generation:", {
+      monthName,
+      selectedYear,
+      monthSchedulesCount: monthSchedules.length,
+      dayData,
+      sampleSchedule: monthSchedules[0]?.schedule?.[0]
     });
 
     // Convert ke array dan urutkan berdasarkan hari
@@ -205,6 +237,19 @@ const AllChartsPage: React.FC = () => {
 
   console.log("AllChartsPage - savedSchedules:", savedSchedules);
   console.log("AllChartsPage - filteredSchedules:", filteredSchedules);
+  console.log("AllChartsPage - selectedPart:", selectedPart);
+  console.log("AllChartsPage - selectedMonth:", selectedMonth);
+  console.log("AllChartsPage - selectedYear:", selectedYear);
+  
+  // Debug: Log sample schedule data structure
+  if (savedSchedules.length > 0) {
+    console.log("AllChartsPage - Sample schedule structure:", {
+      scheduleName: savedSchedules[0].name,
+      scheduleItems: savedSchedules[0].schedule?.slice(0, 3),
+      sampleItem: savedSchedules[0].schedule?.[0],
+      availableFields: savedSchedules[0].schedule?.[0] ? Object.keys(savedSchedules[0].schedule[0]) : []
+    });
+  }
 
   return (
     <div className={`w-full min-h-screen ${uiColors.bg.primary}`}>
@@ -430,6 +475,15 @@ const AllChartsPage: React.FC = () => {
           {filteredMonths.map((month) => {
             const chartData = generateMonthlyChartData(month);
             const hasData = chartData.length > 0;
+            
+            // Get month schedules for info display
+            const monthSchedules = filteredSchedules.filter((schedule) => {
+              const scheduleName = schedule.name || "";
+              return (
+                scheduleName.includes(month) &&
+                scheduleName.includes(selectedYear.toString())
+              );
+            });
 
             return (
               <div
@@ -506,6 +560,28 @@ const AllChartsPage: React.FC = () => {
                       ? `Perbandingan Rencana dan Actual Jam Produksi - ${selectedPart} (Per Hari)`
                       : "Perbandingan Rencana dan Actual Jam Produksi (Per Hari)"}
                   </p>
+                  {/* Info data source */}
+                  <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span>
+                        Data diambil dari {monthSchedules.length} jadwal produksi
+                        {selectedPart && ` untuk ${selectedPart}`}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {hasData ? (
@@ -561,12 +637,12 @@ const AllChartsPage: React.FC = () => {
                                   ? "#111827"
                                   : "#f9fafb",
                             }}
-                            formatter={(value: any, name: string) => [
-                              `${value} jam`,
-                              name === "rencanaJamProduksi"
-                                ? "Rencana Jam Produksi"
-                                : "Actual Jam Produksi",
-                            ]}
+                                                         formatter={(value: any, name: string) => [
+                               `${Number(value).toFixed(2)} jam`,
+                               name === "rencanaJamProduksi"
+                                 ? "Rencana Jam Produksi"
+                                 : "Actual Jam Produksi",
+                             ]}
                           />
                           <Legend />
                           <Bar
@@ -602,13 +678,21 @@ const AllChartsPage: React.FC = () => {
                         />
                       </svg>
                       <p className={`text-lg ${uiColors.text.tertiary} mb-2`}>
-                        Tidak ada data untuk {month}
+                        Tidak ada data untuk {month} {selectedYear}
                       </p>
-                      <p className={`text-sm ${uiColors.text.tertiary}`}>
+                      <p className={`text-sm ${uiColors.text.tertiary} mb-4`}>
                         {selectedPart
-                          ? `Belum ada jadwal produksi untuk ${selectedPart} di bulan ${month}`
-                          : `Belum ada jadwal produksi di bulan ${month}`}
+                          ? `Belum ada jadwal produksi untuk ${selectedPart} di bulan ${month} ${selectedYear}`
+                          : `Belum ada jadwal produksi di bulan ${month} ${selectedYear}`}
                       </p>
+                      <div className="text-xs text-gray-500">
+                        <p>Pastikan jadwal produksi sudah dibuat dengan:</p>
+                        <ul className="mt-1 space-y-1">
+                          <li>• Data planning PCS atau planning hour</li>
+                          <li>• Data actual PCS atau jam produksi aktual</li>
+                          <li>• Nama jadwal mengandung "{month} {selectedYear}"</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -681,27 +765,27 @@ const AllChartsPage: React.FC = () => {
                                 >
                                   Hari {item.day}
                                 </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}
-                                >
-                                  {item.rencanaJamProduksi.toFixed(1)} jam
-                                </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}
-                                >
-                                  {item.actualJamProduksi.toFixed(1)} jam
-                                </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${dailyGap >= 0 ? "text-green-600" : "text-red-600"}`}
-                                >
-                                  {dailyGap >= 0 ? "+" : ""}
-                                  {dailyGap.toFixed(1)} jam
-                                </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${dailyAchievement >= 100 ? "text-green-600" : dailyAchievement >= 80 ? "text-yellow-600" : "text-red-600"}`}
-                                >
-                                  {dailyAchievement.toFixed(1)}%
-                                </td>
+                                                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}
+                                 >
+                                   {item.rencanaJamProduksi.toFixed(2)} jam
+                                 </td>
+                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.primary}`}
+                                 >
+                                   {item.actualJamProduksi.toFixed(2)} jam
+                                 </td>
+                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${dailyGap >= 0 ? "text-green-600" : "text-red-600"}`}
+                                 >
+                                   {dailyGap >= 0 ? "+" : ""}
+                                   {dailyGap.toFixed(2)} jam
+                                 </td>
+                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${dailyAchievement >= 100 ? "text-green-600" : dailyAchievement >= 80 ? "text-yellow-600" : "text-red-600"}`}
+                                 >
+                                   {dailyAchievement.toFixed(2)}%
+                                 </td>
                               </tr>
                             );
                           })}
@@ -732,27 +816,27 @@ const AllChartsPage: React.FC = () => {
                                 >
                                   Total Akumulasi
                                 </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}
-                                >
-                                  {totalRencanaJam.toFixed(1)} jam
-                                </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}
-                                >
-                                  {totalActualJam.toFixed(1)} jam
-                                </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${gap >= 0 ? "text-green-600" : "text-red-600"}`}
-                                >
-                                  {gap >= 0 ? "+" : ""}
-                                  {gap.toFixed(1)} jam
-                                </td>
-                                <td
-                                  className={`px-6 py-4 whitespace-nowrap text-sm ${achievement >= 100 ? "text-green-600" : achievement >= 80 ? "text-yellow-600" : "text-red-600"}`}
-                                >
-                                  {achievement.toFixed(1)}%
-                                </td>
+                                                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}
+                                 >
+                                   {totalRencanaJam.toFixed(2)} jam
+                                 </td>
+                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${uiColors.text.accent}`}
+                                 >
+                                   {totalActualJam.toFixed(2)} jam
+                                 </td>
+                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${gap >= 0 ? "text-green-600" : "text-red-600"}`}
+                                 >
+                                   {gap >= 0 ? "+" : ""}
+                                   {gap.toFixed(2)} jam
+                                 </td>
+                                 <td
+                                   className={`px-6 py-4 whitespace-nowrap text-sm ${achievement >= 100 ? "text-green-600" : achievement >= 80 ? "text-yellow-600" : "text-red-600"}`}
+                                 >
+                                   {achievement.toFixed(2)}%
+                                 </td>
                               </tr>
                             );
                           })()}
